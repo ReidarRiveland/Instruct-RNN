@@ -1,0 +1,150 @@
+rich_instruct_dict = {}
+rich_instruct_dict['Go'] = ('respond in direction of stimuli when prompted', 'respond in displayed direction when prompted', 'choose direction displayed when prompted', 'respond with the same direction when prompted', 
+                            'go in the same direction when prompted', 'go in the displayed direction when prompted', 'respond with the identical direction when prompted', 'copy the direction displayed when prompted', 
+                            'when prompted react in the direction of stimuli', 'when prompted react in the direction of stimulation', 'when prompted respond with the same direction', 'go in the direction indicated when prompted', 
+                            'when prompted go in the direction shown', 'respond when asked to the same direction')
+
+rich_instruct_dict['RT Go'] = ('respond in direction of stimuli immediately', 'respond in displayed direction at stimulus onset', 'choose direction displayed immediately', 'respond with the same direction immediately', 
+                            'go in the same direction immediately', 'go in the displayed direction at as soon as stimulus appears', 'respond with the identical direction immediately', 'copy the direction displayed immediately', 
+                            'choose the direction displayed as soon as stimulus is shown', 'pick the same direction where the stimuli appears immediately', 'pick the identical direction displayed as soon as it appears', 
+                            'as soon as the stimulus appears respond in the same direction', 'when the stimulus is shown respond in the equivalent direction', 'choose the direction that appears on the display immediately')
+
+
+rich_instruct_dict['Anti Go'] = ('respond opposite of stimuli when prompted', 'respond in the reverse direction when prompted', 'choose the opposite of the displayed direction when prompted', 
+                            'choose the converse direction when prompted', 'respond with the converse direction when prompted', 'go in opposite direction when prompted', 'choose converse direction when prompted', 
+                            'respond with reverse of displayed direction when prompted', 'when asked respond opposite of stimuli', 'choose the inverse of the shown direction when directed', 
+                            'when prompted choose the opposite of direction shown', 'when cued go in the inverse of presented stimuli', 'pick the reverse of the stimuli displayed when asked')
+
+
+rich_instruct_dict['Anti RT Go'] = ('respond opposite of stimuli immediately', 'respond in the reverse direction immediately', 'choose the opposite of the displayed direction immediately', 
+                                'choose the converse direction immediately', 'respond with the converse direction immediately', 'go in opposite direction immediately', 'choose converse direction immediately', 
+                                'respond with opposite of displayed direction immediately', 'go in the reverse of the direction displayed upon appearance', 'as soon as stimulus appears respond in opposite direction', 
+                                'immediately after stimulus appears go in the reverse direction', 'choose the inverse direction of the one displayed immediately', 'respond in the converse of the displayed direction as soon as it appears', 
+                                'as soon as stimulus appears go in the reverse direction')
+
+rich_instruct_dict['DM'] = ('respond in direction of highest intensity', 'choose the strongest stimuli', 'go in the direction of the strongest stimuli', 'respond in direction of strongest stimuli', 'choose the most intense stimuli',
+                                'respond in direction of greatest strength', 'choose stimuli with highest strength', 'go in direction of greatest intensity', 'choose the orientation with largest strength', 
+                                'select displayed direction presented with the most strength', 'go in the direction of most strength', 'select the stimulus orientation reflecting the highest displayed value')
+
+rich_instruct_dict['Anti DM'] = ('respond in the direction of minimal strength', 'choose the weakest stimuli', 'go in the direction of stimuli without least intensity', 
+                                    'select the stimuli with the lowest strength', 'go in the direction presented with lower intensity', 'choose the stimuli with minimal strength', 
+                                    'respond to the direction presented with the weakest strength', 'pick the stimuli with least strength', 'select the orientation presented with minimal strength', 
+                                    'choose the stimuli with lowest intensity', 'go in the direction presented with weakest intensity', 'pick the weakest direction') 
+
+rich_instruct_dict['MultiDM'] = ('respond to the combined greatest value between two stimuli', 'choose the direction with highest average intensity between two modalities', 'select the direction with highest overall strength between two stimuli', 
+                                    'respond in the direction of highest combined stimulus strength', 'go in the direction with largest joint intensity between stimuli', 'select the orientation with highest average strength over both modalities', 
+                                    'go in the direction of highest combined stimulus value', 'choose the direction representing the highest integrated stimulus strength', 'respond in the direction with greatest sum over two displayed stimulus values', 
+                                    'select the direction with greatest average value across modalities')
+
+rich_instruct_dict['Anti MultiDM'] = ('respond in the direction wtih lowest combined value between two stimuli', 'select the orientation with least average intensity between two modalities', 'select the direction with weakest average value between two stimuli', 
+                                    'respond in the direction of minimal combined stimulus strength', 'go in the direction of smallest intensity integrated over both two modalities', 'choose the orientation with lowest average value over both modalities', 
+                                    'choose the orientation which has the weakest joint intensity over modalities', 'respond in the direction which has the lowest combined intensity', 'select the orientation with the minimal sum over modalities', 
+                                    'go in the direction with weakest average value across modalities')
+
+
+rich_instruct_dict['COMP1'] = ('if the first stimuli is greater then the second stimuli respond to the first direction', 
+                                'if the first stimuli is the greatest displayed go in the first direction', 
+                                'go in the direction of the first stimuli if it is strong then the second stimuli', 
+                                'when the initial stimuli has greatest intensity respond in that direction', 
+                                'if the earlier stimuli has greater strength then the later stimuli respond in the first direction',   
+                                'respond to the intial stimuli if it has larger value then the subsequent stimuli', 
+                                'choose the earlier stimuli when it is presented with highest intensity', 
+                                'if the initial stimuli has higher value then the second choose the first direction', 
+                                'when the first stimuli is presented with the highest intensity select that direction', 
+                                'choose the first stimuli if it is presented with the greatest intensity')
+
+rich_instruct_dict['COMP2'] = ('respond in the direction of the second stimuli if it has greatest intensity', 
+                                'if the subsequent stimuli has greatest presented value go in that direction', 
+                                'when the last stimuli possess the greater strength select that orientation', 
+                                'respond in the direction of the second stimuli if it has highest intensity', 
+                                'if the second stimuli has higher value choose the second orientation', 
+                                'select the subsequent stimuli direction if it is presented with greated strength', 
+                                'when the last stimuli is presented with most intesnity respond in that direction', 
+                                'choose the final stimuli if it has the greatest value', 
+                                'if the final stimuli is presented with the highest intensity go in that direction', 
+                                'select the second stimuli if it is presented with the most intensity')
+
+rich_instruct_dict['DMS'] = ('if the first and the second stimuli match then respond with that orientation', 
+                            'if the same directions are displayed then respond to the stimuli', 
+                            'if the stimuli match respond in the direction of the stimuli',
+                            'when the two displayed directions are the same respond in that direction', 
+                            'if the stimuli match go in the same direction', 
+                            'go in the displayed direction if the directions match', 
+                            'respond if the stimuli are displayed with the same orientation', 
+                            'if the first and second stimuli are in the same direction then respond', 
+                            'when the two stimuli match respond in the displayed direction', 
+                            'if the stimuli match then go')
+
+rich_instruct_dict['DNMS'] = ('if the first and second stimuli are not the same then respond to the first stimuli', 
+                                'if stimuli do not match go in direction of the first stimuli', 
+                                'when the displayed directions do not match go in initial direction', 
+                                'when stimuli are presented in different directions respond in the first', 
+                                'respond in the initial direction if stimuli are not the same', 
+                                'go in the first direction when stimuli orientations are different', 
+                                'respond in the initial displayed direction if stimuli do not match', 
+                                'if stimuli do not match respond in the first direction', 
+                                'if displayed directions are not the same  go in the initial direction', 
+                                'go in first displayed direction if stimuli do not match')
+
+
+rich_instruct_dict['DMC'] = ('if the stimuli are on the same half of the display go in second direction', 
+                            'respond to the second orientation if stimuli are in the same half of the display', 
+                            'go in latest direction if directions are in same half of display',
+                            'if the stimuli are in the same half of display respond in the last direction', 
+                            'if displayed orientations are in the same half respond in the second direction', 
+                            'respond in the last direction if the stimuli occur in the same half of the display', 
+                            'when the stimuli appear on the same half of the display go in the last direction', 
+                            'if the stimuli are on the same half choose the second direction', 
+                            'when the displayed directions are in the same half select the last direction', 
+                            'choose the second stimuli when displayed on the same half')
+
+rich_instruct_dict['DNMC'] = ('if stimuli are on different halves of display respond in the first direction', 
+                                'when the stimuli do not appear on same side of the display go in the initial direction', 
+                                'go in the first direction when stimuli are on different halves of the display', 
+                                'if the directions are on different halves select the first direction', 
+                                'when the stimuli appear in different halves choose the initial direction', 
+                                'select the initial direction if stimuli are not displayed on the same side of display', 
+                                'choose the first direction when stimuli appear on different halves', 
+                                'if the stimuli are not displayed on the same side then respond in first direction', 
+                                'select the initial orientation if stimuli are on different sides of display', 
+                                'respond in the first direction when directions are on different halves')
+
+
+test_instruction_dict = {}
+test_instruction_dict['Go'] = ('go in identical direction when prompted', 'when cued respond in the direction shown', 'when asked respond with the direction displayed', 'respond with the identical orientation when cued')
+test_instruction_dict['RT Go'] = ('choose the direction shown immediately', 'select the same direction presented immediately', 'as soon as stimulus appears select orientation displayed', 'at the same time as stimulus appearance choose the direction displayed')
+test_instruction_dict['Anti Go'] = ('select the opposing direction when prompted', 'choose the opposite of the presented direction shown when prompted', 'when cued respond with the reverse orientation', 'go in the inverse of displayed orientation when prompted')
+test_instruction_dict['Anti RT Go'] = ('pick the converse of the stimulus direction immediately', 'select the reverse of the shown direction immediately', 'when prompted select the inverse orientation as is shown', 'when cued choose the opposite of displayed orientation')
+test_instruction_dict['DM'] = ('select the stimuli of greatest strength', 'choose the direction with most intense stimuli', 'pick the direction with stimuli of greatest strength', 'select the orientation with greatest intensity in display')
+test_instruction_dict['Anti DM'] = ('choose the direction with lowest value', 'respond in the direction that is presented with least intensity', 'pick the orientation with the lowest strength', 'go in the direction with weakest presentation stregnth')
+test_instruction_dict['MultiDM'] = ('choose the stimuli with highest intensity averaged over modalities', 'select the orientation with greatest combined strength over modalities', 'go in direction with highest joint intensity between stimuli', 
+                                    'pick the direction of stimulus with greatest intensity between two modalities')
+test_instruction_dict['Anti MultiDM'] = ('pick the direction with minimal average value over modalities', 'select the orientation with lowest combined strength', 'go in the direction of the stimuli with weakest overall value between modalities', 'choose the direction with lowest presentation stregnth over modalities')
+
+test_instruction_dict['COMP1'] = ('when the first stimuli is strongest pick that orientation', 
+                                    'choose the initial stimuli if it is the stronger of the two presented', 
+                                    'if the initial stimuli has highest value select the first direction', 
+                                    'pick the first direction if the stimuli presented has the greatest value')
+
+test_instruction_dict['COMP2'] = ('if the last stimuli is presented with highest intensity respond in that direction', 
+                                    'pick the direction of the second stimuli if it has greatest value', 
+                                    'when the final direction has greater intensity then the first go in that direction', 
+                                    'choose the subsequent stimuli direction if it has maximal strength')
+
+test_instruction_dict['DMS'] = ('respond if stimuli are presented in the same directions', 
+                                'go in the displayed direction if the stimuli match', 
+                                'when displayed directions are the same respond to the stimulus', 
+                                'go in the direction displayed if the two stimuli match')                 
+
+test_instruction_dict['DNMS'] = ('if displayed directions are different go in the first direction', 
+                                    'when the stimuli are not the same respond to the initial stimuli',
+                                    'if the orientations do not match then go in the first direction', 
+                                    'if the two stimuli are not the same respond to the initial stimuli')                                
+test_instruction_dict['DMC'] = ('go in the second orientation if both are displayed on the same side of the display', 
+                                'if the stimuli appear in the same section respond to the second direction', 
+                                    'if stimuli are on the same half respond in the last displayed direction', 
+                                    'pick the second orientation if they both appear on the same side of the display')
+test_instruction_dict['DNMC'] = ('pick the first direction if both are on different sides', 
+                                'choose the initial displayed orientation if they do not appear on the same half', 
+                                    'if the directions do not appear on the same side of the display respond to the first direction', 
+                                    'if the stimuli are on different sides respond to the first direction')                                    
