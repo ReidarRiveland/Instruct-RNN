@@ -15,19 +15,6 @@ class Task():
     DELTA_T = 20
     DM_DELAY = False
 
-    COMB_VEC_DICT = {
-            'Go': np.array([1, 0, 1, 0, 0, 0, 0, 0, 0, 0]), 
-            'RT Go': np.array([1, 0, 0, 1, 0, 0, 0, 0, 0, 0]),
-            'Anti Go': np.array([0, 1, 1, 0, 0, 0, 0, 0, 0, 0]), 
-            'Anti RT Go': np.array([0, 1, 0, 1, 0, 0, 0, 0, 0, 0]), 
-            'DM': np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0]), 
-            'MultiDM': np.array([0, 0, 0, 0, 1, 1, 0, 0, 0, 0]), 
-            'DMS': np.array([0, 0, 0, 0, 0, 0, 1, 0, 1, 0]), 
-            'DNMS': np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 1]), 
-            'DMC': np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 0]), 
-            'DNMC': np.array([0, 0, 0, 0, 0, 0, 0, 1, 0, 1]), 
-        }
-
     def __init__(self, num_trials): 
         self.num_trials = num_trials
         self.intervals = np.empty((num_trials, 5), dtype=tuple)

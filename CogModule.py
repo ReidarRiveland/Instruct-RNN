@@ -11,8 +11,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.nn import CrossEntropyLoss, TransformerDecoderLayer, TransformerDecoder
 
-os.chdir('/home/reidar/Projects/LanguageCog/CogRNN')
-from batchTaskedit import Task, construct_batch
+from Task import Task, construct_batch
 from LangModule import get_batch, toNumerals
 task_list = Task.TASK_LIST
 tuning_dirs = Task.TUNING_DIRS
@@ -48,23 +47,6 @@ def isCorrect(nn_out, nn_target, target_dirs):
         isCorrect[i] = isDir and isFixed
     return isCorrect
 
-#original
-# def masked_MSE_Loss(outputs, targets, mask):
-#     mask_applied = torch.mul(torch.pow((outputs - targets), 2), mask)
-#     #average along time dimension?
-#     avg_applied = torch.sum(torch.sum(mask_applied, 2), 1)
-#     return torch.mean(avg_applied)
-
-# net = simpleNet(77, 128, 1)
-# test_in = torch.Tensor(128, 120, 77)
-# h = net.initHidden(128, 0.1)
-# out, _ = net(test_in, h)
-
-
-# avg_applied = torch.mean(torch.mean(out, 2), 1)
-# torch.mean(avg_applied)
-# loss
-
 def masked_MSE_Loss(outputs, targets, mask):
     mask_applied = torch.mul(torch.pow((outputs - targets), 2), mask)
     #average along time dimension?
@@ -79,13 +61,6 @@ def mask_input_rule(in_tensor, batch_len, seq_len):
 def del_input_rule(in_tensor): 
     new_input = torch.cat((in_tensor[:, :, 0:1], in_tensor[:, :, len(task_list)+1:]), axis=2)
     return new_input
-
-def insert_comb_vec(task_type, in_tensor, batch_len, seq_len): 
-    comb_vec = torch.Tensor(Task.COMB_VEC_DICT[task_type])
-    comb_vec_len = comb_vec.shape[0]
-    full_comb_vec = comb_vec.repeat(batch_len, seq_len).view(batch_len, seq_len, -1).to(device)
-    comb_vec_input = torch.cat((in_tensor[:, :, 0:1], full_comb_vec, in_tensor[:, :, comb_vec_len+1:]), axis=2)
-    return comb_vec_input
 
 
 class CogModule():
@@ -127,8 +102,6 @@ class CogModule():
             ins = torch.Tensor(in_data).to(device)
             if instruct_mode == 'masked' or ((task_type == holdout_task) and (model.instruct_mode == 'masked')): 
                 ins = mask_input_rule(ins, batch_len, 120).to(device)
-            if instruct_mode == 'comb': 
-                ins = insert_comb_vec(task_type, ins, batch_len, 120).to(device)
             out, hid = model(ins, h0)
         return out, hid
 
@@ -347,24 +320,20 @@ class CogModule():
         plt.show()
 
     def save_models(self, holdout_task, foldername):
-        os.chdir('/home/reidar/Projects/LanguageCog/CogRNN/'+foldername)
-        pickle.dump(self.total_correct_dict, open(holdout_task+'_training_correct_dict', 'wb'))
-        pickle.dump(self.total_loss_dict, open(holdout_task+'_training_loss_dict', 'wb'))
+        pickle.dump(self.total_correct_dict, open(foldername+'/'+holdout_task+'_training_correct_dict', 'wb'))
+        pickle.dump(self.total_loss_dict, open(foldername+'/'+holdout_task+'_training_loss_dict', 'wb'))
         for model_name, model in self.model_dict.items():
-            name = holdout_task+'_'+model_name+'.pt'
-            name = name.replace(' ', '_')
-            torch.save(model.state_dict(), name)
-        os.chdir('/home/reidar/Projects/LanguageCog/CogRNN/')
+            filename = foldername+'/'+holdout_task+'_'+model_name+'.pt'
+            filename = filename.replace(' ', '_')
+            torch.save(model.state_dict(), filename)
 
     def load_models(self, holdout_task, foldername):
-        os.chdir('/home/reidar/Projects/LanguageCog/CogRNN/'+foldername)
         if 'Model1 Masked' in self.model_dict.keys(): 
             del(self.model_dict['Model1 Masked'])
         for model_name, model in self.model_dict.items():
-            name = holdout_task+'_'+model_name+'.pt'
-            name = name.replace(' ', '_')
-            model.load_state_dict(torch.load(name))
-        os.chdir('/home/reidar/Projects/LanguageCog/CogRNN/')
+            filename = foldername+'/'+holdout_task+'_'+model_name+'.pt'
+            filename = foldername.replace(' ', '_')
+            model.load_state_dict(torch.load(filename))
         self.add_masked_model1()
         self.reset_data()
 
@@ -445,11 +414,3 @@ class instructNet(nn.Module):
 
     def initHidden(self, batch_size, value):
         return torch.full((self.num_layers, batch_size, self.hid_dim), value)
-
-    net = simpleNet(77, 128, 1)
-    net = simpleNet(77, 128, 1)
-
-
-    net = simpleNet(77, 128, 1)
-
-

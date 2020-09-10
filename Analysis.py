@@ -6,13 +6,15 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 from collections import defaultdict
-os.chdir('/home/reidar/Projects/LanguageCog/CogRNN')
-from LangModule import LangModule, LangTransform, gpt2, BERT, SBERT
+from sklearn.metrics.pairwise import cosine_similarity
+
+from LangModule import LangModule, gpt2, BERT, SBERT, Pretrained_Embedder
 from CogModule import CogModule, instructNet, simpleNet
 from Data import make_data
 from RNNs import mySimpleNet, myInstructNet
-from batchTaskedit import Task
-from datetime import date
+from Task import Task
+
+
 task_list = Task.TASK_LIST
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 foldername = '7.9InstructSwapModels'
@@ -27,9 +29,9 @@ gpt = gpt2(20, 'avg')
 gptMod = LangModule(gpt)
 sif = Pretrained_Embedder('SIF')
 sifMod = LangModule(sif)
-bertMod.langModel.load_state_dict(torch.load('bert.pt'))
-gptMod.langModel.load_state_dict(torch.load('gpt0.pt'))
-sBertMod.langModel.load_state_dict(torch.load('sBert.pt'))
+bertMod.langModel.load_state_dict(torch.load('LanguageModels/bert.pt'))
+gptMod.langModel.load_state_dict(torch.load('LanguageModels/gpt0.pt'))
+sBertMod.langModel.load_state_dict(torch.load('LanguageModels/sBert.pt'))
 
 for holdout_task in task_list:
     net = simpleNet(77, 128, 1)
@@ -177,7 +179,6 @@ for i in range(0,10):
 s_reps = sBert(permuted_instruct)
 s_reps.cpu()
 
-from sklearn.metrics.pairwise import cosine_similarity
 from LangModule import rich_instruct_dict
 import seaborn as sns
 indices, reps = sBertMod._get_instruct_rep(rich_instruct_dict)

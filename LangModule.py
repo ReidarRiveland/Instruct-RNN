@@ -26,44 +26,23 @@ from matplotlib.lines import Line2D
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from scipy.ndimage.filters import gaussian_filter1d
-
 import pickle
 
-import os
-os.chdir('/home/reidar/Projects/LanguageCog/CogRNN')
-from batchTaskedit import Task
+from Task import Task
 task_list = Task.TASK_LIST
 
-########SET UP SPECIFIC INSTRUCTIONS
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 PAD_LEN = 20
-
-import torchtext
-from torchtext.data.utils import get_tokenizer
-TEXT = torchtext.data.Field(fix_length = 15, tokenize=get_tokenizer("basic_english"),
-                            init_token='<sos>',
-                            eos_token='<eos>',
-                            lower=True)
-train_txt, val_txt, test_txt = torchtext.datasets.WikiText2.splits(TEXT)
-TEXT.build_vocab(train_txt, val_txt, test_txt)
-ntokens = len(TEXT.vocab.stoi)
 
 from transformers import GPT2Tokenizer, BertTokenizer
 gptTokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 bertTokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-
-# import pickle
-# pickle.dump(rich_instruct_dict, open('rich_instruct_dict', 'wb'))
-#pickle.dump(test_instruction_dict, open('test_instruction_dict', 'wb'))
 
 rich_instruct_dict = pickle.load(open('rich_instruct_dict', 'rb'))
 test_instruction_dict = pickle.load(open('test_instruction_dict', 'rb'))
 
 swapped_task_list = ['Anti DM', 'Anti MultiDM', 'Anti Go', 'DMS', 'DNMC', 'Go', 'MultiDM', 'RT Go', 'DNMS', 'DMC', 'DM', 'Anti RT Go']
 instruct_swap_dict = dict(zip(swapped_task_list, rich_instruct_dict.values()))
-
-shuffled_rich_instruct_dict = pickle.load(open('shuffled_rich_instruct_dict', 'rb'))
-shuffled_test_instruction_dict = pickle.load(open('shuffled_test_instruction_dict', 'rb'))
 
 
 def shuffle_instruct_dict(instruct_dict): 
@@ -96,54 +75,33 @@ def wordFreq():
 
     return freq_dict, list(set(all_words)), all_sentences, split_sentences
 
-test_instruction_dict['DMS']
-
-def load_word_embedder_dict(): 
+def load_word_embedder_dict(splits): 
     word_embedder_dict = {}
     _,_,_, split_sentences = wordFreq()
-    word_embedder_dict['w2v50'] = (KeyedVectors.load("w2v50.kv", mmap='r'), 50)
-    word_embedder_dict['w2v100'] = (KeyedVectors.load("w2v100.kv", mmap='r'), 100)
-    word_embedder_dict['wh50'] = (KeyedVectors.load("wh_w2v50.kv", mmap='r'), 50)
-    word_embedder_dict['wh100'] = (KeyedVectors.load("wh_w2v100.kv", mmap='r'), 100)
+    word_embedder_dict['w2v50'] = (KeyedVectors.load("wordVectors/w2v50.kv", mmap='r'), 50)
+    word_embedder_dict['w2v100'] = (KeyedVectors.load("wordVectors/w2v100.kv", mmap='r'), 100)
+    word_embedder_dict['wh50'] = (KeyedVectors.load("wordVectors/wh_w2v50.kv", mmap='r'), 50)
+    word_embedder_dict['wh100'] = (KeyedVectors.load("wordVectors/wh_w2v100.kv", mmap='r'), 100)
     sif_w2v = SIF(word_embedder_dict['w2v50'][0], workers=2)
     sif_wh = SIF(word_embedder_dict['wh50'][0], workers=2)
-    sif_w2v.train(s)
+    sif_w2v.train(splits)
     word_embedder_dict['SIF'] = (sif_w2v, 50)
-    sif_wh.train(s)
+    sif_wh.train(splits)
     word_embedder_dict['SIF_wh'] = (sif_wh, 50)
-    gpt_hid = pickle.load(open('gpt_hid_dict', 'rb'))
-    word_embedder_dict['gpt'] = gpt_hid
     return word_embedder_dict
 
-
 freq_dict, vocab, all_sentences, split_sentences = wordFreq()
-s = IndexedList(split_sentences)
-word_embedder_dict = load_word_embedder_dict()
-rand_embedder = np.random.randn(len(vocab), 50)
+word_embedder_dict = load_word_embedder_dict(IndexedList(split_sentences))
 
 def get_fse_embedding(instruct, embedderStr): 
     assert embedderStr in ['SIF', 'SIF_wh'], "embedderStr must be a pretrained fse embedding"
     embedder = word_embedder_dict[embedderStr][0]
     if instruct in all_sentences: 
-        index = s.items.index(instruct.split())
+        index = IndexedList(split_sentences).items.index(instruct.split())
         embedded = embedder.sv[index]
     else: 
         tmp = (instruct.split(), 0)
         embedded = embedder.infer([tmp])
-    return embedded
-
-def get_rand_wordVec(instruct, embed_dim=50): 
-    instruct_list = []
-    instruction = instruct.split()
-    for i in range(PAD_LEN): 
-        #SHOULD USE PADDED SEQUENCE HERE
-        if i < len(instruction):
-            vec = np.matmul(np.eye(len(vocab))[vocab.index(instruction[i])], rand_embedder)
-            instruct_list.append(vec)
-        else: 
-            zeros = np.zeros_like(vec)
-            instruct_list.append(zeros)
-    embedded = np.array(instruct_list)
     return embedded
 
 def toNumerals(tokenizer_type, instructions): 
@@ -154,8 +112,6 @@ def toNumerals(tokenizer_type, instructions):
             tokenized = torch.Tensor(bertTokenizer.encode(instruct)).unsqueeze(1)
         if tokenizer_type is 'gpt': 
             tokenized = torch.Tensor(gptTokenizer.encode(instruct)).unsqueeze(1)
-        if tokenizer_type is 'wikiText': 
-            tokenized = TEXT.numericalize([instruct.split()])
         embedding[:tokenized.shape[0]] = tokenized
         ins_temp.append(embedding)
     return torch.stack(ins_temp).squeeze().long().to(device)
@@ -219,8 +175,6 @@ class Pretrained_Embedder(nn.Module):
                 embedded.append(np.array(instruct_list))
             if self.embedderStr in ['SIF', 'SIF_wh']: 
                 embedded.append(get_fse_embedding(instruct[i], self.embedderStr))
-            if self.embedderStr is 'rand': 
-                embedded.append(get_rand_wordVec(instruct[i]))
         return torch.Tensor(np.array(embedded)).to(device)
 
 class LastLinear(nn.Module): 
@@ -304,12 +258,8 @@ class LangModule():
             if self.tokenizer_type is not None: 
                 instructions = toNumerals(self.tokenizer_type, instructions)
             out = self.model_classifier(instructions)
-            if self.instruct_mode == 'comb': 
-                tensor_targets = torch.Tensor(Task.COMB_VEC_DICT[task]).repeat(4, 1).to(device)
-                loss = self.classifier_criterion(out, tensor_targets.float())
-            else: 
-                tensor_targets = torch.full((len(instructions), ), i).to(device)
-                loss = self.classifier_criterion(out, tensor_targets.long())            
+            tensor_targets = torch.full((len(instructions), ), i).to(device)
+            loss = self.classifier_criterion(out, tensor_targets.long())            
             total_loss += loss.item()
         self.model_classifier.train()
         return total_loss/len(task_list)
@@ -343,16 +293,6 @@ class LangModule():
                 confuse_mat[i, j] += 1
                 if j == i:
                     num_correct += 1  
-
-            for j, sentence in enumerate(test_instruction_dict[task]):
-                if self.instruct_mode == 'comb': 
-                    model_out = self.model_classifier([sentence]).squeeze()
-                    model_hot_encoding = np.round(nn.Sigmoid()(model_out).cpu().detach().numpy())
-                    model_cat = None
-                    for k, encoding in enumerate(list(Task.COMB_VEC_DICT.values())): 
-                        if np.all(encoding == model_hot_encoding):
-                            model_cat = k
-                            confuse_mat[i, model_cat] += 1
             perf_dict[task] = num_correct/(j+1)
         return perf_dict, confuse_mat
 
@@ -526,90 +466,3 @@ class SIFmodel(nn.Module):
 
     def forward(self, x): 
         return torch.Tensor(self.identity(x))
-
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, dropout=0.1, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        self.dropout = nn.Dropout(p=dropout)
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
-    def forward(self, x):
-        x = x + self.pe[:x.size(0), :]
-        return self.dropout(x)
-
-class LangTransform(nn.Module): 
-    def __init__(self, embedderStr, out_dim, d_model, num_layers, nheads, dim_ff, drop_p=0.1, usePretrain = False): 
-        super(LangTransform, self).__init__()
-        assert embedderStr in ['w2v50', 'w2v100', 'wh50', 'wh100', 'rand', 'trainable50', 'trainable100'],'embedderSTR must take a word embedding'
-
-        self.embedderStr = embedderStr
-        if embedderStr not in ['trainable50', 'trainable100']: 
-            self.encoder = Pretrained_Embedder(self.embedderStr)
-            self.embed_dim = self.encoder.embed_dim
-        elif embedderStr is 'trainable50': 
-            self.encoder = nn.Embedding(len(TEXT.vocab.stoi), 50)
-            self.embed_dim = 50
-        elif embedderStr is 'trainable100': 
-            self.encoder = nn.Embedding(len(TEXT.vocab.stoi), 100)
-            self.embed_dim = 100
-
-        self.out_dim = out_dim
-        self.in_shape = ['batch_len', PAD_LEN, self.embed_dim]
-        self.out_shape = ['batch_len', self.out_dim]
-
-        self.drop_p = drop_p
-        self.num_layers = num_layers
-        self.dim_ff = dim_ff
-        self.d_model = d_model
-        self.nheads = nheads
-        self.src_mask = None
-        self.pos_encoder = PositionalEncoding(self.d_model, dropout=self.drop_p)
-        encoder_layers = TransformerEncoderLayer(self.d_model, self.nheads, self.dim_ff, dropout=self.drop_p)
-        self.transformer_encoder = TransformerEncoder(encoder_layers, self.num_layers)
-        self.proj_out = nn.Sequential(nn.Linear(PAD_LEN*self.d_model, self.out_dim), nn.ReLU())
-
-    def _generate_square_subsequent_mask(self, sz):
-        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
-        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
-        return mask
-
-    def forward(self, src):
-        if self.src_mask is None or self.src_mask.size(0) != len(src):
-            mask = self._generate_square_subsequent_mask(len(src)).to(device)
-            self.src_mask = mask
-
-        src = self.encoder(src) * math.sqrt(self.d_model)
-        src = self.pos_encoder(src)
-        output = self.transformer_encoder(src, self.src_mask)
-        output = self.proj_out(output.flatten(1))
-        return output
-
-class RecurrentWord2Task(nn.Module): 
-    def __init__(self, embedderStr, hid_dim, out_dim, drop_p = 0.1): 
-        super(RecurrentWord2Task, self).__init__()
-        assert embedderStr in ['w2v50', 'w2v100', 'wh50', 'wh100', 'rand'],'embedderSTR must take a word embedding'
-        self.embedderStr = embedderStr
-        self.embed_dim = word_embedder_dict[embedderStr][1]
-        self.hid_dim = hid_dim
-        self.out_dim = out_dim
-
-        self.in_shape = ['batch_len', PAD_LEN, self.embed_dim]
-        self.out_shape = ['batch_len', self.out_dim]
-
-        self.rnn = nn.GRU(self.embed_dim, self.hid_dim, batch_first=True)
-        self.lin_out = nn.Linear(self.hid_dim, self.out_dim)
-        self.word_drop = nn.Dropout(drop_p)
-    def forward(self, x): 
-        x = self.word_drop(x)
-        _, h_T = self.rnn(x)
-        out = self.lin_out(h_T)
-        return out
-    
-    def initHidden(self):
-        return torch.full((1, 1, self.hid_dim))
-
