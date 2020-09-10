@@ -157,7 +157,6 @@ def plot_robustness(robustness_dict):
 
 # multi_task_data_flatdm = make_data(BATCH_LEN=128, NUM_BATCHES=500)
 # pickle.dump(multi_task_data_flatdm, open( "multi_task_data_flatdm", "wb" ))
-# multi_task_data = pickle.load(open('multi_task_data', 'rb'))
 
 cog.load_models('DM', '31.8Models')
 
