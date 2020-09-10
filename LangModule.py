@@ -38,8 +38,8 @@ from transformers import GPT2Tokenizer, BertTokenizer
 gptTokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 bertTokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
-rich_instruct_dict = pickle.load(open('rich_instruct_dict', 'rb'))
-test_instruction_dict = pickle.load(open('test_instruction_dict', 'rb'))
+rich_instruct_dict = pickle.load(open('Instructions/rich_instruct_dict', 'rb'))
+test_instruction_dict = pickle.load(open('Instructions/test_instruction_dict', 'rb'))
 
 swapped_task_list = ['Anti DM', 'Anti MultiDM', 'Anti Go', 'DMS', 'DNMC', 'Go', 'MultiDM', 'RT Go', 'DNMS', 'DMC', 'DM', 'Anti RT Go']
 instruct_swap_dict = dict(zip(swapped_task_list, rich_instruct_dict.values()))
