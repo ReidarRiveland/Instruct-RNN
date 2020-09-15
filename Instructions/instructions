@@ -64,9 +64,29 @@ rich_instruct_dict['COMP2'] = ('respond in the direction of the second stimuli i
                                 'if the final stimuli is presented with the higher intensity than the initial stimuli go in that direction', 
                                 'select the second stimuli if it is presented with the higher values than the first stimuli')
 
-rich_instruct_dict['Multi COMP1'] = 
+rich_instruct_dict['MultiCOMP1'] = ('respond to the first direction when it has greater strength on average than the second stimuli',
+                                        'respond if the first direction has higher combined intensity over two modalities than the second stimuli', 
+                                        'if the joint intensity of the first directions is higher than the second then respond to the first direction', 
+                                        'choose the initial direction if the integrated strength across modalities is greater than the final direction', 
+                                        'go in the initial direction if it has greater value than the final direction when combined over modalities', 
+                                        'select the first direction when it displays greater integrated strength than the second direction', 
+                                        'if the initial direction has higher overall value over modalities than the final direction then choose the first direction', 
+                                        'if the combined intesnity of the first direction is higher than the second direction then respond to the first direction', 
+                                        'choose the initial direction when its joint strength in both modalities is greater than the final direction', 
+                                        'pick the first direction if the average value is larger than the second direction', 
+                                        'select the initial direction if it displays a higher overall intensity than the final direction')
 
-rich_instruct_dict['Multi COMP2'] = 
+rich_instruct_dict['MultiCOMP2'] = ('respond in the second direction if it has larger overall strength over modalities than the first direction', 
+                                        'if the final direction has greater combined value than the initial direction then respond in the second direction', 
+                                        'respond in the second direction when it has higher integrated value over modalities than the first direction', 
+                                        'select the second direction if it has greater strength than the first direction over both modalities', 
+                                        'choose the final direction if it has a joint intensity higher than the initial direction over modalities', 
+                                        'if the final direction is presented with greater overall strength than the initial direction choose the final direction', 
+                                        'respond to the second direction when it has larger combined value than the first direction', 
+                                        'select the final direction if the value integrated over modalities is greater than the first direction', 
+                                        'if the second direction is represented with higher intensity than the second then respond to the second direction', 
+                                        'choose the second direction when its combined strength is higher than the first direction')
+
 
 rich_instruct_dict['DMS'] = ('if the first and the second stimuli match then respond with that orientation', 
                             'if the same directions are displayed then respond to the stimuli', 
@@ -134,6 +154,16 @@ test_instruction_dict['COMP2'] = ('if the last stimuli is presented with highest
                                     'pick the direction of the second stimuli if it has greatest value', 
                                     'when the final direction has greater intensity then the first go in that direction', 
                                     'choose the subsequent stimuli direction if it has maximal strength')
+
+test_instruction_dict['MultiCOMP1']=('if the initial direction displays higher averaged value than the second direction then respond to initial direction', 
+                                        'pick the first orientation if it has greater combined intensity than the second orientation', 
+                                        'when the first direction has higher value averaged over modalities than the second direction then respond', 
+                                        'choose the initial orientation when it has greater joint value over modalities than the final direction')
+                            
+test_instruction_dict['MultiCOMP2']=('if the final orientation displays greater overall value than the inital direction combined over modalities then respond', 
+                                        'pick the second direction if it has a bigger averaged value than the first direction', 
+                                        'choose the subsequent direction if it has higher combined intensity than the initial direction', 
+                                        'select the second direction if it has a larger average values than the first direction over both modalities')
 
 test_instruction_dict['DMS'] = ('respond if stimuli are presented in the same directions', 
                                 'go in the displayed direction if the stimuli match', 

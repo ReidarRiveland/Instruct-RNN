@@ -16,6 +16,7 @@ from Task import Task
 task_list = Task.TASK_LIST
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 def sort_by_model(dict): 
     model_sorted = defaultdict(list)
     for task in dict.keys(): 
@@ -68,17 +69,21 @@ def plot_robustness(robustness_dict):
     plt.show()
 
 
-bert = BERT(20)
-bertMod = LangModule(bert)
-
 sBert = SBERT(20)
-sBertMod = LangModule(sBert)
+sBertMod = LangModule(sBert, filenotes='MultiComp_')
+
 sBertMod.train_classifier(128, 100, 5, lr=0.001)
 sBertMod.plot_loss('validation')
 sBertMod.plot_embedding('PCA')
 
+train_bert = BERT(20)
+train_bertMod = LangModule(train_bert)
+
 train_sBert = SBERT(20)
 train_sBertMod = LangModule(train_sBert)
+
+
+
 
 gpt = gpt2(20)
 gptMod = LangModule(gpt)
@@ -97,17 +102,17 @@ bowMod = LangModule(bow)
 sBertMod.model_classifier.load_state_dict(torch.load('LanguageModels/SBERT_20.pt'))
 
 
-foldername = '11.9CompModels'
-for holdout_task in ['Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']:
-    net = simpleNet(79, 128, 1)
+foldername = '15.9MultiCompModels'
+for holdout_task in task_list:
+    net = simpleNet(81, 128, 1)
     # gpt_net = instructNet(gptMod, 128, 1)
-    # bert_net = instructNet(bertMod, 128, 1)
+    #bert_net = instructNet(train_bertMod, 128, 1, tune_langModel=True)
     sBert_net = instructNet(sBertMod, 128, 1)
     train_sBert_net = instructNet(train_sBertMod, 128, 1, tune_langModel=True)
     model_dict = {}
     model_dict['Model1'] = net
     # model_dict['GPT'] = gpt_net
-    # model_dict['BERT'] = bert_net
+    #model_dict['BERT train'] = bert_net
     model_dict['S-Bert'] = sBert_net
     model_dict['S-Bert train'] = train_sBert_net
     cog = CogModule(model_dict)
@@ -116,6 +121,8 @@ for holdout_task in ['Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'DM
     cog.train(holdout_data, 5, lr=0.0005)
     cog.train(holdout_data, 5, lr=0.0001)
     cog.save_models(holdout_task, foldername)
+
+
 
 net = simpleNet(79, 128, 1)
 # gpt_net = instructNet(gptMod, 128, 1)

@@ -34,7 +34,6 @@ from Task import Task
 task_list = Task.TASK_LIST
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-PAD_LEN = 20
 
 from transformers import GPT2Tokenizer, BertTokenizer
 gptTokenizer = GPT2Tokenizer.from_pretrained('gpt2')
@@ -46,6 +45,7 @@ test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict', 'rb'))
 swapped_task_list = ['Anti DM', 'Anti MultiDM', 'Anti Go', 'DMS', 'DNMC', 'Go', 'MultiDM', 'RT Go', 'DNMS', 'DMC', 'DM', 'Anti RT Go']
 instruct_swap_dict = dict(zip(swapped_task_list, train_instruct_dict.values()))
 
+PAD_LEN = 25
 
 def shuffle_instruct_dict(instruct_dict): 
     shuffled_dict = defaultdict(list)
@@ -94,7 +94,6 @@ def load_word_embedder_dict(splits):
 
 freq_dict, vocab, all_sentences, split_sentences = wordFreq()
 word_embedder_dict = load_word_embedder_dict(IndexedList(split_sentences))
-
 
 def get_fse_embedding(instruct, embedderStr): 
     assert embedderStr in ['SIF', 'SIF_wh'], "embedderStr must be a pretrained fse embedding"
@@ -192,7 +191,7 @@ class LastLinear(nn.Module):
 
 
 class LangModule(): 
-    def __init__(self, langModel, instruct_mode = None): 
+    def __init__(self, langModel, filenotes = '', instruct_mode = None): 
         self.langModel = langModel
         self.embedderStr = langModel.embedderStr
         if self.embedderStr in ['trainable50', 'trainable100']: 
@@ -210,7 +209,7 @@ class LangModule():
         self.shuffled = False
         self.classifier_criterion = nn.CrossEntropyLoss()
 
-        self.filename = self.embedderStr + '_' + str(self.langModel.out_dim) + '.pt'
+        self.filename = filenotes + self.embedderStr + '_' + str(self.langModel.out_dim) + '.pt'
 
     def train_classifier(self, batch_len, num_batches, epochs, optim_method = 'adam', lr=0.001, weight_decay=0, shuffle = False, train_out_only = False):
         self.shuffled = shuffle

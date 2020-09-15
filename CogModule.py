@@ -380,7 +380,7 @@ class instructNet(nn.Module):
         self.langMod = langMod
         self.num_layers = num_layers
         self.lang_embed_dim = langMod.langModel.out_dim
-        self.rnn = simpleNet(self.sensory_in_dim+self.lang_embed_dim, hid_dim, self.num_layers)
+        self.rnn = simpleNet(self.lang_embed_dim + self.sensory_in_dim, hid_dim, self.num_layers)
 
         if tune_langModel:
             self.langModel.train()
