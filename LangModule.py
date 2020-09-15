@@ -23,6 +23,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
+from mpl_toolkits.mplot3d import Axes3D
+
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from scipy.ndimage.filters import gaussian_filter1d
@@ -38,11 +40,11 @@ from transformers import GPT2Tokenizer, BertTokenizer
 gptTokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 bertTokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
-rich_instruct_dict = pickle.load(open('Instructions/rich_instruct_dict', 'rb'))
-test_instruction_dict = pickle.load(open('Instructions/test_instruction_dict', 'rb'))
+train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict', 'rb'))
+test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict', 'rb'))
 
 swapped_task_list = ['Anti DM', 'Anti MultiDM', 'Anti Go', 'DMS', 'DNMC', 'Go', 'MultiDM', 'RT Go', 'DNMS', 'DMC', 'DM', 'Anti RT Go']
-instruct_swap_dict = dict(zip(swapped_task_list, rich_instruct_dict.values()))
+instruct_swap_dict = dict(zip(swapped_task_list, train_instruct_dict.values()))
 
 
 def shuffle_instruct_dict(instruct_dict): 
@@ -60,7 +62,7 @@ def wordFreq():
     all_words = []
     all_sentences = []
     for task_type in task_list:
-        instructions = rich_instruct_dict[task_type] + test_instruction_dict[task_type]
+        instructions = train_instruct_dict[task_type] + test_instruct_dict[task_type]
         for sentence in instructions: 
             all_sentences.append(sentence)
             for word in sentence.split(): 
@@ -73,7 +75,7 @@ def wordFreq():
         list_sent = sentence.split()
         split_sentences.append(list_sent)
 
-    return freq_dict, list(set(all_words)), all_sentences, split_sentences
+    return freq_dict, sorted(list(set(all_words))), all_sentences, split_sentences
 
 def load_word_embedder_dict(splits): 
     word_embedder_dict = {}
@@ -92,6 +94,7 @@ def load_word_embedder_dict(splits):
 
 freq_dict, vocab, all_sentences, split_sentences = wordFreq()
 word_embedder_dict = load_word_embedder_dict(IndexedList(split_sentences))
+
 
 def get_fse_embedding(instruct, embedderStr): 
     assert embedderStr in ['SIF', 'SIF_wh'], "embedderStr must be a pretrained fse embedding"
@@ -117,7 +120,7 @@ def toNumerals(tokenizer_type, instructions):
     return torch.stack(ins_temp).squeeze().long().to(device)
 
 
-def get_batch(batch_size, holdout_task, tokenizer, task_type = None, instruct_mode = None):
+def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
     batch = []
     batch_target_index = []
     for i in range(batch_size):
@@ -127,7 +130,7 @@ def get_batch(batch_size, holdout_task, tokenizer, task_type = None, instruct_mo
         if instruct_mode == 'instruct_swap': 
             instruct_dict = instruct_swap_dict
         else: 
-            instruct_dict = rich_instruct_dict
+            instruct_dict = train_instruct_dict
         instruct = random.choice(instruct_dict[task])
         batch_target_index.append(task_list.index(task))
         if instruct_mode == 'shuffled': 
@@ -146,7 +149,6 @@ def get_batch(batch_size, holdout_task, tokenizer, task_type = None, instruct_mo
     if tokenizer is not None: 
         batch = toNumerals(tokenizer, batch)
     return batch, batch_target_index
-
 
 class Pretrained_Embedder(nn.Module): 
     def __init__(self, embedderStr):
@@ -188,6 +190,7 @@ class LastLinear(nn.Module):
         out = self.linear(x)
         return out
 
+
 class LangModule(): 
     def __init__(self, langModel, instruct_mode = None): 
         self.langModel = langModel
@@ -205,16 +208,11 @@ class LangModule():
         self.instruct_mode = instruct_mode
         self.model_classifier = LastLinear(self.langModel).to(device)
         self.shuffled = False
-
-        if instruct_mode == 'comb': 
-            self.classifier_criterion = nn.BCEWithLogitsLoss()
-        else:
-            self.classifier_criterion = nn.CrossEntropyLoss()
+        self.classifier_criterion = nn.CrossEntropyLoss()
 
         self.filename = self.embedderStr + '_' + str(self.langModel.out_dim) + '.pt'
 
-    def train_classifier(self, batch_len, num_batches, epochs, optim_method = 'adam', lr=0.001, weight_decay=0, shuffle = False, 
-                                            holdout_task = None, train_out_only = False):
+    def train_classifier(self, batch_len, num_batches, epochs, optim_method = 'adam', lr=0.001, weight_decay=0, shuffle = False, train_out_only = False):
         self.shuffled = shuffle
         if optim_method == 'adam': 
             opt = optim.Adam(self.model_classifier.parameters(), lr, weight_decay=weight_decay)
@@ -228,13 +226,10 @@ class LangModule():
         for i in range(epochs):
             for j in range(num_batches): 
                 opt.zero_grad()
-                ins_temp, targets = get_batch(batch_len, holdout_task = holdout_task, tokenizer = self.tokenizer_type, instruct_mode = self.instruct_mode)
+                ins_temp, targets = get_batch(batch_len, tokenizer = self.tokenizer_type, instruct_mode = self.instruct_mode)
                 tensor_targets = torch.Tensor(targets).to(device)
                 out = self.model_classifier(ins_temp)
-                if self.instruct_mode == 'comb': 
-                    loss = self.classifier_criterion(out, tensor_targets.float())
-                else: 
-                    loss = self.classifier_criterion(out, tensor_targets.long())
+                loss = self.classifier_criterion(out, tensor_targets.long())
                 loss.backward()
                 opt.step()
                 if j%100 == 0: 
@@ -246,7 +241,7 @@ class LangModule():
 
                 if val_loss < best_val_loss: 
                     best_val_loss = val_loss
-                    torch.save(self.model_classifier.state_dict(), self.filename)
+                    torch.save(self.model_classifier.state_dict(), 'LanguageModels/'+self.filename)
         self.model_classifier.load_state_dict(torch.load(self.filename))
 
     def get_val_loss(self): 
@@ -254,7 +249,7 @@ class LangModule():
         num_sentences = 0
         self.model_classifier.eval()
         for i, task in enumerate(task_list): 
-            instructions = test_instruction_dict[task]
+            instructions = test_instruct_dict[task]
             if self.tokenizer_type is not None: 
                 instructions = toNumerals(self.tokenizer_type, instructions)
             out = self.model_classifier(instructions)
@@ -285,7 +280,7 @@ class LangModule():
         confuse_mat = np.zeros((num_task, num_task), dtype=int)
         for i, task in enumerate(task_list): 
             num_correct = 0
-            instructions = test_instruction_dict[task]
+            instructions = test_instruct_dict[task]
             if self.tokenizer_type is not None: 
                 instructions = toNumerals(self.tokenizer_type, instructions)
             model_cat = torch.argmax(self.model_classifier(instructions), dim=1).cpu().numpy()
@@ -316,33 +311,44 @@ class LangModule():
             rep_tensor = torch.cat((rep_tensor, out_rep), dim=0)
         return task_indices, rep_tensor
 
-    def plot_embedding(self, embedding_type):
+    def plot_embedding(self, embedding_type, dim=2, train_only=False):
         assert embedding_type in ['PCA', 'tSNE'], "entered invalid embedding_type: %r" %embedding_type
+        assert dim in [2, 3], "embedding dimension must be 2 or 3"
 
-        train_indices, train_rep = self._get_instruct_rep(rich_instruct_dict)
-        test_indices, test_rep = self._get_instruct_rep(test_instruction_dict)
+        train_indices, train_rep = self._get_instruct_rep(train_instruct_dict)
+        test_indices, test_rep = self._get_instruct_rep(test_instruct_dict)
         if test_rep.dim()>2: 
             test_rep = test_rep.squeeze()
         if embedding_type == 'PCA':
-            embedded_train = PCA(n_components=2).fit_transform(train_rep.cpu().detach().numpy())
-            embedded_test = PCA(n_components=2).fit_transform(test_rep.cpu().detach().numpy())
+            embedded_train = PCA(n_components=dim).fit_transform(train_rep.cpu().detach().numpy())
+            embedded_test = PCA(n_components=dim).fit_transform(test_rep.cpu().detach().numpy())
         elif embedding_type == 'tSNE': 
-            embedded_train = TSNE(n_components=2).fit_transform(train_rep.cpu().detach().numpy())
-            embedded_test = TSNE(n_components=2).fit_transform(test_rep.cpu().detach().numpy())
+            embedded_train = TSNE(n_components=dim).fit_transform(train_rep.cpu().detach().numpy())
+            embedded_test = TSNE(n_components=dim).fit_transform(test_rep.cpu().detach().numpy())
 
-        fig, ax = plt.subplots(figsize=(12, 10))
         cmap = matplotlib.cm.get_cmap('hsv')
-        norm = matplotlib.colors.Normalize(vmin=0, vmax=13)
+        norm = matplotlib.colors.Normalize(vmin=0, vmax=12)
 
         color_train = norm(np.array(train_indices).astype(int))
         color_test = norm(np.array(test_indices).astype(int))
+        if dim == 2: 
+            fig, ax = plt.subplots(figsize=(12, 10))
+            plt.scatter(embedded_train[:, 0], embedded_train[:, 1], c=cmap(color_train), cmap=cmap, s=100)
+            if not train_only:
+                plt.scatter(embedded_test[:, 0], embedded_test[:, 1], c=cmap(color_test), marker= "X", s=100)
+            plt.setp(ax, xticks=[], yticks=[])
+            plt.xlabel("PC 1", fontsize = 18)
+            plt.ylabel("PC 2", fontsize = 18)
+        else: 
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.scatter(embedded_train[:, 0], embedded_train[:, 1], embedded_train[:,2], c=cmap(color_train), cmap=cmap, s=100)
+            if not train_only:
+                ax.scatter(embedded_test[:, 0], embedded_test[:, 1], embedded_test[:, 2], c=cmap(color_test), marker= "X", s=100)
+            ax.set_xlabel('PC 1')
+            ax.set_ylabel('PC 2')
+            ax.set_zlabel('PC 3')
 
-        plt.scatter(embedded_train[:, 0], embedded_train[:, 1], c=cmap(color_train), cmap=cmap, s=100)
-        plt.scatter(embedded_test[:, 0], embedded_test[:, 1], c=cmap(color_test), marker= "X", s=100)
-
-        plt.setp(ax, xticks=[], yticks=[])
-        plt.xlabel("PCA 1", fontsize = 18)
-        plt.ylabel("PCA 2", fontsize = 18)
 
         plt.title("PCA Embedding for Distributed Rep.", fontsize=18)
         digits = np.arange(len(task_list))
@@ -374,22 +380,15 @@ def plot_lang_perf(mod_dict, mode, smoothing):
     plt.xlabel('total mini-batches')
 
 
-def max_pool(tensor_in): 
-    max_pooled, _ = torch.max(tensor_in, dim=1)
-    return max_pooled
-
-def avg_pool(tensor_in): 
-    return torch.mean(tensor_in, dim=1)
-
 class gpt2(nn.Module): 
-    def __init__(self, out_dim, pooling): 
+    def __init__(self, out_dim, d_reduce='avg'): 
         super(gpt2, self).__init__()
         from transformers import GPT2Model
-        self.pooling = pooling
+        self.d_reduce = d_reduce
         self.embedderStr = 'gpt'
         self.out_dim = out_dim
 
-        if pooling == 'lin_out':
+        if self.d_reduce == 'linear':
             self.proj_out = nn.Sequential(nn.Linear(PAD_LEN*768, 768), nn.ReLU(), nn.Linear(768, self.out_dim), nn.ReLU())
         else: 
             self.proj_out = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
@@ -397,25 +396,25 @@ class gpt2(nn.Module):
         self.transformer = GPT2Model.from_pretrained('gpt2')
     def forward(self, x): 
         trans_out = self.transformer(x)[0]
-        if self.pooling == 'lin_out': 
+        if self.d_reduce == 'linear': 
             out = self.proj_out(trans_out.flatten(1))
-        elif self.pooling ==  'max': 
-            trans_out = max_pool(trans_out)
+        elif self.d_reduce ==  'max': 
+            trans_out = torch.max((trans_out), dim=1)
             out =self.proj_out(trans_out)
-        elif self.pooling == 'avg': 
-            trans_out = avg_pool(trans_out)
+        elif self.d_reduce == 'avg': 
+            trans_out = torch.mean((trans_out), dim =1) 
             out =self.proj_out(trans_out)
         return out
 
 class BERT(nn.Module):
-    def __init__(self, out_dim, pooling): 
+    def __init__(self, out_dim, d_reduce='avg'): 
         super(BERT, self).__init__()
         from transformers import BertModel
-        self.pooling = pooling
+        self.d_reduce = d_reduce
         self.embedderStr = 'BERT'
         self.out_dim = out_dim
 
-        if pooling == 'lin_out':
+        if self.d_reduce == 'linear':
             self.proj_out = nn.Sequential(nn.Linear(PAD_LEN*768, 768), nn.ReLU(), nn.Linear(768, self.out_dim), nn.ReLU())
         else: 
             self.proj_out = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
@@ -424,40 +423,35 @@ class BERT(nn.Module):
 
     def forward(self, x): 
         trans_out = self.transformer(x)[0]
-        if self.pooling == 'lin_out': 
+        if self.d_reduce == 'linear': 
             out = self.proj_out(trans_out.flatten(1))
-        elif self.pooling ==  'max': 
-            trans_out = max_pool(trans_out)
+        elif self.d_reduce ==  'max': 
+            trans_out = torch.max((trans_out), dim=1)
             out =self.proj_out(trans_out)
-        elif self.pooling == 'avg': 
-            trans_out = avg_pool(trans_out)
+        elif self.d_reduce == 'avg': 
+            trans_out = torch.mean((trans_out), dim =1) 
             out =self.proj_out(trans_out)
+        elif self.d_reduce == 'avg_conv': 
+            trans_out = nn.AvgPool2d((1, ), (2,1))
         return out
 
+
 class SBERT(nn.Module): 
-    def __init__(self, out_dim, d_reduce): 
+    def __init__(self, out_dim): 
         super(SBERT, self).__init__()
         from sentence_transformers import SentenceTransformer
         self.model = SentenceTransformer('bert-base-nli-mean-tokens')
         self.embedderStr = 'SBERT'
         self.out_dim = out_dim
-        self.d_reduce = d_reduce 
-        if d_reduce == 'lin_out': 
-            self.lin = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
+        self.lin = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
     def forward(self, x): 
         sent_embedding = np.array(self.model.encode(x))
-        if self.d_reduce == 'PCA': 
-            sent_embedding = np.array(self.model.encode(x))
-            sent_embedding = torch.Tensor(PCA(n_components=self.out_dim).fit_transform(sent_embedding))
-        if self.d_reduce == 'lin_out': 
-            sent_embedding = self.lin(torch.Tensor(sent_embedding).to(device))
+        sent_embedding = self.lin(torch.Tensor(sent_embedding).to(device))
         return sent_embedding
         
-
 class SIFmodel(nn.Module): 
     def __init__(self, SIF_type): 
         super(SIFmodel, self).__init__()
-        self.embed_dim = 50 
         self.out_shape = ['batch_len', 50]
         self.in_shape = ['batch_len', 50]
         self.out_dim =50 
@@ -466,3 +460,20 @@ class SIFmodel(nn.Module):
 
     def forward(self, x): 
         return torch.Tensor(self.identity(x))
+
+
+class BoW(nn.Module): 
+    def __init__(self): 
+        super(BoW, self).__init__()
+        self.embedderStr = 'BoW'
+        self.out_dim = len(vocab)    
+
+    def forward(self, x): 
+        batch_vectorized = []
+        for instruct in x: 
+            out_vec = torch.zeros(self.out_dim)
+            for word in instruct.split():
+                index = vocab.index(word)
+                out_vec[index] += 1
+            batch_vectorized.append(out_vec)
+        return torch.stack(batch_vectorized).to(device)

@@ -1,9 +1,7 @@
 import numpy as np
-import os
 from collections import defaultdict
 
-os.chdir('/home/reidar/Projects/LanguageCog/CogRNN')
-from batchTaskedit import Task, construct_batch
+from Task import Task, construct_batch
 default_task_dict = dict.fromkeys(Task.TASK_LIST, 1/len(Task.TASK_LIST))
 
 def make_data(task_dict = default_task_dict, BATCH_LEN = 128, NUM_BATCHES = 500, holdouts=None):

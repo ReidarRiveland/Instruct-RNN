@@ -88,7 +88,7 @@ class CogModule():
 
     def _get_lang_input(self, model, batch_len, task_type, instruct_mode): 
         tokenizer_type = model.langMod.tokenizer_type
-        batch_instruct, _ = get_batch(batch_len, None, tokenizer_type, task_type=task_type, instruct_mode=instruct_mode)
+        batch_instruct, _ = get_batch(batch_len, tokenizer_type, task_type=task_type, instruct_mode=instruct_mode)
         return batch_instruct
 
     def _get_model_resp(self, model, batch_len, in_data, task_type, instruct_mode, holdout_task): 
@@ -138,10 +138,7 @@ class CogModule():
 
         batch_len = ins_tensor.shape[1]
         batch_num = ins_tensor.shape[0]
-
         correct_array = np.empty((batch_len, batch_num), dtype=bool)
-
-        holdout_instruct, _ = get_batch(batch_len, holdout_task, None, task_type=holdout_task, instruct_mode='single')
 
         for i in range(epochs):
             print('epoch', i)
@@ -157,29 +154,17 @@ class CogModule():
                 for model_type, model in self.model_dict.items(): 
                     opt = opt_dict[model_type]
                     opt.zero_grad()
-                    if task_type == holdout_task and instruct_mode == 'single' and model.isLang: 
-                        h0 = model.initHidden(batch_len, 0.1).to(device)
-                        if model.embedderStr is not 'SBERT': 
-                            instruct = toNumerals(model.embedderStr, holdout_instruct)
-                        else: 
-                            instruct = holdout_instruct
-                        ins = del_input_rule(torch.Tensor(ins_tensor[j, :, :, :])).to(device)
-                        print(instruct)
-                        out, _ = model(instruct, ins, h0)
-                    else: 
-                        out, _ = self._get_model_resp(model, batch_len, ins_tensor[j, :, :, :], task_type, instruct_mode, holdout_task)
-            
+                    out, _ = self._get_model_resp(model, batch_len, ins_tensor[j, :, :, :], task_type, instruct_mode, holdout_task)
                     loss = masked_MSE_Loss(out, tar, mask) 
-                
                     loss.backward()
                     opt.step()
 
                     if j%50 == 0: 
                         print(j, ':', model_type, ":", "{:.2e}".format(loss.item()))                
-                        self.total_loss_dict[model_type].append(loss.item())
+                    self.total_loss_dict[model_type].append(loss.item())
                     self.total_correct_dict[model_type].append(np.mean(isCorrect(out, tar, tar_dir)))
                 self.total_task_list.append(task_type)
-        self.sort_perf_by_task()
+            self.sort_perf_by_task()
         return opt_dict
 
     def plot_learning_curve(self, mode, task_type=None, smoothing = 2):
@@ -332,13 +317,14 @@ class CogModule():
             del(self.model_dict['Model1 Masked'])
         for model_name, model in self.model_dict.items():
             filename = foldername+'/'+holdout_task+'_'+model_name+'.pt'
-            filename = foldername.replace(' ', '_')
+            filename = filename.replace(' ', '_')
             model.load_state_dict(torch.load(filename))
         self.add_masked_model1()
         self.reset_data()
 
     def add_masked_model1(self): 
-        net_masked = simpleNet(77, 128, 1, instruct_mode='masked').to(device)
+        in_dim = self.model_dict['Model1'].in_dim
+        net_masked = simpleNet(in_dim, 128, 1, instruct_mode='masked').to(device)
         net_masked.load_state_dict(self.model_dict['Model1'].state_dict())
         models = list(self.model_dict.values())
         models.insert(1, net_masked)

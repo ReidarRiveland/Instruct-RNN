@@ -1,3 +1,7 @@
+'''
+
+'''
+
 import math
 import numpy as np
 import seaborn as sns
@@ -5,7 +9,7 @@ import matplotlib.pyplot as plt
 
 
 class Task():
-    TASK_LIST = ['Go', 'RT Go', 'Anti Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'DMS', 'DNMS', 'DMC', 'DNMC']
+    TASK_LIST = ['Go', 'RT Go', 'Anti Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']
     STIM_DIM = 32
     TUNING_DIRS = [((2*np.pi*i)/32) for i in range(STIM_DIM)]
     TRIAL_LEN = int(120)
@@ -202,10 +206,78 @@ class Go(Task):
         trial_tars = self.targets[trial_index, :, :].T
         self._plot_trial(trial_ins, trial_tars, self.task_type)
 
+class Comp(Task):
+    def __init__(self, task_type, num_trials): 
+        super().__init__(num_trials)
+        assert task_type in ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'], "entered invalid task type: %r" %task_type
+        self.task_type = task_type
+        self.stim_mod_arr = np.empty((2, 2, num_trials), dtype=tuple)
+        self.target_dirs = np.empty(num_trials)
+        self.directions = []
+
+        for i in range(num_trials): 
+            direction1 = np.random.uniform(0, 2*np.pi)
+            direction2 = np.random.uniform(0, 2*np.pi)
+            requires_response = np.random.choice([True, False])
+            self.directions.append((direction1, direction2))
+
+            if requires_response and 'COMP1' in self.task_type:
+                self.target_dirs[i] = direction1
+            elif requires_response and 'COMP2' in self.task_type: 
+                self.target_dirs[i] = direction2
+            else: 
+                self.target_dirs[i] = None
+
+            
+            if 'Multi' in self.task_type: 
+                positive_strength = np.random.uniform(2, 2.25)
+                negative_strength = np.random.uniform(1.7, 1.95)
+
+                positive_split = np.random.uniform(0.6, 1.2)
+                negative_split = np.random.uniform(0.5, 1.0)
+            else: 
+                positive_strength = np.random.uniform(1.05, 1.25)
+                negative_strength = np.random.uniform(0.75, 0.95 )
+
+            if ('COMP1' in self.task_type and requires_response) or ('COMP2' in self.task_type and not requires_response): 
+                if 'Multi' in self.task_type: 
+                    strengths = np.array([np.random.permutation([positive_split, positive_strength-positive_split]),
+                                                np.random.permutation([negative_split, negative_strength-negative_split])])
+                else:
+                    strengths = np.array([positive_strength, negative_strength])
+            elif ('COMP2' in self.task_type and requires_response) or ('COMP1' in self.task_type and not requires_response): 
+                if 'Multi' in self.task_type: 
+                    strengths = np.array([np.random.permutation([negative_split, negative_strength-negative_split]),
+                                                np.random.permutation([positive_split, positive_strength-positive_split])])
+                else: 
+                    strengths = np.array([negative_strength, positive_strength])
+            
+            if 'Multi' in self.task_type: 
+                self.stim_mod_arr[0, 0, i] = [(strengths[0, 0], direction1)]
+                self.stim_mod_arr[1, 0, i] = [(strengths[1, 0], direction2)]
+                self.stim_mod_arr[0, 1, i] = [(strengths[0, 1], direction1)]
+                self.stim_mod_arr[1, 1, i] = [(strengths[1, 1], direction2)]
+            else: 
+                mod = np.random.choice([0, 1])
+                self.stim_mod_arr[0, mod, i] = [(strengths[0], direction1)]
+                self.stim_mod_arr[1, mod, i] = [(strengths[1], direction2)]
+                self.stim_mod_arr[0, ((mod+1)%2), i] = None
+                self.stim_mod_arr[1, ((mod+1)%2), i] = None
+
+        self.inputs = self._get_trial_inputs(self.task_type, self.stim_mod_arr)
+        self.targets = self._get_trial_targets(self.target_dirs)
+        self.masks = self._get_loss_mask()
+
+    def plot_trial(self, trial_index):
+        trial_ins = self.inputs[trial_index, :, :].T
+        trial_tars = self.targets[trial_index, :, :].T
+        self._plot_trial(trial_ins, trial_tars, self.task_type)
+
+
 class Delay(Task): 
     def __init__(self, task_type, num_trials): 
         super().__init__(num_trials)
-        assert task_type in ['DMS', 'DNMS', 'DMC', 'DNMC', 'COMP1', 'COMP2'], "entered invalid task_type: %r" %task_type
+        assert task_type in ['DMS', 'DNMS', 'DMC', 'DNMC'], "entered invalid task_type: %r" %task_type
         self.task_type = task_type
         self.stim_mod_arr = np.empty((2, 2, num_trials), dtype=tuple)
         self.target_dirs = np.empty(num_trials)
@@ -329,9 +401,13 @@ def construct_batch(task_type, num):
     if task_type == 'Anti MultiDM': 
         trial = DM('Anti MultiDM', num)
     if task_type == 'COMP1': 
-        trial = Delay('COMP1', num)
+        trial = Comp('COMP1', num)
     if task_type == 'COMP2': 
-        trial = Delay('COMP2', num)
+        trial = Comp('COMP2', num)
+    if task_type == 'MultiCOMP1': 
+        trial = Comp('MultiCOMP1', num)
+    if task_type == 'MultiCOMP2': 
+        trial = Comp('MultiCOMP2', num)
     if task_type == 'DMS': 
         trial = Delay('DMS', num)
     if task_type == 'DNMS': 
@@ -342,3 +418,4 @@ def construct_batch(task_type, num):
         trial = Delay('DNMC', num)
     return trial 
 
+trial = construct_batch('MultiCOMP2', 10)

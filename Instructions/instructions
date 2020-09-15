@@ -36,33 +36,37 @@ rich_instruct_dict['MultiDM'] = ('respond to the combined greatest value between
                                     'go in the direction of highest combined stimulus value', 'choose the direction representing the highest integrated stimulus strength', 'respond in the direction with greatest sum over two displayed stimulus values', 
                                     'select the direction with greatest average value across modalities')
 
-rich_instruct_dict['Anti MultiDM'] = ('respond in the direction wtih lowest combined value between two stimuli', 'select the orientation with least average intensity between two modalities', 'select the direction with weakest average value between two stimuli', 
+rich_instruct_dict['Anti MultiDM'] = ('respond in the direction with lowest combined value between two stimuli', 'select the orientation with least average intensity between two modalities', 'select the direction with weakest average value between two stimuli', 
                                     'respond in the direction of minimal combined stimulus strength', 'go in the direction of smallest intensity integrated over both two modalities', 'choose the orientation with lowest average value over both modalities', 
                                     'choose the orientation which has the weakest joint intensity over modalities', 'respond in the direction which has the lowest combined intensity', 'select the orientation with the minimal sum over modalities', 
                                     'go in the direction with weakest average value across modalities')
 
 
-rich_instruct_dict['COMP1'] = ('if the first stimuli is greater then the second stimuli respond to the first direction', 
-                                'if the first stimuli is the greatest displayed go in the first direction', 
+rich_instruct_dict['COMP1'] = ('if the first stimuli is greater than the second stimuli respond to the in that direction', 
+                                'if the first stimuli has larger intensity then the second go in the first direction', 
                                 'go in the direction of the first stimuli if it is strong then the second stimuli', 
-                                'when the initial stimuli has greatest intensity respond in that direction', 
+                                'when the initial stimuli has higher value than the subsequent intensity respond in that direction', 
                                 'if the earlier stimuli has greater strength then the later stimuli respond in the first direction',   
                                 'respond to the intial stimuli if it has larger value then the subsequent stimuli', 
-                                'choose the earlier stimuli when it is presented with highest intensity', 
-                                'if the initial stimuli has higher value then the second choose the first direction', 
-                                'when the first stimuli is presented with the highest intensity select that direction', 
-                                'choose the first stimuli if it is presented with the greatest intensity')
+                                'choose the earlier stimuli when it is presented with highest intensity relative to the second stimuli', 
+                                'if the initial stimuli has higher value then the second choose that direction', 
+                                'when the first stimuli is presented with the higher intensity then the second select that direction', 
+                                'choose the first stimuli if it is presented with the greater intensity then the first')
 
-rich_instruct_dict['COMP2'] = ('respond in the direction of the second stimuli if it has greatest intensity', 
-                                'if the subsequent stimuli has greatest presented value go in that direction', 
-                                'when the last stimuli possess the greater strength select that orientation', 
-                                'respond in the direction of the second stimuli if it has highest intensity', 
-                                'if the second stimuli has higher value choose the second orientation', 
-                                'select the subsequent stimuli direction if it is presented with greated strength', 
-                                'when the last stimuli is presented with most intesnity respond in that direction', 
-                                'choose the final stimuli if it has the greatest value', 
-                                'if the final stimuli is presented with the highest intensity go in that direction', 
-                                'select the second stimuli if it is presented with the most intensity')
+rich_instruct_dict['COMP2'] = ('respond in the direction of the second stimuli if it has greater intensity then the first', 
+                                'if the subsequent stimuli is presented with higher value relative to the initial stimuli go in that direction', 
+                                'when the last stimuli possess the greater strength than the first select that orientation', 
+                                'respond in the direction of the second stimuli if it has higher intensity than the initial stimuli', 
+                                'if the second stimuli has higher value than the first choose the second orientation', 
+                                'select the subsequent stimuli direction if it is presented with greater strength than the first', 
+                                'when the last stimuli is presented with more intesnity than the first respond in that direction', 
+                                'choose the final stimuli if it has the greater value than the first', 
+                                'if the final stimuli is presented with the higher intensity than the initial stimuli go in that direction', 
+                                'select the second stimuli if it is presented with the higher values than the first stimuli')
+
+rich_instruct_dict['Multi COMP1'] = 
+
+rich_instruct_dict['Multi COMP2'] = 
 
 rich_instruct_dict['DMS'] = ('if the first and the second stimuli match then respond with that orientation', 
                             'if the same directions are displayed then respond to the stimuli', 
