@@ -110,6 +110,8 @@ def toNumerals(tokenizer_type, instructions):
     ins_temp = []
     for instruct in instructions:
         embedding = torch.ones((PAD_LEN, 1))
+        if tokenizer_type is 'LangTransformer': 
+            tokenized = torch.Tensor([vocab.index(word) for word in instruct.split()]).unsqueeze(1)
         if tokenizer_type is 'BERT': 
             tokenized = torch.Tensor(bertTokenizer.encode(instruct)).unsqueeze(1)
         if tokenizer_type is 'gpt': 
@@ -117,7 +119,6 @@ def toNumerals(tokenizer_type, instructions):
         embedding[:tokenized.shape[0]] = tokenized
         ins_temp.append(embedding)
     return torch.stack(ins_temp).squeeze().long().to(device)
-
 
 def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
     batch = []
@@ -191,7 +192,7 @@ class LastLinear(nn.Module):
 
 
 class LangModule(): 
-    def __init__(self, langModel, filenotes = '', instruct_mode = None): 
+    def __init__(self, langModel, foldername = '', filenotes = '', instruct_mode = None): 
         self.langModel = langModel
         self.embedderStr = langModel.embedderStr
         if self.embedderStr in ['trainable50', 'trainable100']: 
@@ -200,6 +201,8 @@ class LangModule():
             self.tokenizer_type = 'gpt'
         elif self.embedderStr is 'BERT': 
             self.tokenizer_type = 'BERT'
+        elif self.embedderStr is 'LangTransformer':
+            self.tokenizer_type = 'LangTransformer'
         else: 
             self.tokenizer_type = None
         self.loss_list = []
@@ -209,6 +212,7 @@ class LangModule():
         self.shuffled = False
         self.classifier_criterion = nn.CrossEntropyLoss()
 
+        self.foldername = foldername
         self.filename = filenotes + self.embedderStr + '_' + str(self.langModel.out_dim) + '.pt'
 
     def train_classifier(self, batch_len, num_batches, epochs, optim_method = 'adam', lr=0.001, weight_decay=0, shuffle = False, train_out_only = False):
@@ -240,8 +244,11 @@ class LangModule():
 
                 if val_loss < best_val_loss: 
                     best_val_loss = val_loss
-                    torch.save(self.model_classifier.state_dict(), 'LanguageModels/'+self.filename)
-        self.model_classifier.load_state_dict(torch.load(self.filename))
+                    torch.save(self.model_classifier.state_dict(), self.foldername+ '/LanguageModels/'+self.filename)
+        self.model_classifier.load_state_dict(torch.load(self.foldername+'/LanguageModels/'+ self.filename))
+
+    def loadLangModel(self): 
+        self.model_classifier.load_state_dict(torch.load(self.foldername+'/LanguageModels/'+ self.filename))
 
     def get_val_loss(self): 
         total_loss = 0
@@ -378,9 +385,87 @@ def plot_lang_perf(mod_dict, mode, smoothing):
     plt.ylabel('Cross Entropy Loss')
     plt.xlabel('total mini-batches')
 
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, dropout=0.1, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        self.d_model = d_model
+        pe = torch.zeros(max_len, self.d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, self.d_model, 2).float() * (-math.log(10000.0) / self.d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        x = x + self.pe[:x.size(0), :]
+        return self.dropout(x)
+
+class LangTransformer(nn.Module): 
+    def __init__(self, out_dim, d_reduce = 'avg', size = 'base'): 
+        super(LangTransformer, self).__init__()
+        from torch.nn import TransformerEncoder, TransformerEncoderLayer
+
+        self.d_reduce = d_reduce
+        self.embedderStr = 'LangTransformer'
+        self.out_dim = out_dim
+
+        if size == 'large': 
+            self.d_model, nheads, nlayers, d_ff = 1024, 16, 24, 3072
+        else: 
+            self.d_model, nheads, nlayers, d_ff = 768, 12, 12, 3072
+
+        dropout = 0.1
+        
+        self.model_type = 'Transformer'
+        self.src_mask = None
+        self.pos_encoder = PositionalEncoding(self.d_model, dropout)
+        encoder_layers = TransformerEncoderLayer(self.d_model, nheads, d_ff)
+        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
+        self.encoder = nn.Embedding(len(vocab), self.d_model)
+
+        if self.d_reduce == 'linear':
+            self.proj_out = nn.Sequential(nn.Linear(PAD_LEN*768, 768), nn.ReLU(), nn.Linear(768, self.out_dim), nn.ReLU())
+        else: 
+            self.proj_out = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
+
+        self.init_weights()
+
+    def _generate_square_subsequent_mask(self, sz):
+        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+        return mask
+
+    def init_weights(self):
+        initrange = 0.1
+        self.encoder.weight.data.uniform_(-initrange, initrange)
+ 
+
+    def forward(self, src):
+        if self.src_mask is None or self.src_mask.size(0) != src.size(0):
+            device = src.device
+            mask = self._generate_square_subsequent_mask(src.size(0)).to(device)
+            self.src_mask = mask
+
+        src = self.encoder(src) * math.sqrt(self.d_model)
+        src = self.pos_encoder(src)
+        trans_out = self.transformer_encoder(src, self.src_mask)
+
+        if self.d_reduce == 'linear': 
+            out = self.proj_out(trans_out.flatten(1))
+        elif self.d_reduce ==  'max': 
+            trans_out = torch.max((trans_out), dim=1)
+            out =self.proj_out(trans_out)
+        elif self.d_reduce == 'avg': 
+            trans_out = torch.mean((trans_out), dim =1) 
+            out =self.proj_out(trans_out)
+        return out
+
+
 
 class gpt2(nn.Module): 
-    def __init__(self, out_dim, d_reduce='avg'): 
+    def __init__(self, out_dim, d_reduce='avg', size = 'base'): 
         super(gpt2, self).__init__()
         from transformers import GPT2Model
         self.d_reduce = d_reduce
@@ -392,7 +477,13 @@ class gpt2(nn.Module):
         else: 
             self.proj_out = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
 
-        self.transformer = GPT2Model.from_pretrained('gpt2')
+        if size == 'large': 
+            self.transformer = GPT2Model.from_pretrained('gpt2-medium')
+        elif size == 'XL': 
+            self.transformer = GPT2Model.from_pretrained('gpt2-xl')
+        else: 
+            self.transformer = GPT2Model.from_pretrained('gpt2')
+
     def forward(self, x): 
         trans_out = self.transformer(x)[0]
         if self.d_reduce == 'linear': 
@@ -406,7 +497,7 @@ class gpt2(nn.Module):
         return out
 
 class BERT(nn.Module):
-    def __init__(self, out_dim, d_reduce='avg'): 
+    def __init__(self, out_dim, d_reduce='avg', size = 'base'): 
         super(BERT, self).__init__()
         from transformers import BertModel
         self.d_reduce = d_reduce
@@ -418,7 +509,11 @@ class BERT(nn.Module):
         else: 
             self.proj_out = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
 
-        self.transformer = BertModel.from_pretrained('bert-base-uncased')
+
+        if size == 'large': 
+            self.transformer = BertModel.from_pretrained('bert-large-uncased')
+        else: 
+            self.transformer = BertModel.from_pretrained('bert-base-uncased')
 
     def forward(self, x): 
         trans_out = self.transformer(x)[0]
@@ -436,10 +531,13 @@ class BERT(nn.Module):
 
 
 class SBERT(nn.Module): 
-    def __init__(self, out_dim): 
+    def __init__(self, out_dim, size = 'base'): 
         super(SBERT, self).__init__()
         from sentence_transformers import SentenceTransformer
-        self.model = SentenceTransformer('bert-base-nli-mean-tokens')
+        if size == 'large': 
+            self.model = SentenceTransformer('bert-large-nli-mean-tokens')
+        else: 
+            self.model = SentenceTransformer('bert-base-nli-mean-tokens')
         self.embedderStr = 'SBERT'
         self.out_dim = out_dim
         self.lin = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
@@ -476,3 +574,16 @@ class BoW(nn.Module):
                 out_vec[index] += 1
             batch_vectorized.append(out_vec)
         return torch.stack(batch_vectorized).to(device)
+
+
+
+
+# sum(p.numel() for p in gpt2(20).parameters())
+
+# sum(p.numel() for p in LangTransformer(20).parameters())
+
+
+# test = LangModule(LangTransformer(20), '22.9Models') 
+# test.plot_loss('validation')
+
+# test.train_classifier(128, 100, 10, lr=0.0001, weight_decay=0.01)

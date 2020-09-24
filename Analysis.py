@@ -7,6 +7,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity
+import seaborn as sns
 
 from LangModule import LangModule, gpt2, BERT, SBERT, Pretrained_Embedder, BoW
 from CogModule import CogModule, instructNet, simpleNet
@@ -34,7 +35,7 @@ def get_robustness(foldername):
         holdout_only = make_data(BATCH_LEN = 256, task_dict={holdout_task: 1}, NUM_BATCHES=50)
         epochs = 1
         if holdout_task in ['MultiDM', 'Anti MultiDM', 'DMS', 'DNMS', 'DMC', 'DNMC']: 
-            epochs = 4
+            epochs = 3
         cog.train(holdout_only, epochs,  weight_decay=0.0, lr = 0.001, holdout_task=holdout_task)
         diff_perf_dict = {}
         for model_name, model in cog.model_dict.items(): 
@@ -68,53 +69,43 @@ def plot_robustness(robustness_dict):
     plt.legend()
     plt.show()
 
+#foldername = '15.9MultiCompModels'
+foldername = '22.9Models'
 
-sBert = SBERT(20)
-sBertMod = LangModule(sBert, filenotes='MultiComp_')
+sBertMod = LangModule(SBERT(20), foldername)
+sBertMod.loadLangModel()
 
-sBertMod.train_classifier(128, 100, 5, lr=0.001)
-sBertMod.plot_loss('validation')
-sBertMod.plot_embedding('PCA')
+bertMod = LangModule(BERT(20), foldername)
+bertMod.loadLangModel()
 
-train_bert = BERT(20)
-train_bertMod = LangModule(train_bert)
+gptMod = LangModule(gpt2(20), foldername)
+gptMod.loadLangModel()
 
 train_sBert = SBERT(20)
-train_sBertMod = LangModule(train_sBert)
+train_sBertMod = LangModule(train_sBert, foldername)
+
+sifMod = LangModule(Pretrained_Embedder('SIF'), foldername)
+
+bowMod = LangModule(BoW(), foldername)
 
 
 
-
-gpt = gpt2(20)
-gptMod = LangModule(gpt)
-
-sif = Pretrained_Embedder('SIF')
-sifMod = LangModule(sif)
-
-bow = BoW()
-bowMod = LangModule(bow)
-
-
-# bertMod.langModel.load_state_dict(torch.load('LanguageModels/bert.pt'))
-# gptMod.langModel.load_state_dict(torch.load('LanguageModels/gpt0.pt'))
-# sBertMod.langModel.load_state_dict(torch.load('LanguageModels/sBert.pt'))
-
-sBertMod.model_classifier.load_state_dict(torch.load('LanguageModels/SBERT_20.pt'))
-
-
-foldername = '15.9MultiCompModels'
 for holdout_task in task_list:
     net = simpleNet(81, 128, 1)
-    # gpt_net = instructNet(gptMod, 128, 1)
-    #bert_net = instructNet(train_bertMod, 128, 1, tune_langModel=True)
+    gpt_net = instructNet(gptMod, 128, 1)
+    bert_net = instructNet(bertMod, 128, 1)
     sBert_net = instructNet(sBertMod, 128, 1)
-    train_sBert_net = instructNet(train_sBertMod, 128, 1, tune_langModel=True)
+    # train_sBert_net = instructNet(train_sBertMod, 128, 1, tune_langModel=True)
+    SIFnet = instructNet(sifMod, 128, 1)
+    BoWnet = instructNet(bowMod, 128, 1)
     model_dict = {}
     model_dict['Model1'] = net
-    # model_dict['GPT'] = gpt_net
-    #model_dict['BERT train'] = bert_net
-    model_dict['S-Bert'] = sBert_net
-    model_dict['S-Bert train'] = train_sBert_net
+    model_dict['GPT_cat'] = gpt_net
+    model_dict['BERT_cat'] = bert_net
+    model_dict['S-Bert_cat'] = sBert_net
+    # model_dict['S-Bert train'] = train_sBert_net
+    model_dict['SIF'] = SIFnet
+    model_dict['BoW'] = BoWnet
     cog = CogModule(model_dict)
     holdout_data = make_data(holdouts=[holdout_task])
     cog.train(holdout_data, 15, lr=0.001)
@@ -124,28 +115,109 @@ for holdout_task in task_list:
 
 
 
-net = simpleNet(79, 128, 1)
-# gpt_net = instructNet(gptMod, 128, 1)
-# bert_net = instructNet(bertMod, 128, 1)
-sBert_net = instructNet(sBertMod, 128, 1)
-train_sBert_net = instructNet(train_sBertMod, 128, 1, tune_langModel=True)
+
+
+
+net = simpleNet(81, 128, 1)
+SIFnet = instructNet(sifMod, 128, 1)
+BoWnet = instructNet(bowMod, 128, 1)
+
+
 model_dict = {}
 model_dict['Model1'] = net
-# model_dict['GPT'] = gpt_net
-# model_dict['BERT'] = bert_net
-model_dict['S-Bert'] = sBert_net
-model_dict['S-Bert train'] = train_sBert_net
-cog = CogModule(model_dict)
+model_dict['SIF'] = SIFnet
+model_dict['BoW'] = BoWnet
 
-holdout_task = 'COMP1'
+
+cog = CogModule(model_dict)
+cog.load_models('Go', foldername)
+cog.plot_trained_performance()
+
+
+
+
+
+
+
+
+
+
+
+
+cog.load_models('Go', foldername)
+
+cog.plot_response(model_dict['S-Bert train'], 'DMS', 'respond in the opposite direction if the stimuli match')
+
+
+
+
+cog.model_dict.keys()
+
+trainMod= LangModule(cog.model_dict['S-Bert train'].langModel)
+trainMod.plot_embedding('PCA', dim=3)
+
+sBMod = LangModule(cog.model_dict['S-Bert'].langModel)
+sBMod.plot_embedding('PCA', dim=3)
+
+
+from LangModule import train_instruct_dict
+from LangModule import get_batch
+
+shuffledDM = get_batch(10, None, 'DM', instruct_mode='shuffled')[0]
+shuffledGo = get_batch(10, None, 'Go', instruct_mode='shuffled')[0]
+
+
+shuffledReps = []
+shuffledGoReps = []
+
+for instruct in shuffledGo: 
+    rep = trainMod.langModel([instruct])
+    shuffledReps.append(rep.squeeze().cpu().detach().numpy())
+
+shuffledReps
+shuffledReps[0]
+sims = cosine_similarity(shuffledReps)
+
+sns.heatmap(sims,  annot=True, vmin=0, vmax=1)
+plt.title('Language Representation Similarity Scores (S-BERT train)')
+plt.ylabel('Shuffled DM Instructions')
+plt.xlabel('Shuffled Go Instructions')
+plt.show()
+
+
+indices, reps = trainMod._get_instruct_rep(train_instruct_dict)
+rep_dict = defaultdict(list)
+for index, rep in list(zip(indices, reps)): 
+    rep_dict[task_list[index]].append(rep.cpu().detach().numpy())
+
+sims = cosine_similarity(rep_dict['COMP1'], rep_dict['COMP2'])
+
+sns.heatmap(sims,  annot=True, vmin=0, vmax=1)
+plt.title('Language Representation Similarity Scores (S-BERT train)')
+plt.ylabel('COMP1 Instructions')
+plt.xlabel('COMP2 Instructions')
+plt.show()
+
+cosine_similarity([comp2_avg, multicomp2_avg])
+cosine_similarity([comp2_avg, comp1_avg-dif])
+
+
+holdout_task = 'MultiCOMP2'
 cog.load_models(holdout_task, foldername)
 
 hold_only = make_data(task_dict={holdout_task: 1}, BATCH_LEN=256, NUM_BATCHES=50)
-cog.train(hold_only, 3, holdout_task=holdout_task)
+cog.train(hold_only, 1, holdout_task=holdout_task, instruct_mode='shuffled')
 
-cog.plot_learning_curve('correct', task_type=holdout_task, smoothing=2)
+cog.plot_learning_curve('correct', task_type=holdout_task, smoothing=1)
+cog.plot_k_shot_learning([0, 3], holdout_task)
 
-cog.plot_k_shot_learning([0, 3, 50], holdout_task)
+
+
+
+color_dict = {'Model1': 'blue', 'Model1 Masked': 'orange', 'GPT': 'green', 'BERT': 'red', 'S-BERT': 'purple', 'S-BERT train': 'brown'}
+
+{'tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan'}
+
 cog.plot_trained_performance()
 
 

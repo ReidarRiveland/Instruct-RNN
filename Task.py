@@ -9,7 +9,9 @@ import matplotlib.pyplot as plt
 
 
 class Task():
+    #TASK_LIST = ['Go', 'RT Go', 'Anti Go', 'Anti RT Go']
     TASK_LIST = ['Go', 'RT Go', 'Anti Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']
+
     STIM_DIM = 32
     TUNING_DIRS = [((2*np.pi*i)/32) for i in range(STIM_DIM)]
     TRIAL_LEN = int(120)
@@ -417,4 +419,5 @@ def construct_batch(task_type, num):
     if task_type == 'DNMC': 
         trial = Delay('DNMC', num)
     return trial 
+
 

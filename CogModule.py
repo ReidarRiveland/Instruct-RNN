@@ -18,6 +18,9 @@ tuning_dirs = Task.TUNING_DIRS
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+color_dict = {'Model1': 'blue', 'Model1 Masked': 'orange', 'SIF': 'cyan', 'BoW': 'yellow', 'GPT': 'green', 'BERT': 'red', 'S-Bert': 'purple', 'S-Bert train': 'brown', }
+
+
 def popvec(nn_final_out):
     act_sum = np.sum(nn_final_out)
     temp_cos = np.sum(np.multiply(nn_final_out, np.cos(tuning_dirs)))/act_sum
@@ -204,7 +207,7 @@ class CogModule():
             ax.set_ylim(y_lim)
             for model_type in self.model_dict.keys():            
                 smoothed_perf = gaussian_filter1d(perf_dict[model_type][task_type], sigma=smoothing)
-                ax.plot(smoothed_perf)
+                ax.plot(smoothed_perf, color = color_dict[model_type])
             ax.set_title(task_type)
         fig.legend(self.model_dict.keys())
         fig.text(0.5, 0.04, 'Batches', ha='center')
@@ -250,21 +253,19 @@ class CogModule():
         plt.legend()
         plt.show()
 
-    def plot_response(self, model, task_type, instruct_mode=None):
+    def plot_response(self, model, task_type, instruct = None, instruct_mode=None):
         task = construct_batch(task_type, 1)
         tar = task.targets
         ins = task.inputs
         h0 = model.initHidden(1, 0.1).to(device)
 
-        if task_type == self.holdout_task and instruct_mode == 'single' and model.isLang: 
+        if instruct is not None: 
             if model.embedderStr is not 'SBERT': 
-                instruct = toNumerals(model.embedderStr, self.holdout_instruct)
-            else: 
-                instruct = self.holdout_instruct
-            ins = del_input_rule(ins)
-            out, _ = model(instruct, torch.Tensors(ins).to(device), h0)
+                instruct = toNumerals(model.embedderStr, instruct)
+            ins = del_input_rule(torch.Tensor(ins)).to(device)
+            out, hid = model(instruct, ins, h0)
         else: 
-            out, _ = self._get_model_resp(model, 1, ins, task_type, instruct_mode, self.holdout_task)
+            out, hid = self._get_model_resp(model, 1, ins, task_type, instruct_mode, self.holdout_task)
         
         out = out.squeeze().detach().to('cpu').numpy()
         to_plot = (ins.squeeze().T, tar.squeeze().T, out.T)
@@ -292,7 +293,7 @@ class CogModule():
                 r = np.arange(len_values)
             else:
                 r = [x + barWidth for x in r]
-            plt.bar(r, per_correct, width =barWidth, label = list(model_dict.keys())[i])
+            plt.bar(r, per_correct, width =barWidth, label = list(model_dict.keys())[i], color = color_dict[model_name])
 
         plt.ylim(0, 1.15)
         plt.title('Few-Shot Learning Performance')
