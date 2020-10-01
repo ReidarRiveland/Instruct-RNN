@@ -529,41 +529,6 @@ class instructNet(nn.Module):
 
 #     return model_task_state_dict
 
-# from LangModule import SBERT, LangModule, gpt2
-# from Data import construct_batch
-# import itertools
-# import matplotlib.animation as animation
-
-#train_sBertMod = LangModule(SBERT(20))
-#gptMod = LangModule(gpt2(20))
-
-# model_dict = {}
-# model_dict['Model1'] = simpleNet(81, 128, 1)
-# model_dict['GPT_cat'] = instructNet(gptMod, 128, 1)
-#model_dict['S-Bert_train'] = instructNet(train_sBertMod, 128, 1)
-
-# foldername = '22.9Models'
-# cog = CogModule(model_dict)
-# cog.load_models('COMP1', foldername)
-
-# tasks = ['Go', 'Anti Go']
-# cog = CogModule(model_dict)
-# dim = 2
-
-# task_info_dict = {}
-# for task in tasks: 
-#     trial = construct_batch(task, 1)
-#     task_info_dict[task] = trial.inputs
-    
-# model_task_state_dict = {}
-# for model_name, model in model_dict.items(): 
-#     tasks_dict = {}
-#     for task in tasks: 
-#         out, hid = cog._get_model_resp(model, 1, task_info_dict[task], None, None, None)
-#         embedded = PCA(n_components=dim).fit_transform(hid.squeeze().detach().cpu())
-#         tasks_dict[task] = embeddedmodel_dict['S-Bert_train']
-#     model_task_state_dict[model_name] = tasks_dict
-
 # fig, ax = plt.subplots()
 # #modelsxtasksxdim
 # data_array = np.empty((len(model_dict.keys()), len(tasks), dim), dtype=np.object_)
@@ -605,30 +570,74 @@ class instructNet(nn.Module):
 # ax.clear()
 
 
+from LangModule import SBERT, LangModule, gpt2
+from Data import construct_batch
+import itertools
+import matplotlib.animation as animation
 
-# fig, ax = plt.subplots()
-# goxdata1, goydata1 = [], []
-# goxdata2, goydata2 = [], []
-# antigoxdata1, anitgoydata1 = [], []
-# antixdata2, antiydata2 = [], []
-# ln1, = plt.plot([], [] )
-# ln2, = plt.plot([], [],'--' )
+train_sBertMod = LangModule(SBERT(20))
+gptMod = LangModule(gpt2(20))
 
-# def init():
-#     ax.set_xlim(-8, 8)
-#     ax.set_ylim(-8, 8)
-#     return ln1, ln2
+model_dict = {}
+model_dict['Model1'] = simpleNet(81, 128, 1)
+model_dict['GPT_cat'] = instructNet(gptMod, 128, 1)
+model_dict['S-Bert_train'] = instructNet(train_sBertMod, 128, 1)
 
-# def update(i):
-#     xdata1.append(embedded1[i, 0])
-#     ydata1.append(embedded1[i, 1])
-#     xdata2.append(embedded2[i, 0])
-#     ydata2.append(embedded2[i, 1])
-#     ln1.set_data(xdata1, ydata1)
-#     ln2.set_data(xdata2, ydata2)
-#     return ln1, ln2
+foldername = '22.9Models'
+cog = CogModule(model_dict)
+cog.load_models('COMP1', foldername)
+
+tasks = ['Go', 'Anti Go']
+cog = CogModule(model_dict)
+dim = 2
+
+task_info_dict = {}
+for task in tasks: 
+    trial = construct_batch(task, 1)
+    task_info_dict[task] = trial.inputs
+    
+model_task_state_dict = {}
+for model_name, model in model_dict.items(): 
+    tasks_dict = {}
+    for task in tasks: 
+        out, hid = cog._get_model_resp(model, 1, task_info_dict[task], None, None, None)
+        embedded = PCA(n_components=dim).fit_transform(hid.squeeze().detach().cpu())
+        tasks_dict[task] = embeddedmodel_dict['S-Bert_train']
+    model_task_state_dict[model_name] = tasks_dict
 
 
+fig, ax = plt.subplots()
+goxdata1, goydata1 = [], []
+goxdata2, goydata2 = [], []
+antigoxdata1, anitgoydata1 = [], []
+antigoxdata2, antigoydata2 = [], []
+goln1, = plt.plot([], [] )
+goln2, = plt.plot([], [],'--' )
+antigoln1, = plt.plot([], [] )
+antigoln2, = plt.plot([], [],'--' )
+
+
+def init():
+    ax.set_xlim(-8, 8)
+    ax.set_ylim(-8, 8)
+    return ln1, ln2
+
+def update(i):
+    goxdata1.append(embedded1[i, 0])
+    goydata1.append(embedded1[i, 1])
+    goxdata2.append(embedded2[i, 0])
+    goydata2.append(embedded2[i, 1])
+    antigoxdata1.append(embedded1[i, 0])
+    anitgoydata1.append(embedded1[i, 1])
+    anitgoxdata2.append(embedded2[i, 0])
+    antigoydata2.append(embedded2[i, 1])
+    ln1.set_data(xdata1, ydata1)
+    ln2.set_data(xdata2, ydata2)
+    return ln1, ln2
+
+
+ani = animation.FuncAnimation(fig, update, frames=119,
+                    init_func=init, blit=True)
 
 
 # train_sBertMod.plot_embedding('PCA', dim=2, tasks = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'], train_only=True)
