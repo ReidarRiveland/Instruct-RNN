@@ -308,7 +308,7 @@ class LangModule():
         self.langModel.eval()
         task_indices = []
         rep_tensor = torch.Tensor().to(device)
-        for i, task in enumerate(task_list):
+        for i, task in enumerate(instruct_dict.keys()):
             instructions = instruct_dict[task]
             if self.tokenizer_type is not None: 
                 instructions = toNumerals(self.tokenizer_type, instructions)
@@ -317,7 +317,7 @@ class LangModule():
             rep_tensor = torch.cat((rep_tensor, out_rep), dim=0)
         return task_indices, rep_tensor
 
-    def plot_embedding(self, embedding_type, dim=2, train_only=False):
+    def plot_embedding(self, embedding_type, dim=2, tasks = task_list, train_only=False):
         assert embedding_type in ['PCA', 'tSNE'], "entered invalid embedding_type: %r" %embedding_type
         assert dim in [2, 3], "embedding dimension must be 2 or 3"
 
@@ -332,11 +332,29 @@ class LangModule():
             embedded_train = TSNE(n_components=dim).fit_transform(train_rep.cpu().detach().numpy())
             embedded_test = TSNE(n_components=dim).fit_transform(test_rep.cpu().detach().numpy())
 
-        cmap = matplotlib.cm.get_cmap('hsv')
-        norm = matplotlib.colors.Normalize(vmin=0, vmax=12)
+        if tasks != task_list:
+            task_indices = [task_list.index(task) for task in tasks] 
+            trainindexrep = [rep for rep in zip(train_indices, embedded_train) if rep[0] in task_indices]
+            testindexrep = [rep for rep in zip(test_indices, embedded_test) if rep[0] in task_indices]
+            train_indices, embedded_train = zip(*trainindexrep)
+            test_indices, embedded_test = zip(*testindexrep)
+            embedded_train = np.stack(embedded_train)
+            embedded_test = np.stack(embedded_test)
+            sorted_set = sorted(set(train_indices))
+            test_indices = list(test_indices)
+            train_indices = list(train_indices)
+            for index, value in enumerate(train_indices): 
+                train_indices[index] = sorted_set.index(value)
+            for index, value in enumerate(test_indices): 
+                test_indices[index] = sorted_set.index(value)
+            
+
+        cmap = matplotlib.cm.get_cmap('Paired')
+        norm = matplotlib.colors.Normalize(vmin=0, vmax=len(tasks))
 
         color_train = norm(np.array(train_indices).astype(int))
         color_test = norm(np.array(test_indices).astype(int))
+
         if dim == 2: 
             fig, ax = plt.subplots(figsize=(12, 10))
             plt.scatter(embedded_train[:, 0], embedded_train[:, 1], c=cmap(color_train), cmap=cmap, s=100)
@@ -357,9 +375,10 @@ class LangModule():
 
 
         plt.title("PCA Embedding for Distributed Rep.", fontsize=18)
-        digits = np.arange(len(task_list))
-        Patches = [mpatches.Patch(color=cmap(norm(d)), label=task_list[d]) for d in digits]
-        Patches.append(Line2D([0], [0], marker='X', color='w', label='test data', markerfacecolor='grey', markersize=10))
+        digits = np.arange(len(tasks))
+        Patches = [mpatches.Patch(color=cmap(norm(d)), label=tasks[d]) for d in digits]
+        if not train_only: 
+            Patches.append(Line2D([0], [0], marker='X', color='w', label='test data', markerfacecolor='grey', markersize=10))
         Patches.append(Line2D([0], [0], marker='o', color='w', label='train data', markerfacecolor='grey', markersize=10))
 
         plt.legend(handles=Patches)
@@ -509,7 +528,6 @@ class BERT(nn.Module):
         else: 
             self.proj_out = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
 
-
         if size == 'large': 
             self.transformer = BertModel.from_pretrained('bert-large-uncased')
         else: 
@@ -575,15 +593,3 @@ class BoW(nn.Module):
             batch_vectorized.append(out_vec)
         return torch.stack(batch_vectorized).to(device)
 
-
-
-
-# sum(p.numel() for p in gpt2(20).parameters())
-
-# sum(p.numel() for p in LangTransformer(20).parameters())
-
-
-# test = LangModule(LangTransformer(20), '22.9Models') 
-# test.plot_loss('validation')
-
-# test.train_classifier(128, 100, 10, lr=0.0001, weight_decay=0.01)
