@@ -35,14 +35,11 @@ task_list = Task.TASK_LIST
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-from transformers import GPT2Tokenizer, BertTokenizer
-gptTokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-bertTokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-
 train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict', 'rb'))
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict', 'rb'))
 
-swapped_task_list = ['Anti DM', 'Anti MultiDM', 'Anti Go', 'DMS', 'DNMC', 'Go', 'MultiDM', 'RT Go', 'DNMS', 'DMC', 'DM', 'Anti RT Go']
+swaps= [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['COMP2', 'RT Go']]
+swapped_task_list = ['Anti DM', 'COMP2', 'Anti Go', 'DMC', 'DM', 'Go', 'MultiDM', 'Anti MultiDM', 'COMP1', 'RT Go', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'Anti RT Go', 'DNMC']
 instruct_swap_dict = dict(zip(swapped_task_list, train_instruct_dict.values()))
 
 PAD_LEN = 25
@@ -81,15 +78,15 @@ def load_word_embedder_dict(splits):
     word_embedder_dict = {}
     _,_,_, split_sentences = wordFreq()
     word_embedder_dict['w2v50'] = (KeyedVectors.load("wordVectors/w2v50.kv", mmap='r'), 50)
-    word_embedder_dict['w2v100'] = (KeyedVectors.load("wordVectors/w2v100.kv", mmap='r'), 100)
-    word_embedder_dict['wh50'] = (KeyedVectors.load("wordVectors/wh_w2v50.kv", mmap='r'), 50)
-    word_embedder_dict['wh100'] = (KeyedVectors.load("wordVectors/wh_w2v100.kv", mmap='r'), 100)
+    # word_embedder_dict['w2v100'] = (KeyedVectors.load("wordVectors/w2v100.kv", mmap='r'), 100)
+    # word_embedder_dict['wh50'] = (KeyedVectors.load("wordVectors/wh_w2v50.kv", mmap='r'), 50)
+    # word_embedder_dict['wh100'] = (KeyedVectors.load("wordVectors/wh_w2v100.kv", mmap='r'), 100)
     sif_w2v = SIF(word_embedder_dict['w2v50'][0], workers=2)
-    sif_wh = SIF(word_embedder_dict['wh50'][0], workers=2)
+    # sif_wh = SIF(word_embedder_dict['wh50'][0], workers=2)
     sif_w2v.train(splits)
     word_embedder_dict['SIF'] = (sif_w2v, 50)
-    sif_wh.train(splits)
-    word_embedder_dict['SIF_wh'] = (sif_wh, 50)
+    # sif_wh.train(splits)
+    # word_embedder_dict['SIF_wh'] = (sif_wh, 50)
     return word_embedder_dict
 
 freq_dict, vocab, all_sentences, split_sentences = wordFreq()
@@ -104,18 +101,14 @@ def get_fse_embedding(instruct, embedderStr):
     else: 
         tmp = (instruct.split(), 0)
         embedded = embedder.infer([tmp])
-    return embedded
+    return embedded.squeeze()
 
-def toNumerals(tokenizer_type, instructions): 
+
+def toNumerals(tokenizer, instructions): 
     ins_temp = []
     for instruct in instructions:
         embedding = torch.ones((PAD_LEN, 1))
-        if tokenizer_type is 'LangTransformer': 
-            tokenized = torch.Tensor([vocab.index(word) for word in instruct.split()]).unsqueeze(1)
-        if tokenizer_type is 'BERT': 
-            tokenized = torch.Tensor(bertTokenizer.encode(instruct)).unsqueeze(1)
-        if tokenizer_type is 'gpt': 
-            tokenized = torch.Tensor(gptTokenizer.encode(instruct)).unsqueeze(1)
+        tokenized = torch.Tensor(tokenizer.encode(instruct)).unsqueeze(1)
         embedding[:tokenized.shape[0]] = tokenized
         ins_temp.append(embedding)
     return torch.stack(ins_temp).squeeze().long().to(device)
@@ -142,10 +135,6 @@ def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
             batch_target_index = batch_target_index * batch_size
             break
         batch.append(instruct)
-        if instruct_mode == 'blocked': 
-            batch = batch * batch_size
-            batch_target_index = batch_target_index * batch_size
-            break
     if tokenizer is not None: 
         batch = toNumerals(tokenizer, batch)
     return batch, batch_target_index
@@ -195,16 +184,7 @@ class LangModule():
     def __init__(self, langModel, foldername = '', filenotes = '', instruct_mode = None): 
         self.langModel = langModel
         self.embedderStr = langModel.embedderStr
-        if self.embedderStr in ['trainable50', 'trainable100']: 
-            self.tokenizer_type = 'wikiText'
-        elif self.embedderStr is 'gpt': 
-            self.tokenizer_type = 'gpt'
-        elif self.embedderStr is 'BERT': 
-            self.tokenizer_type = 'BERT'
-        elif self.embedderStr is 'LangTransformer':
-            self.tokenizer_type = 'LangTransformer'
-        else: 
-            self.tokenizer_type = None
+        if len(foldername) > 0: foldername = foldername+'/'
         self.loss_list = []
         self.val_loss_list = []
         self.instruct_mode = instruct_mode
@@ -223,13 +203,14 @@ class LangModule():
             opt = optim.SGD(self.model_classifier.parameters(), lr, weight_decay=weight_decay)
         if train_out_only: 
             opt = optim.Adam(self.model_classifier.linear.parameters(), lr, weight_decay=weight_decay)
+        self.identity = nn.Identity()
 
         best_val_loss = 1e5
         self.model_classifier.train()
         for i in range(epochs):
             for j in range(num_batches): 
                 opt.zero_grad()
-                ins_temp, targets = get_batch(batch_len, tokenizer = self.tokenizer_type, instruct_mode = self.instruct_mode)
+                ins_temp, targets = get_batch(batch_len, tokenizer = self.langModel.tokenizer, instruct_mode = self.instruct_mode)
                 tensor_targets = torch.Tensor(targets).to(device)
                 out = self.model_classifier(ins_temp)
                 loss = self.classifier_criterion(out, tensor_targets.long())
@@ -244,8 +225,8 @@ class LangModule():
 
                 if val_loss < best_val_loss: 
                     best_val_loss = val_loss
-                    torch.save(self.model_classifier.state_dict(), self.foldername+ '/LanguageModels/'+self.filename)
-        self.model_classifier.load_state_dict(torch.load(self.foldername+'/LanguageModels/'+ self.filename))
+                    torch.save(self.model_classifier.state_dict(), self.foldername+ 'LanguageModels/'+self.filename)
+        self.model_classifier.load_state_dict(torch.load(self.foldername+'LanguageModels/'+ self.filename))
 
     def loadLangModel(self): 
         self.model_classifier.load_state_dict(torch.load(self.foldername+'/LanguageModels/'+ self.filename))
@@ -256,8 +237,8 @@ class LangModule():
         self.model_classifier.eval()
         for i, task in enumerate(task_list): 
             instructions = test_instruct_dict[task]
-            if self.tokenizer_type is not None: 
-                instructions = toNumerals(self.tokenizer_type, instructions)
+            if self.langModel.tokenizer is not None: 
+                instructions = toNumerals(self.langModel.tokenizer, instructions)
             out = self.model_classifier(instructions)
             tensor_targets = torch.full((len(instructions), ), i).to(device)
             loss = self.classifier_criterion(out, tensor_targets.long())            
@@ -287,8 +268,8 @@ class LangModule():
         for i, task in enumerate(task_list): 
             num_correct = 0
             instructions = test_instruct_dict[task]
-            if self.tokenizer_type is not None: 
-                instructions = toNumerals(self.tokenizer_type, instructions)
+            if self.langModel.tokenizer is not None: 
+                instructions = toNumerals(self.langModel.tokenizer, instructions)
             model_cat = torch.argmax(self.model_classifier(instructions), dim=1).cpu().numpy()
             for j in model_cat: 
                 confuse_mat[i, j] += 1
@@ -310,8 +291,8 @@ class LangModule():
         rep_tensor = torch.Tensor().to(device)
         for i, task in enumerate(instruct_dict.keys()):
             instructions = instruct_dict[task]
-            if self.tokenizer_type is not None: 
-                instructions = toNumerals(self.tokenizer_type, instructions)
+            if self.langModel.tokenizer is not None: 
+                instructions = toNumerals(self.langModel.tokenizer, instructions)
             out_rep = self.langModel(instructions)
             task_indices += ([i]*len(instructions))
             rep_tensor = torch.cat((rep_tensor, out_rep), dim=0)
@@ -421,6 +402,10 @@ class PositionalEncoding(nn.Module):
         x = x + self.pe[:x.size(0), :]
         return self.dropout(x)
 
+class LangTransformerTokenizer():
+    def encode(self, instruct): 
+        return torch.Tensor([vocab.index(word) for word in instruct.split()])
+
 class LangTransformer(nn.Module): 
     def __init__(self, out_dim, d_reduce = 'avg', size = 'base'): 
         super(LangTransformer, self).__init__()
@@ -429,6 +414,7 @@ class LangTransformer(nn.Module):
         self.d_reduce = d_reduce
         self.embedderStr = 'LangTransformer'
         self.out_dim = out_dim
+        self.tokenizer = LangTransformerTokenizer()
 
         if size == 'large': 
             self.d_model, nheads, nlayers, d_ff = 1024, 16, 24, 3072
@@ -482,11 +468,10 @@ class LangTransformer(nn.Module):
         return out
 
 
-
 class gpt2(nn.Module): 
     def __init__(self, out_dim, d_reduce='avg', size = 'base'): 
         super(gpt2, self).__init__()
-        from transformers import GPT2Model
+        from transformers import GPT2Model, GPT2Tokenizer
         self.d_reduce = d_reduce
         self.embedderStr = 'gpt'
         self.out_dim = out_dim
@@ -498,10 +483,14 @@ class gpt2(nn.Module):
 
         if size == 'large': 
             self.transformer = GPT2Model.from_pretrained('gpt2-medium')
+            self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2-medium')
         elif size == 'XL': 
             self.transformer = GPT2Model.from_pretrained('gpt2-xl')
+            self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2-xl')
         else: 
             self.transformer = GPT2Model.from_pretrained('gpt2')
+            self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+
 
     def forward(self, x): 
         trans_out = self.transformer(x)[0]
@@ -518,7 +507,8 @@ class gpt2(nn.Module):
 class BERT(nn.Module):
     def __init__(self, out_dim, d_reduce='avg', size = 'base'): 
         super(BERT, self).__init__()
-        from transformers import BertModel
+        from transformers import BertModel, BertTokenizer
+
         self.d_reduce = d_reduce
         self.embedderStr = 'BERT'
         self.out_dim = out_dim
@@ -530,8 +520,12 @@ class BERT(nn.Module):
 
         if size == 'large': 
             self.transformer = BertModel.from_pretrained('bert-large-uncased')
+            self.tokenizer = BertTokenizer.from_pretrained('bert-large-uncased')
+
         else: 
             self.transformer = BertModel.from_pretrained('bert-base-uncased')
+            self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
 
     def forward(self, x): 
         trans_out = self.transformer(x)[0]
@@ -557,6 +551,7 @@ class SBERT(nn.Module):
         else: 
             self.model = SentenceTransformer('bert-base-nli-mean-tokens')
         self.embedderStr = 'SBERT'
+        self.tokenizer = None
         self.out_dim = out_dim
         self.lin = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
     def forward(self, x): 
@@ -565,22 +560,25 @@ class SBERT(nn.Module):
         return sent_embedding
         
 class SIFmodel(nn.Module): 
-    def __init__(self, SIF_type): 
+    def __init__(self): 
         super(SIFmodel, self).__init__()
         self.out_shape = ['batch_len', 50]
         self.in_shape = ['batch_len', 50]
         self.out_dim =50 
-        self.embedderStr = SIF_type
-        self.identity = nn.Identity()
+        self.embedderStr = 'SIF'
+        self.tokenizer = None
 
-    def forward(self, x): 
-        return torch.Tensor(self.identity(x))
-
+    def forward(self, x):
+        embedded = []
+        for i in range(len(x)):
+            embedded.append(get_fse_embedding(x[i], self.embedderStr))
+        return torch.Tensor(np.array(embedded, dtype = np.float32)).to(device)
 
 class BoW(nn.Module): 
     def __init__(self): 
         super(BoW, self).__init__()
         self.embedderStr = 'BoW'
+        self.tokenizer = None
         self.out_dim = len(vocab)    
 
     def forward(self, x): 
@@ -592,4 +590,3 @@ class BoW(nn.Module):
                 out_vec[index] += 1
             batch_vectorized.append(out_vec)
         return torch.stack(batch_vectorized).to(device)
-

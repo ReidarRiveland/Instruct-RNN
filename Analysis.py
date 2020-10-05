@@ -9,9 +9,12 @@ from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity
 import seaborn as sns
 from scipy.ndimage.filters import gaussian_filter1d
+import matplotlib.patches as mpatches
+from matplotlib.lines import Line2D
 
 
-from LangModule import LangModule, gpt2, BERT, SBERT, Pretrained_Embedder, BoW
+
+from LangModule import LangModule, gpt2, BERT, SBERT, BoW, SIFmodel, swaps
 from CogModule import CogModule, instructNet, simpleNet
 from Data import make_data
 from Task import Task
@@ -71,6 +74,22 @@ def plot_robustness(robustness_dict):
     plt.legend()
     plt.show()
 
+def train_swaps(model_dict, foldername, mode = ''):
+    cog = CogModule(model_dict)
+    for swap in swaps:
+        swapped_tasks = ''.join(swap).replace(' ', '_')
+        cog.load_models(swapped_tasks, foldername)
+        try: 
+            cog.load_training_data(swapped_tasks, foldername, mode + 'holdout')
+        except:
+            pass
+        task_dict = dict(zip(swap, [1/len(swap)]*len(swap)))
+        print(task_dict)
+        holdout_only = make_data(task_dict=task_dict, BATCH_LEN=256, NUM_BATCHES=50)
+        cog.train(holdout_only, 2,  weight_decay=0.0, lr = 0.001, instruct_mode = mode)
+        cog.save_training_data(swapped_tasks, foldername, mode + 'holdout')
+
+
 def train_holdouts(model_dict, foldername, mode = ''): 
     cog = CogModule(model_dict)
     for holdout_task  in task_list:
@@ -98,7 +117,7 @@ def plot_avg_curves(model_dict, foldername, smoothing = 1):
             train_data = cog.task_sorted_correct[model_type][holdout_task.replace(' ', '_')]
             avg_perf_dict[model_type]+=np.array(train_data)
             smoothed_perf = gaussian_filter1d(train_data, sigma=smoothing)
-            ax.plot(smoothed_perf, color = cog.COLOR_DICT[model_type], alpha=0.1)
+            ax.plot(smoothed_perf, color = cog.COLOR_DICT[model_type], alpha=0.15)
     to_legend = []
     for model_type in model_dict.keys(): 
         train_data = avg_perf_dict[model_type]/len(task_list)
@@ -127,35 +146,88 @@ def plot_all_holdout_curves(model_dict, foldername, smoothing=1):
     fig.text(0.04, 0.5, 'Fraction Correct', va='center', rotation='vertical')
     fig.show()
 
+def plot_swapped_comparisions(model_dict, foldername, task, smoothing=1): 
+    assert task in ['Go', 'Anti DM', 'Anti RT Go', 'DMC', 'RT Go', 'COMP2']
+    swapped_task = ''.join([x for x in swaps if task in x][0]).replace(' ', '_')
+    print(swapped_task)
+    cog = CogModule(model_dict)
+    fig, ax = plt.subplots(1,1)
+    plt.suptitle('Shuffled Comparisons')
+    ax.set_ylim(0, 1.15)
+    for load_type in [('holdout', '-'), ('swapped_holdout', '--')]:
+        cog.load_training_data(swapped_task, foldername, load_type[0])
+        print(cog.task_sorted_correct)
+        for model_name in model_dict.keys(): 
+            smoothed_perf = gaussian_filter1d(cog.task_sorted_correct[model_name][task], sigma=smoothing)
+            ax.plot(smoothed_perf, color = cog.COLOR_DICT[model_name], linestyle = load_type[1])
+    Patches = [mpatches.Patch(color=cog.COLOR_DICT[model_name], label=model_name) for model_name in model_dict.keys()]
+    Patches.append(Line2D([0], [0], linestyle='--', color='grey', label='Swapped Instructions', markerfacecolor='grey', markersize=10))
+    plt.legend(handles=Patches)
+    ax.set_title(task)
+    fig.text(0.5, 0.04, 'Batches', ha='center')
+    fig.text(0.04, 0.5, 'Fraction Correct', va='center', rotation='vertical')
+    fig.show()
+
+
+def plot_shuffled_comparisions(model_dict, foldername, task, shuffled_type, smoothing=1): 
+    assert shuffled_type in ['shuffled', 'swapped']
+    if shuffled_type == 'swapped':
+        assert task in ['Go', 'Anti DM', 'Anti RT Go', 'DMC', 'RT Go', 'COMP2']
+        holdout_folder = ''.join([x for x in swaps if task in x][0]).replace(' ', '_')
+        load_list = [('holdout', '-'), ('swapped_holdout', '--')]
+    else: 
+        holdout_folder = task
+        load_list = [('holdout', '-'), ('holdoutshuffled', '--')]
+
+    cog = CogModule(model_dict)
+    fig, ax = plt.subplots(1,1)
+    plt.suptitle(shuffled_type.title() +' Comparisons')
+    ax.set_ylim(0, 1.15)
+
+    for load_type in load_list:
+        cog.load_training_data(holdout_folder, foldername, load_type[0])
+        for model_name in model_dict.keys(): 
+            smoothed_perf = gaussian_filter1d(cog.task_sorted_correct[model_name][task], sigma=smoothing)
+            ax.plot(smoothed_perf, color = cog.COLOR_DICT[model_name], linestyle = load_type[1])
+    Patches = [mpatches.Patch(color=cog.COLOR_DICT[model_name], label=model_name) for model_name in model_dict.keys()]
+    Patches.append(Line2D([0], [0], linestyle='--', color='grey', label= shuffled_type.title() + ' Instructions'.title(), markerfacecolor='grey', markersize=10))
+    plt.legend(handles=Patches)
+    ax.set_title(task)
+    fig.text(0.5, 0.04, 'Batches', ha='center')
+    fig.text(0.04, 0.5, 'Fraction Correct', va='center', rotation='vertical')
+    fig.show()
 
 
 foldername = '22.9Models'
 #foldername = '15.9MultiCompModels'
 
-train_sBertMod = LangModule(SBERT(20), foldername)
+# train_sBertMod = LangModule(SBERT(20), foldername)
 
-sBert_Mod = LangModule(SBERT(20), foldername)
-sBert_Mod.loadLangModel()
+# sBert_Mod = LangModule(SBERT(20), foldername)
+# sBert_Mod.loadLangModel()
 
-bertMod = LangModule(BERT(20), foldername)
-bertMod.loadLangModel()
+# bertMod = LangModule(BERT(20), foldername)
+# bertMod.loadLangModel()
 
-gptMod = LangModule(gpt2(20), foldername)
-gptMod.loadLangModel()
+# gptMod = LangModule(gpt2(20), foldername)
+# gptMod.loadLangModel()
 
-sifMod = LangModule(Pretrained_Embedder('SIF'), foldername)
+# sifMod = LangModule(SIFmodel(), foldername)
 
-bowMod = LangModule(BoW(), foldername)
+# bowMod = LangModule(BoW(), foldername)
+
+# sifNet = instructNet(sifMod, 128, 1)
 
 
-model_dict = {}
-model_dict['Model1'] = simpleNet(81, 128, 1)
-model_dict['BERT_cat'] = instructNet(bertMod, 128, 1)
-model_dict['GPT_cat'] = instructNet(gptMod, 128, 1)
-model_dict['S-Bert_cat'] = instructNet(sBert_Mod, 128, 1)
-model_dict['S-Bert train'] = instructNet(train_sBertMod, 128, 1, tune_langModel=True)
-model_dict['BoW'] = instructNet(bowMod, 128, 1)
-model_dict['SIF'] = instructNet(sifMod, 128, 1)
+
+# model_dict = {}
+# model_dict['Model1'] = simpleNet(81, 128, 1)
+# model_dict['BERT_cat'] = instructNet(bertMod, 128, 1)
+# model_dict['GPT_cat'] = instructNet(gptMod, 128, 1)
+# model_dict['S-Bert_cat'] = instructNet(sBert_Mod, 128, 1)
+# model_dict['S-Bert train'] = instructNet(train_sBertMod, 128, 1, tune_langModel=True)
+# model_dict['BoW'] = instructNet(bowMod, 128, 1)
+# model_dict['SIF'] = instructNet(sifMod, 128, 1)
 
 
 model_dict = {}
@@ -167,15 +239,23 @@ model_dict['S-Bert train'] = None
 model_dict['BoW'] = None
 model_dict['SIF'] = None
 
+cog = CogModule(model_dict)
+
+
+
+
+
+plot_shuffled_comparisions(model_dict, foldername, 'COMP2', 'swapped')
+
+train_holdouts(model_dict, foldername, mode='shuffled')
+
+train_swaps(model_dict, foldername)
+
 plot_all_holdout_curves(model_dict, foldername)
+plot_avg_curves(model_dict, foldername)
 
 holdout_task = 'DNMC'
-cog = CogModule(model_dict)
-cog.load_training_data(holdout_task, foldername, 'holdout')
-cog.plot_learning_curve('correct', task_type=holdout_task, smoothing=1)
-cog.task_sorted_correct
-
-
+swapped_tasks = ''.join(swaps[0]).replace(' ', '_')
 
 
 hold_only = make_data(task_dict={holdout_task: 1}, BATCH_LEN=256, NUM_BATCHES=50)
@@ -190,83 +270,57 @@ cog.load_training_data('Go', foldername, 'holdout')
 cog.total_correct_dict
 
 
-for swaps in [['Anti RT Go', 'DMC'], ['COMP2', 'RT Go']]:
-    net = simpleNet(81, 128, 1)
-    gpt_net = instructNet(gptMod, 128, 1)
-    bert_net = instructNet(bertMod, 128, 1)
-    sBert_net = instructNet(sBert_Mod, 128, 1)
-    train_sBert_net = instructNet(train_sBertMod, 128, 1, tune_langModel=True)
-    SIFnet = instructNet(sifMod, 128, 1)
-    BoWnet = instructNet(bowMod, 128, 1)
+from LangModule import LangTransformer
+TransMod = LangModule(LangTransformer(20))
+#gptBig_Mod = LangModule(gpt2(20, size='Large'))
+
+for holdout_task in task_list:
+    # net = simpleNet(81, 128, 1)
+    # gpt_net = instructNet(gptMod, 128, 1)
+    # bert_net = instructNet(bertMod, 128, 1)
+    # sBert_net = instructNet(sBert_Mod, 128, 1)
+    # train_sBert_net = instructNet(train_sBertMod, 128, 1, tune_langModel=True)
+    # SIFnet = instructNet(sifMod, 128, 1)
+    # BoWnet = instructNet(bowMod, 128, 1)
+    trans_net = instructNet(TransMod, 128, 1, tune_langModel=True)
+    #gptBig_net = instructNet(gptBig_Mod, 128, 1, tune_langModel=True)
     model_dict = {}
-    model_dict['Model1'] = net
-    model_dict['GPT_cat'] = gpt_net
-    model_dict['BERT_cat'] = bert_net
-    model_dict['S-Bert_cat'] = sBert_net
-    model_dict['S-Bert train'] = train_sBert_net
-    model_dict['SIF'] = SIFnet
-    model_dict['BoW'] = BoWnet
+    # model_dict['Model1'] = net
+    # model_dict['GPT_cat'] = gpt_net
+    # model_dict['BERT_cat'] = bert_net
+    # model_dict['S-Bert_cat'] = sBert_net
+    # model_dict['S-Bert train'] = train_sBert_net
+    # model_dict['SIF'] = SIFnet
+    # model_dict['BoW'] = BoWnet
+    model_dict['Transformer']=trans_net
+    #model_dict['gptBig'] = gptBig_net
     cog = CogModule(model_dict)
-    holdout_data = make_data(holdouts=swaps)
+    holdout_data = make_data(holdouts=holdout_task)
     cog.train(holdout_data, 15, lr=0.001)
     cog.train(holdout_data, 5, lr=0.0005)
     #cog.train(holdout_data, 5, lr=0.0001)
-    cog.save_models(''.join(swaps).replace(' ', '_'), foldername)
-
-
-swaps= [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['COMP2', 'RT Go']]
-
-''.join(swaps[0]).replace(' ', '_')
-
-net = simpleNet(81, 128, 1)
-SIFnet = instructNet(sifMod, 128, 1)
-BoWnet = instructNet(bowMod, 128, 1)
-
-
-model_dict['Model1'] = net
-model_dict['SIF'] = SIFnet
-model_dict['BoW'] = BoWnet
+    cog.save_models(holdout_task, foldername)
 
 
 
 
-cog.plot_trained_performance()
+# # train_sBertMod.plot_embedding('PCA', dim=2, tasks = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'], train_only=True)
+# # train_sBertMod.plot_embedding('PCA', dim=2, tasks = ['Go', 'Anti Go', 'RT Go', 'Anti RT Go', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'], train_only=True)
 
-train_sBertMod.plot_embedding('PCA', dim=3, tasks = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'], train_only=True)
+# # rain_sBertMod.plot_embedding('tSNE', dim=2, tasks = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'], train_only=True)
 
 
-hold_only = make_data(task_dict={holdout_task: 1}, BATCH_LEN=256, NUM_BATCHES=50)
-cog.train(hold_only, 1, holdout_task=holdout_task)
+# # task_reps_sBert = plot_task_rep(model_dict['S-Bert_train'], epoch = 'stim', dim=3, tasks = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'])
+# # task_reps_gpt = plot_task_rep(model_dict['GPT_cat'], epoch = 'stim', dim=2, tasks = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'])
 
-cog.plot_learning_curve('correct', task_type=holdout_task, smoothing=1)
-cog.plot_k_shot_learning([0, 3], holdout_task)
-
-from Task import construct_batch
-test = construct_batch('Go', 1)
+# # task_reps_net = plot_task_rep(model_dict['Model1'], dim=2, epoch = 'stim', tasks = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'])
 
 
 
 
 
 
-array = np.arange(0, 16)
-test = dict(zip(array, task_list))
 
-dict((num, test[num]) for num in np.arange(0, 7))
-
-
-
-
-
-
-cog.load_models('Go', foldername)
-
-cog.plot_response(model_dict['S-Bert train'], 'DMS', 'respond in the opposite direction if the stimuli match')
-
-
-
-
-cog.model_dict.keys()
 
 trainMod= LangModule(cog.model_dict['S-Bert train'].langModel)
 trainMod.plot_embedding('PCA', dim=3)
