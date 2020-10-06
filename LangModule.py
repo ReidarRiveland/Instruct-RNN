@@ -294,22 +294,35 @@ class LangModule():
             out_rep = self.langModel(instructions)
             task_indices += ([i]*len(instructions))
             rep_tensor = torch.cat((rep_tensor, out_rep), dim=0)
-        return task_indices, rep_tensor
+        return task_indices, rep_tensor.cpu().detach().numpy()
 
-    def plot_embedding(self, embedding_type, dim=2, tasks = task_list, train_only=False):
+    def plot_embedding(self, embedding_type, dim=2, tasks = task_list, plot_avg = False, train_only=False):
         assert embedding_type in ['PCA', 'tSNE'], "entered invalid embedding_type: %r" %embedding_type
         assert dim in [2, 3], "embedding dimension must be 2 or 3"
 
         train_indices, train_rep = self._get_instruct_rep(train_instruct_dict)
         test_indices, test_rep = self._get_instruct_rep(test_instruct_dict)
-        if test_rep.dim()>2: 
+
+        if plot_avg: 
+            avg_rep_list = []
+            for i in set(train_indices):
+                avg_rep = np.zeros(train_rep.shape[-1])
+                for index, rep in zip(train_indices, train_rep):
+                    if i == index: 
+                        avg_rep += rep
+                avg_rep_list.append(avg_rep/train_indices.count(i))
+
+            train_indices = list(set(train_indices))
+            train_rep = np.array(avg_rep_list)
+
+        if len(test_rep.shape)>2: 
             test_rep = test_rep.squeeze()
         if embedding_type == 'PCA':
-            embedded_train = PCA(n_components=dim).fit_transform(train_rep.cpu().detach().numpy())
-            embedded_test = PCA(n_components=dim).fit_transform(test_rep.cpu().detach().numpy())
+            embedded_train = PCA(n_components=dim).fit_transform(train_rep)
+            embedded_test = PCA(n_components=dim).fit_transform(test_rep)
         elif embedding_type == 'tSNE': 
-            embedded_train = TSNE(n_components=dim).fit_transform(train_rep.cpu().detach().numpy())
-            embedded_test = TSNE(n_components=dim).fit_transform(test_rep.cpu().detach().numpy())
+            embedded_train = TSNE(n_components=dim).fit_transform(train_rep)
+            embedded_test = TSNE(n_components=dim).fit_transform(test_rep)
 
         if tasks != task_list:
             task_indices = [task_list.index(task) for task in tasks] 
