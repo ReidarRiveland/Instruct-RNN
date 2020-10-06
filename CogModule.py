@@ -76,7 +76,7 @@ def del_input_rule(in_tensor):
 
 
 class CogModule():
-    COLOR_DICT = {'Model1': 'blue', 'SIF': 'black', 'BoW': 'orange', 'GPT_cat': 'brown', 'BERT_cat': 'green', 'S-Bert_cat': 'red', 'S-Bert train': 'purple'}
+    COLOR_DICT = {'Model1': 'blue', 'SIF': 'black', 'BoW': 'orange', 'GPT_cat': 'brown', 'BERT_cat': 'green', 'S-Bert_cat': 'red', 'S-Bert train': 'purple', 'Transformer': 'pink'}
 
     def __init__(self, model_dict):
         self.model_dict = model_dict
@@ -104,16 +104,9 @@ class CogModule():
         pickle.dump(self.task_sorted_loss, open(foldername+'/'+holdout_task+'/'+name+'_training_loss_dict', 'wb'))
 
     def load_training_data(self, holdout_task, foldername, name): 
-        if name == 'holdout' and holdout_task in task_list:
-            holdout_task = holdout_task.replace(' ', '_')
-            #need to fix this - ideally would save task sorted dict but did total dict for many of the models
-            self.total_correct_dict = pickle.load(open(foldername+'/'+holdout_task+'/'+name+'_training_correct_dict', 'rb'))
-            self.total_loss_dict = pickle.load(open(foldername+'/'+holdout_task+'/'+name+'_training_loss_dict', 'rb'))
-            self.sort_perf_by_task(holdout=holdout_task)
-        else: 
-            holdout_task = holdout_task.replace(' ', '_')
-            self.task_sorted_correct = pickle.load(open(foldername+'/'+holdout_task+'/'+name+'_training_correct_dict', 'rb'))
-            self.task_sorted_loss = pickle.load(open(foldername+'/'+holdout_task+'/'+name+'_training_loss_dict', 'rb'))
+        holdout_task = holdout_task.replace(' ', '_')
+        self.task_sorted_correct = pickle.load(open(foldername+'/'+holdout_task+'/'+name+'_training_correct_dict', 'rb'))
+        self.task_sorted_loss = pickle.load(open(foldername+'/'+holdout_task+'/'+name+'_training_loss_dict', 'rb'))
 
     def sort_perf_by_task(self, holdout=None): 
         for model_type in self.model_dict.keys():
@@ -168,7 +161,7 @@ class CogModule():
         return batch_instruct
 
     def _get_model_resp(self, model, batch_len, in_data, task_type, instruct_mode, holdout_task): 
-        if not next(model.parameters()).is_cuda:
+        if not next(model.rnn.parameters()).is_cuda:
             model.to(device)
 
         h0 = model.initHidden(batch_len, 0.1).to(device)
@@ -243,7 +236,7 @@ class CogModule():
             perf_dict = self.task_sorted_loss
         if mode == 'correct': 
             y_label = 'Fraction Correct/Batch'
-            y_lim = (0, 1.15)
+            y_lim = (-0.05, 1.15)
             title = 'Fraction Correct Response over training'
             perf_dict = self.task_sorted_correct
 
@@ -315,6 +308,9 @@ class CogModule():
         plt.show()
 
     def plot_response(self, model, task_type, instruct = None, instruct_mode=None):
+        if not next(model.rnn.parameters()).is_cuda:
+            model.to(device)
+
         model.eval()
         with torch.no_grad(): 
             task = construct_batch(task_type, 1)
@@ -372,15 +368,18 @@ class CogModule():
             plt.legend()
         plt.show()
 
-    def plot_task_rep(self, model, epoch, dim = 2, tasks = task_list): 
+    def plot_task_rep(self, model, epoch, dim = 2, instruct_mode = None, tasks = task_list): 
+        if not next(model.rnn.parameters()).is_cuda:
+            model.to(device)
+
         assert epoch in ['input', 'stim', 'response'], "entered invalid epoch: %r" %epoch
         task_reps = []
         for task in task_list: 
             trials = construct_batch(task, 250)
             tar = trials.targets
-            ins = trials.inputs
+            ins = torch.Tensor(trials.inputs)
 
-            out, hid = self._get_model_resp(model, 250, ins, None, None, None)
+            out, hid = self._get_model_resp(model, 250, ins, task, instruct_mode, None)
 
             hid = hid.detach().cpu().numpy()
             epoch_state = []
@@ -429,7 +428,12 @@ class CogModule():
 
         return dict(zip(tasks, to_plot))
 
-    def get_hid_traj(self, tasks, dim): 
+    def get_hid_traj(self, models, tasks, dim, instruct_mode):
+        models = [self.model_dict[model] for model in models]
+        for model in models: 
+            if not next(model.rnn.parameters()).is_cuda:
+                model.to(device)
+ 
         task_info_dict = {}
         for task in tasks: 
             trial = construct_batch(task, 1)
@@ -439,13 +443,13 @@ class CogModule():
         for model_name, model in self.model_dict.items(): 
             tasks_dict = {}
             for task in tasks: 
-                out, hid = self._get_model_resp(model, 1, task_info_dict[task], None, None, None)
+                out, hid = self._get_model_resp(model, 1, torch.Tensor(task_info_dict[task]), task, instruct_mode, None)
                 embedded = PCA(n_components=dim).fit_transform(hid.squeeze().detach().cpu())
                 tasks_dict[task] = embedded
             model_task_state_dict[model_name] = tasks_dict
         return model_task_state_dict
 
-    def plot_hid_traj(self, tasks, dim): 
+    def plot_hid_traj(self, models, tasks, dim, instruct_mode = None): 
         if dim == 2: 
             fig, ax = plt.subplots()
         else: 
@@ -453,26 +457,26 @@ class CogModule():
             ax = fig.add_subplot(111, projection='3d')
 
         fig.suptitle('RNN Hidden State Trajectory')
-        model_task_state_dict = self.get_hid_traj(tasks, dim)
+        model_task_state_dict = self.get_hid_traj(models, tasks, dim, instruct_mode)
 
-        data_array = np.empty((len(self.model_dict.keys())* len(tasks)*dim), dtype=list)
+        data_array = np.empty((len(models)* len(tasks)*dim), dtype=list)
 
         for i in range(data_array.shape[0]): 
             data_array[i] = [] 
-        data_array = np.reshape(data_array, (len(self.model_dict.keys()), len(tasks), dim))
+        data_array = np.reshape(data_array, (len(models), len(tasks), dim))
 
         plot_list = []
         style_list = ['-', '--']
-        for i in range(len(self.model_dict.keys())):
+        for i in range(len(models)):
             for j in range (len(tasks)): 
-                model_name = list(self.model_dict.keys())[i]
+                model_name = models[i]
                 if dim == 2: 
                     plot_list.append(plt.plot([],[], label = model_name, color = self.COLOR_DICT[model_name], linestyle = style_list[j]))
                 else:
-                    embedding_data = model_task_state_dict[list(self.model_dict.keys())[i]][tasks[j]]
-                    plot_list.append(plt.plot(embedding_data[0, 0:1],embedding_data[1, 0:1], embedding_data[2, 0:1], color = self.COLOR_DICT[list(self.model_dict.keys())[i]], linestyle = style_list[j]))
+                    embedding_data = model_task_state_dict[models[i]][tasks[j]]
+                    plot_list.append(plt.plot(embedding_data[0, 0:1],embedding_data[1, 0:1], embedding_data[2, 0:1], color = self.COLOR_DICT[models[i]], linestyle = style_list[j]))
 
-        plot_array = np.array(plot_list).reshape((len(self.model_dict.keys()), len(tasks)))
+        plot_array = np.array(plot_list).reshape((len(models), len(tasks)))
 
         def init():
             ax.set_xlim(-10, 10)
@@ -486,7 +490,7 @@ class CogModule():
 
 
         def update(i): 
-            for j, model_name in enumerate(self.model_dict.keys()): 
+            for j, model_name in enumerate(models): 
                 for k, task in enumerate(tasks):
                     embedding_data = model_task_state_dict[model_name][task]
                     if dim ==3: 
@@ -503,7 +507,7 @@ class CogModule():
         ani = animation.FuncAnimation(fig, update, frames=119,
                             init_func=init, blit=True)
 
-        Patches = [mpatches.Patch(color=self.COLOR_DICT[model_name], label=model_name) for model_name in self.model_dict.keys()]
+        Patches = [mpatches.Patch(color=self.COLOR_DICT[model_name], label=model_name) for model_name in models]
         for i, task in enumerate(tasks):
             Patches.append(Line2D([0], [0], linestyle=style_list[i], color='grey', label=task, markerfacecolor='grey', markersize=10))
         plt.legend(handles=Patches)
@@ -579,4 +583,3 @@ class instructNet(nn.Module):
 
     def initHidden(self, batch_size, value):
         return torch.full((self.num_layers, batch_size, self.hid_dim), value)
-

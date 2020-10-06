@@ -114,6 +114,7 @@ def toNumerals(tokenizer, instructions):
     return torch.stack(ins_temp).squeeze().long().to(device)
 
 def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
+    assert instruct_mode in [None, 'instruct_swap', 'shuffled']
     batch = []
     batch_target_index = []
     for i in range(batch_size):
@@ -130,10 +131,7 @@ def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
             instruct = instruct.split()
             shuffled = np.random.permutation(instruct)
             instruct = ' '.join(list(shuffled))
-        if instruct_mode == 'single': 
-            batch = [instruct]*batch_size
-            batch_target_index = batch_target_index * batch_size
-            break
+
         batch.append(instruct)
     if tokenizer is not None: 
         batch = toNumerals(tokenizer, batch)
