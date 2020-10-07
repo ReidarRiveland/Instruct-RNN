@@ -1,22 +1,13 @@
-import gensim
-import gensim.downloader as api
-from gensim.models import KeyedVectors
-from gensim.models import Word2Vec
-
-from fse.models import SIF
-from fse import IndexedList
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from torch.nn import TransformerEncoderLayer, TransformerEncoder
-from torch.nn.utils.rnn import pad_sequence
+
 
 import math
 import numpy as np
 import random
-from collections import defaultdict
 
 import seaborn as sns
 import matplotlib
@@ -35,6 +26,7 @@ task_list = Task.TASK_LIST
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict', 'rb'))
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict', 'rb'))
 
@@ -43,66 +35,6 @@ swapped_task_list = ['Anti DM', 'COMP2', 'Anti Go', 'DMC', 'DM', 'Go', 'MultiDM'
 instruct_swap_dict = dict(zip(swapped_task_list, train_instruct_dict.values()))
 
 PAD_LEN = 25
-
-def shuffle_instruct_dict(instruct_dict): 
-    shuffled_dict = defaultdict(list)
-    for task_type, sentences in instruct_dict.items(): 
-        for instruction in sentences:
-            instruction = instruction.split()
-            shuffled = np.random.permutation(instruction)
-            shuffled_string = ' '.join(list(shuffled))
-            shuffled_dict[task_type].append(shuffled_string)
-    return shuffled_dict
-
-def wordFreq():
-    freq_dict = {}
-    all_words = []
-    all_sentences = []
-    for task_type in task_list:
-        instructions = train_instruct_dict[task_type] + test_instruct_dict[task_type]
-        for sentence in instructions: 
-            all_sentences.append(sentence)
-            for word in sentence.split(): 
-                all_words.append(word)
-    for word in set(all_words):
-        freq_dict[word] = all_words.count(word)
-    
-    split_sentences = []
-    for sentence in all_sentences:
-        list_sent = sentence.split()
-        split_sentences.append(list_sent)
-
-    return freq_dict, sorted(list(set(all_words))), all_sentences, split_sentences
-
-def load_word_embedder_dict(splits): 
-    word_embedder_dict = {}
-    _,_,_, split_sentences = wordFreq()
-    word_embedder_dict['w2v50'] = (KeyedVectors.load("wordVectors/w2v50.kv", mmap='r'), 50)
-    # word_embedder_dict['w2v100'] = (KeyedVectors.load("wordVectors/w2v100.kv", mmap='r'), 100)
-    # word_embedder_dict['wh50'] = (KeyedVectors.load("wordVectors/wh_w2v50.kv", mmap='r'), 50)
-    # word_embedder_dict['wh100'] = (KeyedVectors.load("wordVectors/wh_w2v100.kv", mmap='r'), 100)
-    sif_w2v = SIF(word_embedder_dict['w2v50'][0], workers=2)
-    # sif_wh = SIF(word_embedder_dict['wh50'][0], workers=2)
-    sif_w2v.train(splits)
-    word_embedder_dict['SIF'] = (sif_w2v, 50)
-    # sif_wh.train(splits)
-    # word_embedder_dict['SIF_wh'] = (sif_wh, 50)
-    return word_embedder_dict
-
-freq_dict, vocab, all_sentences, split_sentences = wordFreq()
-word_embedder_dict = load_word_embedder_dict(IndexedList(split_sentences))
-
-def get_fse_embedding(instruct, embedderStr): 
-    assert embedderStr in ['SIF', 'SIF_wh'], "embedderStr must be a pretrained fse embedding"
-    embedder = word_embedder_dict[embedderStr][0]
-    if instruct in all_sentences: 
-        index = IndexedList(split_sentences).items.index(instruct.split())
-        embedded = embedder.sv[index]
-    else: 
-        tmp = (instruct.split(), 0)
-        embedded = embedder.infer([tmp])
-    return embedded.squeeze()
-
 
 def toNumerals(tokenizer, instructions): 
     ins_temp = []
@@ -137,46 +69,6 @@ def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
         batch = toNumerals(tokenizer, batch)
     return batch, batch_target_index
 
-class Pretrained_Embedder(nn.Module): 
-    def __init__(self, embedderStr):
-        super(Pretrained_Embedder, self).__init__()
-        self.embedderStr = embedderStr
-        if embedderStr in ['w2v50', 'w2v100', 'wh50', 'wh100']:
-            self.out_dim = word_embedder_dict[embedderStr][1]
-        elif self.embedderStr in ['SIF', 'SIF_wh']: 
-            self.out_dim = 50
-
-    def forward(self, instruct): 
-        embedded = []
-        for i in range(len(instruct)):
-            if self.embedderStr in ['w2v50', 'w2v100', 'wh50', 'wh100']:
-                w2v = word_embedder_dict[self.embedderStr][0]
-                instruct_list = []
-                instruction = instruct[i].split()
-                for i in range(PAD_LEN): 
-                    #SHOULD USE PADDED SEQUENCE HERE
-                    if i < len(instruction):
-                        vec = w2v[instruction[i]]
-                        instruct_list.append(vec)
-                    else: 
-                        zeros = np.zeros_like(vec)
-                        instruct_list.append(zeros)
-                embedded.append(np.array(instruct_list))
-            if self.embedderStr in ['SIF', 'SIF_wh']: 
-                embedded.append(get_fse_embedding(instruct[i], self.embedderStr))
-        return torch.Tensor(np.array(embedded)).to(device)
-
-class LastLinear(nn.Module): 
-    def __init__(self, langModel): 
-        super(LastLinear, self).__init__()
-        self.langModel = langModel
-        self.linear = nn.Linear(self.langModel.out_dim, len(task_list))
-
-    def forward(self, x): 
-        x = self.langModel(x)
-        out = self.linear(x)
-        return out
-
 
 class LangModule(): 
     def __init__(self, langModel, foldername = '', filenotes = '', instruct_mode = None): 
@@ -186,7 +78,7 @@ class LangModule():
         self.loss_list = []
         self.val_loss_list = []
         self.instruct_mode = instruct_mode
-        self.model_classifier = LastLinear(self.langModel).to(device)
+        self.model_classifier = nn.Sequential(self.langModel, nn.Linear(self.langModel.out_dim, len(task_list)))
         self.shuffled = False
         self.classifier_criterion = nn.CrossEntropyLoss()
 
@@ -296,6 +188,21 @@ class LangModule():
             rep_tensor = torch.cat((rep_tensor, out_rep), dim=0)
         return task_indices, rep_tensor.cpu().detach().numpy()
 
+    def _get_avg_rep(self, task_indices, reps): 
+        avg_rep_list = []
+        for i in set(task_indices):
+            avg_rep = np.zeros(reps.shape[-1])
+            for index, rep in zip(task_indices, reps):
+                if i == index: 
+                    avg_rep += rep
+            avg_rep_list.append(avg_rep/task_indices.count(i))
+
+        task_set = list(set(task_indices))
+        avg_reps = np.array(avg_rep_list)
+        
+        return task_set, avg_reps
+
+
     def plot_embedding(self, embedding_type, dim=2, tasks = task_list, plot_avg = False, train_only=False):
         assert embedding_type in ['PCA', 'tSNE'], "entered invalid embedding_type: %r" %embedding_type
         assert dim in [2, 3], "embedding dimension must be 2 or 3"
@@ -304,16 +211,7 @@ class LangModule():
         test_indices, test_rep = self._get_instruct_rep(test_instruct_dict)
 
         if plot_avg: 
-            avg_rep_list = []
-            for i in set(train_indices):
-                avg_rep = np.zeros(train_rep.shape[-1])
-                for index, rep in zip(train_indices, train_rep):
-                    if i == index: 
-                        avg_rep += rep
-                avg_rep_list.append(avg_rep/train_indices.count(i))
-
-            train_indices = list(set(train_indices))
-            train_rep = np.array(avg_rep_list)
+            train_indices, train_rep = self._get_avg_rep(train_indices, train_rep)
 
         if len(test_rep.shape)>2: 
             test_rep = test_rep.squeeze()
@@ -395,209 +293,3 @@ def plot_lang_perf(mod_dict, mode, smoothing):
         plt.title('Validation Loss')
     plt.ylabel('Cross Entropy Loss')
     plt.xlabel('total mini-batches')
-
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, dropout=0.1, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        self.dropout = nn.Dropout(p=dropout)
-        self.d_model = d_model
-        pe = torch.zeros(max_len, self.d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, self.d_model, 2).float() * (-math.log(10000.0) / self.d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
-
-    def forward(self, x):
-        x = x + self.pe[:x.size(0), :]
-        return self.dropout(x)
-
-class LangTransformerTokenizer():
-    def encode(self, instruct): 
-        return torch.Tensor([vocab.index(word) for word in instruct.split()])
-
-class LangTransformer(nn.Module): 
-    def __init__(self, out_dim, d_reduce = 'avg', size = 'base'): 
-        super(LangTransformer, self).__init__()
-        from torch.nn import TransformerEncoder, TransformerEncoderLayer
-
-        self.d_reduce = d_reduce
-        self.embedderStr = 'LangTransformer'
-        self.out_dim = out_dim
-        self.tokenizer = LangTransformerTokenizer()
-
-        if size == 'large': 
-            self.d_model, nheads, nlayers, d_ff = 1024, 16, 24, 3072
-        else: 
-            self.d_model, nheads, nlayers, d_ff = 768, 12, 12, 3072
-
-        dropout = 0.1
-        
-        self.model_type = 'Transformer'
-        self.src_mask = None
-        self.pos_encoder = PositionalEncoding(self.d_model, dropout)
-        encoder_layers = TransformerEncoderLayer(self.d_model, nheads, d_ff)
-        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
-        self.encoder = nn.Embedding(len(vocab), self.d_model)
-
-        if self.d_reduce == 'linear':
-            self.proj_out = nn.Sequential(nn.Linear(PAD_LEN*768, 768), nn.ReLU(), nn.Linear(768, self.out_dim), nn.ReLU())
-        else: 
-            self.proj_out = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
-
-        self.init_weights()
-
-    def _generate_square_subsequent_mask(self, sz):
-        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
-        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
-        return mask
-
-    def init_weights(self):
-        initrange = 0.1
-        self.encoder.weight.data.uniform_(-initrange, initrange)
- 
-
-    def forward(self, src):
-        if self.src_mask is None or self.src_mask.size(0) != src.size(0):
-            device = src.device
-            mask = self._generate_square_subsequent_mask(src.size(0)).to(device)
-            self.src_mask = mask
-
-        src = self.encoder(src) * math.sqrt(self.d_model)
-        src = self.pos_encoder(src)
-        trans_out = self.transformer_encoder(src, self.src_mask)
-
-        if self.d_reduce == 'linear': 
-            out = self.proj_out(trans_out.flatten(1))
-        elif self.d_reduce ==  'max': 
-            trans_out = torch.max((trans_out), dim=1)
-            out =self.proj_out(trans_out)
-        elif self.d_reduce == 'avg': 
-            trans_out = torch.mean((trans_out), dim =1) 
-            out =self.proj_out(trans_out)
-        return out
-
-
-class gpt2(nn.Module): 
-    def __init__(self, out_dim, d_reduce='avg', size = 'base'): 
-        super(gpt2, self).__init__()
-        from transformers import GPT2Model, GPT2Tokenizer
-        self.d_reduce = d_reduce
-        self.embedderStr = 'gpt'
-        self.out_dim = out_dim
-
-        if self.d_reduce == 'linear':
-            self.proj_out = nn.Sequential(nn.Linear(PAD_LEN*768, 768), nn.ReLU(), nn.Linear(768, self.out_dim), nn.ReLU())
-        else: 
-            self.proj_out = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
-
-        if size == 'large': 
-            self.transformer = GPT2Model.from_pretrained('gpt2-medium')
-            self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2-medium')
-        elif size == 'XL': 
-            self.transformer = GPT2Model.from_pretrained('gpt2-xl')
-            self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2-xl')
-        else: 
-            self.transformer = GPT2Model.from_pretrained('gpt2')
-            self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-
-
-    def forward(self, x): 
-        trans_out = self.transformer(x)[0]
-        if self.d_reduce == 'linear': 
-            out = self.proj_out(trans_out.flatten(1))
-        elif self.d_reduce ==  'max': 
-            trans_out = torch.max((trans_out), dim=1)
-            out =self.proj_out(trans_out)
-        elif self.d_reduce == 'avg': 
-            trans_out = torch.mean((trans_out), dim =1) 
-            out =self.proj_out(trans_out)
-        return out
-
-class BERT(nn.Module):
-    def __init__(self, out_dim, d_reduce='avg', size = 'base'): 
-        super(BERT, self).__init__()
-        from transformers import BertModel, BertTokenizer
-
-        self.d_reduce = d_reduce
-        self.embedderStr = 'BERT'
-        self.out_dim = out_dim
-
-        if self.d_reduce == 'linear':
-            self.proj_out = nn.Sequential(nn.Linear(PAD_LEN*768, 768), nn.ReLU(), nn.Linear(768, self.out_dim), nn.ReLU())
-        else: 
-            self.proj_out = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
-
-        if size == 'large': 
-            self.transformer = BertModel.from_pretrained('bert-large-uncased')
-            self.tokenizer = BertTokenizer.from_pretrained('bert-large-uncased')
-
-        else: 
-            self.transformer = BertModel.from_pretrained('bert-base-uncased')
-            self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-
-
-    def forward(self, x): 
-        trans_out = self.transformer(x)[0]
-        if self.d_reduce == 'linear': 
-            out = self.proj_out(trans_out.flatten(1))
-        elif self.d_reduce ==  'max': 
-            trans_out = torch.max((trans_out), dim=1)
-            out =self.proj_out(trans_out)
-        elif self.d_reduce == 'avg': 
-            trans_out = torch.mean((trans_out), dim =1) 
-            out =self.proj_out(trans_out)
-        elif self.d_reduce == 'avg_conv': 
-            trans_out = nn.AvgPool2d((1, ), (2,1))
-        return out
-
-
-class SBERT(nn.Module): 
-    def __init__(self, out_dim, size = 'base'): 
-        super(SBERT, self).__init__()
-        from sentence_transformers import SentenceTransformer
-        if size == 'large': 
-            self.model = SentenceTransformer('bert-large-nli-mean-tokens')
-        else: 
-            self.model = SentenceTransformer('bert-base-nli-mean-tokens')
-        self.embedderStr = 'SBERT'
-        self.tokenizer = None
-        self.out_dim = out_dim
-        self.lin = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
-    def forward(self, x): 
-        sent_embedding = np.array(self.model.encode(x))
-        sent_embedding = self.lin(torch.Tensor(sent_embedding).to(device))
-        return sent_embedding
-        
-class SIFmodel(nn.Module): 
-    def __init__(self): 
-        super(SIFmodel, self).__init__()
-        self.out_shape = ['batch_len', 50]
-        self.in_shape = ['batch_len', 50]
-        self.out_dim =50 
-        self.embedderStr = 'SIF'
-        self.tokenizer = None
-
-    def forward(self, x):
-        embedded = []
-        for i in range(len(x)):
-            embedded.append(get_fse_embedding(x[i], self.embedderStr))
-        return torch.Tensor(np.array(embedded, dtype = np.float32)).to(device)
-
-class BoW(nn.Module): 
-    def __init__(self): 
-        super(BoW, self).__init__()
-        self.embedderStr = 'BoW'
-        self.tokenizer = None
-        self.out_dim = len(vocab)    
-
-    def forward(self, x): 
-        batch_vectorized = []
-        for instruct in x: 
-            out_vec = torch.zeros(self.out_dim)
-            for word in instruct.split():
-                index = vocab.index(word)
-                out_vec[index] += 1
-            batch_vectorized.append(out_vec)
-        return torch.stack(batch_vectorized).to(device)

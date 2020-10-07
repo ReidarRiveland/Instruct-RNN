@@ -1,20 +1,89 @@
 import torch
 import torch.nn as nn
-from torch.nn import Parameter
+import torch.nn.functional as F
+
+
 import torch.jit as jit
+from torch.nn import Parameter
+from torch.autograd import Variable
+
 import warnings
-from collections import namedtuple
 from typing import List, Tuple
 from torch import Tensor
-import numbers
-from torch.autograd import Variable
-import torch.nn.functional as functional
-import math
-import torch.nn.functional as F
+
 import numpy as np
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+class simpleNet(nn.Module): 
+    def __init__(self, in_dim, hid_dim, num_layers, instruct_mode=None):
+        super(simpleNet, self).__init__()
+        self.tune_langModel = None
+        self.instruct_mode = instruct_mode
+        self.in_dim = in_dim
+        self.out_dim = 33
+        self.isLang = False
+        self.hid_dim = hid_dim
+        self.num_layers = num_layers
+        self.rnn = nn.GRU(self.in_dim, hid_dim, self.num_layers, batch_first=True)
+        self.W_out = nn.Linear(hid_dim, self.out_dim)
+        self.weights_init()
+
+    def weights_init(self):
+        for n, p in self.named_parameters():
+            if 'weight_ih' in n:
+                for ih in p.chunk(3, 0):
+                    torch.nn.init.normal_(ih, std = 1/np.sqrt(self.in_dim))
+            elif 'weight_hh' in n:
+                for hh in p.chunk(3, 0):
+                    hh.data.copy_(torch.eye(self.hid_dim)*0.5)
+            elif 'W_out' in n:
+                torch.nn.init.normal_(p, std = 0.4/np.sqrt(self.hid_dim))
+
+    def forward(self, x, h): 
+        rnn_hid, _ = self.rnn(x, h)
+        motor_out = self.W_out(rnn_hid)
+        out = torch.sigmoid(motor_out)
+        return out, rnn_hid
+
+    def initHidden(self, batch_size, value):
+        return torch.full((self.num_layers, batch_size, self.hid_dim), value)
+
+class instructNet(nn.Module): 
+    def __init__(self, langMod, hid_dim, num_layers, drop_p = 0.0, instruct_mode=None, tune_langModel = False): 
+        super(instructNet, self).__init__()
+        self.instruct_mode = instruct_mode
+        self.tune_langModel = tune_langModel
+        self.sensory_in_dim = 65
+        self.isLang = True 
+        self.hid_dim = hid_dim
+        self.embedderStr = langMod.embedderStr
+        self.langModel = langMod.langModel.eval()
+        self.langMod = langMod
+        self.num_layers = num_layers
+        self.lang_embed_dim = langMod.langModel.out_dim
+        self.rnn = simpleNet(self.lang_embed_dim + self.sensory_in_dim, hid_dim, self.num_layers)
+
+        if tune_langModel:
+            self.langModel.train()
+            for param in self.langModel.parameters(): 
+                param.requires_grad = True
+        else: 
+            for param in self.langModel.parameters(): 
+                param.requires_grad = False
+            self.langModel.eval()
+
+    def forward(self, instruction_tensor, x, h):
+        embedded_instruct = self.langModel(instruction_tensor)
+        seq_blocked = embedded_instruct.unsqueeze(1).repeat(1, 120, 1)
+        rnn_ins = torch.cat((seq_blocked, x.type(torch.float32)), 2)
+        outs, rnn_hid = self.rnn(rnn_ins, h)
+        return outs, rnn_hid
+
+    def initHidden(self, batch_size, value):
+        return torch.full((self.num_layers, batch_size, self.hid_dim), value)
+
 
 class myGRUCell(nn.Module): 
     def __init__(self, input_size, hidden_size, activ_func): 
@@ -28,11 +97,11 @@ class myGRUCell(nn.Module):
         self.activ_func = activ_func
         self.reset_parameters()
         self.alpha = (1/5)
-        self.sigma = math.sqrt(2/self.alpha) * 0.05
+        self.sigma = np.sqrt(2/self.alpha) * 0.05
 
 
     def reset_parameters(self):
-        stdv = 1.0 / math.sqrt(self.hidden_size)
+        stdv = 1.0 / np.sqrt(self.hidden_size)
         for weight in self.parameters():
             torch.nn.init.uniform_(weight, -stdv, stdv)
 
