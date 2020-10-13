@@ -38,63 +38,7 @@ def wordFreq():
 
     return freq_dict, sorted(list(set(all_words))), all_sentences, split_sentences
 
-def load_word_embedder_dict(splits): 
-    word_embedder_dict = {}
-    _,_,_, split_sentences = wordFreq()
-    word_embedder_dict['w2v50'] = (KeyedVectors.load("wordVectors/w2v50.kv", mmap='r'), 50)
-    # word_embedder_dict['w2v100'] = (KeyedVectors.load("wordVectors/w2v100.kv", mmap='r'), 100)
-    # word_embedder_dict['wh50'] = (KeyedVectors.load("wordVectors/wh_w2v50.kv", mmap='r'), 50)
-    # word_embedder_dict['wh100'] = (KeyedVectors.load("wordVectors/wh_w2v100.kv", mmap='r'), 100)
-    sif_w2v = SIF(word_embedder_dict['w2v50'][0], workers=2)
-    # sif_wh = SIF(word_embedder_dict['wh50'][0], workers=2)
-    sif_w2v.train(splits)
-    word_embedder_dict['SIF'] = (sif_w2v, 50)
-    # sif_wh.train(splits)
-    # word_embedder_dict['SIF_wh'] = (sif_wh, 50)
-    return word_embedder_dict
-
 freq_dict, vocab, all_sentences, split_sentences = wordFreq()
-word_embedder_dict = load_word_embedder_dict(IndexedList(split_sentences))
-
-def get_fse_embedding(instruct, embedderStr): 
-    assert embedderStr in ['SIF', 'SIF_wh'], "embedderStr must be a pretrained fse embedding"
-    embedder = word_embedder_dict[embedderStr][0]
-    if instruct in all_sentences: 
-        index = IndexedList(split_sentences).items.index(instruct.split())
-        embedded = embedder.sv[index]
-    else: 
-        tmp = (instruct.split(), 0)
-        embedded = embedder.infer([tmp])
-    return embedded.squeeze()
-
-class Pretrained_Embedder(nn.Module): 
-    def __init__(self, embedderStr):
-        super(Pretrained_Embedder, self).__init__()
-        self.embedderStr = embedderStr
-        if embedderStr in ['w2v50', 'w2v100', 'wh50', 'wh100']:
-            self.out_dim = word_embedder_dict[embedderStr][1]
-        elif self.embedderStr in ['SIF', 'SIF_wh']: 
-            self.out_dim = 50
-
-    def forward(self, instruct): 
-        embedded = []
-        for i in range(len(instruct)):
-            if self.embedderStr in ['w2v50', 'w2v100', 'wh50', 'wh100']:
-                w2v = word_embedder_dict[self.embedderStr][0]
-                instruct_list = []
-                instruction = instruct[i].split()
-                for i in range(PAD_LEN): 
-                    if i < len(instruction):
-                        vec = w2v[instruction[i]]
-                        instruct_list.append(vec)
-                    else: 
-                        zeros = np.zeros_like(vec)
-                        instruct_list.append(zeros)
-                embedded.append(np.array(instruct_list))
-            if self.embedderStr in ['SIF', 'SIF_wh']: 
-                embedded.append(get_fse_embedding(instruct[i], self.embedderStr))
-        return torch.Tensor(np.array(embedded)).to(device)
-
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, dropout=0.1, max_len=5000):
@@ -265,6 +209,7 @@ class SBERT(nn.Module):
         self.tokenizer = None
         self.out_dim = out_dim
         self.lin = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
+        
     def forward(self, x): 
         sent_embedding = np.array(self.model.encode(x))
         sent_embedding = self.lin(torch.Tensor(sent_embedding).to(device))
@@ -279,10 +224,21 @@ class SIFmodel(nn.Module):
         self.embedderStr = 'SIF'
         self.tokenizer = None
 
+        w2v50 = (KeyedVectors.load("wordVectors/w2v50.kv", mmap='r'), 50)
+        self.embedder = SIF(w2v50, workers=2)
+        self.embedder.train(split_sentences)
+
+    def get_SIF_embedding(self, instruct): 
+        if instruct in all_sentences: 
+            index = IndexedList(split_sentences).items.index(instruct.split())
+            embedded = self.embedder.sv[index]
+        else: 
+            tmp = (instruct.split(), 0)
+            embedded = self.embedder.infer([tmp])
+        return embedded.squeeze()
+
     def forward(self, x):
-        embedded = []
-        for i in range(len(x)):
-            embedded.append(get_fse_embedding(x[i], self.embedderStr))
+        embedded = [self.get_SIF_embedding(x[i]) for i in range(len(x))]
         return torch.Tensor(np.array(embedded, dtype = np.float32)).to(device)
 
 class BoW(nn.Module): 

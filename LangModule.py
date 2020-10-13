@@ -1,9 +1,7 @@
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-
 
 import math
 import numpy as np
@@ -78,7 +76,7 @@ class LangModule():
         self.loss_list = []
         self.val_loss_list = []
         self.instruct_mode = instruct_mode
-        self.model_classifier = nn.Sequential(self.langModel, nn.Linear(self.langModel.out_dim, len(task_list)))
+        self.model_classifier = nn.Sequential(self.langModel, nn.Linear(self.langModel.out_dim, len(task_list), nn.ReLU()))
         self.shuffled = False
         self.classifier_criterion = nn.CrossEntropyLoss()
 
@@ -177,6 +175,8 @@ class LangModule():
 
     def _get_instruct_rep(self, instruct_dict):
         self.langModel.eval()
+        if not next(self.langModel.parameters()).is_cuda:
+            self.langModel.to(device)
         task_indices = []
         rep_tensor = torch.Tensor().to(device)
         for i, task in enumerate(instruct_dict.keys()):

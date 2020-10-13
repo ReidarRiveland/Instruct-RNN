@@ -308,7 +308,8 @@ class CogModule():
         plt.legend()
         plt.show()
 
-    def plot_response(self, model, task_type, instruct = None, instruct_mode=None):
+    def plot_response(self, model_name, task_type, instruct = None, instruct_mode=None, plot_hidden = False):
+        model = self.model_dict[model_name]
         if not next(model.rnn.parameters()).is_cuda:
             model.to(device)
 
@@ -331,16 +332,23 @@ class CogModule():
             
             out = out.squeeze().detach().cpu().numpy()
             hid = hid.squeeze().detach().cpu().numpy()
-            to_plot = (ins.squeeze().cpu().T, tar.squeeze().T, out.T)
+            
 
-            fig, axn = plt.subplots(3,1, sharex = True)
+            if plot_hidden: 
+                ylabels = ('Input', 'Target','Hidden', 'Output')
+                fig, axn = plt.subplots(4,1, sharex = True)
+                to_plot = (ins.squeeze().T, tar.squeeze().T, hid.T, out.T)
+            else: 
+                ylabels = ('Input', 'Target', 'Output')
+                fig, axn = plt.subplots(3,1, sharex = True)
+                to_plot = (ins.squeeze().T, tar.squeeze().T, out.T)
+
             cbar_ax = fig.add_axes([.91, .3, .03, .4])
-            ylabels = ('Input', 'Target', 'Output')
             for i, ax in enumerate(axn.flat):
                 sns.heatmap(to_plot[i], yticklabels = False, ax=ax, cbar=i == 0, vmin=0, vmax=1, cbar_ax=None if i else cbar_ax)
                 ax.set_ylabel(ylabels[i])
                 if i == 0: 
-                    ax.set_title('%r Trial Response' %task_type)
+                    ax.set_title(model_name + '%r Trial Response' %task_type)
                 if i == 4: 
                     ax.set_xlabel('time (DELTA_T=%r ms)'%Task.DELTA_T)
             plt.show()
