@@ -70,7 +70,7 @@ def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
 
 class LangModule(): 
     def __init__(self, langModel, foldername = '', filenotes = '', instruct_mode = None): 
-        self.langModel = langModel
+        self.langModel = langModel.to(device)
         self.embedderStr = langModel.embedderStr
         if len(foldername) > 0: foldername = foldername+'/'
         self.loss_list = []
@@ -175,17 +175,16 @@ class LangModule():
 
     def _get_instruct_rep(self, instruct_dict):
         self.langModel.eval()
-        if not next(self.langModel.parameters()).is_cuda:
-            self.langModel.to(device)
-        task_indices = []
-        rep_tensor = torch.Tensor().to(device)
-        for i, task in enumerate(instruct_dict.keys()):
-            instructions = instruct_dict[task]
-            if self.langModel.tokenizer is not None: 
-                instructions = toNumerals(self.langModel.tokenizer, instructions)
-            out_rep = self.langModel(instructions)
-            task_indices += ([i]*len(instructions))
-            rep_tensor = torch.cat((rep_tensor, out_rep), dim=0)
+        with torch.no_grad(): 
+            task_indices = []
+            rep_tensor = torch.Tensor().to(device)
+            for i, task in enumerate(instruct_dict.keys()):
+                instructions = instruct_dict[task]
+                if self.langModel.tokenizer is not None: 
+                    instructions = toNumerals(self.langModel.tokenizer, instructions)
+                out_rep = self.langModel(instructions)
+                task_indices += ([i]*len(instructions))
+                rep_tensor = torch.cat((rep_tensor, out_rep), dim=0)
         return task_indices, rep_tensor.cpu().detach().numpy()
 
     def _get_avg_rep(self, task_indices, reps): 
@@ -230,20 +229,12 @@ class LangModule():
             test_indices, embedded_test = zip(*testindexrep)
             embedded_train = np.stack(embedded_train)
             embedded_test = np.stack(embedded_test)
-            sorted_set = sorted(set(train_indices))
-            test_indices = list(test_indices)
-            train_indices = list(train_indices)
-            for index, value in enumerate(train_indices): 
-                train_indices[index] = sorted_set.index(value)
-            for index, value in enumerate(test_indices): 
-                test_indices[index] = sorted_set.index(value)
-            
 
-        cmap = matplotlib.cm.get_cmap('Paired')
-        norm = matplotlib.colors.Normalize(vmin=0, vmax=len(tasks))
 
-        color_train = norm(np.array(train_indices).astype(int))
-        color_test = norm(np.array(test_indices).astype(int))
+        cmap = matplotlib.cm.get_cmap('tab20')
+
+        color_train = np.array(train_indices).astype(int)
+        color_test = np.array(test_indices).astype(int)
 
         if dim == 2: 
             fig, ax = plt.subplots(figsize=(12, 10))
@@ -266,7 +257,7 @@ class LangModule():
 
         plt.title("PCA Embedding for Distributed Rep.", fontsize=18)
         digits = np.arange(len(tasks))
-        Patches = [mpatches.Patch(color=cmap(norm(d)), label=tasks[d]) for d in digits]
+        Patches = [mpatches.Patch(color=cmap(i), label=task_list[i]) for i in task_indices]
         if not train_only: 
             Patches.append(Line2D([0], [0], marker='X', color='w', label='test data', markerfacecolor='grey', markersize=10))
         Patches.append(Line2D([0], [0], marker='o', color='w', label='train data', markerfacecolor='grey', markersize=10))

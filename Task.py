@@ -2,11 +2,10 @@ import math
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-
+import matplotlib.gridspec as gridspec
 
 class Task():
     TASK_LIST = ['Go', 'RT Go', 'Anti Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']
-
     STIM_DIM = 32
     TUNING_DIRS = [((2*np.pi*i)/32) for i in range(STIM_DIM)]
     TRIAL_LEN = int(120)
@@ -117,18 +116,26 @@ class Task():
         mod1 = ins[1+num_rules:1+num_rules+self.STIM_DIM, :]
         mod2 = ins[1+num_rules+self.STIM_DIM:1+num_rules+(2*self.STIM_DIM), :]
 
-        to_plot = (fix, rule_vec, mod1, mod2, tars)
+        #to_plot = (fix, rule_vec, mod1, mod2, tars)
+        to_plot = (fix, mod1, mod2, tars)
 
-        fig, axn = plt.subplots(5,1, sharex = True)
+
+        gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 5])
+
+
+        fig, axn = plt.subplots(4,1, sharex = True, gridspec_kw=gs_kw)
         cbar_ax = fig.add_axes([.91, .3, .03, .4])
-        ylabels = ('fix', 'rule_vec', 'mod1', 'mod2', 'Target')
+        ylabels = ('fix.', 'mod. 1', 'mod. 2', 'Target')
         for i, ax in enumerate(axn.flat):
-            sns.heatmap(to_plot[i], yticklabels = False, ax=ax, cbar=i == 0, vmin=0, vmax=1, cbar_ax=None if i else cbar_ax)
+            sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1, cbar_ax=None if i else cbar_ax)
+            #sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=False, vmin=0, vmax=1, cbar_ax=None)
+
             ax.set_ylabel(ylabels[i])
             if i == 0: 
                 ax.set_title('%r Trial Info' %task_type)
-            if i == 4: 
-                ax.set_xlabel('time (DELTA_T=%r ms)'%self.DELTA_T)
+            if i == 3: 
+                ax.set_xlabel('time')
+        #plt.tight_layout()
         plt.show()
 
     def _get_trial_inputs(self, task_type, stim_mod_arr):
@@ -414,3 +421,4 @@ def construct_batch(task_type, num):
     if task_type == 'DNMC': 
         trial = Delay('DNMC', num)
     return trial 
+

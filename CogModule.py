@@ -5,10 +5,11 @@ from collections import defaultdict
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from sklearn.decomposition import PCA
-
+import matplotlib.gridspec as gridspec
 import matplotlib.animation as animation
 from matplotlib.lines import Line2D
+
+from sklearn.decomposition import PCA
 
 from scipy.ndimage.filters import gaussian_filter1d
 import seaborn as sns
@@ -308,7 +309,7 @@ class CogModule():
         plt.legend()
         plt.show()
 
-    def plot_response(self, model_name, task_type, instruct = None, instruct_mode=None, plot_hidden = False):
+    def plot_response(self, model_name, task_type, instruct = None, instruct_mode=None):
         model = self.model_dict[model_name]
         if not next(model.rnn.parameters()).is_cuda:
             model.to(device)
@@ -333,24 +334,35 @@ class CogModule():
             out = out.squeeze().detach().cpu().numpy()
             hid = hid.squeeze().detach().cpu().numpy()
             
+            ylabels = ['Input', 'Hidden', 'Output', 'Target']
+            ins = del_input_rule(torch.Tensor(ins)).numpy()
+            to_plot = [ins.squeeze().T, hid.T, out.T, tar.squeeze().T]
 
-            if plot_hidden: 
-                ylabels = ('Input', 'Target','Hidden', 'Output')
-                fig, axn = plt.subplots(4,1, sharex = True)
-                to_plot = (ins.squeeze().T, tar.squeeze().T, hid.T, out.T)
+            if model.isLang: 
+                embedded_instruct = model.langModel(self._get_lang_input(model, 1, task_type, instruct_mode))
+                task_info = embedded_instruct.repeat(120, 1).cpu().numpy()
+                task_info_str = 'Instruction Vec.'
             else: 
-                ylabels = ('Input', 'Target', 'Output')
-                fig, axn = plt.subplots(3,1, sharex = True)
-                to_plot = (ins.squeeze().T, tar.squeeze().T, out.T)
+                one_hot = np.zeros(len(task_list))
+                one_hot[task_list.index(task_type)] = 1
+                task_info = one_hot.repeat(120, 1)
+                task_info_str = 'Task one-hot'
 
-            cbar_ax = fig.add_axes([.91, .3, .03, .4])
+            ylabels.insert(1, task_info_str)
+            to_plot.insert(1, task_info.T)
+
+            gs_kw = dict(width_ratios=[1], height_ratios=[65, 20, 120, 33, 33])
+
+
+            fig, axn = plt.subplots(5,1, sharex = True, gridspec_kw=gs_kw)
+
             for i, ax in enumerate(axn.flat):
-                sns.heatmap(to_plot[i], yticklabels = False, ax=ax, cbar=i == 0, vmin=0, vmax=1, cbar_ax=None if i else cbar_ax)
+                sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax)
                 ax.set_ylabel(ylabels[i])
                 if i == 0: 
-                    ax.set_title(model_name + '%r Trial Response' %task_type)
-                if i == 4: 
-                    ax.set_xlabel('time (DELTA_T=%r ms)'%Task.DELTA_T)
+                    ax.set_title(model_name + ' %r Trial Response' %task_type)
+                if i == len(to_plot): 
+                    ax.set_xlabel('time')
             plt.show()
             
 
@@ -377,7 +389,8 @@ class CogModule():
             plt.legend()
         plt.show()
 
-    def plot_task_rep(self, model, epoch, dim = 2, instruct_mode = None, tasks = task_list): 
+    def plot_task_rep(self, model_name, epoch, dim = 2, instruct_mode = None, tasks = task_list): 
+        model = self.model_dict[model_name]
         if not next(model.rnn.parameters()).is_cuda:
             model.to(device)
 
@@ -407,29 +420,26 @@ class CogModule():
         embedded = PCA(n_components=dim).fit_transform(np.stack(task_reps))
         to_plot = np.stack([embedded[task_list.index(task), :] for task in tasks])
 
-        cmap = matplotlib.cm.get_cmap('Paired')
-        norm = matplotlib.colors.Normalize(vmin=0, vmax=len(tasks))
-
-        color_train = norm(np.arange(len(tasks)).astype(int))
+        cmap = matplotlib.cm.get_cmap('tab20')
+        task_indices = np.array([task_list.index(task) for task in tasks]).astype(int)
 
         if dim ==3: 
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
-            ax.scatter(to_plot[:, 0], to_plot[:, 1], to_plot[:,2], c = cmap(color_train), cmap=cmap, s=100)
+            ax.scatter(to_plot[:, 0], to_plot[:, 1], to_plot[:,2], c = cmap(task_indices), cmap=cmap, s=100)
             ax.set_xlabel('PC 1')
             ax.set_ylabel('PC 2')
             ax.set_zlabel('PC 3')
 
         else:             
             fig, ax = plt.subplots(figsize=(12, 10))
-            plt.scatter(to_plot[:, 0], to_plot[:, 1], c=cmap(color_train), cmap=cmap, s=100)
-            
+            plt.scatter(to_plot[:, 0], to_plot[:, 1], c=cmap(task_indices), cmap=cmap, s=100)
             plt.xlabel("PC 1", fontsize = 18)
             plt.ylabel("PC 2", fontsize = 18)
 
         plt.title("PCA Embedding for Task Rep.", fontsize=18)
         digits = np.arange(len(tasks))
-        Patches = [mpatches.Patch(color=cmap(norm(d)), label=tasks[d]) for d in digits]
+        Patches = [mpatches.Patch(color=cmap(d), label=task_list[d]) for d in task_indices]
 
 
         plt.legend(handles=Patches)
