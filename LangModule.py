@@ -125,8 +125,8 @@ class LangModule():
         pickle.dump(self.val_loss_list, open(self.foldername+'LanguageModels/'+self.filename+'_val_loss', 'wb'))
 
     def load_classifier_training_data(self): 
-        self.loss_list = pickle.load(open(self.foldername+'LanguageModels/'+self.filename+'_training_loss', 'wb'))
-        self.val_loss_list = pickle.load(open(self.foldername+'/LanguageModels/'+self.filename+'_val_loss', 'wb'))
+        self.loss_list = pickle.load(open(self.foldername+'LanguageModels/'+self.filename+'_training_loss', 'rb'))
+        self.val_loss_list = pickle.load(open(self.foldername+'/LanguageModels/'+self.filename+'_val_loss', 'rb'))
 
 
     def get_val_loss(self): 
