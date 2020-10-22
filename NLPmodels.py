@@ -11,12 +11,15 @@ from fse import IndexedList
 
 import numpy as np
 import pickle
+import os
 
 from Task import Task
 from LangModule import PAD_LEN, train_instruct_dict, test_instruct_dict
 
 task_list = Task.TASK_LIST
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#device = 'cpu'
+
 
 def wordFreq():
     freq_dict = {}
@@ -176,7 +179,6 @@ class BERT(nn.Module):
         if size == 'large': 
             self.transformer = BertModel.from_pretrained('bert-large-uncased')
             self.tokenizer = BertTokenizer.from_pretrained('bert-large-uncased')
-
         else: 
             self.transformer = BertModel.from_pretrained('bert-base-uncased')
             self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -214,19 +216,47 @@ class SBERT(nn.Module):
         sent_embedding = np.array(self.model.encode(x))
         sent_embedding = self.lin(torch.Tensor(sent_embedding).to(device))
         return sent_embedding
-        
+
+
+class InferSent(nn.Module): 
+    def __init__(self, out_dim): 
+        super(InferSent, self).__init__()
+        self.model = self.load_model_config()
+        self.embedderStr = 'InferSent'
+        self.tokenizer = None 
+        self.out_dim = out_dim
+        self.proj_out = nn.Sequential(nn.Linear(4096, self.out_dim), nn.ReLU())
+
+    def load_model_config(self):
+        owd = os.getcwd()
+        os.chdir('PreTrainedLanguageModels/SentInfer')
+        from models import InferSent
+        model_version = 1
+        MODEL_PATH = "encoder/infersent%s.pkl" % model_version
+        params_model = {'bsize': 64, 'word_emb_dim': 300, 'enc_lstm_dim': 2048,
+                        'pool_type': 'max', 'dpout_model': 0.0, 'version': model_version}
+        model = InferSent(params_model)
+        model.load_state_dict(torch.load(MODEL_PATH))
+        os.chdir(owd)
+        W2V_PATH = 'PreTrainedLanguageModels/GloVe/glove.840B.300d.txt'
+        model.set_w2v_path(W2V_PATH)
+        model.build_vocab_k_words(K=100000)
+        return model
+
+    def forward(self, x): 
+        sent_embedding = np.array(self.model.encode(x))
+        sent_embedding = self.proj_out(torch.Tensor(sent_embedding).to(device))
+        return sent_embedding
+
 class SIFmodel(nn.Module): 
     def __init__(self): 
         super(SIFmodel, self).__init__()
         self.out_shape = ['batch_len', 50]
         self.in_shape = ['batch_len', 50]
-        self.out_dim =50 
+        self.out_dim = 50
         self.embedderStr = 'SIF'
         self.tokenizer = None
-
-        w2v50 = (KeyedVectors.load("wordVectors/w2v50.kv", mmap='r'), 50)
-        self.embedder = SIF(w2v50, workers=2)
-        self.embedder.train(split_sentences)
+        self.embedder = pickle.load(open('PreTrainedLanguageModels/glove-50-sif', 'rb'))
 
     def get_SIF_embedding(self, instruct): 
         if instruct in all_sentences: 
@@ -257,3 +287,4 @@ class BoW(nn.Module):
                 out_vec[index] += 1
             batch_vectorized.append(out_vec)
         return torch.stack(batch_vectorized).to(device)
+

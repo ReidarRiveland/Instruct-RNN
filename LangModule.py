@@ -23,7 +23,7 @@ from Task import Task
 task_list = Task.TASK_LIST
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+#device = 'cpu'
 
 train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict', 'rb'))
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict', 'rb'))
@@ -69,8 +69,8 @@ def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
 
 
 class LangModule(): 
-    def __init__(self, langModel, foldername = '', filenotes = '', instruct_mode = None): 
-        self.langModel = langModel.to(device)
+    def __init__(self, langModel, foldername = '', instruct_mode = None): 
+        self.langModel = langModel
         self.embedderStr = langModel.embedderStr
         if len(foldername) > 0: foldername = foldername+'/'
         self.loss_list = []
@@ -81,7 +81,7 @@ class LangModule():
         self.classifier_criterion = nn.CrossEntropyLoss()
 
         self.foldername = foldername
-        self.filename = filenotes + self.embedderStr + '_' + str(self.langModel.out_dim) + '.pt'
+        self.filename = self.embedderStr + '_' + str(self.langModel.out_dim)
 
     def train_classifier(self, batch_len, num_batches, epochs, optim_method = 'adam', lr=0.001, weight_decay=0, shuffle = False, train_out_only = False):
         self.shuffled = shuffle
@@ -94,6 +94,7 @@ class LangModule():
         self.identity = nn.Identity()
 
         best_val_loss = 1e5
+        self.model_classifier.to(device)
         self.model_classifier.train()
         for i in range(epochs):
             for j in range(num_batches): 
@@ -113,11 +114,20 @@ class LangModule():
 
                 if val_loss < best_val_loss: 
                     best_val_loss = val_loss
-                    torch.save(self.model_classifier.state_dict(), self.foldername+ 'LanguageModels/'+self.filename)
-        self.model_classifier.load_state_dict(torch.load(self.foldername+'LanguageModels/'+ self.filename))
+                    torch.save(self.model_classifier.state_dict(), self.foldername+ 'LanguageModels/'+self.filename+'.pt')
+        self.model_classifier.load_state_dict(torch.load(self.foldername+'LanguageModels/'+ self.filename+'.pt'))
 
     def loadLangModel(self): 
-        self.model_classifier.load_state_dict(torch.load(self.foldername+'/LanguageModels/'+ self.filename))
+        self.model_classifier.load_state_dict(torch.load(self.foldername+'/LanguageModels/'+ self.filename+'.pt'))
+    
+    def save_classifier_training_data(self): 
+        pickle.dump(self.loss_list, open(self.foldername+'LanguageModels/'+self.filename+'_training_loss', 'wb'))
+        pickle.dump(self.val_loss_list, open(self.foldername+'LanguageModels/'+self.filename+'_val_loss', 'wb'))
+
+    def load_classifier_training_data(self): 
+        self.loss_list = pickle.load(open(self.foldername+'LanguageModels/'+self.filename+'_training_loss', 'wb'))
+        self.val_loss_list = pickle.load(open(self.foldername+'/LanguageModels/'+self.filename+'_val_loss', 'wb'))
+
 
     def get_val_loss(self): 
         total_loss = 0
@@ -174,6 +184,7 @@ class LangModule():
         plt.show()
 
     def _get_instruct_rep(self, instruct_dict):
+        self.langModel.to(device)
         self.langModel.eval()
         with torch.no_grad(): 
             task_indices = []
@@ -202,8 +213,7 @@ class LangModule():
         return task_set, avg_reps
 
 
-    def plot_embedding(self, embedding_type, dim=2, tasks = task_list, plot_avg = False, train_only=False):
-        assert embedding_type in ['PCA', 'tSNE'], "entered invalid embedding_type: %r" %embedding_type
+    def plot_embedding(self, dim=2, tasks = task_list, plot_avg = False, train_only=False):
         assert dim in [2, 3], "embedding dimension must be 2 or 3"
 
         train_indices, train_rep = self._get_instruct_rep(train_instruct_dict)
@@ -214,22 +224,19 @@ class LangModule():
 
         if len(test_rep.shape)>2: 
             test_rep = test_rep.squeeze()
-        if embedding_type == 'PCA':
-            embedded_train = PCA(n_components=dim).fit_transform(train_rep)
-            embedded_test = PCA(n_components=dim).fit_transform(test_rep)
-        elif embedding_type == 'tSNE': 
-            embedded_train = TSNE(n_components=dim).fit_transform(train_rep)
-            embedded_test = TSNE(n_components=dim).fit_transform(test_rep)
+
+        embedded_train = PCA(n_components=dim).fit_transform(train_rep)
+        embedded_test = PCA(n_components=dim).fit_transform(test_rep)
+
+        task_indices = [task_list.index(task) for task in tasks] 
 
         if tasks != task_list:
-            task_indices = [task_list.index(task) for task in tasks] 
             trainindexrep = [rep for rep in zip(train_indices, embedded_train) if rep[0] in task_indices]
             testindexrep = [rep for rep in zip(test_indices, embedded_test) if rep[0] in task_indices]
             train_indices, embedded_train = zip(*trainindexrep)
             test_indices, embedded_test = zip(*testindexrep)
             embedded_train = np.stack(embedded_train)
             embedded_test = np.stack(embedded_test)
-
 
         cmap = matplotlib.cm.get_cmap('tab20')
 
@@ -266,10 +273,11 @@ class LangModule():
         plt.show()
 
 def plot_lang_perf(mod_dict, mode, smoothing): 
+    COLOR_DICT = {'Model1': 'blue', 'SIF':'brown', 'BoW': 'orange', 'gpt': 'red', 'BERT': 'green', 'SBERT': 'purple', 'InferSent':'yellow', 'Transformer': 'pink'}
     if mode == 'train': 
         for label, mod in mod_dict.items(): 
             loss = smoothed_perf = gaussian_filter1d(mod.loss_list, sigma=smoothing)
-            plt.plot(loss, label = label)
+            plt.plot(loss, label = label, color = COLOR_DICT[mod.embedderStr])
         plt.legend()
         plt.show()
         plt.title('Training Loss')

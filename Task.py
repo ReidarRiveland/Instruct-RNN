@@ -422,3 +422,4 @@ def construct_batch(task_type, num):
         trial = Delay('DNMC', num)
     return trial 
 
+

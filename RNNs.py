@@ -59,7 +59,7 @@ class instructNet(nn.Module):
         self.isLang = True 
         self.hid_dim = hid_dim
         self.embedderStr = langMod.embedderStr
-        self.langModel = langMod.langModel.eval()
+        self.langModel = langMod.langModel
         self.langMod = langMod
         self.num_layers = num_layers
         self.lang_embed_dim = langMod.langModel.out_dim
