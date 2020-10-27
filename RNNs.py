@@ -1,3 +1,4 @@
+ 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -85,40 +86,6 @@ class instructNet(nn.Module):
         return torch.full((self.num_layers, batch_size, self.hid_dim), value)
 
 
-class myGRUCell(nn.Module): 
-    def __init__(self, input_size, hidden_size, activ_func): 
-        super(myGRUCell, self).__init__()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.weight_ih = Parameter(torch.Tensor(3 * hidden_size, input_size))
-        self.weight_hh = Parameter(torch.Tensor(3 * hidden_size, hidden_size))
-        self.bias_ih = Parameter(torch.Tensor(3 * hidden_size))
-        self.bias_hh = Parameter(torch.Tensor(3 * hidden_size))
-        self.activ_func = activ_func
-        self.reset_parameters()
-        self.alpha = (1/5)
-        self.sigma = np.sqrt(2/self.alpha) * 0.05
-
-
-    def reset_parameters(self):
-        stdv = 1.0 / np.sqrt(self.hidden_size)
-        for weight in self.parameters():
-            torch.nn.init.uniform_(weight, -stdv, stdv)
-
-    def forward(self, input, hx):
-        igates = (torch.mm(input, self.weight_ih.t()) + self.bias_ih)
-        hgates = (torch.mm(hx, self.weight_hh.t()) + self.bias_hh)
-        r_in, z_in, c_in = igates.chunk(3, 1)
-        r_hid, z_hid, c_hid = hgates.chunk(3, 1)
-
-        r_gate = torch.sigmoid(r_in+r_hid)
-        z_gate = torch.sigmoid(z_in + z_hid)
-        c = self.activ_func(c_in + (r_gate *c_hid))
-        #c += (self.sigma*torch.randn_like(c))
-        #h_new = ((1-z_gate)*c) + (z_gate * hx)
-        h_new = ((1- (self.alpha * z_gate)) * hx) + ((self.alpha * z_gate) * c)
-
-        return h_new
     
 
 # class myGRU(nn.Module):

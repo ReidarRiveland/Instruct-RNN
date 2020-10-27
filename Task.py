@@ -28,14 +28,15 @@ class Task():
             T_fix = (0, T_stim1[0])
 
             self.intervals[i] = (T_fix, T_stim1, T_delay, T_stim2, T_go)
-
+    
     def make_noise(self, dim):
         noise = np.sqrt(2/self.DELTA_T)*(self.SIGMA_IN) * np.random.normal(size=dim)
         return np.expand_dims(noise, 0)
 
-    def _rule_one_hot(self, task_type):
-        index = self.TASK_LIST.index(task_type)
-        one_hot = np.zeros(len(self.TASK_LIST))
+    @staticmethod
+    def _rule_one_hot(task_type):
+        index = Task.TASK_LIST.index(task_type)
+        one_hot = np.zeros(len(Task.TASK_LIST))
         one_hot[index] = 1
         return np.expand_dims(one_hot, 0)
 

@@ -78,16 +78,54 @@ def del_input_rule(in_tensor):
     new_input = torch.cat((in_tensor[:, :, 0:1], in_tensor[:, :, len(task_list)+1:]), axis=2)
     return new_input
 
+def comp_input_rule(in_tensor, task_type): 
+    if task_type == 'Go': 
+        comp_vec = Task._rule_one_hot('RT Go')+(Task._rule_one_hot('Anti Go')-Task._rule_one_hot('Anti RT Go'))
+    if task_type == 'RT Go':
+        comp_vec = Task._rule_one_hot('Go')+(Task._rule_one_hot('Anti RT Go')-Task._rule_one_hot('Anti Go'))
+    if task_type == 'Anti Go':
+        comp_vec = Task._rule_one_hot('Anti RT Go')+(Task._rule_one_hot('Go')-Task._rule_one_hot('RT Go'))
+    if task_type == 'Anti RT Go':
+        comp_vec = Task._rule_one_hot('Anti Go')+(Task._rule_one_hot('RT Go')-Task._rule_one_hot('Go'))
+    if task_type == 'DM':
+        comp_vec = Task._rule_one_hot('MultiDM') + (Task._rule_one_hot('Anti DM') - Task._rule_one_hot('Anti MultiDM'))
+    if task_type == 'Anti DM': 
+        comp_vec = Task._rule_one_hot('Anti MultiDM') + (Task._rule_one_hot('DM') - Task._rule_one_hot('MultiDM'))
+    if task_type == 'MultiDM': 
+        comp_vec = Task._rule_one_hot('DM') + (Task._rule_one_hot('Anti MultiDM')-Task._rule_one_hot('Anti DM'))
+    if task_type == 'Anti MultiDM': 
+        comp_vec = Task._rule_one_hot('Anti DM') + (Task._rule_one_hot('MultiDM')-Task._rule_one_hot('DM'))
+    if task_type == 'COMP1': 
+        comp_vec = Task._rule_one_hot('COMP2') + (Task._rule_one_hot('MultiCOMP1')-Task._rule_one_hot('MultiCOMP2'))
+    if task_type == 'COMP2': 
+        comp_vec = Task._rule_one_hot('COMP1') + (Task._rule_one_hot('MultiCOMP2')-Task._rule_one_hot('MultiCOMP1'))
+    if task_type == 'MultiCOMP1': 
+        comp_vec = Task._rule_one_hot('MultiCOMP2') + (Task._rule_one_hot('COMP1')-Task._rule_one_hot('COMP2'))
+    if task_type == 'MultiCOMP2': 
+        comp_vec = Task._rule_one_hot('MultiCOMP1') + (Task._rule_one_hot('COMP2')-Task._rule_one_hot('COMP1'))
+    if task_type == 'DMS': 
+        comp_vec = Task._rule_one_hot('DMC') + (Task._rule_one_hot('DNMS')-Task._rule_one_hot('DNMC'))
+    if task_type == 'DMC': 
+        comp_vec = Task._rule_one_hot('DMS') + (Task._rule_one_hot('DNMC')-Task._rule_one_hot('DNMS'))
+    if task_type == 'DNMS': 
+        comp_vec = Task._rule_one_hot('DNMC') + (Task._rule_one_hot('DMS')-Task._rule_one_hot('DMC'))
+    if task_type == 'DNMC': 
+        comp_vec = Task._rule_one_hot('DNMS') + (Task._rule_one_hot('DMC')-Task._rule_one_hot('DMS'))
+    
+    comp_tensor = torch.Tensor(comp_vec).unsqueeze(0).repeat(in_tensor.shape[0], in_tensor.shape[1], 1).to(in_tensor.get_device())
+    comp_input = torch.cat((in_tensor[:, :, 0:1], comp_tensor, in_tensor[:, :, len(task_list)+1:]), axis=2)
+    return comp_input
+
 class CogModule():
     ALL_STYLE_DICT = {'Model1': ('blue', None), 'SIF':('brown', None), 'BoW': ('orange', None), 'GPT_cat': ('red', '^'), 'GPT train': ('red', '.'), 
-                            'BERT_cat': ('green', '^'), 'BERT train': ('green', '+'), 'S-Bert_cat': ('purple', '^'), 'S-Bert train': ('purple', '.'), 
+                            'BERT_cat': ('green', '^'), 'BERT train': ('green', '+'), 'S-Bert_cat': ('purple', '^'), 'S-Bert train': ('purple', '.'), 'S-Bert' : ('purple', None), 
                             'InferSent train': ('yellow', '.'), 'InferSent_cat': ('yellow', '^'), 'Transformer': ('pink', '.')}
     COLOR_DICT = {'Model1': 'blue', 'SIF':'brown', 'BoW': 'orange', 'GPT': 'red', 'BERT': 'green', 'S-Bert': 'purple', 'InferSent':'yellow', 'Transformer': 'pink'}
     MODEL_MARKER_DICT = {'SIF':None, 'BoW':None, 'cat': '^', 'train': '.', 'Transformer':'.'}
     MARKER_DICT = {'^': 'task categorization', '.': 'end-to-end'}
     NAME_TO_PLOT_DICT = {'Model1': 'One-Hot Task Vec.', 'SIF':'SIF', 'BoW': 'BoW', 'GPT_cat': 'GPT (task cat.)', 'GPT train': 'GPT (end-to-end)', 
-                            'BERT_cat': 'BERT (task cat.)', 'BERT train': 'BERT (end-to-end)', 'S-Bert_cat': 'S-BERT (task cat.)', 'S-Bert train': 'S-BERT (end-to-end)', 
-                            'InferSent train': 'InferSent (end-to-end)', 'InferSent_cat': 'InferSent (task cat.)', 'Transformer': 'Transformer (end-to-end)'}
+                            'BERT_cat': 'BERT (task cat.)', 'BERT train': 'BERT (end-to-end)', 'S-Bert_cat': 'S-BERT (task cat.)', 'S-Bert train': 'S-BERT (end-to-end)',  
+                            'S-Bert': 'S-BERT (raw)', 'InferSent train': 'InferSent (end-to-end)', 'InferSent_cat': 'InferSent (task cat.)', 'Transformer': 'Transformer (end-to-end)'}
 
     def __init__(self, model_dict):
         self.model_dict = model_dict
@@ -116,7 +154,8 @@ class CogModule():
             Patches.append(patch)
 
         for model_name in self.model_dict.keys(): 
-            if model_name in ['Model1', 'BoW', 'SIF']: 
+            print(model_name)
+            if model_name in ['Model1', 'BoW', 'SIF', 'S-Bert']: 
                 continue
             where_array = np.array([model_name.find(key) for key in self.MODEL_MARKER_DICT.keys()])
             marker = self.MODEL_MARKER_DICT[list(self.MODEL_MARKER_DICT.keys())[np.where(where_array >= 0)[0][0]]]
@@ -205,6 +244,8 @@ class CogModule():
         else: 
             if instruct_mode == 'masked' or ((task_type == holdout_task) and (model.instruct_mode == 'masked')): 
                 ins = mask_input_rule(ins, batch_len, 120)
+            if instruct_mode == 'comp': 
+                ins = comp_input_rule(ins, task_type)
             out, hid = model(ins, h0)
         return out, hid
 
@@ -356,24 +397,9 @@ class CogModule():
                     instruct = toNumerals(model.embedderStr, instruct)
                 else: 
                     instruct = [instruct]
-def plot_multi_learning_curves(model_dict, tasks, foldername, smoothing=1): 
-    cog = CogModule(model_dict)
-    fig, axn = plt.subplots(2,2, sharey = True, sharex=True)
-    plt.suptitle('Holdout Learning Curves')
-    for i, task in enumerate(tasks): 
-        ax = axn.flat[i]
-        cog.load_training_data(task, foldername, 'holdout')
-        for model_name in model_dict.keys(): 
-            smoothed_perf = gaussian_filter1d(cog.task_sorted_correct[model_name][task], sigma=smoothing)
-            ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_name][0], marker=cog.ALL_STYLE_DICT[model_name][1], alpha=1, markersize=5, markevery=3)
-        ax.set_title(task + ' Holdout')
-    Patches, Markers = cog.get_model_patches()
-    label_plot(fig, Patches, Markers, legend_loc=(1.3, 0.5))
-    fig.show()
-
-
-plot_multi_learning_curves(model_dict, ['Anti Go', 'Anti DM', 'MultiDM', 'DMC'], foldername, 1)
-
+                ins = del_input_rule(torch.Tensor(ins)).to(device)
+                out, hid = model(instruct, ins, h0)
+            else: 
                 out, hid = self._get_model_resp(model, 1, torch.Tensor(ins).to(device), task_type, instruct_mode, self.holdout_task)
             
             out = out.squeeze().detach().cpu().numpy()
@@ -434,7 +460,7 @@ plot_multi_learning_curves(model_dict, ['Anti Go', 'Anti DM', 'MultiDM', 'DMC'],
             plt.legend()
         plt.show()
 
-    def plot_task_rep(self, model_name, epoch, num_trials = 250, dim = 2, instruct_mode = None, tasks = task_list, avg_rep = True): 
+    def plot_task_rep(self, model_name, epoch, num_trials = 250, dim = 2, instruct_mode = None, tasks = task_list, avg_rep = True, holdout=''): 
         model = self.model_dict[model_name]
         if not next(model.rnn.parameters()).is_cuda:
             model.to(device)
@@ -464,7 +490,7 @@ plot_multi_learning_curves(model_dict, ['Anti Go', 'Anti DM', 'MultiDM', 'DMC'],
                 if epoch == 'input':
                     epoch_state.append(hid[i, 0, :])
                 if epoch == 'prep': 
-                    epoch_index = np.where(ins[0, :, 18:]>0.25)[0][0]-1
+                    epoch_index = np.where(ins[i, :, 18:]>0.25)[0][0]-1
                     epoch_state.append(hid[i, epoch_index, :])
             
             if avg_rep: 
@@ -500,11 +526,12 @@ plot_multi_learning_curves(model_dict, ['Anti Go', 'Anti DM', 'MultiDM', 'DMC'],
             plt.xlabel("PC 1", fontsize = 18)
             plt.ylabel("PC 2", fontsize = 18)
 
-        plt.title("PCA Embedding for Task Rep.", fontsize=18)
+        #plt.suptitle(r"$\textbf{PCA Embedding for Task Representation$", fontsize=18)
+        plt.title(holdout)
         digits = np.arange(len(tasks))
         Patches = [mpatches.Patch(color=cmap(d), label=task_list[d]) for d in set(task_indices)]
 
-
+        plt.tight_layout()
         plt.legend(handles=Patches)
         plt.show()
 

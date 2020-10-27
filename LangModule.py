@@ -44,7 +44,7 @@ def toNumerals(tokenizer, instructions):
     return torch.stack(ins_temp).squeeze().long().to(device)
 
 def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
-    assert instruct_mode in [None, 'instruct_swap', 'shuffled']
+    assert instruct_mode in [None, 'instruct_swap', 'shuffled', 'comp']
     batch = []
     batch_target_index = []
     for i in range(batch_size):

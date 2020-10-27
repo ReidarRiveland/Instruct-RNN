@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
 
-
 from Task import Task
 from CogModule import CogModule
 from LangModule import swaps
@@ -22,8 +21,8 @@ def label_plot(fig, Patches, Markers, legend_loc = (0.9, 0.3)):
     fig.text(0.04, 0.5, 'Fraction Correct', va='center', rotation='vertical')
 
 def plot_avg_curves(model_dict, foldername, smoothing = 1, plot_background_traces=False): 
-    fig, ax = plt.subplots(1,1)
-    plt.suptitle('Avg. Performance over All Holdout Tasks')
+    fig, ax = plt.subplots(1,1, figsize =(12, 8))
+    plt.suptitle(r'$\textbf{Avg. Performance over All Holdout Tasks}$')
     ax.set_ylim(-0.05, 1.15)
     cog = CogModule(model_dict)
     avg_perf_dict = {}
@@ -43,7 +42,10 @@ def plot_avg_curves(model_dict, foldername, smoothing = 1, plot_background_trace
         smoothed_perf = gaussian_filter1d(train_data, sigma=smoothing)
         ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_type][0], marker=cog.ALL_STYLE_DICT[model_type][1], alpha=1, markersize=5, markevery=2)
     Patches, Markers = cog.get_model_patches()
-    label_plot(fig, Patches, Markers)
+    fig.text(0.5, 0.05, r'$\textbf{Training Examples}$', ha='center')
+    fig.text(0.08, 0.5, r'$\textbf{Fraction Correct}$', va='center', rotation='vertical')
+    plt.legend(handles=Patches+Markers, title = r"$\textbf{Language Module}$")
+
     fig.show()
 
 def plot_all_tasks_by_model(model_name, foldername, smoothing=1):
@@ -92,19 +94,21 @@ def plot_learning_curves(model_dict, tasks, foldername, comparison, smoothing=1)
     legend_loc = (0.82, 0.44)
     if comparison is None: 
         plt.suptitle(r"$\textbf{Holdout Learning Curves}$")
-        load_list = [('holdout', '_')]
+        load_list = [('holdout', '-')]
     elif comparison == 'shuffled': 
-        plt.suptitle(r"$\textbf{Shuffled Instruction Comparisons}$")
+        plt.suptitle(r"$\textbf{Shuffled Instructions Comparisons}$")
         load_list = [('holdout', '-'), ('holdoutshuffled', '--')]
         mark = Line2D([0], [0], color='grey', linestyle = load_list[1][1], label = 'Shuffled', markerfacecolor='grey', markersize=10)
         arch_legend = plt.legend(handles=[mark], loc = 'lower center', bbox_to_anchor = legend_loc)
+        ax = plt.gca().add_artist(arch_legend)
 
     elif comparison == 'swapped': 
-        plt.suptitle(r"$\textbf{Shuffled Instruction Comparisons}$")
+        plt.suptitle(r"$\textbf{Swapped Instructions Comparisons}$")
         load_list = [('holdout', '-'), ('swappedholdout', '--')]
         assert all([task in ['Go', 'Anti DM', 'Anti RT Go', 'DMC', 'RT Go', 'COMP2'] for task in tasks])
         mark = Line2D([0], [0], color='grey', linestyle = load_list[1][1], label = 'Swapped', markerfacecolor='grey', markersize=10)
         arch_legend = plt.legend(handles=[mark], loc = 'lower center', bbox_to_anchor = legend_loc)
+        ax = plt.gca().add_artist(arch_legend)
 
     for i, task in enumerate(tasks): 
         ax = axn.flat[i]
@@ -120,10 +124,7 @@ def plot_learning_curves(model_dict, tasks, foldername, comparison, smoothing=1)
                 ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_name][0], marker=cog.ALL_STYLE_DICT[model_name][1], linestyle = load_type[1], markevery=5)
         ax.set_title(task + ' Holdout')
     Patches, Markers = cog.get_model_patches()
-    ax = plt.gca().add_artist(arch_legend)
     plt.legend(handles=Patches+Markers, title = r"$\textbf{Language Module}$", bbox_to_anchor = legend_loc, loc = 'upper center')
     fig.text(0.5, 0.05, r'$\textbf{Training Examples}$', ha='center')
     fig.text(0.08, 0.5, r'$\textbf{Fraction Correct}$', va='center', rotation='vertical')
     fig.show()
-
-
