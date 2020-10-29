@@ -90,7 +90,7 @@ def plot_all_holdout_curves(model_dict, foldername, smoothing=1):
 
 def plot_learning_curves(model_dict, tasks, foldername, comparison, smoothing=1): 
     cog = CogModule(model_dict)
-    fig, axn = plt.subplots(2,2, sharey = True, sharex=True, figsize =(12, 8))
+    fig, axn = plt.subplots(4,1, sharey = True, sharex=True, figsize =(12, 8))
     legend_loc = (0.82, 0.44)
     if comparison is None: 
         plt.suptitle(r"$\textbf{Holdout Learning Curves}$")
@@ -99,6 +99,13 @@ def plot_learning_curves(model_dict, tasks, foldername, comparison, smoothing=1)
         plt.suptitle(r"$\textbf{Shuffled Instructions Comparisons}$")
         load_list = [('holdout', '-'), ('holdoutshuffled', '--')]
         mark = Line2D([0], [0], color='grey', linestyle = load_list[1][1], label = 'Shuffled', markerfacecolor='grey', markersize=10)
+        arch_legend = plt.legend(handles=[mark], loc = 'lower center', bbox_to_anchor = legend_loc)
+        ax = plt.gca().add_artist(arch_legend)
+    
+    elif comparison == 'comp': 
+        plt.suptitle(r"$\textbf{Compositional One-Hot Comparisons}$")
+        load_list = [('holdout', '-'), ('holdoutcomp', '--')]
+        mark = Line2D([0], [0], color='grey', linestyle = load_list[1][1], label = 'Compositional One-hot', markerfacecolor='grey', markersize=10)
         arch_legend = plt.legend(handles=[mark], loc = 'lower center', bbox_to_anchor = legend_loc)
         ax = plt.gca().add_artist(arch_legend)
 
@@ -118,7 +125,9 @@ def plot_learning_curves(model_dict, tasks, foldername, comparison, smoothing=1)
                 holdout_folder = ''.join([x for x in swaps if task in x][0]).replace(' ', '_')
             cog.load_training_data(holdout_folder, foldername, load_type[0])
             for model_name in model_dict.keys(): 
-                if load_type[0] != 'holdout' and model_name == 'Model1': 
+                if load_type[0] != 'holdout' and model_name == 'Model1' and comparison == 'shuffled': 
+                    continue
+                if load_type[0] == 'holdoutcomp' and model_name != 'Model1':
                     continue
                 smoothed_perf = gaussian_filter1d(cog.task_sorted_correct[model_name][task][0:99], sigma=smoothing)
                 ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_name][0], marker=cog.ALL_STYLE_DICT[model_name][1], linestyle = load_type[1], markevery=5)

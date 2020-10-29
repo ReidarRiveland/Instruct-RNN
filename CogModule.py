@@ -28,7 +28,7 @@ from collections import defaultdict
 
 
 from Task import Task, construct_batch
-from LangModule import get_batch, toNumerals
+from LangModule import get_batch, toNumerals, swaps
 from RNNs import simpleNet
 
 task_list = Task.TASK_LIST
@@ -115,6 +115,18 @@ def comp_input_rule(in_tensor, task_type):
     comp_tensor = torch.Tensor(comp_vec).unsqueeze(0).repeat(in_tensor.shape[0], in_tensor.shape[1], 1).to(in_tensor.get_device())
     comp_input = torch.cat((in_tensor[:, :, 0:1], comp_tensor, in_tensor[:, :, len(task_list)+1:]), axis=2)
     return comp_input
+
+def swap_input_rule(in_tensor, task_type): 
+    assert task_type in ['Go', 'Anti DM', 'Anti RT Go', 'DMC', 'RT Go', 'COMP2']
+    swapped = [x for x in swaps if task_type in x][0]
+    swap_task = swapped[swapped.index(task_type)-1]
+    swapped_one_hot = torch.Tensor(Task._rule_one_hot(swap_task)).unsqueeze(0).repeat(in_tensor.shape[0], in_tensor.shape[1], 1).to(in_tensor.get_device())
+    swapped_input = torch.cat((in_tensor[:, :, 0:1], swapped_one_hot, in_tensor[:, :, len(task_list)+1:]), axis=2)
+    return swapped_input
+
+
+
+
 
 class CogModule():
     ALL_STYLE_DICT = {'Model1': ('blue', None), 'SIF':('brown', None), 'BoW': ('orange', None), 'GPT_cat': ('red', '^'), 'GPT train': ('red', '.'), 
@@ -246,6 +258,8 @@ class CogModule():
                 ins = mask_input_rule(ins, batch_len, 120)
             if instruct_mode == 'comp': 
                 ins = comp_input_rule(ins, task_type)
+            if instruct_mode == 'instruct_swap': 
+                ins = swap_input_rule(ins, task_type)
             out, hid = model(ins, h0)
         return out, hid
 
@@ -293,11 +307,11 @@ class CogModule():
                     opt.step()
 
                     if j%50 == 0: 
-                        print(j, ':', model_type, ":", "{:.2e}".format(loss.item()))                
+                        print(j, ':', model_type, ":", "{:.2e}".format(loss.item()))
+                        self.sort_perf_by_task()
                     self.total_loss_dict[model_type].append(loss.item())
                     self.total_correct_dict[model_type].append(np.mean(isCorrect(out, tar, tar_dir)))
                 self.total_task_list.append(task_type)                
-            self.sort_perf_by_task()
             for model_type in self.model_dict.keys(): 
                 opt_dict[model_type][1].step()
         return opt_dict
@@ -320,14 +334,9 @@ class CogModule():
             plt.suptitle(title)
             for i, ax in enumerate(axn.flat):
                 ax.set_ylim(y_lim)
-                if i > len(set(self.total_task_list)):
-                    fig.delaxes(ax)
-                    continue
 
                 cur_task = Task.TASK_LIST[i]
                 for model_name in self.model_dict.keys():
-                    if cur_task not in self.total_task_list:
-                        continue
                     smoothed_perf = gaussian_filter1d(perf_dict[model_name][cur_task], sigma=smoothing)
                     ax.plot(smoothed_perf, color = self.ALL_STYLE_DICT[model_name][0], marker = self.ALL_STYLE_DICT[model_name][1], markersize = 5, markevery=2)
                 ax.set_title(cur_task)
@@ -414,9 +423,7 @@ class CogModule():
                 task_info = embedded_instruct.repeat(120, 1).cpu().numpy()
                 task_info_str = 'Instruction Vec.'
             else: 
-                one_hot = np.zeros(len(task_list))
-                one_hot[task_list.index(task_type)] = 1
-                task_info = one_hot.repeat(120, 1)
+                task_info = ins[0, 0:len(task_list), :]
                 task_info_str = 'Task one-hot'
 
             ylabels.insert(1, task_info_str)
@@ -460,7 +467,10 @@ class CogModule():
             plt.legend()
         plt.show()
 
-    def plot_task_rep(self, model_name, epoch, num_trials = 250, dim = 2, instruct_mode = None, tasks = task_list, avg_rep = True, holdout=''): 
+    def plot_task_rep(self, model_name, epoch, num_trials = 250, dim = 2, instruct_mode = None, holdout_task = None, tasks = task_list, avg_rep = True, Title=''): 
+        if instruct_mode == 'comp': 
+            assert holdout_task != None 
+                
         model = self.model_dict[model_name]
         if not next(model.rnn.parameters()).is_cuda:
             model.to(device)
@@ -473,7 +483,14 @@ class CogModule():
             tar = trials.targets
             ins = trials.inputs
 
-            out, hid = self._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, instruct_mode, None)
+            if instruct_mode == 'comp': 
+                if task == holdout_task: 
+                    out, hid = self._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, 'comp', None)
+                else: 
+                    out, hid = self._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, None, None)
+            else: 
+                out, hid = self._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, instruct_mode, None)
+
 
             hid = hid.detach().cpu().numpy()
             epoch_state = []
@@ -527,7 +544,7 @@ class CogModule():
             plt.ylabel("PC 2", fontsize = 18)
 
         #plt.suptitle(r"$\textbf{PCA Embedding for Task Representation$", fontsize=18)
-        plt.title(holdout)
+        plt.title(Title)
         digits = np.arange(len(tasks))
         Patches = [mpatches.Patch(color=cmap(d), label=task_list[d]) for d in set(task_indices)]
 
