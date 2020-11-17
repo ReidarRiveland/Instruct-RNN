@@ -50,7 +50,7 @@ def isCorrect(nn_out, nn_target, target_dirs):
     if not isinstance(nn_target, np.ndarray):
         nn_target = nn_target.to('cpu').numpy()
     isCorrect = np.empty(target_dirs.size, dtype=bool)
-    criterion = (2*np.pi)/10 
+    criterion = (2*np.pi)/10
 
     for i in range(target_dirs.size):
         isFixed = all(np.where(nn_target[i, :, 0] == 0.85, nn_out[i, :, 0] > 0.5, True))
@@ -123,8 +123,6 @@ def swap_input_rule(in_tensor, task_type):
     swapped_one_hot = torch.Tensor(Task._rule_one_hot(swap_task)).unsqueeze(0).repeat(in_tensor.shape[0], in_tensor.shape[1], 1).to(in_tensor.get_device())
     swapped_input = torch.cat((in_tensor[:, :, 0:1], swapped_one_hot, in_tensor[:, :, len(task_list)+1:]), axis=2)
     return swapped_input
-
-
 
 
 
@@ -413,11 +411,30 @@ class CogModule():
             
             out = out.squeeze().detach().cpu().numpy()
             hid = hid.squeeze().detach().cpu().numpy()
-            
-            ylabels = ['Input', 'Hidden', 'Output', 'Target']
-            ins = del_input_rule(torch.Tensor(ins)).numpy()
-            to_plot = [ins.squeeze().T, hid.T, out.T, tar.squeeze().T]
 
+            fix = ins[0, :, 0:1]            
+            num_rules = len(Task.TASK_LIST)
+            rule_vec = ins[0, :, 1:num_rules+1]
+            mod1 = ins[0, :, 1+num_rules:1+num_rules+Task.STIM_DIM]
+            mod2 = ins[0, :, 1+num_rules+Task.STIM_DIM:1+num_rules+(2*Task.STIM_DIM)]
+
+            to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, rule_vec.squeeze().T, tar.squeeze().T, out.squeeze().T]
+            gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 2, 5, 5])
+            
+
+            fig, axn = plt.subplots(6,1, sharex = True, gridspec_kw=gs_kw)
+            cbar_ax = fig.add_axes([.91, .3, .03, .4])
+            ylabels = ('fix.', 'mod. 1', 'mod. 2', 'Task Vec.', 'Target', 'Response')
+            for i, ax in enumerate(axn.flat):
+                sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1, cbar_ax=None if i else cbar_ax)
+                #sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=False, vmin=0, vmax=1, cbar_ax=None)
+
+                ax.set_ylabel(ylabels[i])
+                if i == 0: 
+                    ax.set_title(r"$\textbf{Decision Making (DM) Trial Info}$")
+                if i == 5: 
+                    ax.set_xlabel('time')
+            #plt.tight_layout()
             if model.isLang: 
                 embedded_instruct = model.langModel(self._get_lang_input(model, 1, task_type, instruct_mode))
                 task_info = embedded_instruct.repeat(120, 1).cpu().numpy()
@@ -426,23 +443,10 @@ class CogModule():
                 task_info = ins[0, 0:len(task_list), :]
                 task_info_str = 'Task one-hot'
 
-            ylabels.insert(1, task_info_str)
-            to_plot.insert(1, task_info.T)
-
-            gs_kw = dict(width_ratios=[1], height_ratios=[65, 20, 120, 33, 33])
 
 
-            fig, axn = plt.subplots(5,1, sharex = True, gridspec_kw=gs_kw)
-
-            for i, ax in enumerate(axn.flat):
-                sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax)
-                ax.set_ylabel(ylabels[i])
-                if i == 0: 
-                    ax.set_title(model_name + ' %r Trial Response' %task_type)
-                if i == len(to_plot): 
-                    ax.set_xlabel('time')
             plt.show()
-            
+
 
     def plot_k_shot_learning(self, ks, task_type, model_dict=None, include_legend = False):
         if model_dict is None: 
@@ -528,32 +532,36 @@ class CogModule():
             marker_size = 25
 
         cmap = matplotlib.cm.get_cmap('tab20')
-
+        Patches = []
         if dim ==3: 
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
-            ax.scatter(to_plot[:, 0], to_plot[:, 1], to_plot[:,2], c = cmap(task_indices), cmap=cmap, s=marker_size)
+            scatter = ax.scatter(to_plot[:, 0], to_plot[:, 1], to_plot[:,2], c = cmap(task_indices), cmap=cmap, s=marker_size)
             ax.set_xlabel('PC 1')
             ax.set_ylabel('PC 2')
             ax.set_zlabel('PC 3')
 
         else:             
             fig, ax = plt.subplots(figsize=(12, 10))
-            plt.scatter(to_plot[:, 0], to_plot[:, 1], c=cmap(task_indices), cmap=cmap, s=marker_size)
+            scatter = [to_plot[:, 0], to_plot[:, 1], cmap(task_indices), cmap, marker_size]
+            for i, color in enumerate(['Red', 'Green', 'Blue', 'Yellow']): 
+                start = i*num_trials
+                stop = start+num_trials
+                plt.scatter(to_plot[:, 0][start:stop], to_plot[:, 1][start:stop], color=color, s=marker_size)
+                Patches.append(mpatches.Patch(color = color, label = task_list[list(set(task_indices))[i]]))
             plt.xlabel("PC 1", fontsize = 18)
             plt.ylabel("PC 2", fontsize = 18)
 
         #plt.suptitle(r"$\textbf{PCA Embedding for Task Representation$", fontsize=18)
         plt.title(Title)
         digits = np.arange(len(tasks))
-        Patches = [mpatches.Patch(color=cmap(d), label=task_list[d]) for d in set(task_indices)]
-
+        scatter.append(Patches)
         plt.tight_layout()
         plt.legend(handles=Patches)
         plt.show()
 
 
-        return dict(zip(tasks, to_plot))
+        return dict(zip(tasks, to_plot)), scatter
 
     def get_hid_traj(self, models, tasks, dim, instruct_mode):
         models = [self.model_dict[model] for model in models]
@@ -642,3 +650,6 @@ class CogModule():
         plt.show()
 
         ax.clear()
+
+
+
