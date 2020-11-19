@@ -15,20 +15,22 @@ class Task():
     DELTA_T = 20
     DM_DELAY = False
 
-    def __init__(self, num_trials): 
+    def __init__(self, num_trials, intervals): 
         self.num_trials = num_trials
         self.intervals = np.empty((num_trials, 5), dtype=tuple)
         self.null_stim = np.zeros((self.num_trials, self.STIM_DIM*2))
         self.null_input_vec = np.full((self.num_trials, self.INPUT_DIM), None)
-        for i in range(num_trials):
-            T_go = (int(self.TRIAL_LEN - np.floor(np.random.uniform(300, 600)/self.DELTA_T)), self.TRIAL_LEN)
-            T_stim2 = (int(T_go[0]-np.floor(np.random.uniform(300, 600)/self.DELTA_T)), T_go[0])
-            T_delay = (int(T_stim2[0]-np.floor(np.random.uniform(300, 600)/self.DELTA_T)), T_stim2[0])
-            T_stim1 = (int(T_delay[0]-np.floor(np.random.uniform(300, 600)/self.DELTA_T)), T_delay[0])
-            T_fix = (0, T_stim1[0])
+        if type(intervals) == type(None): 
+            for i in range(num_trials):
+                T_go = (int(self.TRIAL_LEN - np.floor(np.random.uniform(300, 600)/self.DELTA_T)), self.TRIAL_LEN)
+                T_stim2 = (int(T_go[0]-np.floor(np.random.uniform(300, 600)/self.DELTA_T)), T_go[0])
+                T_delay = (int(T_stim2[0]-np.floor(np.random.uniform(300, 600)/self.DELTA_T)), T_stim2[0])
+                T_stim1 = (int(T_delay[0]-np.floor(np.random.uniform(300, 600)/self.DELTA_T)), T_delay[0])
+                T_fix = (0, T_stim1[0])
+                self.intervals[i] = (T_fix, T_stim1, T_delay, T_stim2, T_go)
+        else: 
+            self.intervals = intervals
 
-            self.intervals[i] = (T_fix, T_stim1, T_delay, T_stim2, T_go)
-    
     def make_noise(self, dim):
         noise = np.sqrt(2/self.DELTA_T)*(self.SIGMA_IN) * np.random.normal(size=dim)
         return np.expand_dims(noise, 0)
@@ -117,26 +119,21 @@ class Task():
         mod1 = ins[1+num_rules:1+num_rules+self.STIM_DIM, :]
         mod2 = ins[1+num_rules+self.STIM_DIM:1+num_rules+(2*self.STIM_DIM), :]
 
-        #to_plot = (fix, rule_vec, mod1, mod2, tars)
         to_plot = (fix, mod1, mod2, tars)
 
-
         gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 5])
-
 
         fig, axn = plt.subplots(4,1, sharex = True, gridspec_kw=gs_kw)
         cbar_ax = fig.add_axes([.91, .3, .03, .4])
         ylabels = ('fix.', 'mod. 1', 'mod. 2', 'Target')
         for i, ax in enumerate(axn.flat):
             sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1, cbar_ax=None if i else cbar_ax)
-            #sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=False, vmin=0, vmax=1, cbar_ax=None)
 
             ax.set_ylabel(ylabels[i])
             if i == 0: 
                 ax.set_title('%r Trial Info' %task_type)
             if i == 3: 
                 ax.set_xlabel('time')
-        #plt.tight_layout()
         plt.show()
 
     def _get_trial_inputs(self, task_type, stim_mod_arr):
@@ -180,22 +177,25 @@ class Task():
         return trial_target
 
 class Go(Task): 
-    def __init__(self, task_type, num_trials):
-        super().__init__(num_trials)
+    def __init__(self, task_type, num_trials, intervals=None, stim_mod_arr =None, directions=None):
+        super().__init__(num_trials, intervals)
         assert task_type in ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'], "entered invalid task_type: %r" %task_type
         self.task_type = task_type
         self.stim_mod_arr = np.empty((2, num_trials), dtype=list)
         self.directions = np.empty(num_trials)
-
-        for i in range(num_trials):
-            direction = np.random.uniform(0, 2*np.pi)
-            self.directions[i] = direction
-            base_strength = np.random.uniform(0.6, 1.4)
-            strength_dir = [(base_strength, direction)]
-            
-            mod = np.random.choice([0, 1])
-            self.stim_mod_arr[mod, i] = strength_dir
-            self.stim_mod_arr[((mod+1)%2), i] = None
+        if type(intervals) == type(None): 
+            for i in range(num_trials):
+                direction = np.random.uniform(0, 2*np.pi)
+                self.directions[i] = direction
+                base_strength = np.random.uniform(0.6, 1.4)
+                strength_dir = [(base_strength, direction)]
+                
+                mod = np.random.choice([0, 1])
+                self.stim_mod_arr[mod, i] = strength_dir
+                self.stim_mod_arr[((mod+1)%2), i] = None
+        else: 
+            self.stim_mod_arr = stim_mod_arr
+            self.directions = directions
 
         if 'Anti' in self.task_type: 
             self.target_dirs = (self.directions + np.pi)%(2*np.pi)
@@ -212,8 +212,8 @@ class Go(Task):
         self._plot_trial(trial_ins, trial_tars, self.task_type)
 
 class Comp(Task):
-    def __init__(self, task_type, num_trials): 
-        super().__init__(num_trials)
+    def __init__(self, task_type, num_trials, intervals=None): 
+        super().__init__(num_trials, intervals)
         assert task_type in ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'], "entered invalid task type: %r" %task_type
         self.task_type = task_type
         self.stim_mod_arr = np.empty((2, 2, num_trials), dtype=tuple)
@@ -280,8 +280,8 @@ class Comp(Task):
 
 
 class Delay(Task): 
-    def __init__(self, task_type, num_trials): 
-        super().__init__(num_trials)
+    def __init__(self, task_type, num_trials, intervals=None): 
+        super().__init__(num_trials, intervals)
         assert task_type in ['DMS', 'DNMS', 'DMC', 'DNMC'], "entered invalid task_type: %r" %task_type
         self.task_type = task_type
         self.stim_mod_arr = np.empty((2, 2, num_trials), dtype=tuple)
@@ -342,8 +342,8 @@ class Delay(Task):
         self._plot_trial(trial_ins, trial_tars, self.task_type)
 
 class DM(Task): 
-    def __init__(self, task_type, num_trials):
-        super().__init__(num_trials)
+    def __init__(self, task_type, num_trials, intervals=None):
+        super().__init__(num_trials, intervals)
         assert task_type in ['DM', 'MultiDM', 'Anti DM', 'Anti MultiDM'], "entered invalid task_type: %r" %task_type
         self.task_type = task_type
         self.mods = np.empty(num_trials, dtype=tuple)
@@ -422,5 +422,26 @@ def construct_batch(task_type, num):
     if task_type == 'DNMC': 
         trial = Delay('DNMC', num)
     return trial 
+
+
+# Task = Task(10, intervals)
+
+# DM_DELAY = False
+# if len(stim_mod_arr.shape) == 2: 
+#     stim_mod_arr = np.array([stim_mod_arr]*2)
+# stim1 = Task._make_input_stim(stim_mod_arr[0, 0, :], stim_mod_arr[0, 1, :])
+# stim2 = Task._make_input_stim(stim_mod_arr[1, 0, :], stim_mod_arr[1, 1, :])
+# epoch_vecs1 = Task._make_input_vecs(task_type, stim1)
+# epoch_vecs2 = Task._make_input_vecs(task_type, stim2)
+# if task_type in ['DM', 'MultiDM', 'Anti DM', 'Anti MultiDM']:
+#     if DM_DELAY:
+#         input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[1],  epoch_vecs2[1], epoch_vecs2[3])            
+#     else: 
+#         input_vecs = (epoch_vecs1[0], epoch_vecs1[1]+epoch_vecs2[1], epoch_vecs1[1]+epoch_vecs2[1], epoch_vecs1[1]+epoch_vecs2[1], epoch_vecs2[3])            
+# elif 'Go' in task_type: 
+#     input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[1],  epoch_vecs2[1], epoch_vecs2[3])
+# else:
+#     input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[0],  epoch_vecs2[1], epoch_vecs2[3])
+
 
 

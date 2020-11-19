@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 #device = 'cpu'
 
 import seaborn as sns
@@ -70,7 +71,7 @@ def masked_MSE_Loss(outputs, targets, mask):
     return torch.mean(avg_applied)
 
 def mask_input_rule(in_tensor, batch_len, seq_len): 
-    mask = torch.zeros((batch_len, seq_len, len(task_list)))
+    mask = torch.zeros((batch_len, seq_len, len(task_list))).to(device)
     masked_input = torch.cat((in_tensor[:, :, 0:1], mask, in_tensor[:, :, len(task_list)+1:]), axis=2)
     return masked_input
 
@@ -248,12 +249,17 @@ class CogModule():
     def _get_model_resp(self, model, batch_len, ins, task_type, instruct_mode, holdout_task): 
         h0 = model.initHidden(batch_len, 0.1).to(device)
         if model.isLang: 
-            ins = del_input_rule(ins)
-            instruct = self._get_lang_input(model, batch_len, task_type, instruct_mode)
-            out, hid = model(instruct, ins, h0)
+            if instruct_mode == 'masked': 
+                masked = torch.zeros(ins.shape[0], ins.shape[1], model.langModel.out_dim).to(device)
+                ins = torch.cat((del_input_rule(ins), masked), dim=2)
+                out, hid = model.rnn(ins, h0)
+            else: 
+                ins = del_input_rule(ins)
+                instruct = self._get_lang_input(model, batch_len, task_type, instruct_mode)
+                out, hid = model(instruct, ins, h0)
         else: 
             if instruct_mode == 'masked' or ((task_type == holdout_task) and (model.instruct_mode == 'masked')): 
-                ins = mask_input_rule(ins, batch_len, 120)
+                ins = mask_input_rule(ins, batch_len, 120).to(device)
             if instruct_mode == 'comp': 
                 ins = comp_input_rule(ins, task_type)
             if instruct_mode == 'instruct_swap': 
