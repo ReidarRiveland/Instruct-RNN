@@ -42,30 +42,97 @@ def train_holdouts(model_dict, foldername, mode = ''):
         cog.train(holdout_only, 2,  weight_decay=0.0, lr = 0.001, holdout_task=holdout_task, instruct_mode = instruct_mode)
         cog.save_training_data(holdout_task, foldername, 'holdout'+mode)
 
+foldername = 'SigModels'
 
+
+from RNNs import mySimpleNet, scriptSimpleNet, myInstructNet
+import torch
+
+
+for holdout in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']: 
+    from RNNs import mySimpleNet, scriptSimpleNet, myInstructNet
+    import torch
+    model_dict = {}
+    activ_func = torch.nn.Sigmoid()
+    model_dict['Model1'] = mySimpleNet(81, 256, 1, activ_func)
+    model_dict['S-Bert train'] = myInstructNet(LangModule(SBERT(20)), 256, 1, activ_func, tune_langModel=True)
+    cog = CogModule(model_dict)
+    holdout_data = make_data(holdouts=holdout)
+    cog.train(holdout_data, 80, lr=0.001, weight_decay=0.0)
+    cog.save_models(holdout, foldername)
+
+
+
+
+cog.plot_learning_curve('correct')
+
+cog._plot_trained_performance()
+
+model_dict = {}
+activ_func = torch.nn.Sigmoid()
+model_dict['Model1'] = mySimpleNet(81, 256, 1, activ_func)
+model_dict['S-Bert train'] = myInstructNet(LangModule(SBERT(20)), 256, 1, activ_func, tune_langModel=True)
+
+
+
+train_holdouts(model_dict, foldername)
+
+
+
+plot_learning_curves(model_dict, ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'], '22.9Models', None)
+
+
+
+
+
+
+
+
+model_dict = {}
+#model_dict['BERT_cat'] = None
+#model_dict['BERT train'] = None
+
+model_dict['GPT_cat'] = None
+model_dict['GPT train'] = None
+#model_dict['S-Bert_cat'] = None
+model_dict['S-Bert train'] = None
+# # model_dict['SIF'] = None
+#model_dict['Transformer']=None
+model_dict['InferSent train'] = None
+
+model_dict['Model1'] = None
+#model_dict['S-Bert'] = None
+model_dict['BoW'] = None
+
+cog = CogModule(model_dict)
+cog.load_training_data('COMP2', foldername, 'holdout')
+cog.plot_learning_curve('correct', 'COMP2')
+
+plot_learning_curves(model_dict, ['RT Go', 'MultiDM', 'DMS', 'DMC'], foldername, 'shuffled')
+
+plot_all_holdout_curves(model_dict, foldername)
+
+cog.plot_response('Model1', 'DM')
+cog.model_dict
+
+cog.plot_learning_curve('correct')
+cog._plot_trained_performance()
+
+cog._plot_trained_performance()
+
+cog.plot_learning_curve('correct')
 
 #train_swaps(model_dict, foldername, mode='swapped')
 #foldername = 'TempInstructModels'
 #foldername = '15.9MultiCompModels'
-foldername = '22.9Models'
+
+
 
 
 # model_dict.keys()
 # train_holdouts(model_dict, foldername, mode='shuffled')
 
-# model_dict = {}
-# model_dict['Model1'] = None
-# #model_dict['BERT_cat'] = None
-# # model_dict['GPT_cat'] = None
-# model_dict['GPT train'] = None
-# #model_dict['S-Bert'] = None
-# #model_dict['S-Bert_cat'] = None
-# model_dict['S-Bert train'] = None
-# # model_dict['BoW'] = None
-# # model_dict['SIF'] = None
-# #model_dict['S-Bert'] = None
-# #model_dict['Transformer']=None
-# #model_dict['InferSent train'] = None
+
 # #model_dict['InferSent_cat'] = None
 
 # #plot_all_holdout_curves(model_dict, foldername)
@@ -73,10 +140,26 @@ foldername = '22.9Models'
 
 # # plot_all_holdout_curves(model_dict, foldername)
 
-# plot_avg_curves(model_dict, foldername)
+plot_avg_curves(model_dict, foldername)
+
+plot_all_holdout_curves(model_dict, foldername)
 
 
-# plot_learning_curves(model_dict, ['COMP2', 'MultiDM', 'DMC'], foldername, None)
+plot_learning_curves(model_dict, ['RT Go', 'Anti DM', 'MultiDM', 'DMC'], foldername, 'shuffled')
+
+
+plot_learning_curves(model_dict, ['Go', 'Anti RT Go', 'Anti DM', 'DMC'], foldername, None)
+plot_learning_curves(model_dict, ['Go', 'Anti DM', 'Anti RT Go', 'DMC'], foldername, 'swapped')
+
+plot_learning_curves(model_dict, ['COMP2'], foldername, 'comp')
+
+
+
+cog.model_dict.keys()
+
+cog.load_training_data('Anti RT Go', foldername, 'holdout')
+cog.plot_learning_curve('correct', 'Anti RT Go')
+
 
 
 
@@ -92,10 +175,16 @@ foldername = '22.9Models'
 # sBertMod.plot_loss('validation')
 # sBertMod.load_classifier_training_data()
 
-# bertMod = LangModule(BERT(20), foldername=foldername)
-# bertMod.train_classifier(64, 100, 10, lr=0.0001)
-# bertMod.plot_loss('validation')
+# bertMod = LangModule(BERT(20), foldername
+model_dict = {}
+#model_dict['BERT_cat'] = None
+#model_dict['BERT train'] = None
 
+#model_dict['GPT_cat'] = None
+model_dict['GPT train'] = None
+model_dict['S-Bert_cat'] = None
+model_dict['S-Bert train'] = None
+# # model_dict[
 
 # gptMod = LangModule(gpt2(20), foldername=foldername)
 # gptMod.train_classifier(64, 100, 10, lr=0.0001)
@@ -104,58 +193,116 @@ foldername = '22.9Models'
 
 
 
-# cog.load_models('Anti RT Go', foldername)
-# cog.plot_task_rep('S-Bert train', dim = 2, tasks = ['Go', 'Anti Go', 'Anti RT Go', 'RT Go'], instruct_mode = None, epoch = 'prep', avg_rep = False, Title = 'S-Bert (end-to-end)')
-# cog.plot_task_rep('Model1', dim = 2, tasks = ['Go', 'Anti Go', 'Anti RT Go', 'RT Go'], holdout_task = 'Anti RT Go', epoch = 'prep', avg_rep = False, Title = 'Compositional One Hot Task Encoding')
-# plot_learning_curves(model_dict, ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'], foldername, 'comp')
+cog.load_models('Anti RT Go', foldername)
+ax1 = cog.plot_task_rep('S-Bert train', dim = 2, tasks = ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'], instruct_mode = None, epoch = 'prep', avg_rep = False, Title = 'S-Bert (end-to-end)')
+ax2 = cog.plot_task_rep('Model1', dim = 2, tasks = ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'], instruct_mode = 'comp', holdout_task = 'Anti RT Go', epoch = 'prep', avg_rep = False, Title = 'One Hot Task Encoding')
+plot_learning_curves(model_dict, ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'], foldername, 'comp')
 
-# cog.plot_hid_traj(['Model1', 'S-Bert train'], ['Go'], dim = 3)
-
-
-# holdout = 'MultiDM'
-# cog.load_models(holdout, foldername)
-# ax1= cog.plot_task_rep('S-Bert train', dim = 2, tasks = ['DM', 'Anti DM', 'Anti MultiDM', 'MultiDM'], epoch = 'prep', avg_rep = False, Title = 'S-Bert (end-to-end)')
-# ax2= cog.plot_task_rep('Model1', dim = 2, tasks = ['DM', 'Anti DM', 'Anti MultiDM', 'MultiDM'], epoch = 'prep', holdout_task = holdout, avg_rep = False, Title = 'Compositional One Hot Task Encoding')
-# plot_learning_curves(model_dict, ['DM', 'Anti DM', 'Anti MultiDM', 'MultiDM'], foldername, 'comp')
+cog.plot_hid_traj(['Model1', 'S-Bert train'], ['Go'], dim = 3)
+cog.model_dict['S-Bert train'].langMod.plot_embedding(tasks=['Go', 'RT Go', 'Anti Go', 'Anti RT Go'], train_only=True)
 
 
-# holdout = 'COMP2'
-# cog.load_models(holdout, foldername)
-# ax1 = cog.plot_task_rep('S-Bert train', dim = 2, tasks = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'], epoch = 'prep', avg_rep = False, Title = 'S-Bert')
-# ax2 = cog.plot_task_rep('Model1', dim = 2, tasks = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'], holdout_task = holdout, epoch = 'prep', avg_rep = False, Title = 'One Hot Task Encoding')
-# plot_learning_curves(model_dict, ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'], foldername, 'comp')
+holdout = 'MultiDM'
+cog.load_models(holdout, foldername)
+ax1= cog.plot_task_rep('S-Bert train', dim = 2, tasks = ['DM', 'Anti DM', 'Anti MultiDM', 'MultiDM'], epoch = 'prep', avg_rep = False, Title = 'S-Bert (end-to-end)')
+ax2= cog.plot_task_rep('Model1', dim = 2, tasks = ['DM', 'Anti DM', 'Anti MultiDM', 'MultiDM'], epoch = 'prep', holdout_task = holdout, avg_rep = False, Title = 'Compositional One Hot Task Encoding')
+plot_learning_curves(model_dict, ['DM', 'Anti DM', 'Anti MultiDM', 'MultiDM'], foldername, 'comp')
+cog.model_dict['S-Bert train'].langMod.plot_embedding(task_list=)
+# cog.load_models('COMP2', foldername)
 
-# holdout = 'DMC'
-# cog.load_models(holdout, foldername)
-# cog.plot_task_rep('S-Bert train', dim = 2, tasks = ['DMS', 'DNMS', 'DMC', 'DNMC'], epoch = 'prep', avg_rep = False,  Title = 'S-Bert (end-to-end)')
-# cog.plot_task_rep('Model1', dim = 2, tasks = ['DMS', 'DNMS', 'DMC', 'DNMC'],  instruct_mode ='comp', holdout_task = holdout, epoch = 'prep', avg_rep = False, Title = 'One Hot Task Encoding')
-# plot_learning_curves(model_dict, ['DMS', 'DNMS', 'DMC', 'DNMC'], foldername, 'comp')
+holdout = 'COMP2'
+cog.load_models(holdout, foldername)
+ax1 = cog.plot_task_rep('S-Bert train', dim = 2, tasks = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'], epoch = 'prep', avg_rep = False, Title = 'S-Bert')
+ax2 = cog.plot_task_rep('Model1', dim = 2, tasks = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'], instruct_mode = 'comp', holdout_task = holdout, epoch = 'prep', avg_rep = False, Title = 'One Hot Task Encoding')
+plot_learning_curves(model_dict, ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'], foldername, 'comp')
+plot_learning_curves(model_dict, ['COMP2'], foldername, 'comp')
+cog.model_dict['S-Bert train'].langMod.plot_embedding(tasks=['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'], train_only=True)
 
 
 
-
-# import matplotlib.pyplot as plt
-
-
-# def plot_side_by_side(ax_list, title, ax_titles): 
-#     fig, axn = plt.subplots(1, len(ax_list), figsize = (12, 5))
-#     plt.suptitle(r'$\textbf{PCA of Preparatory Sensory-Motor Activity (COMP2 Holdout)}$', fontsize=14, fontweight='bold')
-
-#     for i, ax in enumerate(ax_list):
-#         ax = axn.flat[i]
-#         ax.set_title(ax_titles[i]) 
-#         scatter = ax_list[i]
-#         ax.scatter(scatter[0], scatter[1], c=scatter[2], cmap=scatter[3], s=scatter[4])
-#         ax.set_ylabel('PC1')
-#         ax.set_xlabel('PC2')
-#         ax.xaxis.set_major_locator(plt.MaxNLocator(3))
-#         ax.yaxis.set_major_locator(plt.MaxNLocator(3))        
-
-#     plt.legend(handles = scatter[-1], loc='lower right')
-#     plt.show()
+holdout = 'DMC'
+cog.load_models(holdout, foldername)
+cog.plot_task_rep('S-Bert train', dim = 2, tasks = ['DMS', 'DNMS', 'DMC', 'DNMC'], epoch = 'prep', avg_rep = False,  Title = 'S-Bert (end-to-end)')
+cog.plot_task_rep('Model1', dim = 2, tasks = ['DMS', 'DNMS', 'DMC', 'DNMC'],  instruct_mode ='comp', holdout_task = holdout, epoch = 'prep', avg_rep = False, Title = 'One Hot Task Encoding')
+plot_learning_curves(model_dict, ['DMS', 'DNMS', 'DMC', 'DNMC'], foldername, 'comp')
 
 
-# plot_side_by_side([ax1[1], ax2[1]], 'PCA of Preparatory Sensory-Motor Activity (COMP2 Holdout)', ['S-Bert (end-to-end)','One Hot Task Encoding'])
+
+
+
+
+
+
+cog.load_models('Anti RT Go', foldername)
+cog.plot_response('S-Bert', 'DM')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+num_trials=250
+
+def plot_side_by_side(ax_list, title, ax_titles): 
+    fig, axn = plt.subplots(1, len(ax_list), figsize = (12, 5))
+    plt.suptitle(r'$\textbf{PCA of Preparatory Sensory-Motor Activity (Anti RT Go Holdout)}$', fontsize=14, fontweight='bold')
+    Patches = []
+    for i, ax in enumerate(ax_list):
+        scatter = ax_list[i]
+        ax = axn.flat[i]
+        ax.set_title(ax_titles[i]) 
+        for j, color in enumerate(['Red', 'Blue', 'Green', 'Yellow']): 
+            start = j*num_trials
+            stop = start+num_trials
+            ax.scatter(scatter[0][start:stop], scatter[1][start:stop], color=color, s=10)
+        ax.set_ylabel('PC1')
+        ax.set_xlabel('PC2')
+        ax.xaxis.set_major_locator(plt.MaxNLocator(3))
+        ax.yaxis.set_major_locator(plt.MaxNLocator(3))        
+
+
+    Patches = [mpatches.Patch(color=['Red', 'Green', 'Blue', 'Yellow'][i], label=['COMP1', 'MultiCOMP1', 'COMP2',  'MultiCOMP2'][i]) for i in range(4)]
+
+    plt.legend(handles = Patches, loc='lower right')
+    plt.show()
+
+
+plot_side_by_side([ax1[1], ax2[1]], 'PCA of Preparatory Sensory-Motor Activity (MultiDM Holdout)', ['S-Bert (end-to-end)','One Hot Task Encoding'])
+
+def plot_side_by_side1(ax_list, title, ax_titles): 
+    fig, axn = plt.subplots(1, len(ax_list), figsize = (12, 5))
+    plt.suptitle(r'$\textbf{PCA of Preparatory Sensory-Motor Activity (COMP2 Holdout)}$', fontsize=14, fontweight='bold')
+    Patches = []
+    for i, ax in enumerate(ax_list):
+        scatter = ax_list[i]
+        ax = axn.flat[i]
+        ax.set_title(ax_titles[i]) 
+        ax.scatter(scatter[0], scatter[1], color=scatter[2], cmap = scatter[3], s=10)
+        ax.set_ylabel('PC1')
+        ax.set_xlabel('PC2')
+        ax.xaxis.set_major_locator(plt.MaxNLocator(3))
+        ax.yaxis.set_major_locator(plt.MaxNLocator(3))        
+
+
+    Patches = scatter[-1]
+
+    plt.legend(handles = Patches, loc='upper right')
+    plt.show()
+
+
+plot_side_by_side1([ax1[1], ax2[1]], 'PCA of Preparatory Sensory-Motor Activity (MultiDM Holdout)', ['S-Bert (end-to-end)','Compositional One Hot Task Encoding'])
+
 
 
 
@@ -188,54 +335,69 @@ foldername = '22.9Models'
 
 # cog.load_models('Anti DM', foldername)
 
+sBertMod = LangModule(SBERT(20), foldername=foldername)
+sBertMod.train_classifier(128, 100, 5)
+sBertMod.plot_loss('validation')
+sBertMod.plot_confusion_matrix()
 
-# for holdout_task in ['Go']:
-#     # model_dict = {}
-#     # model_dict['GPT train'] = instructNet(LangModule(gpt2(20), foldername), 128, 1, tune_langModel=True)
-#     # cog = CogModule(model_dict)
-#     # holdout_data = make_data(holdouts=holdout_task)
-#     # cog.train(holdout_data, 25, lr=0.001)
-#     # cog.save_models(holdout_task, foldername)
-#     # inferSentMod = LangModule(InferSent(20), foldername=foldername)
-#     # inferSentMod.loadLangModel()
-#     net = simpleNet(81, 128, 1)
-#     #gpt_net = instructNet(LangModule(gpt2(20)), 128, 1)
-#     #bert_train_net = instructNet(LangModule(BERT(20)), 128, 1, tune_langModel=True)
-#     # sBertMod = LangModule(SBERT(20), foldername=foldername)
+gptMod = LangModule(gpt2(20), foldername=foldername)
+gptMod.train_classifier(128, 100, 5, lr=0.0001)
+gptMod.plot_loss('validation')
+gptMod.plot_confusion_matrix()
+
+from LangModule import plot_lang_perf
+lang_dict= {}
+lang_dict['S-Bert'] = sBertMod
+lang_dict['GPT'] = gptMod
+plot_lang_perf(lang_dict, 'validation', 1)
+
+for holdout_task in task_list:
+
+model_dict = {}
+#model_dict['GPT train'] = instructNet(LangModule(gpt2(20), foldername), 128, 1, tune_langModel=True)
+net = simpleNet(81, 128, 1)
+gpt_net = instructNet(gptMod, 128, 1)
+#bert_train_net = instructNet(LangModule(BERT(20)), 128, 1, tune_langModel=True)
+#sBertMod = LangModule(SBERT(20), foldername=foldername)
 #     # sBertMod.loadLangModel()
-#     #sBert_net = instructNet(sBertMod, 128, 1)
-#     train_sBert_net = instructNet(LangModule(SBERT(20)), 128, 1, tune_langModel=True)
-#     #train_gpt_net = instructNet(LangModule(gpt2(20)), 128, 1, tune_langModel=True)
+sBert_net = instructNet(sBertMod, 128, 1)
+train_sBert_net = instructNet(LangModule(SBERT(20)), 128, 1, tune_langModel=True)
+train_gpt_net = instructNet(LangModule(gpt2(20)), 128, 1, tune_langModel=True)
 #     #SIFnet = instructNet(LangModule(SIFmodel()), 128, 1)
-#     #BoWnet = instructNet(LangModule(BoW()), 128, 1)
+BoWnet = instructNet(LangModule(BoW()), 128, 1)
 #     #trans_net = instructNet(TransMod, 128, 1, tune_langModel=True)
 #     #gptBig_net = instructNet(gptBig_Mod, 128, 1, tune_langModel=True)
 #     model_dict = {}
-#     model_dict['Model1'] = net
-#     # model_dict['GPT_cat'] = gpt_net
+model_dict['Model1'] = net
+model_dict['GPT_cat'] = gpt_net
 #     # model_dict['BERT_cat'] = bert_net
-#     #model_dict['S-Bert_cat'] = sBert_net
-#     model_dict['S-Bert train'] = train_sBert_net
-#     #model_dict['S-Bert'] = instructNet(LangModule(SBERT(20)), 128, 1)
-#     #model_dict['BERT train'] = instructNet(LangModule(BERT(20), foldername), 128, 1, tune_langModel=True)
-#     #model_dict['GPT train'] = train_gpt_net
+model_dict['S-Bert_cat'] = sBert_net
+model_dict['S-Bert train'] = train_sBert_net
+#model_dict['S-Bert'] = instructNet(LangModule(SBERT(20)), 128, 1)
+#model_dict['BERT train'] = instructNet(LangModule(BERT(20), foldername), 128, 1, tune_langModel=True)
+model_dict['GPT train'] = train_gpt_net
 #     # model_dict['SIF'] = SIFnet
-#     # model_dict['BoW'] = BoWnet
-#     #model_dict['Transformer']=trans_net
+model_dict['BoW'] = BoWnet
+#model_dict['Transformer']=trans_net
 #     #model_dict['gptBig'] = gptBig_net
 #     #model_dict['SIF'] = instructNet(LangModule(SIFmodel()), 128, 1)
-#     # model_dict['InferSent train'] = instructNet(LangModule(InferSent(20)), 128, 1, tune_langModel=True)
+model_dict['InferSent train'] = instructNet(LangModule(InferSent(20)), 128, 1, tune_langModel=True)
 #     # model_dict['InferSent_cat'] = instructNet(inferSentMod, 128, 1)
-#     cog = CogModule(model_dict)
-#     holdout_data = make_data(holdouts=holdout_task)
-#     cog.train(holdout_data, 25, lr=0.001)
-#     cog.save_models(holdout_task, foldername)
 
+cog = CogModule(model_dict)
+holdout_data = make_data()
+cog.train(holdout_data, 30, lr=0.001)
+cog.save_models('Multitask', foldername)
+
+import pickle
+test_dict = pickle.load(open('22.9Models/Multitask/Multitask_training_correct_dict', 'rb'))
+
+test_dict.keys()
 
 # holdout_data = make_data(NUM_BATCHES = 250, task_dict={'MultiDM':1})
 # cog.train(holdout_data, 25, lr=0.001)
 
-
+cog._plot_trained_performance()
 
 net = simpleNet(81, 128, 1)
 train_sBert_net = instructNet(LangModule(SBERT(20)), 128, 1, tune_langModel=True)
@@ -263,6 +425,8 @@ modelS = cog.model_dict['S-Bert train']
 
 model1 = cog.model_dict['Model1']
 
+model1.activ_func
+
 
 def get_task_var_resp(model, task_type, task_variable, mod, instruct_mode, num_trials=100): 
     assert task_variable in ['direction', 'strength']
@@ -276,9 +440,6 @@ def get_task_var_resp(model, task_type, task_variable, mod, instruct_mode, num_t
     elif task_variable == 'diff_strength': 
         directions = np.array([np.pi+1] * num_trials)
         strengths = np.linspace(-0.3, 0.3, num=num_trials)
-
-    
-
     if task_type in ['Go', 'Anti Go', 'RT Go', 'Anti RT Go']:
         stim_mod_arr = np.empty((2, num_trials), dtype=list)
         for i in range(num_trials): 
@@ -287,7 +448,6 @@ def get_task_var_resp(model, task_type, task_variable, mod, instruct_mode, num_t
             stim_mod_arr[mod, i] = strength_dir
             stim_mod_arr[((mod+1)%2), i] = None
         trials = Go(task_type, num_trials, intervals=intervals, stim_mod_arr=stim_mod_arr, directions=directions)
-
     # if task_type in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']:
     #     stim_mod_arr = np.empty((2, 2, num_trials), dtype=tuple)
     #     for i in range(num_trials): 
@@ -295,15 +455,11 @@ def get_task_var_resp(model, task_type, task_variable, mod, instruct_mode, num_t
     #         strength_dir = [(strengths[i], directions[i])]
     #         stim_mod_arr[mod, i] = strength_dir
     #         stim_mod_arr[((mod+1)%2), i] = None
-    #     trials = DM(task_type, num_trials, intervals=intervals, stim_mod_arr=stim_mod_arr, directions=directions)
-
-
+    #     trials = DM(task_type, num_trials, intervals=intervals, stim_mod_arr=stim_mod_arr, directions=directions
     tar_dirs = trials.target_dirs
     tar = trials.targets
     if model.isLang:
         instructions = get_batch(num_trials, model.langModel.tokenizer, task_type=task_type)[0]
-
-
     stim_info = np.empty((2, num_trials))
     stim_info.shape
     for i in range(num_trials): 
@@ -311,54 +467,44 @@ def get_task_var_resp(model, task_type, task_variable, mod, instruct_mode, num_t
         mod_index = np.where(temp_stim_info != None)[0][0]
         stim_info[0, i] = mod_index
         stim_info[1, i] = temp_stim_info[mod_index][0][task_variable == 'direction']
-
-
     h0 = model.initHidden(num_trials, 0.1).to(device)
     model.eval()
     out, hid = cog._get_model_resp(model, num_trials, torch.Tensor(trials.inputs).to(device), task_type, instruct_mode, None)
-
     hid = hid.detach().cpu().numpy()
-    
     return hid
 
 def plot_neural_resp(models, task_type, unit, task_variable, mod, instruct_mode=None):
     assert task_variable in ['direction', 'strength']
-
     for model in models:
-
         hid = get_task_var_resp(model, task_type, task_variable, mod, instruct_mode)
-
-
         if task_variable == 'direction':
             labels = ["0", "$2\pi$"]
             cmap = plt.get_cmap('twilight') 
         elif task_variable == 'strength':
             labels = ["0.3", "1.8"]
             cmap = plt.get_cmap('plasma') 
-
         cNorm  = colors.Normalize(vmin=0, vmax=100)
         scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cmap)
-
         fig, axn = plt.subplots()
         for i in [x*4 for x in range(25)]:
             plot = plt.plot(hid[i, :, unit], c = scalarMap.to_rgba(i))
         plt.vlines(20, -1.5, 1.15, colors='k', linestyles='dashed')
         plt.vlines(100, -1.5, 1.15, colors='k', linestyles='dashed')
-
         plt.xticks([20, 100], labels=['Stim. Onset', 'Reponse'])
-
         axn.set_ylim(-1, 1.15)
         cbar = plt.colorbar(scalarMap, orientation='vertical', label = task_variable, ticks = [0, 100])
         plt.title(task_type + ' response for Unit' + str(unit))
-
         cbar.set_ticklabels(labels)
-
         plt.show()
+
+hid = get_task_var_resp(model1, 'Go', 'direction', 1, None)
+
+
 
 
 
 for task in ['Go', 'Anti Go', 'RT Go', 'Anti RT Go']:
-    plot_neural_resp([modelS], task, 22, 'direction', 1, instruct_mode=None)
+    plot_neural_resp([model1], task, 22, 'direction', 1, instruct_mode=None)
 
 
 

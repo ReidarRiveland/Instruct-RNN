@@ -43,6 +43,8 @@ def wordFreq():
 
 freq_dict, vocab, all_sentences, split_sentences = wordFreq()
 
+len(vocab)
+
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, dropout=0.1, max_len=5000):
         super(PositionalEncoding, self).__init__()

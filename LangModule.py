@@ -267,7 +267,7 @@ class LangModule():
         Patches = [mpatches.Patch(color=cmap(i), label=task_list[i]) for i in task_indices]
         if not train_only: 
             Patches.append(Line2D([0], [0], marker='X', color='w', label='test data', markerfacecolor='grey', markersize=10))
-        Patches.append(Line2D([0], [0], marker='o', color='w', label='train data', markerfacecolor='grey', markersize=10))
+            Patches.append(Line2D([0], [0], marker='o', color='w', label='train data', markerfacecolor='grey', markersize=10))
 
         plt.legend(handles=Patches)
         plt.show()

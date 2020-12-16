@@ -328,13 +328,13 @@ class CogModule():
             title = 'MSE Loss over training'
             perf_dict = self.task_sorted_loss
         if mode == 'correct': 
-            y_label = 'Fraction Correct/Batch'
+            y_label = 'Fraction Correct'
             y_lim = (-0.05, 1.15)
             title = 'Fraction Correct Response over training'
             perf_dict = self.task_sorted_correct
 
         if task_type is None: 
-            fig, axn = plt.subplots(4,4, sharey = True)
+            fig, axn = plt.subplots(4,4, sharey = True, figsize=(16, 18))
             plt.suptitle(title)
             for i, ax in enumerate(axn.flat):
                 ax.set_ylim(y_lim)
@@ -342,7 +342,7 @@ class CogModule():
                 cur_task = Task.TASK_LIST[i]
                 for model_name in self.model_dict.keys():
                     smoothed_perf = gaussian_filter1d(perf_dict[model_name][cur_task], sigma=smoothing)
-                    ax.plot(smoothed_perf, color = self.ALL_STYLE_DICT[model_name][0], marker = self.ALL_STYLE_DICT[model_name][1], markersize = 5, markevery=2)
+                    ax.plot(smoothed_perf, color = self.ALL_STYLE_DICT[model_name][0], marker = self.ALL_STYLE_DICT[model_name][1], linewidth= 1.0, markersize = 5, markevery=20)
                 ax.set_title(cur_task)
         else:
             fig, ax = plt.subplots(1,1)
@@ -350,14 +350,13 @@ class CogModule():
             ax.set_ylim(y_lim)
             for model_name in self.model_dict.keys():    
                 smoothed_perf = gaussian_filter1d(perf_dict[model_name][task_type], sigma=smoothing)
-                ax.plot(smoothed_perf, color = self.ALL_STYLE_DICT[model_name][0], marker = self.ALL_STYLE_DICT[model_name][1], markersize = 5, markevery=2)
+                ax.plot(smoothed_perf, color = self.ALL_STYLE_DICT[model_name][0], marker = self.ALL_STYLE_DICT[model_name][1], markersize = 5, markevery=3)
             ax.set_title(task_type + ' holdout')
 
         Patches, Markers = self.get_model_patches()
-        arch_legend = plt.legend(handles=Patches, title = r"$\textbf{Language Module}$", bbox_to_anchor = (0.9, 0.25), loc = 'lower center')
-        ax = plt.gca().add_artist(arch_legend)
-        plt.legend(handles= Markers, title = r"$\textbf{Transformer Fine-Tuning}$", bbox_to_anchor = (0.9, 0.25), loc = 'upper center')
-        fig.text(0.5, 0.04, 'Batches', ha='center')
+        arch_legend = plt.figlegend(handles=Patches+Markers, title = r"$\textbf{Language Module}$", loc='center right')
+
+        fig.text(0.5, 0.04, 'Training Examples', ha='center')
         fig.text(0.04, 0.5, y_label, va='center', rotation='vertical')
         fig.show()
 
@@ -425,12 +424,22 @@ class CogModule():
             mod2 = ins[0, :, 1+num_rules+Task.STIM_DIM:1+num_rules+(2*Task.STIM_DIM)]
 
             to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, rule_vec.squeeze().T, tar.squeeze().T, out.squeeze().T]
+            #to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, tar.squeeze().T, out.squeeze().T]
             gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 2, 5, 5])
-            
+            ylabels = ['fix.', 'mod. 1', 'mod. 2',  'Task Vec.', 'Target', 'Response']
+
+            if model.isLang: 
+                embedded_instruct = model.langModel(self._get_lang_input(model, 1, task_type, instruct_mode))
+                task_info = embedded_instruct.repeat(120, 1).cpu().numpy()
+                task_info_str = 'Instruction Embedding'
+                to_plot.insert(4, task_info.T)
+                ylabels.insert(4, task_info_str)
+            else: 
+                task_info = ins[0, 0:len(task_list), :]
+                task_info_str = 'Task one-hot'
 
             fig, axn = plt.subplots(6,1, sharex = True, gridspec_kw=gs_kw)
             cbar_ax = fig.add_axes([.91, .3, .03, .4])
-            ylabels = ('fix.', 'mod. 1', 'mod. 2', 'Task Vec.', 'Target', 'Response')
             for i, ax in enumerate(axn.flat):
                 sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1, cbar_ax=None if i else cbar_ax)
                 #sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=False, vmin=0, vmax=1, cbar_ax=None)
@@ -441,13 +450,7 @@ class CogModule():
                 if i == 5: 
                     ax.set_xlabel('time')
             #plt.tight_layout()
-            if model.isLang: 
-                embedded_instruct = model.langModel(self._get_lang_input(model, 1, task_type, instruct_mode))
-                task_info = embedded_instruct.repeat(120, 1).cpu().numpy()
-                task_info_str = 'Instruction Vec.'
-            else: 
-                task_info = ins[0, 0:len(task_list), :]
-                task_info_str = 'Task one-hot'
+
 
 
 
@@ -550,19 +553,21 @@ class CogModule():
         else:             
             fig, ax = plt.subplots(figsize=(12, 10))
             scatter = [to_plot[:, 0], to_plot[:, 1], cmap(task_indices), cmap, marker_size]
-            for i, color in enumerate(['Red', 'Green', 'Blue', 'Yellow']): 
-                start = i*num_trials
-                stop = start+num_trials
-                plt.scatter(to_plot[:, 0][start:stop], to_plot[:, 1][start:stop], color=color, s=marker_size)
-                Patches.append(mpatches.Patch(color = color, label = task_list[list(set(task_indices))[i]]))
+            # for i, color in enumerate(['Red', 'Blue', 'Green', 'Yellow']): 
+            #     start = i*num_trials
+            #     stop = start+num_trials
+            #     plt.scatter(to_plot[:, 0][start:stop], to_plot[:, 1][start:stop], color=listset(task_indices), s=marker_size)
+            #     Patches.append(mpatches.Patch(color = cmap(task_indices), label = task_list[list(set(task_indices))[i]]))
+            ax.scatter(to_plot[:, 0], to_plot[:, 1], c = cmap(task_indices), cmap=cmap, s=marker_size)
             plt.xlabel("PC 1", fontsize = 18)
             plt.ylabel("PC 2", fontsize = 18)
 
         #plt.suptitle(r"$\textbf{PCA Embedding for Task Representation$", fontsize=18)
         plt.title(Title)
         digits = np.arange(len(tasks))
-        scatter.append(Patches)
         plt.tight_layout()
+        Patches = [mpatches.Patch(color=cmap(d), label=task_list[d]) for d in set(task_indices)]
+        scatter.append(Patches)
         plt.legend(handles=Patches)
         plt.show()
 
