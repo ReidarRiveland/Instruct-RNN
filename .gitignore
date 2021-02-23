@@ -5,3 +5,13 @@
 /Figures/*
 /COSYNEfig/*
 /PrezFig/*
+/*SigModels128/*
+/*SigModels128_lowLR/*
+
+/*SigModels256/*
+/*SigModels512/*
+/*cappedSoftplus300/*
+/*ReLU256/*
+/*sigmoid128/*
+
+/*ICMLFigures/*

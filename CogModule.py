@@ -6,8 +6,6 @@ import torch.optim as optim
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-#device = 'cpu'
-
 import seaborn as sns
 import matplotlib
 import matplotlib.pyplot as plt
@@ -22,11 +20,12 @@ rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 
 from sklearn.decomposition import PCA
 from scipy.ndimage.filters import gaussian_filter1d
+import umap
+from sklearn.manifold import TSNE
 
 import pickle
 import random
 from collections import defaultdict
-
 
 from Task import Task, construct_batch
 from LangModule import get_batch, toNumerals, swaps
@@ -35,51 +34,123 @@ from RNNs import simpleNet
 task_list = Task.TASK_LIST
 tuning_dirs = Task.TUNING_DIRS
 
+def gpu_to_np(t):
+    """removes tensor from gpu and converts to np.array""" 
+    if t.get_device() == 0: 
+        t = t.detach().to('cpu').numpy()
+    elif t.get_device() == -1: 
+        t = t.detach().numpy()
+    return t
 
-def popvec(nn_final_out):
-    act_sum = np.sum(nn_final_out)
-    temp_cos = np.sum(np.multiply(nn_final_out, np.cos(tuning_dirs)))/act_sum
-    temp_sin = np.sum(np.multiply(nn_final_out, np.sin(tuning_dirs)))/act_sum
+def popvec(act_vec):
+    """Population vector decoder that reads the orientation of activity in vector of activities
+    Args:      
+        act_vec (np.array): output tensor of neural network model; shape: (features, 1)
+
+    Returns:
+        float: decoded orientation of activity (in radians)
+    """
+
+    act_sum = np.sum(act_vec)
+    temp_cos = np.sum(np.multiply(act_vec, np.cos(tuning_dirs)))/act_sum
+    temp_sin = np.sum(np.multiply(act_vec, np.sin(tuning_dirs)))/act_sum
     loc = np.arctan2(temp_sin, temp_cos)
     return np.mod(loc, 2*np.pi)
 
-def get_dist(original_dist):
-    return np.minimum(abs(original_dist),2*np.pi-abs(original_dist))
+def get_dist(angle1, angle2):
+    """Returns the true distance between two angles mod 2pi
+    Args:      
+        angle1, angle2 (float): angles in radians
+
+    Returns:
+        float: distance between given angles mod 2pi
+    """
+    dist = angle1-angle2
+    return np.minimum(abs(dist),2*np.pi-abs(dist))
 
 def isCorrect(nn_out, nn_target, target_dirs): 
-    nn_out = nn_out.detach().to('cpu').numpy()
-    if not isinstance(nn_target, np.ndarray):
-        nn_target = nn_target.to('cpu').numpy()
-    isCorrect = np.empty(target_dirs.size, dtype=bool)
+    """Determines whether a given neural network response is correct, computed by batch
+    Args:      
+        nn_out (Tensor): output tensor of neural network model; shape: (batch_size, seq_len, features)
+        nn_target (Tensor): batch supervised target responses for neural network response; shape: (batch_size, seq_len, features)
+        target_dirs (np.array): masks of weights for loss; shape: (batch_num, seq_len, features)
+    
+    Returns:
+        np.array: weighted loss of neural network response; shape: (batch)
+    """
+    batch_size = nn_out.shape[0]
+    nn_out = gpu_to_np(nn_out)
+    nn_target = gpu_to_np(nn_target)
+
+    isCorrect = np.empty(batch_size, dtype=bool)
     criterion = (2*np.pi)/10
 
-    for i in range(target_dirs.size):
+    for i in range(batch_size):
+        #checks response maintains fixataion
         isFixed = all(np.where(nn_target[i, :, 0] == 0.85, nn_out[i, :, 0] > 0.5, True))
+
+        #checks trials that requiring repressing responses
         if np.isnan(target_dirs[i]): 
             isDir = all((nn_out[i, 114:119, :].flatten() < 0.15))
+        
+        #checks responses are coherent and in the correct direction
         else:
             is_response = np.max(nn_out[i, -1, 1:]) > 0.6
             loc = popvec(nn_out[i, -1, 1:])
-            dist = get_dist(loc - target_dirs[i])        
+            dist = get_dist(loc, target_dirs[i])        
             isDir = dist < criterion and is_response
         isCorrect[i] = isDir and isFixed
     return isCorrect
 
-def masked_MSE_Loss(outputs, targets, mask):
-    mask_applied = torch.mul(torch.pow((outputs - targets), 2), mask)
+def masked_MSE_Loss(nn_out, nn_target, mask):
+    """MSE loss (averaged over features then time) function with special weighting mask that prioritizes loss in response epoch 
+    Args:      
+        nn_out (Tensor): output tensor of neural network model; shape: (batch_num, seq_len, features)
+        nn_target (Tensor): batch supervised target responses for neural network response; shape: (batch_num, seq_len, features)
+        mask (Tensor): masks of weights for loss; shape: (batch_num, seq_len, features)
+    
+    Returns:
+        Tensor: weighted loss of neural network response; shape: (1x1)
+    """
+
+    mask_applied = torch.mul(torch.pow((nn_out - nn_target), 2), mask)
     avg_applied = torch.mean(torch.mean(mask_applied, 2), 1)
     return torch.mean(avg_applied)
 
-def mask_input_rule(in_tensor, batch_len, seq_len): 
-    mask = torch.zeros((batch_len, seq_len, len(task_list))).to(device)
+def mask_input_rule(in_tensor): 
+    """Masks the one-hot rule information in an input batch 
+    Args:      
+        in_tensor (Tensor): input tensor for a batch of trials; shape: (batch_size, seq_len, features) 
+    
+    Returns:
+        Tensor: identical to in_tensor with one-hot rule information zero'd out; shape: (batch_size, seq_len, features) 
+    """
+
+    mask = torch.zeros((in_tensor.shape[0], in_tensor.shape[1], len(task_list))).to(device)
     masked_input = torch.cat((in_tensor[:, :, 0:1], mask, in_tensor[:, :, len(task_list)+1:]), axis=2)
     return masked_input
 
 def del_input_rule(in_tensor): 
+    """Deletes the one-hot rule information in an input batch 
+    Args:      
+        in_tensor (Tensor): input tensor for a batch of trials; shape: (batch_num, seq_len, features)
+    
+    Returns:
+        Tensor: identical input data as in_tensor with one-hot rule information deleted; shape: (batch_num, seq_len, features-#tasks) 
+    """
+
     new_input = torch.cat((in_tensor[:, :, 0:1], in_tensor[:, :, len(task_list)+1:]), axis=2)
     return new_input
 
 def comp_input_rule(in_tensor, task_type): 
+    """Replaces one-hot input rule with a analagous linear combination of rules for related tasks
+    Args:      
+        in_tensor (Tensor): input tensor for a batch of trials; shape: (batch_num, seq_len, features)
+    
+    Returns:
+        Tensor: identical input data as in_tensor with combinational input rule; shape: (batch_num, seq_len, features-#tasks) 
+    """
+
     if task_type == 'Go': 
         comp_vec = Task._rule_one_hot('RT Go')+(Task._rule_one_hot('Anti Go')-Task._rule_one_hot('Anti RT Go'))
     if task_type == 'RT Go':
@@ -117,7 +188,20 @@ def comp_input_rule(in_tensor, task_type):
     comp_input = torch.cat((in_tensor[:, :, 0:1], comp_tensor, in_tensor[:, :, len(task_list)+1:]), axis=2)
     return comp_input
 
+
+
 def swap_input_rule(in_tensor, task_type): 
+    """Swaps one-hot rule inputs for given tasks 
+    'Go' <--> 'Anti DM' 
+    'Anti RT Go' <--> 'DMC'
+    'RT Go' <--> 'COMP2'
+    Args:      
+        in_tensor (Tensor): input tensor for a batch of trials; shape: (batch_num, seq_len, features)
+    
+    Returns:
+        Tensor: identical input data as in_tensor with swapped input rule; shape: (batch_num, seq_len, features) 
+    """
+
     assert task_type in ['Go', 'Anti DM', 'Anti RT Go', 'DMC', 'RT Go', 'COMP2']
     swapped = [x for x in swaps if task_type in x][0]
     swap_task = swapped[swapped.index(task_type)-1]
@@ -231,16 +315,6 @@ class CogModule():
             filename = filename.replace(' ', '_')
             model.load_state_dict(torch.load(filename))
 
-    def add_masked_model1(self): 
-        in_dim = self.model_dict['Model1'].in_dim
-        net_masked = simpleNet(in_dim, 128, 1, instruct_mode='masked').to(device)
-        net_masked.load_state_dict(self.model_dict['Model1'].state_dict())
-        models = list(self.model_dict.values())
-        models.insert(1, net_masked)
-        model_names = list(self.model_dict.keys())
-        model_names.insert(1, 'Model1 Masked')
-        self.model_dict = dict(zip(model_names, models))
-
     def _get_lang_input(self, model, batch_len, task_type, instruct_mode): 
         tokenizer = model.langModel.tokenizer
         batch_instruct, _ = get_batch(batch_len, tokenizer, task_type=task_type, instruct_mode=instruct_mode)
@@ -259,7 +333,7 @@ class CogModule():
                 out, hid = model(instruct, ins, h0)
         else: 
             if instruct_mode == 'masked' or ((task_type == holdout_task) and (model.instruct_mode == 'masked')): 
-                ins = mask_input_rule(ins, batch_len, 120).to(device)
+                ins = mask_input_rule(ins).to(device)
             if instruct_mode == 'comp': 
                 ins = comp_input_rule(ins, task_type)
             if instruct_mode == 'instruct_swap': 
@@ -267,16 +341,17 @@ class CogModule():
             out, hid = model(ins, h0)
         return out, hid
 
-    def train(self, data, epochs, weight_decay = 0.0, lr = 0.001, holdout_task = None, instruct_mode = None, freeze_langModel = False): 
+    def train(self, data, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, holdout_task = None, instruct_mode = None, freeze_langModel = False): 
         self.holdout_task = holdout_task
+        torch.autograd.set_detect_anomaly
         opt_dict = {}
         for model_type, model in self.model_dict.items(): 
             if (model.isLang and not model.tune_langModel) or (model.tune_langModel and freeze_langModel): 
                 optimizer = optim.Adam(model.rnn.parameters(), lr=lr, weight_decay=weight_decay)
-                opt_dict[model_type] =(optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=[15, 20], gamma=0.5))
+                opt_dict[model_type] =(optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 110], gamma=0.2))
             else: 
                 optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-                opt_dict[model_type] = (optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=[15, 20], gamma=0.5))
+                opt_dict[model_type] = (optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 110], gamma=0.2))
                 print(model_type)
             model.train()
         
@@ -304,21 +379,23 @@ class CogModule():
 
                 for model_type, model in self.model_dict.items(): 
                     opt = opt_dict[model_type][0]
+                    opt_scheduler = opt_dict[model_type][1]
                     opt.zero_grad()
                     out, _ = self._get_model_resp(model, batch_len, ins, task_type, instruct_mode, holdout_task)
                     loss = masked_MSE_Loss(out, tar, mask) 
                     loss.backward()
-                    opt.step()
+                    nn.utils.clip_grad_norm_(model.parameters(), 0.5)
 
-                    if j%50 == 0: 
+                    opt.step()
+                    if scheduler: 
+                        opt_scheduler.step()
+                    if j%50 == 0:
                         print(j, ':', model_type, ":", "{:.2e}".format(loss.item()))
                         self.sort_perf_by_task()
                     self.total_loss_dict[model_type].append(loss.item())
                     self.total_correct_dict[model_type].append(np.mean(isCorrect(out, tar, tar_dir)))
                 self.total_task_list.append(task_type)                
-            for model_type in self.model_dict.keys(): 
-                opt_dict[model_type][1].step()
-        return opt_dict
+
 
     def plot_learning_curve(self, mode, task_type=None, smoothing = 2):
         assert mode in ['loss', 'correct'], "mode must be 'loss' or 'correct', entered: %r" %mode
@@ -370,7 +447,7 @@ class CogModule():
                 trial = construct_batch(task_type, batch_len)
                 ins = trial.inputs
                 out, _ = self._get_model_resp(model, batch_len, torch.Tensor(ins).to(device), task_type, instruct_mode, holdout_task=self.holdout_task) 
-                perf_dict[task_type] = np.mean(isCorrect(out, trial.targets, trial.target_dirs))
+                perf_dict[task_type] = np.mean(isCorrect(out, torch.Tensor(trial.targets).to(device), trial.target_dirs))
         return perf_dict 
 
     def _plot_trained_performance(self, instruct_mode = None):
@@ -423,20 +500,21 @@ class CogModule():
             mod1 = ins[0, :, 1+num_rules:1+num_rules+Task.STIM_DIM]
             mod2 = ins[0, :, 1+num_rules+Task.STIM_DIM:1+num_rules+(2*Task.STIM_DIM)]
 
-            to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, rule_vec.squeeze().T, tar.squeeze().T, out.squeeze().T]
-            #to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, tar.squeeze().T, out.squeeze().T]
+            #to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, rule_vec.squeeze().T, tar.squeeze().T, out.squeeze().T]
+            to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, tar.squeeze().T, out.squeeze().T]
             gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 2, 5, 5])
-            ylabels = ['fix.', 'mod. 1', 'mod. 2',  'Task Vec.', 'Target', 'Response']
+            ylabels = ['fix.', 'mod. 1', 'mod. 2',  'Target', 'Response']
 
             if model.isLang: 
                 embedded_instruct = model.langModel(self._get_lang_input(model, 1, task_type, instruct_mode))
                 task_info = embedded_instruct.repeat(120, 1).cpu().numpy()
                 task_info_str = 'Instruction Embedding'
-                to_plot.insert(4, task_info.T)
-                ylabels.insert(4, task_info_str)
             else: 
                 task_info = ins[0, 0:len(task_list), :]
                 task_info_str = 'Task one-hot'
+
+            to_plot.insert(4, task_info.T)
+            ylabels.insert(4, task_info_str)
 
             fig, axn = plt.subplots(6,1, sharex = True, gridspec_kw=gs_kw)
             cbar_ax = fig.add_axes([.91, .3, .03, .4])
@@ -480,13 +558,13 @@ class CogModule():
             plt.legend()
         plt.show()
 
-    def plot_task_rep(self, model_name, epoch, num_trials = 250, dim = 2, instruct_mode = None, holdout_task = None, tasks = task_list, avg_rep = True, Title=''): 
+    def plot_task_rep(self, model_name, epoch, reduction_method = 'PCA', num_trials = 250, dim = 2, instruct_mode = None, holdout_task = None, tasks = task_list, avg_rep = False, Title=''): 
         if instruct_mode == 'comp': 
             assert holdout_task != None 
                 
         model = self.model_dict[model_name]
-        if not next(model.rnn.parameters()).is_cuda:
-            model.to(device)
+        # if not next(model.rnn.parameters()).is_cuda:
+        #     model.to(device)
 
         assert epoch in ['input', 'stim', 'response', 'prep'] or epoch.isnumeric(), "entered invalid epoch: %r" %epoch
         
@@ -529,7 +607,18 @@ class CogModule():
             task_reps += epoch_state
 
 
-        embedded = PCA(n_components=dim).fit_transform(task_reps)
+        if reduction_method == 'PCA': 
+            embedder = PCA(n_components=dim)
+        elif reduction_method == 'UMAP':
+            embedder = umap.UMAP()
+        elif reduction_method == 'tSNE': 
+            embedder = TSNE(n_components=2)
+
+        embedded = embedder.fit_transform(task_reps)
+        if reduction_method == 'PCA': 
+            explained_variance = embedder.explained_variance_ratio_
+        else: 
+            explained_variance = None
 
         if avg_rep: 
             to_plot = np.stack([embedded[task_list.index(task), :] for task in tasks])
@@ -545,7 +634,8 @@ class CogModule():
         if dim ==3: 
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
-            scatter = ax.scatter(to_plot[:, 0], to_plot[:, 1], to_plot[:,2], c = cmap(task_indices), cmap=cmap, s=marker_size)
+            scatter = [to_plot[:, 0], to_plot[:, 1], to_plot[:,2], cmap(task_indices), cmap, marker_size]
+            ax.scatter(to_plot[:, 0], to_plot[:, 1], to_plot[:,2], c = cmap(task_indices), cmap=cmap, s=marker_size)
             ax.set_xlabel('PC 1')
             ax.set_ylabel('PC 2')
             ax.set_zlabel('PC 3')
@@ -572,7 +662,7 @@ class CogModule():
         plt.show()
 
 
-        return dict(zip(tasks, to_plot)), scatter
+        return explained_variance, scatter
 
     def get_hid_traj(self, models, tasks, dim, instruct_mode):
         models = [self.model_dict[model] for model in models]

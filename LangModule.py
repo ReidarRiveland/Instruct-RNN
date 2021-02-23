@@ -213,7 +213,7 @@ class LangModule():
         return task_set, avg_reps
 
 
-    def plot_embedding(self, dim=2, tasks = task_list, plot_avg = False, train_only=False):
+    def plot_embedding(self, dim=2, tasks = task_list, plot_avg = False, train_only=False, RGBY = False):
         assert dim in [2, 3], "embedding dimension must be 2 or 3"
 
         train_indices, train_rep = self._get_instruct_rep(train_instruct_dict)
@@ -238,17 +238,23 @@ class LangModule():
             embedded_train = np.stack(embedded_train)
             embedded_test = np.stack(embedded_test)
 
+
         cmap = matplotlib.cm.get_cmap('tab20')
 
         color_train = np.array(train_indices).astype(int)
         color_test = np.array(test_indices).astype(int)
 
         if dim == 2: 
-            fig, ax = plt.subplots(figsize=(12, 10))
-            plt.scatter(embedded_train[:, 0], embedded_train[:, 1], c=cmap(color_train), cmap=cmap, s=100)
+            fig, ax = plt.subplots(figsize=(6, 5))
+            if RGBY == True: 
+                colors = ['Green']*12 + ['Red']*12 + ['Yellow']*10 + ['Blue']*10 
+                jitter = np.random.uniform(0.0, 0.1, size=len(colors))
+                plt.scatter(embedded_train[:, 0], embedded_train[:, 1] + jitter, color= colors, cmap=cmap, s=100)    
+            else: 
+                plt.scatter(embedded_train[:, 0], embedded_train[:, 1], c=cmap(color_train), cmap=cmap, s=100)
             if not train_only:
                 plt.scatter(embedded_test[:, 0], embedded_test[:, 1], c=cmap(color_test), marker= "X", s=100)
-            plt.setp(ax, xticks=[], yticks=[])
+            #plt.setp(ax, xticks=[], yticks=[])
             plt.xlabel("PC 1", fontsize = 18)
             plt.ylabel("PC 2", fontsize = 18)
         else: 
@@ -262,9 +268,13 @@ class LangModule():
             ax.set_zlabel('PC 3')
 
 
-        plt.title("PCA Embedding for Distributed Rep.", fontsize=18)
+        plt.suptitle(r'$\textbf{PCA of Instruction Embeddings (Anti DM Holdout)}$', fontsize=14, fontweight='bold')
+        plt.title('S-Bert (end-to-end)')
         digits = np.arange(len(tasks))
-        Patches = [mpatches.Patch(color=cmap(i), label=task_list[i]) for i in task_indices]
+        if RGBY == True: 
+            Patches = [mpatches.Patch(color=['Red', 'Green', 'Blue', 'Yellow'][i-task_indices[0]], label=task_list[i]) for i in task_indices]
+        else: 
+            Patches = [mpatches.Patch(color=cmap(i), label=task_list[i]) for i in task_indices]
         if not train_only: 
             Patches.append(Line2D([0], [0], marker='X', color='w', label='test data', markerfacecolor='grey', markersize=10))
             Patches.append(Line2D([0], [0], marker='o', color='w', label='train data', markerfacecolor='grey', markersize=10))
@@ -292,3 +302,4 @@ def plot_lang_perf(mod_dict, mode, smoothing):
         plt.title('Validation Loss')
     plt.ylabel('Cross Entropy Loss')
     plt.xlabel('total mini-batches')
+

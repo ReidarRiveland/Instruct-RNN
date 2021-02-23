@@ -29,7 +29,7 @@ DM:
                                 'select displayed direction presented with the most strength', 'go in the direction of most strength', 'select the stimulus orientation reflecting the highest displayed value'
 
 Anti DM: 
-'respond in the direction of minimal strength', 'choose the weakest stimuli', 'go in the direction of stimuli without least intensity', 
+'respond in the direction of minimal strength', 'choose the weakest stimuli', 'go in the direction of stimuli with least intensity', 
                                     'select the stimuli with the lowest strength', 'go in the direction presented with lower intensity', 'choose the stimuli with minimal strength', 
                                     'respond to the direction presented with the weakest strength', 'pick the stimuli with least strength', 'select the orientation presented with minimal strength', 
                                     'choose the stimuli with lowest intensity', 'go in the direction presented with weakest intensity', 'pick the weakest direction'

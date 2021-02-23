@@ -424,24 +424,6 @@ def construct_batch(task_type, num):
     return trial 
 
 
-# Task = Task(10, intervals)
-
-# DM_DELAY = False
-# if len(stim_mod_arr.shape) == 2: 
-#     stim_mod_arr = np.array([stim_mod_arr]*2)
-# stim1 = Task._make_input_stim(stim_mod_arr[0, 0, :], stim_mod_arr[0, 1, :])
-# stim2 = Task._make_input_stim(stim_mod_arr[1, 0, :], stim_mod_arr[1, 1, :])
-# epoch_vecs1 = Task._make_input_vecs(task_type, stim1)
-# epoch_vecs2 = Task._make_input_vecs(task_type, stim2)
-# if task_type in ['DM', 'MultiDM', 'Anti DM', 'Anti MultiDM']:
-#     if DM_DELAY:
-#         input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[1],  epoch_vecs2[1], epoch_vecs2[3])            
-#     else: 
-#         input_vecs = (epoch_vecs1[0], epoch_vecs1[1]+epoch_vecs2[1], epoch_vecs1[1]+epoch_vecs2[1], epoch_vecs1[1]+epoch_vecs2[1], epoch_vecs2[3])            
-# elif 'Go' in task_type: 
-#     input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[1],  epoch_vecs2[1], epoch_vecs2[3])
-# else:
-#     input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[0],  epoch_vecs2[1], epoch_vecs2[3])
 
 
 

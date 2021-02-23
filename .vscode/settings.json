@@ -1,0 +1,4 @@
+{
+    "python.pythonPath": "/home/reidar/anaconda3/envs/torch/bin/python",
+    "jupyter.jupyterServerType": "local"
+}
