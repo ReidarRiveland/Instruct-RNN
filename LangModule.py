@@ -19,7 +19,7 @@ from sklearn.manifold import TSNE
 from scipy.ndimage.filters import gaussian_filter1d
 import pickle
 
-from Task import Task
+from Taskedit import Task
 task_list = Task.TASK_LIST
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -44,7 +44,7 @@ def toNumerals(tokenizer, instructions):
     return torch.stack(ins_temp).squeeze().long().to(device)
 
 def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
-    assert instruct_mode in [None, 'instruct_swap', 'shuffled', 'comp']
+    assert instruct_mode in [None, 'instruct_swap', 'shuffled', 'comp', 'validation']
     batch = []
     batch_target_index = []
     for i in range(batch_size):
@@ -53,6 +53,8 @@ def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
             task = np.random.choice(task_list)
         if instruct_mode == 'instruct_swap': 
             instruct_dict = instruct_swap_dict
+        if instruct_mode == 'validation': 
+            instruct_dict = test_instruct_dict
         else: 
             instruct_dict = train_instruct_dict
         instruct = random.choice(instruct_dict[task])

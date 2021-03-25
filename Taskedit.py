@@ -6,7 +6,7 @@ import matplotlib.gridspec as gridspec
 
 class Task():
     TASK_LIST = ['Go', 'RT Go', 'Anti Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']
-    #SHUFFLED_TASK_LIST = ['MultiCOMP2', 'RT Go', 'COMP2', 'DNMS', 'Anti Go', 'COMP1', 'DNMC', 'Anti DM', 'MultiCOMP1', 'Anti MultiDM', 'MultiDM', 'DM', 'Anti RT Go', 'DMC', 'DMS', 'Go']
+    SHUFFLED_TASK_LIST = ['MultiCOMP2', 'RT Go', 'COMP2', 'DNMS', 'Anti Go', 'COMP1', 'DNMC', 'Anti DM', 'MultiCOMP1', 'Anti MultiDM', 'MultiDM', 'DM', 'Anti RT Go', 'DMC', 'DMS', 'Go']
     STIM_DIM = 32
     TUNING_DIRS = [((2*np.pi*i)/32) for i in range(STIM_DIM)]
     TRIAL_LEN = int(120)
@@ -14,7 +14,7 @@ class Task():
     OUTPUT_DIM = STIM_DIM + 1
     SIGMA_IN = 0.01
     DELTA_T = 20
-    DM_DELAY = False
+    DM_DELAY = True
 
     def __init__(self, num_trials, intervals): 
         self.num_trials = num_trials
@@ -38,7 +38,8 @@ class Task():
 
     @staticmethod
     def _rule_one_hot(task_type, shuffled=False):
-        index = Task.TASK_LIST.index(task_type)
+        if shuffled: index = Task.SHUFFLED_TASK_LIST.index(task_type) 
+        else: index = Task.TASK_LIST.index(task_type)
         one_hot = np.zeros(len(Task.TASK_LIST))
         one_hot[index] = 1
         return np.expand_dims(one_hot, 0)
@@ -63,21 +64,6 @@ class Task():
         input_stim_mod1 = np.array(list(map(self._fill_pref_dir, stim_mod1)))
         input_stim_mod2 = np.array(list(map(self._fill_pref_dir, stim_mod2)))
         return np.concatenate((input_stim_mod1, input_stim_mod2), 1)
-
-    def _make_input_vecs(self, task_type, input_stim):
-        fix = np.ones((self.num_trials,1))
-        no_fix = np.zeros((self.num_trials,1))
-
-        rule_vec = np.repeat(self._rule_one_hot(task_type), self.num_trials, axis=0)
-
-        noise = np.repeat(self.make_noise(self.INPUT_DIM), self.num_trials, axis = 0)
-
-        fix_no_stim = np.concatenate((fix, rule_vec, self.null_stim), 1) + noise
-        fix_stim = np.concatenate((fix, rule_vec, input_stim), 1) + noise
-        go_stim = np.concatenate((no_fix, rule_vec, input_stim), 1) + noise
-        go_no_stim = np.concatenate((no_fix, rule_vec, self.null_stim), 1) + noise
-
-        return fix_no_stim, fix_stim, go_stim, go_no_stim
 
     def _make_target_vecs(self, target_dirs):
         fix = np.full((self.num_trials,1), 0.85)
@@ -137,27 +123,34 @@ class Task():
                 ax.set_xlabel('time')
         plt.show()
 
+
     def _get_trial_inputs(self, task_type, stim_mod_arr):
+        fix = np.ones((self.num_trials,1)) 
+        no_fix = np.zeros((self.num_trials,1))
+        rule_vec = np.repeat(self._rule_one_hot(task_type), self.num_trials, axis=0)
+        noise = np.repeat(self.make_noise(self.INPUT_DIM), self.num_trials, axis = 0)
+
         if len(stim_mod_arr.shape) == 2: 
             stim_mod_arr = np.array([stim_mod_arr]*2)
         stim1 = self._make_input_stim(stim_mod_arr[0, 0, :], stim_mod_arr[0, 1, :])
         stim2 = self._make_input_stim(stim_mod_arr[1, 0, :], stim_mod_arr[1, 1, :])
-        epoch_vecs1 = self._make_input_vecs(task_type, stim1)
-        epoch_vecs2 = self._make_input_vecs(task_type, stim2)
-        if task_type in ['DM', 'MultiDM', 'Anti DM', 'Anti MultiDM']:
-            if self.DM_DELAY:
-                input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[0],  epoch_vecs2[1], epoch_vecs2[3])            
-            else: 
-                input_vecs = (epoch_vecs1[0], epoch_vecs1[1]+epoch_vecs2[2], epoch_vecs1[1]+epoch_vecs2[2], epoch_vecs1[1]+epoch_vecs2[2], epoch_vecs2[3])            
-        elif 'Go' in task_type: 
+
+        if 'Go' in task_type: 
             if 'RT' in task_type: 
-                input_vecs = (epoch_vecs1[0], epoch_vecs1[0], epoch_vecs1[0],  epoch_vecs2[0], epoch_vecs2[1])
+                input_vecs = np.array([np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), 
+                                np.concatenate((fix, rule_vec, stim1), 1),  np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1)])
             else: 
-                input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[1],  epoch_vecs2[1], epoch_vecs2[3])
-        else:
-            input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[0],  epoch_vecs2[1], epoch_vecs2[3])
-        return self._fill_trials(self.intervals, input_vecs)
+                input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), 
+                                np.concatenate((fix, rule_vec, stim1), 1),  np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((no_fix, rule_vec, stim1), 1))
+        elif not self.DM_DELAY and task_type in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']: 
+            input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1+stim2), 1), np.concatenate((fix, rule_vec, stim1+stim2), 1),  
+                                np.concatenate((fix, rule_vec, stim1+stim2), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1))   
+        else: 
+            input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((fix, rule_vec, self.null_stim), 1),  
+                                np.concatenate((fix, rule_vec, stim2), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1))
         
+        return self._fill_trials(self.intervals, input_vecs+noise)
+
     def _make_loss_mask(self, intervals): 
         ones = np.ones((1, self.OUTPUT_DIM))
         zeros = np.zeros((1, self.OUTPUT_DIM))
@@ -281,7 +274,6 @@ class Comp(Task):
         trial_ins = self.inputs[trial_index, :, :].T
         trial_tars = self.targets[trial_index, :, :].T
         self._plot_trial(trial_ins, trial_tars, self.task_type)
-
 
 class Delay(Task): 
     def __init__(self, task_type, num_trials, intervals=None): 
@@ -426,5 +418,4 @@ def construct_batch(task_type, num):
     if task_type == 'DNMC': 
         trial = Delay('DNMC', num)
     return trial 
-
 

@@ -12,8 +12,8 @@ from torch import Tensor
 import numpy as np
 
 def count_parameters(model):
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)    
-
+    return sum(p.numel() for p in model.parameters() if p.requires_grad) 
+ 
 class simpleNet(nn.Module): 
     def __init__(self, in_dim, hid_dim, num_layers, activ_func, instruct_mode=None):
         super(simpleNet, self).__init__()
@@ -24,28 +24,28 @@ class simpleNet(nn.Module):
         self.isLang = False
         self.hid_dim = hid_dim
         self.num_layers = num_layers
-        if activ_func is not 'tanh': 
+        self.activ_func = activ_func
+
+        if self.activ_func is not 'tanh': 
             #self.recurrent_units = customGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
             self.rnn = customGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
-
         else: 
             #self.recurrent_units = nn.GRU(self.in_dim, hid_dim, self.num_layers, batch_first=True)
             self.rnn = nn.GRU(self.in_dim, hid_dim, self.num_layers, batch_first=True)
 
-        self.W_out = nn.Linear(hid_dim, self.out_dim)
         self.weights_init()
+        self.W_out = nn.Linear(hid_dim, self.out_dim)
 
     def weights_init(self):
         for n, p in self.named_parameters():
             if 'weight_ih' in n:
-                    torch.nn.init.normal_(p, std = 1/np.sqrt(p.size()[0]))
+                for ih in p.chunk(3, 0):
+                    torch.nn.init.normal_(ih, std = 1/np.sqrt(self.in_dim))
             elif 'weight_hh' in n:
                 for hh in p.chunk(3, 0):
                     hh.data.copy_(torch.eye(self.hid_dim)*0.5)
             elif 'W_out' in n:
-                torch.nn.init.normal_(p, std = 0.4/np.sqrt(p.size()[0]))
-            if 'bias' in n: 
-                torch.nn.init.normal_(p, std = 0.1)
+                torch.nn.init.normal_(p, std = 0.4/np.sqrt(self.hid_dim))
 
     def forward(self, x, h): 
         rnn_hid, _ = self.rnn(x, h)
@@ -98,7 +98,7 @@ class instructNet(nn.Module):
 class customGRUCell(nn.Module): 
     def __init__(self, input_size, hidden_size, activ_func): 
         super(customGRUCell, self).__init__()
-        assert activ_func in ['relu', 'sigmoid', 'tanh']
+        assert activ_func in ['relu', 'sigmoid', 'tanh', 'AsymSigmoid']
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.weight_ih = Parameter(torch.Tensor(3 * hidden_size, input_size))
@@ -115,6 +115,8 @@ class customGRUCell(nn.Module):
             self.nonlinearity = torch.relu
         elif self.activ_func == 'sigmoid':
             self.nonlinearity = torch.sigmoid
+        elif self.activ_func == 'AsymSigmoid': 
+            self.nonlinearity = lambda x: torch.sigmoid(x-torch.Tensor([10]).to(x.get_device()))
         else: 
             self.nonlinearity = torch.tanh
 

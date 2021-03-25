@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
 
-from Task import Task
+from Taskedit import Task
 from CogModule import CogModule
 from LangModule import swaps
 
@@ -169,6 +169,36 @@ def plot_learning_curves(model_dict, tasks, foldername, comparison, dim, smoothi
     fig.tight_layout(rect=(0.02, 0.02, 0.98, 0.98))
     fig.show()
 
+def plot_hid_PCA_comparison(cogMod, tasks, holdout_task, ax_titles): 
+    colors = ['Red']*250  + ['Yellow']*250 + ['Blue']*250 + ['Green']*250
+    ax_list = []
+    for model_name in cogMod.model_dict.keys(): 
+        _, ax = cogMod.plot_task_rep(model_name, dim = 2, tasks = tasks, epoch = 'prep', avg_rep = False)
+        ax_list.append(ax)
+
+    fig, axn = plt.subplots(1, len(ax_list), figsize = (10, 4))
+    plt.suptitle(r'$\textbf{PCA of Preparatory RNN Activity}$', fontsize=14, fontweight='bold')
+    Patches = []
+    for i, ax in enumerate(ax_list):
+        scatter = ax_list[i]
+        ax = axn.flat[i]
+        ax.set_title(ax_titles[i]) 
+        ax.scatter(scatter[0], scatter[1], color=colors, cmap = scatter[3], s=10)
+        if i == 0: 
+            ax.set_ylabel('PC1')
+        ax.set_xlabel('PC2')
+        ax.xaxis.set_major_locator(plt.MaxNLocator(3))
+        ax.yaxis.set_major_locator(plt.MaxNLocator(3))        
+
+    Patches = []
+    for label, color in [('DM', 'Red'), ('Anti DM', 'Green'), ('MultiDM', 'Blue'), ('Anti MultiDM', 'Yellow')]:
+        patch = mpatches.Patch(color=color, label=label)
+        Patches.append(patch)
+
+    plt.legend(handles = Patches)
+    plt.show()
+
+
 
 # def plot_learning_curves(model_dict, tasks, foldername, comparison, smoothing=1): 
 #     cog = CogModule(model_dict)
@@ -251,3 +281,268 @@ def plot_side_by_side(ax_list, title, ax_titles):
         ax.yaxis.set_major_locator(plt.MaxNLocator(3))        
     plt.legend(handles = Patches, loc='lower right')
     plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# from Task import construct_batch, Go
+# import torch
+# from sklearn.preprocessing import normalize
+# from LangModule import get_batch
+# import matplotlib.pyplot as plt
+# import matplotlib
+# import matplotlib.colors as colors
+# import matplotlib.cm as cmx
+# from matplotlib.patches import Rectangle
+
+
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# cog.load_models('Anti RT Go', foldername)
+
+# modelS = cog.model_dict['S-Bert train']
+
+# model1 = cog.model_dict['Model1']
+
+# model1.activ_func
+
+
+# def get_task_var_resp(model, task_type, task_variable, mod, instruct_mode, num_trials=100): 
+#     assert task_variable in ['direction', 'strength']
+#     intervals = np.empty((num_trials, 5), dtype=tuple)
+#     if task_variable == 'direction': 
+#         directions = np.linspace(0, 2*np.pi, num=num_trials)
+#         strengths = [1]* num_trials
+#     elif task_variable == 'strength': 
+#         directions = np.array([np.pi+1] * num_trials)
+#         strengths = np.linspace(0.3, 1.8, num=num_trials)
+#     elif task_variable == 'diff_strength': 
+#         directions = np.array([np.pi+1] * num_trials)
+#         strengths = np.linspace(-0.3, 0.3, num=num_trials)
+#     if task_type in ['Go', 'Anti Go', 'RT Go', 'Anti RT Go']:
+#         stim_mod_arr = np.empty((2, num_trials), dtype=list)
+#         for i in range(num_trials): 
+#             intervals[i, :] = ((0, 20), (20, 60), (60, 80), (80, 100), (100, 120))
+#             strength_dir = [(strengths[i], directions[i])]
+#             stim_mod_arr[mod, i] = strength_dir
+#             stim_mod_arr[((mod+1)%2), i] = None
+#         trials = Go(task_type, num_trials, intervals=intervals, stim_mod_arr=stim_mod_arr, directions=directions)
+#     # if task_type in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']:
+#     #     stim_mod_arr = np.empty((2, 2, num_trials), dtype=tuple)
+#     #     for i in range(num_trials): 
+#     #         intervals[i, :] = ((0, 20), (20, 60), (60, 80), (80, 100), (100, 120))
+#     #         strength_dir = [(strengths[i], directions[i])]
+#     #         stim_mod_arr[mod, i] = strength_dir
+#     #         stim_mod_arr[((mod+1)%2), i] = None
+#     #     trials = DM(task_type, num_trials, intervals=intervals, stim_mod_arr=stim_mod_arr, directions=directions
+#     tar_dirs = trials.target_dirs
+#     tar = trials.targets
+#     if model.isLang:
+#         instructions = get_batch(num_trials, model.langModel.tokenizer, task_type=task_type)[0]
+#     stim_info = np.empty((2, num_trials))
+#     stim_info.shape
+#     for i in range(num_trials): 
+#         temp_stim_info = trials.stim_mod_arr[:, i]
+#         mod_index = np.where(temp_stim_info != None)[0][0]
+#         stim_info[0, i] = mod_index
+#         stim_info[1, i] = temp_stim_info[mod_index][0][task_variable == 'direction']
+#     h0 = model.initHidden(num_trials, 0.1).to(device)
+#     model.eval()
+#     out, hid = cog._get_model_resp(model, num_trials, torch.Tensor(trials.inputs).to(device), task_type, instruct_mode, None)
+#     hid = hid.detach().cpu().numpy()
+#     return hid
+
+# def plot_neural_resp(models, task_type, unit, task_variable, mod, instruct_mode=None):
+#     assert task_variable in ['direction', 'strength']
+#     for model in models:
+#         hid = get_task_var_resp(model, task_type, task_variable, mod, instruct_mode)
+#         if task_variable == 'direction':
+#             labels = ["0", "$2\pi$"]
+#             cmap = plt.get_cmap('twilight') 
+#         elif task_variable == 'strength':
+#             labels = ["0.3", "1.8"]
+#             cmap = plt.get_cmap('plasma') 
+#         cNorm  = colors.Normalize(vmin=0, vmax=100)
+#         scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cmap)
+#         fig, axn = plt.subplots()
+#         for i in [x*4 for x in range(25)]:
+#             plot = plt.plot(hid[i, :, unit], c = scalarMap.to_rgba(i))
+#         plt.vlines(20, -1.5, 1.15, colors='k', linestyles='dashed')
+#         plt.vlines(100, -1.5, 1.15, colors='k', linestyles='dashed')
+#         plt.xticks([20, 100], labels=['Stim. Onset', 'Reponse'])
+#         axn.set_ylim(-1, 1.15)
+#         cbar = plt.colorbar(scalarMap, orientation='vertical', label = task_variable, ticks = [0, 100])
+#         plt.title(task_type + ' response for Unit' + str(unit))
+#         cbar.set_ticklabels(labels)
+#         plt.show()
+
+# hid = get_task_var_resp(model1, 'Go', 'direction', 1, None)
+
+
+
+
+
+# for task in ['Go', 'Anti Go', 'RT Go', 'Anti RT Go']:
+#     plot_neural_resp([model1], task, 22, 'direction', 1, instruct_mode=None)
+
+
+
+
+
+# print(j)
+# fig, axn = plt.subplots()
+# plt.plot(np.linspace(0, 2*np.pi, num=num_trials), hid[:, 60, j], alpha = normed[i], c = cmap(normed[i]))
+# axn.set_ylim(-1, 1)
+# plt.show()
+
+
+
+# torch.cat((torch.empty(100, 120, 81), torch.zeros(100, 120, 30)), dim=2).shape
+
+
+# cog = CogModule(model_dict)
+# cog.model_dict.keys()
+# cog.load_models('Anti DM', foldername)
+
+# from LangModule import train_instruct_dict
+# from collections import defaultdict
+# import seaborn as sns
+# import matplotlib.pyplot as plt
+
+
+# indices, reps = cog.model_dict['S-Bert train'].langMod._get_instruct_rep(train_instruct_dict)
+# indices, reps = cog.model_dict['S-Bert_cat'].langMod._get_instruct_rep(train_instruct_dict)
+# indices, reps = LangModule(SBERT(20))._get_instruct_rep(train_instruct_dict)
+
+# rep_dict = defaultdict(list)
+# for index, rep in list(zip(indices, reps)): 
+#     rep_dict[task_list[index]].append(rep)
+
+# sims = cosine_similarity(rep_dict['COMP1'], rep_dict['COMP2'])
+
+# sims = cosine_similarity(np.array([np.mean(np.array(rep_dict['COMP1']), 0), np.mean(np.array(rep_dict['COMP2']), 0)]))
+
+# sns.heatmap(sims, annot=True, vmin=0, vmax=1)
+# plt.title('S-BERT (end-to-end)')
+# plt.ylabel('COMP1 Instructions')
+# plt.xlabel('COMP2 Instructions')
+# plt.show()
+
+# shuffled_dict = {}
+
+# for task, instructs in train_instruct_dict.items(): 
+#     instruction_list = []
+#     for instruct in instructs: 
+#         instruct = instruct.split()
+#         shuffled = np.random.permutation(instruct)
+#         instruct = ' '.join(list(shuffled))
+#         instruction_list.append(instruct)
+#     shuffled_dict[task] = instruction_list
+
+# shuffled_dict['Go']
+
+
+# indices, reps = cog.model_dict['S-Bert train'].langMod._get_instruct_rep(train_instruct_dict)
+# shuffled_rep_dict = defaultdict(list)
+# for index, rep in list(zip(indices, reps)): 
+#     shuffled_rep_dict[task_list[index]].append(rep)
+# shuffled_sims = cosine_similarity(rep_dict['DM'], rep_dict['DM'])
+
+# sns.heatmap(shuffled_sims,  annot=True, vmin=0, vmax=1)
+# plt.title('Language Representation Similarity Scores (S-BERT train)')
+# plt.ylabel('COMP1 Instructions')
+# plt.xlabel('COMP2 Instructions')
+# plt.show()
+
+
+
+# cog.load_models('Anti DM', foldername)
+
+
+# from Task import construct_batch
+# from CogModule import mask_input_rule, isCorrect
+# import torch
+# from sklearn.decomposition import PCA
+# import matplotlib.pyplot as plt
+# import matplotlib
+
+
+# dim=2
+# epoch = 'prep'
+# avg_rep = False
+# instruct_mode = None
+# num_trials = 50
+# model = cog.model_dict['Model1']
+# holdout_task= None
+
+# tasks = ['Go', 'Anti Go']
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+# task_reps = []
+# correct_list  = []
+# for task in task_list: 
+#     trials = construct_batch(task, num_trials)
+#     tar_dirs = trials.target_dirs
+#     tar = trials.targets
+#     ins = mask_input_rule(torch.Tensor(trials.inputs), num_trials, 120).to(device)
+#     h0 = torch.FloatTensor(num_trials, 128).uniform_(-1, 1).unsqueeze(0).to(device)
+#     out, hid = model(ins, h0)
+
+#     correct_list += list(isCorrect(out, tar, tar_dirs))
+#     hid = hid.detach().cpu().numpy()
+#     epoch_state = []
+
+#     for i in range(num_trials): 
+#         if epoch.isnumeric(): 
+#             epoch_index = int(epoch)
+#             epoch_state.append(hid[i, epoch_index, :])
+#         if epoch == 'stim': 
+#             epoch_index = np.where(tar[i, :, 0] == 0.85)[0][-1]
+#             epoch_state.append(hid[i, epoch_index, :])
+#         if epoch == 'response':
+#             epoch_state.append(hid[i, -1, :])
+#         if epoch == 'input':
+#             epoch_state.append(hid[i, 0, :])
+#         if epoch == 'prep': 
+#             epoch_index = np.where(ins[i, :, 18:]>0.25)[0][0]-1
+#             epoch_state.append(hid[i, epoch_index, :])
+    
+#     if avg_rep: 
+#         epoch_state = [np.mean(np.stack(epoch_state), axis=0)]
+    
+#     task_reps += epoch_state
+
+# embedded = PCA(n_components=dim).fit_transform(task_reps)
+# cmap = matplotlib.cm.get_cmap('tab20')
+
+# if avg_rep: 
+#     to_plot = np.stack([embedded[task_list.index(task), :] for task in tasks])
+#     task_indices = np.array([task_list.index(task) for task in tasks]).astype(int)
+#     marker_size = 100
+# else: 
+#     to_plot = np.stack([embedded[task_list.index(task)*num_trials: task_list.index(task)*num_trials+num_trials, :] for task in tasks]).reshape(len(tasks)*num_trials, dim)
+#     correct = np.stack([correct_list[task_list.index(task)*num_trials: task_list.index(task)*num_trials+num_trials] for task in tasks]).flatten()
+#     task_indices = np.array([[task_list.index(task)]*num_trials for task in tasks]).astype(int).flatten()
+#     marker_size = 25
+# tasks
+# len(task_indices)
+# dots = cmap(task_indices)
+# correct = np.where(correct<1, 0.25, correct)
+# dots[:, 3] = correct
+
+# plt.scatter(to_plot[:, 0], to_plot[:, 1], c=dots, s=25)
+# plt.xlabel("PC 1", fontsize = 18)
+# plt.ylabel("PC 2", fontsize = 18)
+# plt.show()
+

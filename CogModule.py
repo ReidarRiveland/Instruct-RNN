@@ -27,7 +27,7 @@ import pickle
 import random
 from collections import defaultdict
 
-from Task import Task, construct_batch
+from Taskedit import Task, construct_batch
 from LangModule import get_batch, toNumerals, swaps
 from RNNs import simpleNet
 
@@ -188,7 +188,10 @@ def comp_input_rule(in_tensor, task_type):
     comp_input = torch.cat((in_tensor[:, :, 0:1], comp_tensor, in_tensor[:, :, len(task_list)+1:]), axis=2)
     return comp_input
 
-
+def use_shuffled_one_hot(in_tensor, task_type): 
+    shuffled_one_hot = torch.Tensor(Task._rule_one_hot(task_type, shuffled=True)).unsqueeze(0).repeat(in_tensor.shape[0], in_tensor.shape[1], 1).to(in_tensor.get_device())
+    shuffled_one_hot_input = torch.cat((in_tensor[:, :, 0:1], shuffled_one_hot, in_tensor[:, :, len(task_list)+1:]), axis=2)
+    return shuffled_one_hot_input
 
 def swap_input_rule(in_tensor, task_type): 
     """Swaps one-hot rule inputs for given tasks 
@@ -212,13 +215,13 @@ def swap_input_rule(in_tensor, task_type):
 
 
 class CogModule():
-    ALL_STYLE_DICT = {'Model1': ('blue', None), 'SIF':('brown', None), 'BoW': ('orange', None), 'GPT_cat': ('red', '^'), 'GPT train': ('red', '.'), 
+    ALL_STYLE_DICT = {'Model1': ('blue', None), 'Model1shuffled': ('blue', '+'), 'SIF':('brown', None), 'BoW': ('orange', None), 'GPT_cat': ('red', '^'), 'GPT train': ('red', '.'), 
                             'BERT_cat': ('green', '^'), 'BERT train': ('green', '+'), 'S-Bert_cat': ('purple', '^'), 'S-Bert train': ('purple', '.'), 'S-Bert' : ('purple', None), 
                             'InferSent train': ('yellow', '.'), 'InferSent_cat': ('yellow', '^'), 'Transformer': ('pink', '.')}
     COLOR_DICT = {'Model1': 'blue', 'SIF':'brown', 'BoW': 'orange', 'GPT': 'red', 'BERT': 'green', 'S-Bert': 'purple', 'InferSent':'yellow', 'Transformer': 'pink'}
-    MODEL_MARKER_DICT = {'SIF':None, 'BoW':None, 'cat': '^', 'train': '.', 'Transformer':'.'}
-    MARKER_DICT = {'^': 'task categorization', '.': 'end-to-end'}
-    NAME_TO_PLOT_DICT = {'Model1': 'One-Hot Task Vec.', 'SIF':'SIF', 'BoW': 'BoW', 'GPT_cat': 'GPT (task cat.)', 'GPT train': 'GPT (end-to-end)', 
+    MODEL_MARKER_DICT = {'SIF':None, 'BoW':None, 'shuffled':'+', 'cat': '^', 'train': '.', 'Transformer':'.'}
+    MARKER_DICT = {'^': 'task categorization', '.': 'end-to-end', '+':'shuffled'}
+    NAME_TO_PLOT_DICT = {'Model1': 'One-Hot Task Vec.','Model1shuffled': 'Shuffled One-Hot', 'SIF':'SIF', 'BoW': 'BoW', 'GPT_cat': 'GPT (task cat.)', 'GPT train': 'GPT (end-to-end)', 
                             'BERT_cat': 'BERT (task cat.)', 'BERT train': 'BERT (end-to-end)', 'S-Bert_cat': 'S-BERT (task cat.)', 'S-Bert train': 'S-BERT (end-to-end)',  
                             'S-Bert': 'S-BERT (raw)', 'InferSent train': 'InferSent (end-to-end)', 'InferSent_cat': 'InferSent (task cat.)', 'Transformer': 'Transformer (end-to-end)'}
 
@@ -231,8 +234,7 @@ class CogModule():
         self.total_correct_dict = defaultdict(list)
         self.task_sorted_loss = {}
         self.task_sorted_correct = {}
-        self.holdout_task = None
-        self.holdout_instruct = None
+
 
     def get_model_patches(self): 
         Patches = []
@@ -267,8 +269,6 @@ class CogModule():
         self.total_correct_dict = defaultdict(list)
         self.task_sorted_loss = {}
         self.task_sorted_correct = {}
-        self.holdout_task = None
-        self.holdout_instruct = None
 
     def save_training_data(self, holdout_task,  foldername, name): 
         holdout_task = holdout_task.replace(' ', '_')
@@ -308,8 +308,6 @@ class CogModule():
 
     def load_models(self, holdout_task, foldername):
         self.load_training_data(holdout_task, foldername, holdout_task)
-        if 'Model1 Masked' in self.model_dict.keys(): 
-            del(self.model_dict['Model1 Masked'])
         for model_name, model in self.model_dict.items():
             filename = foldername+'/'+holdout_task+'/'+holdout_task+'_'+model_name+'.pt'
             filename = filename.replace(' ', '_')
@@ -320,7 +318,7 @@ class CogModule():
         batch_instruct, _ = get_batch(batch_len, tokenizer, task_type=task_type, instruct_mode=instruct_mode)
         return batch_instruct
 
-    def _get_model_resp(self, model, batch_len, ins, task_type, instruct_mode, holdout_task): 
+    def _get_model_resp(self, model, batch_len, ins, task_type, instruct_mode): 
         h0 = model.initHidden(batch_len, 0.1).to(device)
         if model.isLang: 
             if instruct_mode == 'masked': 
@@ -329,29 +327,40 @@ class CogModule():
                 out, hid = model.rnn(ins, h0)
             else: 
                 ins = del_input_rule(ins)
-                instruct = self._get_lang_input(model, batch_len, task_type, instruct_mode)
+                instruct = self._get_lang_input(model, batch_len, task_type, model.instruct_mode)
                 out, hid = model(instruct, ins, h0)
         else: 
-            if instruct_mode == 'masked' or ((task_type == holdout_task) and (model.instruct_mode == 'masked')): 
+            if instruct_mode == 'masked': 
                 ins = mask_input_rule(ins).to(device)
             if instruct_mode == 'comp': 
                 ins = comp_input_rule(ins, task_type)
             if instruct_mode == 'instruct_swap': 
                 ins = swap_input_rule(ins, task_type)
+            if model.instruct_mode == 'shuffled_one_hot':
+                ins = use_shuffled_one_hot(ins, task_type)
+            # sns.heatmap(ins[0, :, :].detach().cpu().numpy())
+            # plt.show()
             out, hid = model(ins, h0)
         return out, hid
 
-    def train(self, data, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, holdout_task = None, instruct_mode = None, freeze_langModel = False): 
-        self.holdout_task = holdout_task
-        torch.autograd.set_detect_anomaly
+    def train(self, data, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, milestones = [], 
+                        holdout_task = None, instruct_mode = None, freeze_langModel = False, langLR = None, langWeightDecay=None): 
+        #torch.autograd.set_detect_anomaly
         opt_dict = {}
         for model_type, model in self.model_dict.items(): 
             if (model.isLang and not model.tune_langModel) or (model.tune_langModel and freeze_langModel): 
                 optimizer = optim.Adam(model.rnn.parameters(), lr=lr, weight_decay=weight_decay)
-                opt_dict[model_type] =(optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 110], gamma=0.2))
+                opt_dict[model_type] =(optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5))
             else: 
-                optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-                opt_dict[model_type] = (optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 110], gamma=0.2))
+                if langWeightDecay is not None and model.isLang: 
+                    print('LangWeightDecay')
+                    optimizer = optim.Adam([
+                            {'params' : model.rnn.parameters()},
+                            {'params' : model.langModel.parameters(), 'lr': langLR, 'weight_decay':langWeightDecay}
+                        ], lr=lr, weight_decay=weight_decay)
+                else: 
+                    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+                opt_dict[model_type] = (optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5))
                 print(model_type)
             model.train()
         
@@ -364,44 +373,51 @@ class CogModule():
         batch_len = ins_tensor.shape[1]
         batch_num = ins_tensor.shape[0]
         correct_array = np.empty((batch_len, batch_num), dtype=bool)
+        for model_type, model in self.model_dict.items(): 
+            for i in range(epochs):
+                print('epoch', i)
+                index_list = list(np.arange(batch_num))
+                np.random.shuffle(index_list)
+                for j in range(batch_num): 
+                    index = index_list[j]
+                    task_type = task_type_vec[index]
+                    task_index = task_list.index(task_type)
+                    tar = torch.Tensor(tar_tensor[index, :, :, :]).to(device)
+                    mask = torch.Tensor(mask_tensor[index, :, :, :]).to(device)
+                    ins = torch.Tensor(ins_tensor[index, :, :, :]).to(device)
+                    tar_dir = tar_dir_vec[index]
 
-        for i in range(epochs):
-            print('epoch', i)
-            for j in range(batch_num): 
-                task_type = task_type_vec[j]
-                task_index = task_list.index(task_type)
-                tar = torch.Tensor(tar_tensor[j, :, :, :]).to(device)
-                mask = torch.Tensor(mask_tensor[j, :, :, :]).to(device)
-                ins = torch.Tensor(ins_tensor[j, :, :, :]).to(device)
-                tar_dir = tar_dir_vec[j]
-                if j%50 == 0: 
-                    print(task_type)
-
-                for model_type, model in self.model_dict.items(): 
                     opt = opt_dict[model_type][0]
                     opt_scheduler = opt_dict[model_type][1]
                     opt.zero_grad()
-                    out, _ = self._get_model_resp(model, batch_len, ins, task_type, instruct_mode, holdout_task)
+                    out, _ = self._get_model_resp(model, batch_len, ins, task_type, instruct_mode)
                     loss = masked_MSE_Loss(out, tar, mask) 
                     loss.backward()
-                    nn.utils.clip_grad_norm_(model.parameters(), 0.5)
-
+                    if model.isLang:
+                        torch.nn.utils.clip_grad_value_(model.rnn.rnn.parameters(), 0.5)
+                    else: 
+                        torch.nn.utils.clip_grad_value_(model.rnn.parameters(), 0.5)                    
                     opt.step()
-                    if scheduler: 
-                        opt_scheduler.step()
+
+                    frac_correct = np.mean(isCorrect(out, tar, tar_dir))
+                    self.total_loss_dict[model_type].append(loss.item())
+                    self.total_correct_dict[model_type].append(frac_correct)
                     if j%50 == 0:
+                        print(task_type)
                         print(j, ':', model_type, ":", "{:.2e}".format(loss.item()))
                         self.sort_perf_by_task()
-                    self.total_loss_dict[model_type].append(loss.item())
-                    self.total_correct_dict[model_type].append(np.mean(isCorrect(out, tar, tar_dir)))
-                self.total_task_list.append(task_type)                
+                        print('Frac Correct ' + str(frac_correct) + '\n')
+                    self.total_task_list.append(task_type) 
+                self.sort_perf_by_task()
+                if scheduler: 
+                    opt_scheduler.step()               
 
 
     def plot_learning_curve(self, mode, task_type=None, smoothing = 2):
         assert mode in ['loss', 'correct'], "mode must be 'loss' or 'correct', entered: %r" %mode
         if mode == 'loss': 
             y_label = 'MSE Loss'
-            y_lim = (0, 250)
+            y_lim = (0, 0.05)
             title = 'MSE Loss over training'
             perf_dict = self.task_sorted_loss
         if mode == 'correct': 
@@ -437,23 +453,25 @@ class CogModule():
         fig.text(0.04, 0.5, y_label, va='center', rotation='vertical')
         fig.show()
 
-    def _get_performance(self, model, instruct_mode = None): 
+    def _get_performance(self, model, num_batches = 5, instruct_mode = None): 
         model.eval()
-        batch_len = 250
+        batch_len = 128
         with torch.no_grad():
             perf_dict = dict.fromkeys(task_list)
-            perf_dict_masked = dict.fromkeys(task_list)
-            for task_type in task_list: 
-                trial = construct_batch(task_type, batch_len)
-                ins = trial.inputs
-                out, _ = self._get_model_resp(model, batch_len, torch.Tensor(ins).to(device), task_type, instruct_mode, holdout_task=self.holdout_task) 
-                perf_dict[task_type] = np.mean(isCorrect(out, torch.Tensor(trial.targets).to(device), trial.target_dirs))
+            for task_type in task_list:
+                for _ in range(num_batches): 
+                    mean_list = [] 
+                    trial = construct_batch(task_type, batch_len)
+                    ins = trial.inputs
+                    out, _ = self._get_model_resp(model, batch_len, torch.Tensor(ins).to(device), task_type, instruct_mode) 
+                    mean_list.append(np.mean(isCorrect(out, torch.Tensor(trial.targets).to(device), trial.target_dirs)))
+                perf_dict[task_type] = np.mean(mean_list)
         return perf_dict 
 
     def _plot_trained_performance(self, instruct_mode = None):
         barWidth = 0.1
         for i, model in enumerate(self.model_dict.values()):  
-            perf_dict = self._get_performance(model, instruct_mode)
+            perf_dict = self._get_performance(model, num_batches=3, instruct_mode=None)
             keys = list(perf_dict.keys())
             values = list(perf_dict.values())
             len_values = len(task_list)
@@ -489,10 +507,15 @@ class CogModule():
                 ins = del_input_rule(torch.Tensor(ins)).to(device)
                 out, hid = model(instruct, ins, h0)
             else: 
-                out, hid = self._get_model_resp(model, 1, torch.Tensor(ins).to(device), task_type, instruct_mode, self.holdout_task)
+                out, hid = self._get_model_resp(model, 1, torch.Tensor(ins).to(device), task_type, instruct_mode)
             
+            correct = isCorrect(out, torch.Tensor(tar), task.target_dirs)
+
+
             out = out.squeeze().detach().cpu().numpy()
             hid = hid.squeeze().detach().cpu().numpy()
+
+
 
             fix = ins[0, :, 0:1]            
             num_rules = len(Task.TASK_LIST)
@@ -510,11 +533,11 @@ class CogModule():
                 task_info = embedded_instruct.repeat(120, 1).cpu().numpy()
                 task_info_str = 'Instruction Embedding'
             else: 
-                task_info = ins[0, 0:len(task_list), :]
+                task_info = rule_vec
                 task_info_str = 'Task one-hot'
 
-            to_plot.insert(4, task_info.T)
-            ylabels.insert(4, task_info_str)
+            to_plot.insert(3, task_info.T)
+            ylabels.insert(3, task_info_str)
 
             fig, axn = plt.subplots(6,1, sharex = True, gridspec_kw=gs_kw)
             cbar_ax = fig.add_axes([.91, .3, .03, .4])
@@ -531,8 +554,8 @@ class CogModule():
 
 
 
-
             plt.show()
+            return correct
 
 
     def plot_k_shot_learning(self, ks, task_type, model_dict=None, include_legend = False):
@@ -576,11 +599,11 @@ class CogModule():
 
             if instruct_mode == 'comp': 
                 if task == holdout_task: 
-                    out, hid = self._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, 'comp', None)
+                    out, hid = self._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, 'comp')
                 else: 
-                    out, hid = self._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, None, None)
+                    out, hid = self._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, None)
             else: 
-                out, hid = self._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, instruct_mode, None)
+                out, hid = self._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, instruct_mode)
 
 
             hid = hid.detach().cpu().numpy()
@@ -679,7 +702,7 @@ class CogModule():
         for model_name, model in self.model_dict.items(): 
             tasks_dict = {}
             for i, task in enumerate(tasks): 
-                out, hid = self._get_model_resp(model, 1, torch.Tensor(task_info_list[i]).to(device), task, instruct_mode, None)
+                out, hid = self._get_model_resp(model, 1, torch.Tensor(task_info_list[i]).to(device), task, instruct_mode)
                 embedded = PCA(n_components=dim).fit_transform(hid.squeeze().detach().cpu())
                 tasks_dict[task] = embedded
             model_task_state_dict[model_name] = tasks_dict

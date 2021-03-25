@@ -1,3 +1,4 @@
+
 import math
 import numpy as np
 import seaborn as sns
@@ -6,7 +7,8 @@ import matplotlib.gridspec as gridspec
 
 class Task():
     TASK_LIST = ['Go', 'RT Go', 'Anti Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']
-    #SHUFFLED_TASK_LIST = ['MultiCOMP2', 'RT Go', 'COMP2', 'DNMS', 'Anti Go', 'COMP1', 'DNMC', 'Anti DM', 'MultiCOMP1', 'Anti MultiDM', 'MultiDM', 'DM', 'Anti RT Go', 'DMC', 'DMS', 'Go']
+    SHUFFLED_TASK_LIST = ['MultiCOMP2', 'RT Go', 'COMP2', 'DNMS', 'Anti Go', 'COMP1', 'DNMC', 'Anti DM', 'MultiCOMP1', 'Anti MultiDM', 'MultiDM', 'DM', 'Anti RT Go', 'DMC', 'DMS', 'Go']
+
     STIM_DIM = 32
     TUNING_DIRS = [((2*np.pi*i)/32) for i in range(STIM_DIM)]
     TRIAL_LEN = int(120)
@@ -14,7 +16,7 @@ class Task():
     OUTPUT_DIM = STIM_DIM + 1
     SIGMA_IN = 0.01
     DELTA_T = 20
-    DM_DELAY = False
+    DM_DELAY = True
 
     def __init__(self, num_trials, intervals): 
         self.num_trials = num_trials
@@ -38,7 +40,8 @@ class Task():
 
     @staticmethod
     def _rule_one_hot(task_type, shuffled=False):
-        index = Task.TASK_LIST.index(task_type)
+        if shuffled: index = Task.SHUFFLED_TASK_LIST.index(task_type) 
+        else: index = Task.TASK_LIST.index(task_type)
         one_hot = np.zeros(len(Task.TASK_LIST))
         one_hot[index] = 1
         return np.expand_dims(one_hot, 0)
@@ -146,14 +149,11 @@ class Task():
         epoch_vecs2 = self._make_input_vecs(task_type, stim2)
         if task_type in ['DM', 'MultiDM', 'Anti DM', 'Anti MultiDM']:
             if self.DM_DELAY:
-                input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[0],  epoch_vecs2[1], epoch_vecs2[3])            
+                input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[1],  epoch_vecs2[1], epoch_vecs2[3])            
             else: 
-                input_vecs = (epoch_vecs1[0], epoch_vecs1[1]+epoch_vecs2[2], epoch_vecs1[1]+epoch_vecs2[2], epoch_vecs1[1]+epoch_vecs2[2], epoch_vecs2[3])            
+                input_vecs = (epoch_vecs1[0], epoch_vecs1[1]+epoch_vecs2[1], epoch_vecs1[1]+epoch_vecs2[1], epoch_vecs1[1]+epoch_vecs2[1], epoch_vecs2[3])            
         elif 'Go' in task_type: 
-            if 'RT' in task_type: 
-                input_vecs = (epoch_vecs1[0], epoch_vecs1[0], epoch_vecs1[0],  epoch_vecs2[0], epoch_vecs2[1])
-            else: 
-                input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[1],  epoch_vecs2[1], epoch_vecs2[3])
+            input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[1],  epoch_vecs2[1], epoch_vecs2[3])
         else:
             input_vecs = (epoch_vecs1[0], epoch_vecs1[1], epoch_vecs1[0],  epoch_vecs2[1], epoch_vecs2[3])
         return self._fill_trials(self.intervals, input_vecs)
