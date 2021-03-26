@@ -128,62 +128,130 @@ len(list(model_dict['S-Bert train'].rnn.parameters()))
 
 
 
+import torch.optim as optim
+from CogModule import masked_MSE_Loss
 
 s_bert_train = instructNet(LangModule(SBERT(20)), 128, 1, 'sigmoid', tune_langModel=True)
-
-
-for param in s_bert_train.langModel.parameters(): 
-    print(param.requires_grad)
-
-for param in s_bert_train.langModel.parameters():
-    print(param.requires_grad)
-
-
 
 cog = CogModule({'S-Bert train': s_bert_train})
 
 data = make_data(num_batches=200)
 
-s_bert_train.langModel.state_dict()['model.0.bert.encoder.layer.11.attention.self.query.weight'].requires_grad
-
-s_bert_train.langModel.training
-
-cog.train(data, 1)
-
-ins = make_data(batch_size=1, num_batches=1)
-
-resp = cog._get_model_resp(s_bert_train, 1, torch.Tensor(ins[0][0, :, :, :]).to(device), 'Go', None)
-
-resp[1].shape
-
-correct = isCorrect(resp[0], torch.Tensor(ins[1][0, :, :, :]), ins[3][0])
-
-str(correct[0])
-
-torch.Tensor(size=(128, 65, 120))
-
-isCorrect
+model = cog.model_dict['S-Bert train']
 
 
-import torch.optim as optim
+model.train
+opt = optim.Adam(model.parameters(), lr=0.0005, weight_decay=0.0)
 
 
-s_bert_train.langModel.train()
+ins_tensor = data[0]
+tar_tensor = data[1]
+mask_tensor = data[2]
+tar_dir_vec = data[3]
+task_type_vec = data[4]
 
-for i in range(1200): 
-    lang_inputs = cog._get_lang_input(s_bert_train, 128, 'Go', None)
-    opt = optim.Adam(s_bert_train.langModel.parameters())
-    opt.zero_grad()
-    out = s_bert_train.langModel(lang_inputs)
-    loss = torch.mean(out-torch.zeros_like(out))
+batch_len = ins_tensor.shape[1]
+batch_num = ins_tensor.shape[0]
+correct_array = np.empty((batch_len, batch_num), dtype=bool)
+
+epochs = 1
+opt = optim.Adam(cog.model_dict['S-Bert train'].langModel.model.parameters(), lr=0.0001)
+
+from LangModule import get_batch
+
+sentence_batch = get_batch(128, None, 'Go')[0]
+
+sentence_batch
+
+model = SentenceTransformer('bert-base-nli-mean-tokens')
+
+
+tokens = model.tokenize(sentence_batch)
+
+out_dict = model(tokens)
+
+out_dict['sentence_embedding'].shape
+loss_list = []
+
+for _ in range(1000): 
+    lang_ins = cog._get_lang_input(cog.model_dict['S-Bert train'], 128, 'Go', None)
+
+    tokens = cog.model_dict['S-Bert train'].langModel.model.tokenize(lang_ins)
+    for keys, values in tokens.items(): 
+        tokens[keys] = values.to(device)
+    tokens['input_ids'].shape
+    lang_out= cog.model_dict['S-Bert train'].langModel.model(tokens)['sentence_embedding']
+    #sent_embedding = torch.tensor(lang_out, requires_grad=True).to(device)
+
+    loss = torch.abs(torch.mean(lang_out-torch.zeros_like(lang_out)))
+
     loss.backward()
     opt.step()
-    loss.item()
 
-list(s_bert_train.langModel.parameters())
+    # for n, p in cog.model_dict['S-Bert train'].langModel.named_parameters():
+    #     if 'layer.11' in n:
+    #         print(p.grad)
+    loss_list.append(loss_list)
+    print(loss.item())
 
-# opt.zero_grad()
-# out, _ = self._get_model_resp(model, batch_len, ins, task_type, instruct_mode)
-# loss = masked_MSE_Loss(out, tar, mask) 
-# loss.backward()
-# opt.step()
+s_bert_train.langModel.state_dict().keys()
+
+
+epochs = 1
+
+opt = optim.Adam(cog.model_dict['S-Bert train'].parameters(), lr=0.001)
+
+for i in range(epochs):
+    print('epoch', i)
+    index_list = list(np.arange(batch_num))
+    np.random.shuffle(index_list)
+    for j in range(batch_num): 
+        index = index_list[j]
+        task_type = task_type_vec[index]
+        task_index = task_list.index(task_type)
+        tar = torch.Tensor(tar_tensor[index, :, :, :]).to(device)
+        mask = torch.Tensor(mask_tensor[index, :, :, :]).to(device)
+        ins = torch.Tensor(ins_tensor[index, :, :, :]).to(device)
+        tar_dir = tar_dir_vec[index]
+
+        model.langModel.training
+        for params in model.parameters(): 
+            print(params.requires_grad)
+        
+        opt.zero_grad()
+        out, _ = cog._get_model_resp(model, batch_len, ins, task_type, None)
+        loss = masked_MSE_Loss(out, tar, mask)
+
+        for n, p in model.named_parameters(): 
+            if 'layer.11' in n:
+                p.retain_grad()
+        for n, p in model.named_parameters():
+            if 'weight_ih' in n:
+                p.retain_grad()
+        loss.backward()
+        for n, p in model.langModel.named_parameters(): 
+            if 'layer.11' in n:
+                print(p.grad)
+        for n, p in model.named_parameters():
+            if 'weight_ih' in n:
+                print(p.grad)
+
+
+        if model.isLang:
+            torch.nn.utils.clip_grad_value_(model.rnn.rnn.parameters(), 0.5)
+        else: 
+            torch.nn.utils.clip_grad_value_(model.rnn.parameters(), 0.5)                    
+        opt.step()
+
+        frac_correct = np.mean(isCorrect(out, tar, tar_dir))
+        cog.total_loss_dict[model_type].append(loss.item())
+        cog.total_correct_dict[model_type].append(frac_correct)
+        if j%50 == 0:
+            print(task_type)
+            print(j, ':', model_type, ":", "{:.2e}".format(loss.item()))
+            self.sort_perf_by_task()
+            print('Frac Correct ' + str(frac_correct) + '\n')
+        cog.total_task_list.append(task_type) 
+    cog.sort_perf_by_task()
+    if scheduler: 
+        opt_scheduler.step()               
