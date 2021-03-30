@@ -57,7 +57,7 @@ class simpleNet(nn.Module):
         return torch.full((self.num_layers, batch_size, self.hid_dim), value)
 
 class instructNet(nn.Module): 
-    def __init__(self, langMod, hid_dim, num_layers, activ_func = 'tanh', drop_p = 0.0, instruct_mode=None, tune_langModel = False): 
+    def __init__(self, langMod, hid_dim, num_layers, activ_func = 'tanh', drop_p = 0.0, instruct_mode=None, tune_langModel = False, langLayerList = []): 
         super(instructNet, self).__init__()
         self.instruct_mode = instruct_mode
         self.tune_langModel = tune_langModel
@@ -74,10 +74,14 @@ class instructNet(nn.Module):
         
         if tune_langModel:
             self.langModel.train()
-            for param in self.langModel.parameters(): 
-                param.requires_grad = True
+            if len(langLayerList) == 0: 
+                for param in self.langModel.model.parameters(): 
+                    param.requires_grad = True
+            # else: 
+            #     for n, p in self.langModel.parameters(): 
+
         else: 
-            for param in self.langModel.parameters(): 
+            for param in self.langModel.model.parameters(): 
                 param.requires_grad = False
             self.langModel.eval()
 

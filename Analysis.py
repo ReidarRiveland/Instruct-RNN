@@ -3,7 +3,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from Plotting import plot_all_holdout_curves, plot_all_tasks_by_model, plot_avg_curves, plot_learning_curves
 from LangModule import LangModule, swaps
-from NLPmodels import gpt2, BERT, SBERT, BoW, SIFmodel, LangTransformer
+from NLPmodels import gpt2, BERT, SBERT, SBERT_train, BoW, SIFmodel, LangTransformer
 from RNNs import instructNet, simpleNet
 import torch
 import torch.nn as nn
@@ -26,7 +26,7 @@ def train_holdout_swaps(model_dict, foldername, mode = ''):
             pass
         task_dict = dict(zip(swap, [1/len(swap)]*len(swap)))
         print(task_dict)
-        holdout_only = make_data(task_dict=task_dict, BATCH_LEN=256, NUM_BATCHES=120)
+        holdout_only = make_data(task_dict=task_dict, batch_len = 256, num_batches=120)
         cog.train(holdout_only, 2,  weight_decay=0.0, lr = 0.001, instruct_mode = instruct_mode)
         cog.save_training_data(swapped_tasks, foldername, mode + 'holdout')
 
@@ -69,21 +69,33 @@ for holdout in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'M
 
 
 
-epochs = 40
+epochs = 50
 init_lr = 0.001
-milestones = [10, 20]
+milestones = [20, 40]
 
-foldername = 'ReLU128SBlayers2_dela'
-for holdout in ['Anti MultiDM']:
+foldername = 'ReLU128_'
+for holdout in task_list:
     model_dict = {}
-    model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20, output_layers=2)), 128, 1, 'relu', tune_langModel=True)
+    model_dict['S-Bert train'] = instructNet(LangModule(SBERT_train(20)), 128, 1, 'relu')
     model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
     cog = CogModule(model_dict)
-    holdout_data = make_data(holdouts=[holdout], batch_size=128)
-    cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0, langLR=0.005)
+    holdout_data = make_data(holdouts=[holdout], batch_size=64)
+    cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0, langWeightDecay=0.00, langLR = 1e-8)
     cog.save_models(holdout, foldername)
 
+cog.load_models('Go', foldername)
+cog.plot_learning_curve('correct')
+cog.plot_response('S-Bert train', 'DMC')
 
+for n, p in model_dict['S-Bert train'].named_parameters(): 
+    if p.requires_grad: 
+        print(n)
+
+
+cog._plot_trained_performance()
+cog.plot_learning_curve('correct')
+
+cog.model_dict['S-Bert train'].langMod.plot_embedding(tasks = ['Go', 'Anti Go', 'RT Go', 'Anti RT Go'])
 
 foldername = 'ReLU128SBlayers2_delay'
 for holdout in ['DM', 'Anti DM']:

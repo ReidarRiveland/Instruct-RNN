@@ -418,4 +418,3 @@ def construct_batch(task_type, num):
     if task_type == 'DNMC': 
         trial = Delay('DNMC', num)
     return trial 
-

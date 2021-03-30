@@ -356,7 +356,7 @@ class CogModule():
                     print('LangWeightDecay')
                     optimizer = optim.Adam([
                             {'params' : model.rnn.parameters()},
-                            {'params' : model.langModel.parameters(), 'lr': langLR, 'weight_decay':langWeightDecay}
+                            {'params' : model.langModel.model.parameters(), 'lr': langLR, 'weight_decay':langWeightDecay}
                         ], lr=lr, weight_decay=weight_decay)
                 else: 
                     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -374,6 +374,8 @@ class CogModule():
         batch_num = ins_tensor.shape[0]
         correct_array = np.empty((batch_len, batch_num), dtype=bool)
         for model_type, model in self.model_dict.items(): 
+            opt = opt_dict[model_type][0]
+            opt_scheduler = opt_dict[model_type][1]
             for i in range(epochs):
                 print('epoch', i)
                 index_list = list(np.arange(batch_num))
@@ -387,12 +389,12 @@ class CogModule():
                     ins = torch.Tensor(ins_tensor[index, :, :, :]).to(device)
                     tar_dir = tar_dir_vec[index]
 
-                    opt = opt_dict[model_type][0]
-                    opt_scheduler = opt_dict[model_type][1]
                     opt.zero_grad()
                     out, _ = self._get_model_resp(model, batch_len, ins, task_type, instruct_mode)
+
                     loss = masked_MSE_Loss(out, tar, mask) 
                     loss.backward()
+                    
                     if model.isLang:
                         torch.nn.utils.clip_grad_value_(model.rnn.rnn.parameters(), 0.5)
                     else: 
@@ -408,9 +410,9 @@ class CogModule():
                         self.sort_perf_by_task()
                         print('Frac Correct ' + str(frac_correct) + '\n')
                     self.total_task_list.append(task_type) 
-                self.sort_perf_by_task()
                 if scheduler: 
-                    opt_scheduler.step()               
+                    opt_scheduler.step()    
+
 
 
     def plot_learning_curve(self, mode, task_type=None, smoothing = 2):
