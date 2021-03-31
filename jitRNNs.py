@@ -116,10 +116,10 @@ class scriptSimpleNet(jit.ScriptModule):
         self.activ_func = activ_func
         if self.activ_func is not 'tanh': 
             #self.recurrent_units = customGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
-            self.rnn = scriptGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
+            self.recurrent_units = scriptGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
         else: 
             #self.recurrent_units = nn.GRU(self.in_dim, hid_dim, self.num_layers, batch_first=True)
-            self.rnn = nn.GRU(self.in_dim, hid_dim, self.num_layers, batch_first=True)
+            self.recurrent_units = nn.GRU(self.in_dim, hid_dim, self.num_layers, batch_first=True)
 
         self.W_out = nn.Linear(hid_dim, self.out_dim)
 
@@ -136,13 +136,57 @@ class scriptSimpleNet(jit.ScriptModule):
 
     @jit.script_method
     def forward(self, x, h): 
-        rnn_hid, _ = self.rnn(x, h)
+        rnn_hid, _ = self.recurrent_units(x, h)
         motor_out = self.W_out(rnn_hid)
         out = torch.sigmoid(motor_out)
-
         return out, rnn_hid
 
     def initHidden(self, batch_size, value):
         return torch.full((self.num_layers, batch_size, self.hid_dim), value)
 
+class scriptInstructNet(nn.Module): 
+    def __init__(self, langMod, hid_dim, num_layers, activ_func = 'tanh', drop_p = 0.0, instruct_mode=None, tune_langModel = False, langLayerList = []): 
+        super(scriptInstructNet, self).__init__()
+        self.instruct_mode = instruct_mode
+        self.tune_langModel = tune_langModel
+        self.sensory_in_dim = 65
+        self.isLang = True 
+        self.hid_dim = hid_dim
+        self.embedderStr = langMod.embedderStr
+        self.langModel = langMod.langModel
+        self.langMod = langMod
+        self.num_layers = num_layers
+        self.lang_embed_dim = langMod.langModel.out_dim
+        self.activ_func = activ_func
+        self.rnn = scriptSimpleNet(self.lang_embed_dim + self.sensory_in_dim, hid_dim, self.num_layers, self.activ_func)
+        
+        if tune_langModel:
+            self.langModel.train()
+            if len(langLayerList) == 0:  
+                
+                for param in self.langModel.parameters(): 
+                    param.requires_grad = True
+            else: 
+                for n,p in self.langModel.named_parameters(): 
+                    if any([layer in n for layer in langLayerList]):
+                        p.requires_grad=True
+                    else: 
+                        p.requires_grad=False
+        else: 
+            for param in self.langModel.model.parameters(): 
+                param.requires_grad = False
+            self.langModel.eval()
+
+    def weights_init(self): 
+        self.rnn.weights_init()
+
+    def forward(self, instruction_tensor, x, h):
+        embedded_instruct = self.langModel(instruction_tensor)
+        seq_blocked = embedded_instruct.unsqueeze(1).repeat(1, 120, 1)
+        rnn_ins = torch.cat((seq_blocked, x.type(torch.float32)), 2)
+        outs, rnn_hid = self.rnn(rnn_ins, h)
+        return outs, rnn_hid
+
+    def initHidden(self, batch_size, value):
+        return torch.full((self.num_layers, batch_size, self.hid_dim), value)
 

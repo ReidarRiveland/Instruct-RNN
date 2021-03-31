@@ -49,23 +49,63 @@ def train_holdouts(model_dict, foldername, init_lr, tasks = task_list):
         cog.train(holdout_data, 1, lr=init_lr, weight_decay=0.0)
         cog.save_training_data(holdout, foldername, 'holdout')
 
+from collections import OrderedDict
 
+for task in task_list: 
+    for model_name in ['S-Bert_train.pt', 'Model1.pt']: 
+        filename = 'ReLU128_/' + task+'/'+task+'_'+model_name
+        filename = filename.replace(' ', '_')
+        state_dict = torch.load(filename)
+        new_state_dict = OrderedDict()
+        if model_name == 'S-Bert_train.pt': 
+            for key, value in state_dict.items(): 
+                new_key = key.replace('rnn.rnn', 'rnn.recurrent_units')
+                new_state_dict[new_key] = value
+        else: 
+            for key, value in state_dict.items(): 
+                new_key = key.replace('rnn', 'recurrent_units')
+                new_state_dict[new_key] = value
+        torch.save(new_state_dict, filename)
 
-from jitRNNs import scriptSimpleNet
+filename
 
+new_state_dict.keys()
+
+new_keys
+
+task = 'Go'
+filename = 'ReLU128_/' + task+'/'+task+'_'+'S-Bert_train.pt'
+state_dict = torch.load(filename.replace(' ', '_'))
+
+state_dict.keys()
+
+state_dict.keys()
+
+model_dict['S-Bert train'].state_dict().keys()
+
+from jitRNNs import scriptSimpleNet, scriptInstructNet
 
 model_dict = {}
+model_dict['S-Bert train'] = scriptInstructNet(LangModule(SBERT(50)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
 
-model_dict['Model1'] = scriptSimpleNet(81, 128, 1, 'relu')
 
-sNet = model_dict['Model1']
+
+sNet = model_dict['S-Bert train']
+
+from RNNs import count_parameters
+
+for n, p in sNet.named_parameters(): 
+    if p.requires_grad: 
+        print(n)
+
+count_parameters(sNet)
 
 ins = torch.rand((128, 120, 81))
 h0 = sNet.initHidden(128, 0.1)
 sNet.rnn(ins, h0)[1].shape
 
 cog = CogModule(model_dict)
-holdout_data = make_data(num_batches=500, batch_size=128)
+holdout_data = make_data(num_batches=100, batch_size=128)
 cog.train(holdout_data, 50, lr=0.001, milestones = [15, 20, 25])
 
 epochs = 60
@@ -100,11 +140,11 @@ for holdout in task_list:
     cog.save_models(holdout, foldername)
 
 cog._plot_trained_performance()
-cog.plot_learning_curve('correct')
+cog.plot_learning_curve('loss')
 
 cog._get_performance(cog.model_dict['S-Bert train'], num_batches=5)
 
-cog.load_models('COMP1', foldername)
+cog.load_models('MultiCOMP2', foldername)
 
 cog.plot_response('S-Bert train', 'COMP2')
 

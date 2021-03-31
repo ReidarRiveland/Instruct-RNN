@@ -46,7 +46,7 @@ class simpleNet(nn.Module):
                 torch.nn.init.normal_(p, std = 0.4/np.sqrt(self.hid_dim))
 
     def forward(self, x, h): 
-        rnn_hid, _ = self.rnn(x, h)
+        rnn_hid, _ = self.recurrent_units(x, h)
         motor_out = self.W_out(rnn_hid)
         out = torch.sigmoid(motor_out)
         return out, rnn_hid
