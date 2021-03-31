@@ -200,9 +200,9 @@ class BERT(nn.Module):
         return out
 
 
-class SBERT_train(nn.Module): 
+class SBERT(nn.Module): 
     def __init__(self, out_dim, output_nonlinearity = nn.ReLU(), output_layers = 1, size = 'base'): 
-        super(SBERT_train, self).__init__()
+        super(SBERT, self).__init__()
         from sentence_transformers import SentenceTransformer
         if size == 'large': 
             self.model = SentenceTransformer('bert-large-nli-mean-tokens')
@@ -224,31 +224,6 @@ class SBERT_train(nn.Module):
         sent_embedding = self.model(tokens)['sentence_embedding']
         sent_embedding = self.lin(sent_embedding)
         return sent_embedding
-
-
-
-class SBERT(nn.Module): 
-    def __init__(self, out_dim, output_nonlinearity = nn.ReLU(), output_layers = 1, size = 'base'): 
-        super(SBERT, self).__init__()
-        from sentence_transformers import SentenceTransformer
-        if size == 'large': 
-            self.model = SentenceTransformer('bert-large-nli-mean-tokens')
-        else: 
-            self.model = SentenceTransformer('bert-base-nli-mean-tokens')
-        self.embedderStr = 'SBERT'
-        self.tokenizer = None
-        self.out_dim = out_dim
-        self.output_nonlinearity = output_nonlinearity
-        if output_layers == 1: 
-            self.lin = nn.Sequential(nn.Linear(768, self.out_dim), self.output_nonlinearity)
-        if output_layers ==2: 
-            self.lin = nn.Sequential(nn.Linear(768, int(768/2)), self.output_nonlinearity, nn.Linear(int(768/2), self.out_dim), self.output_nonlinearity)
-        
-    def forward(self, x): 
-        sent_embedding = np.array(self.model.encode(x))
-        sent_embedding = self.lin(torch.Tensor(sent_embedding).to(device))
-        return sent_embedding
-
 
 
 # class InferSent(nn.Module): 

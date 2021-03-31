@@ -27,11 +27,9 @@ class simpleNet(nn.Module):
         self.activ_func = activ_func
 
         if self.activ_func is not 'tanh': 
-            #self.recurrent_units = customGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
-            self.rnn = customGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
+            self.recurrent_units = customGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
         else: 
-            #self.recurrent_units = nn.GRU(self.in_dim, hid_dim, self.num_layers, batch_first=True)
-            self.rnn = nn.GRU(self.in_dim, hid_dim, self.num_layers, batch_first=True)
+            self.recurrent_units = nn.GRU(self.in_dim, hid_dim, self.num_layers, batch_first=True)
 
         self.weights_init()
         self.W_out = nn.Linear(hid_dim, self.out_dim)
@@ -56,6 +54,7 @@ class simpleNet(nn.Module):
     def initHidden(self, batch_size, value):
         return torch.full((self.num_layers, batch_size, self.hid_dim), value)
 
+
 class instructNet(nn.Module): 
     def __init__(self, langMod, hid_dim, num_layers, activ_func = 'tanh', drop_p = 0.0, instruct_mode=None, tune_langModel = False, langLayerList = []): 
         super(instructNet, self).__init__()
@@ -74,12 +73,16 @@ class instructNet(nn.Module):
         
         if tune_langModel:
             self.langModel.train()
-            if len(langLayerList) == 0: 
-                for param in self.langModel.model.parameters(): 
+            if len(langLayerList) == 0:  
+                
+                for param in self.langModel.parameters(): 
                     param.requires_grad = True
-            # else: 
-            #     for n, p in self.langModel.parameters(): 
-
+            else: 
+                for n,p in self.langModel.named_parameters(): 
+                    if any([layer in n for layer in langLayerList]):
+                        p.requires_grad=True
+                    else: 
+                        p.requires_grad=False
         else: 
             for param in self.langModel.model.parameters(): 
                 param.requires_grad = False

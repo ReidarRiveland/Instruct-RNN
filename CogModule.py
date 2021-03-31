@@ -27,6 +27,9 @@ import pickle
 import random
 from collections import defaultdict
 
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 from Taskedit import Task, construct_batch
 from LangModule import get_batch, toNumerals, swaps
 from RNNs import simpleNet
@@ -234,6 +237,7 @@ class CogModule():
         self.total_correct_dict = defaultdict(list)
         self.task_sorted_loss = {}
         self.task_sorted_correct = {}
+        self.opt_dict = None
 
 
     def get_model_patches(self): 
@@ -346,13 +350,13 @@ class CogModule():
     def train(self, data, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, milestones = [], 
                         holdout_task = None, instruct_mode = None, freeze_langModel = False, langLR = None, langWeightDecay=None): 
         #torch.autograd.set_detect_anomaly
-        opt_dict = {}
+        self.opt_dict = {}
         for model_type, model in self.model_dict.items(): 
             if (model.isLang and not model.tune_langModel) or (model.tune_langModel and freeze_langModel): 
                 optimizer = optim.Adam(model.rnn.parameters(), lr=lr, weight_decay=weight_decay)
-                opt_dict[model_type] =(optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5))
+                self.opt_dict[model_type] =(optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5))
             else: 
-                if langWeightDecay is not None and model.isLang: 
+                if langWeightDecay is not None or langLR is not None and model.isLang: 
                     print('LangWeightDecay')
                     optimizer = optim.Adam([
                             {'params' : model.rnn.parameters()},
@@ -360,7 +364,7 @@ class CogModule():
                         ], lr=lr, weight_decay=weight_decay)
                 else: 
                     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-                opt_dict[model_type] = (optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5))
+                self.opt_dict[model_type] = (optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5))
                 print(model_type)
             model.train()
         
@@ -374,8 +378,8 @@ class CogModule():
         batch_num = ins_tensor.shape[0]
         correct_array = np.empty((batch_len, batch_num), dtype=bool)
         for model_type, model in self.model_dict.items(): 
-            opt = opt_dict[model_type][0]
-            opt_scheduler = opt_dict[model_type][1]
+            opt = self.opt_dict[model_type][0]
+            opt_scheduler = self.opt_dict[model_type][1]
             for i in range(epochs):
                 print('epoch', i)
                 index_list = list(np.arange(batch_num))
@@ -396,7 +400,7 @@ class CogModule():
                     loss.backward()
                     
                     if model.isLang:
-                        torch.nn.utils.clip_grad_value_(model.rnn.rnn.parameters(), 0.5)
+                        torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)
                     else: 
                         torch.nn.utils.clip_grad_value_(model.rnn.parameters(), 0.5)                    
                     opt.step()
