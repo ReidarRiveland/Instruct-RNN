@@ -127,24 +127,24 @@ for holdout in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'M
 
 epochs = 40
 init_lr = 0.001
-milestones = [15, 20, 25]
+milestones = [15, 25, 30]
 
-foldername = 'ReLU128_'
-for holdout in task_list:
+foldername = '_ReLU128_dmStaggered'
+for holdout in ['MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC', 'Go', 'RT Go', 'Anti Go', 'Anti RT Go']:
     model_dict = {}
-    model_dict['S-Bert train'] = instructNet(LangModule(SBERT(50)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-    model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
+    model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+    #model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
     cog = CogModule(model_dict)
     holdout_data = make_data(holdouts=[holdout], batch_size=128)
     cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
     cog.save_models(holdout, foldername)
 
-cog._plot_trained_performance()
-cog.plot_learning_curve('loss')
+cog._get_performance(cog.model_dict['S-Bert train'])
+cog.plot_learning_curve('correct')
 
 cog._get_performance(cog.model_dict['S-Bert train'], num_batches=5)
 
-cog.load_models('MultiCOMP2', foldername)
+cog.load_models('Anti DM', foldername)
 
 cog.plot_response('S-Bert train', 'COMP2')
 
@@ -164,19 +164,19 @@ cog.plot_learning_curve('correct')
 
 cog.model_dict['S-Bert train'].langMod.plot_embedding(tasks = ['Go', 'Anti Go', 'RT Go', 'Anti RT Go'])
 
-foldername = 'ReLU128SBlayers2_delay'
-for holdout in ['DM', 'Anti DM']:
+foldername = '_ReLU128_dmStaggered'
+for holdout in task_list:
     model_dict = {}
-    model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
-    model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20, output_layers=2)), 128, 1, 'relu', tune_langModel=True)
+    model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+    #model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
     cog = CogModule(model_dict)
     cog.load_models(holdout, foldername)
     holdout_data = make_data(task_dict = {holdout:1}, num_batches=100, batch_size=128)
-    cog.train(holdout_data, 1, lr=0.001)
+    cog.train(holdout_data, 1, lr=0.001, freeze_langModel=True)
     cog.sort_perf_by_task()
     cog.save_training_data(holdout, foldername, 'holdout')
 
-
+plot_all_holdout_curves(model_dict, foldername, smoothing=0.001)
 
 import torch.nn as nn
 

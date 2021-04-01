@@ -402,7 +402,7 @@ class CogModule():
                     if model.isLang:
                         torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)
                     else: 
-                        torch.nn.utils.clip_grad_value_(model.rnn.parameters(), 0.5)                    
+                        torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
                     opt.step()
 
                     frac_correct = np.mean(isCorrect(out, tar, tar_dir))

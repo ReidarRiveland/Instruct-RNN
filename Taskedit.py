@@ -14,7 +14,7 @@ class Task():
     OUTPUT_DIM = STIM_DIM + 1
     SIGMA_IN = 0.01
     DELTA_T = 20
-    DM_DELAY = True
+    DM_DELAY = 'staggered'
 
     def __init__(self, num_trials, intervals): 
         self.num_trials = num_trials
@@ -142,9 +142,13 @@ class Task():
             else: 
                 input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), 
                                 np.concatenate((fix, rule_vec, stim1), 1),  np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((no_fix, rule_vec, stim1), 1))
-        elif not self.DM_DELAY and task_type in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']: 
-            input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1+stim2), 1), np.concatenate((fix, rule_vec, stim1+stim2), 1),  
-                                np.concatenate((fix, rule_vec, stim1+stim2), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1))   
+        elif self.DM_DELAY is not 'full_delay' and task_type in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']: 
+            if self.DM_DELAY == 'no_delay': 
+                input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1+stim2), 1), np.concatenate((fix, rule_vec, stim1+stim2), 1),  
+                                    np.concatenate((fix, rule_vec, stim1+stim2), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1))
+            elif self.DM_DELAY == 'staggered': 
+                input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((fix, rule_vec, stim1+stim2), 1),  
+                                    np.concatenate((fix, rule_vec, stim2), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1))   
         else: 
             input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((fix, rule_vec, self.null_stim), 1),  
                                 np.concatenate((fix, rule_vec, stim2), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1))
@@ -350,7 +354,7 @@ class DM(Task):
             directions = self._draw_ortho_dirs()
             if self.task_type == 'MultiDM' or task_type == 'Anti MultiDM': 
                 base_strength = np.random.uniform(0.8, 1.2, size=2)
-                coh = np.random.choice([-0.25, -0.15, -0.1, 0.1, 0.15, 0.25], size=2, replace=False)
+                coh = np.random.choice([-0.25, -0.2, -0.15, 0.15, 0.2, 0.25], size=2, replace=False)
                 strengths = np.array([base_strength + coh, base_strength - coh])
                 self.stim_mod_arr[0, 0, i] = [(strengths[0, 0], directions[0])]
                 self.stim_mod_arr[1, 0, i] = [(strengths[1, 0], directions[1])]
@@ -418,3 +422,5 @@ def construct_batch(task_type, num):
     if task_type == 'DNMC': 
         trial = Delay('DNMC', num)
     return trial 
+
+
