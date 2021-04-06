@@ -30,7 +30,7 @@ from collections import defaultdict
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-from Taskedit import Task, construct_batch
+from Task import Task, construct_batch
 from LangModule import get_batch, toNumerals, swaps
 from RNNs import simpleNet
 
@@ -331,7 +331,10 @@ class CogModule():
                 out, hid = model.rnn(ins, h0)
             else: 
                 ins = del_input_rule(ins)
-                instruct = self._get_lang_input(model, batch_len, task_type, model.instruct_mode)
+                ####ISSUE HERE
+                #instruct = self._get_lang_input(model, batch_len, task_type, model.instruct_mode)
+                instruct = self._get_lang_input(model, batch_len, task_type, instruct_mode)
+                print(instruct)
                 out, hid = model(instruct, ins, h0)
         else: 
             if instruct_mode == 'masked': 
@@ -398,11 +401,7 @@ class CogModule():
 
                     loss = masked_MSE_Loss(out, tar, mask) 
                     loss.backward()
-                    
-                    if model.isLang:
-                        torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)
-                    else: 
-                        torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
+                    torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
                     opt.step()
 
                     frac_correct = np.mean(isCorrect(out, tar, tar_dir))
@@ -459,7 +458,7 @@ class CogModule():
         fig.text(0.04, 0.5, y_label, va='center', rotation='vertical')
         fig.show()
 
-    def _get_performance(self, model, num_batches = 5, instruct_mode = None): 
+    def _get_performance(self, model, instruct_mode, num_batches): 
         model.eval()
         batch_len = 128
         with torch.no_grad():
@@ -477,7 +476,7 @@ class CogModule():
     def _plot_trained_performance(self, instruct_mode = None):
         barWidth = 0.1
         for i, model in enumerate(self.model_dict.values()):  
-            perf_dict = self._get_performance(model, num_batches=3, instruct_mode=None)
+            perf_dict = self._get_performance(model, instruct_mode, 3)
             keys = list(perf_dict.keys())
             values = list(perf_dict.values())
             len_values = len(task_list)
@@ -559,7 +558,7 @@ class CogModule():
             #plt.tight_layout()
 
 
-
+            print(correct)
             plt.show()
             return correct
 

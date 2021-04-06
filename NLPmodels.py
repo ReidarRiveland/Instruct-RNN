@@ -13,7 +13,7 @@ import numpy as np
 import pickle
 import os
 
-from Taskedit import Task
+from Task import Task
 from LangModule import PAD_LEN, train_instruct_dict, test_instruct_dict
 
 task_list = Task.TASK_LIST

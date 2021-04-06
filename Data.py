@@ -1,7 +1,7 @@
 import numpy as np
 from collections import defaultdict
 
-from Taskedit import Task, construct_batch
+from Task import Task, construct_batch
 default_task_dict = dict.fromkeys(Task.TASK_LIST, 1/len(Task.TASK_LIST))
 
 

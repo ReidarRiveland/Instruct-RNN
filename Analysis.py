@@ -10,7 +10,7 @@ import torch.nn as nn
 
 from CogModule import CogModule, isCorrect
 from Data import make_data
-from Taskedit import Task
+from Task import Task
 task_list = Task.TASK_LIST
 
 def train_holdout_swaps(model_dict, foldername, mode = ''):
@@ -29,7 +29,6 @@ def train_holdout_swaps(model_dict, foldername, mode = ''):
         holdout_only = make_data(task_dict=task_dict, batch_size = 256, num_batches=120)
         cog.train(holdout_only, 2,  weight_decay=0.0, lr = 0.001, instruct_mode = instruct_mode)
         cog.save_training_data(swapped_tasks, foldername, mode + 'holdout')
-
 
 def train_models(model_dict, foldername, epochs, init_lr, milestones, mode = '', tasks = task_list): 
     for holdout in tasks: 
@@ -85,10 +84,11 @@ model_dict['S-Bert train'].state_dict().keys()
 
 from jitRNNs import scriptSimpleNet, scriptInstructNet
 
-model_dict = {}
-model_dict['S-Bert train'] = scriptInstructNet(LangModule(SBERT(50)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+model_dict = 
 
+modelS = instructNet(LangModule(SBERT(50)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
 
+modelS.langModel.model.state_dict().keys()
 
 sNet = model_dict['S-Bert train']
 
@@ -125,30 +125,30 @@ for holdout in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'M
 
 
 
-epochs = 40
+epochs = 60
 init_lr = 0.001
-milestones = [15, 25, 30]
+milestones = [30, 40, 50]
 
-foldername = '_ReLU128_dmStaggered'
-for holdout in ['MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC', 'Go', 'RT Go', 'Anti Go', 'Anti RT Go']:
+foldername = '_ReLU128_'
+for holdout in task_list:
     model_dict = {}
     model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-    #model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
+    model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
     cog = CogModule(model_dict)
     holdout_data = make_data(holdouts=[holdout], batch_size=128)
-    cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
+    cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0, langLR=0.0001, langWeightDecay=0.0)
     cog.save_models(holdout, foldername)
 
 cog._get_performance(cog.model_dict['S-Bert train'])
-cog.plot_learning_curve('correct')
+cog.plot_learning_curve('loss')
 
 cog._get_performance(cog.model_dict['S-Bert train'], num_batches=5)
 
-cog.load_models('Anti DM', foldername)
+cog.load_models('Anti MultiDM', foldername)
 
-cog.plot_response('S-Bert train', 'COMP2')
+cog.plot_response('S-Bert train', 'RT Go')
 
-cog.plot_learning_curve('loss')
+cog.plot_learning_curve('correct', smoothing=0.001)
 cog._plot_trained_performance()
 
 correct_list = []
@@ -167,10 +167,21 @@ cog.model_dict['S-Bert train'].langMod.plot_embedding(tasks = ['Go', 'Anti Go', 
 foldername = '_ReLU128_dmStaggered'
 for holdout in task_list:
     model_dict = {}
-    model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-    #model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
+    #model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+    model1_name = 'ReLU128_/'+holdout+'/'+holdout+'_Model1.pt'
+    model1_name = model1_name.replace(' ', '_')
+    Model1 = simpleNet(81, 128, 1, 'relu')
+    Model1.load_state_dict(torch.load(model1_name))
+    model_dict['Model1'] = Model1
+
+    ModelS = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+    ModelS_name = foldername +'/'+holdout+'/'+holdout+'_S-Bert_train.pt'
+    ModelS_name = ModelS_name.replace(' ', '_')
+    ModelS.load_state_dict(torch.load(ModelS_name))
+    model_dict['S-Bert train'] = ModelS
+
     cog = CogModule(model_dict)
-    cog.load_models(holdout, foldername)
+    #cog.load_models(holdout, 'ReLU128_')
     holdout_data = make_data(task_dict = {holdout:1}, num_batches=100, batch_size=128)
     cog.train(holdout_data, 1, lr=0.001, freeze_langModel=True)
     cog.sort_perf_by_task()
@@ -186,14 +197,16 @@ model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
 model_dict['S-Bert train'] = instructNet(LangModule(SBERT(10)), 128, 1, 'relu', tune_langModel=True)
 cog = CogModule(model_dict)
 
-task = 'MultiDM'
+task = 'Anti RT Go'
 
 cog.load_models(task, foldername)
 
 cog._plot_trained_performance()
 
+model_dict['S-Bert train'] = 
+
 cog.load_training_data(task, foldername, 'holdout')
-cog.plot_learning_curve('correct', task, smoothing=1)
+cog.plot_learning_curve('correct', task, smoothing=0.1)
 
 
 cog.plot_response('S-Bert train', 'MultiDM')

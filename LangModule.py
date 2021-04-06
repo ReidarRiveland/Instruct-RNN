@@ -19,7 +19,7 @@ from sklearn.manifold import TSNE
 from scipy.ndimage.filters import gaussian_filter1d
 import pickle
 
-from Taskedit import Task
+from Task import Task
 task_list = Task.TASK_LIST
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -28,9 +28,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict2', 'rb'))
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict2', 'rb'))
 
+
 swaps= [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['COMP2', 'RT Go']]
 swapped_task_list = ['Anti DM', 'COMP2', 'Anti Go', 'DMC', 'DM', 'Go', 'MultiDM', 'Anti MultiDM', 'COMP1', 'RT Go', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'Anti RT Go', 'DNMC']
 instruct_swap_dict = dict(zip(swapped_task_list, train_instruct_dict.values()))
+
+instruct_swap_dict['Anti RT Go']
 
 PAD_LEN = 25
 
@@ -44,16 +47,16 @@ def toNumerals(tokenizer, instructions):
     return torch.stack(ins_temp).squeeze().long().to(device)
 
 def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
-    assert instruct_mode in [None, 'instruct_swap', 'shuffled', 'comp', 'validation']
+    assert instruct_mode in [None, 'instruct_swap', 'shuffled', 'comp', 'validation', 'random']
     batch = []
     batch_target_index = []
     for i in range(batch_size):
         task = task_type
         if task is None: 
             task = np.random.choice(task_list)
-        if instruct_mode == 'instruct_swap': 
+        elif instruct_mode == 'instruct_swap': 
             instruct_dict = instruct_swap_dict
-        if instruct_mode == 'validation': 
+        elif instruct_mode == 'validation': 
             instruct_dict = test_instruct_dict
         else: 
             instruct_dict = train_instruct_dict
