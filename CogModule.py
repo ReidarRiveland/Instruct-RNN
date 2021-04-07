@@ -331,7 +331,7 @@ class CogModule():
                 out, hid = model.rnn(ins, h0)
             else: 
                 ins = del_input_rule(ins)
-                ####ISSUE HERE
+                ####ISSUE HERE - how to properly pass instruct_mode
                 #instruct = self._get_lang_input(model, batch_len, task_type, model.instruct_mode)
                 instruct = self._get_lang_input(model, batch_len, task_type, instruct_mode)
                 print(instruct)
@@ -345,8 +345,7 @@ class CogModule():
                 ins = swap_input_rule(ins, task_type)
             if model.instruct_mode == 'shuffled_one_hot':
                 ins = use_shuffled_one_hot(ins, task_type)
-            # sns.heatmap(ins[0, :, :].detach().cpu().numpy())
-            # plt.show()
+
             out, hid = model(ins, h0)
         return out, hid
 
@@ -359,7 +358,7 @@ class CogModule():
                 optimizer = optim.Adam(model.rnn.parameters(), lr=lr, weight_decay=weight_decay)
                 self.opt_dict[model_type] =(optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5))
             else: 
-                if langWeightDecay is not None or langLR is not None and model.isLang: 
+                if (langWeightDecay is not None or langLR is not None) and model.isLang: 
                     print('LangWeightDecay')
                     optimizer = optim.Adam([
                             {'params' : model.rnn.parameters()},

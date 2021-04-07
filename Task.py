@@ -14,7 +14,7 @@ class Task():
     OUTPUT_DIM = STIM_DIM + 1
     SIGMA_IN = 0.05
     DELTA_T = 20
-    DM_DELAY = 'staggered'
+    DM_DELAY = 'no_delay'
 
     def __init__(self, num_trials, intervals): 
         self.num_trials = num_trials
@@ -72,7 +72,7 @@ class Task():
         strengths_dir = []
         for direc in target_dirs: 
             if not np.isnan(direc):
-                strengths_dir.append([(1.2, direc)])
+                strengths_dir.append([(1, direc)])
             else: 
                 strengths_dir.append(None)
 
@@ -148,9 +148,9 @@ class Task():
             elif self.DM_DELAY == 'staggered': 
                 input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((fix, rule_vec, stim1+stim2), 1),  
                                     np.concatenate((fix, rule_vec, stim2), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1)) 
-        # elif 'COMP' in task_type:
-        #     input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((fix, rule_vec, stim2), 1),  
-        #                         np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1))
+        elif 'COMP' in task_type:
+            input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((fix, rule_vec, stim1+stim2), 1),  
+                                np.concatenate((fix, rule_vec, stim2), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1))
         else: 
             input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((fix, rule_vec, self.null_stim), 1),  
                                 np.concatenate((fix, rule_vec, stim2), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1))
@@ -190,7 +190,7 @@ class Go(Task):
             for i in range(num_trials):
                 direction = np.random.uniform(0, 2*np.pi)
                 self.directions[i] = direction
-                base_strength = np.random.uniform(1.0, 1.4)
+                base_strength = np.random.uniform(0.8, 1.2)
                 strength_dir = [(base_strength, direction)]
                 
                 mod = np.random.choice([0, 1])
@@ -222,12 +222,14 @@ class Comp(Task):
         self.stim_mod_arr = np.empty((2, 2, num_trials), dtype=tuple)
         self.target_dirs = np.empty(num_trials)
         self.directions = []
-
+        if num_trials >1: 
+            requires_response_list = list(np.random.permutation([True]*int(num_trials/2) + [False] * int(num_trials/2)))
+        else: 
+            requires_response_list = [np.random.choice([True, False])]
         for i in range(num_trials): 
-            direction1 = np.random.uniform(0, 2*np.pi)
-            direction2 = (direction1 + np.random.uniform(np.pi/4, (2*np.pi - np.pi/4)))%(2*np.pi)
-            requires_response = np.random.choice([True, False])
+            direction1, direction2 = self._draw_ortho_dirs()
             self.directions.append((direction1, direction2))
+            requires_response = requires_response_list.pop()
 
             if requires_response and 'COMP1' in self.task_type:
                 self.target_dirs[i] = direction1
@@ -238,27 +240,20 @@ class Comp(Task):
 
             
             if 'Multi' in self.task_type: 
-                positive_strength = np.random.uniform(2, 2.25)
-                negative_strength = np.random.uniform(1.7, 1.95)
-
-                positive_split = np.random.uniform(0.6, 1.2)
-                negative_split = np.random.uniform(0.5, 1.0)
+                base_strength = np.random.uniform(0.8, 1.2, size=2)
+                coh = np.random.choice([0.05, 0.1, 0.15], size=2)
+                positive_strength = base_strength + coh
+                negative_strength = base_strength - coh
             else: 
-                positive_strength = np.random.uniform(1.15, 1.35)
-                negative_strength = np.random.uniform(0.75, 0.95 )
+                base_strength = np.random.uniform(0.8, 1.2)
+                coh = np.random.choice([0.1, 0.15, 0.2])
+                positive_strength = base_strength + coh
+                negative_strength = base_strength - coh
 
             if ('COMP1' in self.task_type and requires_response) or ('COMP2' in self.task_type and not requires_response): 
-                if 'Multi' in self.task_type: 
-                    strengths = np.array([np.random.permutation([positive_split, positive_strength-positive_split]),
-                                                np.random.permutation([negative_split, negative_strength-negative_split])])
-                else:
-                    strengths = np.array([positive_strength, negative_strength])
+                strengths = np.array([positive_strength, negative_strength])
             elif ('COMP2' in self.task_type and requires_response) or ('COMP1' in self.task_type and not requires_response): 
-                if 'Multi' in self.task_type: 
-                    strengths = np.array([np.random.permutation([negative_split, negative_strength-negative_split]),
-                                                np.random.permutation([positive_split, positive_strength-positive_split])])
-                else: 
-                    strengths = np.array([negative_strength, positive_strength])
+                strengths = np.array([negative_strength, positive_strength])
             
             if 'Multi' in self.task_type: 
                 self.stim_mod_arr[0, 0, i] = [(strengths[0, 0], direction1)]
@@ -289,8 +284,13 @@ class Delay(Task):
         self.stim_mod_arr = np.empty((2, 2, num_trials), dtype=tuple)
         self.target_dirs = np.empty(num_trials)
         self.directions = []
+        if num_trials>1: 
+            match_trial_list = list(np.random.permutation([True]*int(num_trials/2) + [False] * int(num_trials/2)))
+        else: 
+            match_trial_list = [np.random.choice([True, False])]
+
         for i in range(num_trials): 
-            match_trial = np.random.choice([True, False])
+            match_trial = match_trial_list.pop()
 
             direction1 = np.random.uniform(0, 2*np.pi)
             if direction1 < np.pi: 
@@ -299,13 +299,13 @@ class Delay(Task):
             
             if match_trial and task_type in ['DMS', 'DNMS']: direction2 = direction1
             elif match_trial and task_type in ['DMC', 'DNMC']: direction2 = np.random.uniform(cat_range[0], cat_range[1])
-            elif not match_trial and task_type in ['DMC', 'DNMC']: direction2 = (np.random.uniform(cat_range[0]+(np.pi/5), cat_range[1]-(np.pi/5)) + np.pi)%(2*np.pi)
-            else: direction2 = (direction1 + np.random.uniform(np.pi/4, (2*np.pi - np.pi/4)))%(2*np.pi)
+            elif not match_trial and task_type in ['DMC', 'DNMC']: direction2 = (np.random.uniform(cat_range[0]+(np.pi/3), cat_range[1]-(np.pi/3)) + np.pi)%(2*np.pi)
+            else: direction2 = (direction1 + np.random.uniform(np.pi/3, (2*np.pi - np.pi/3)))%(2*np.pi)
 
             self.directions.append((direction1, direction2))
 
-            base_strength = np.random.uniform(0.8, 1.2)
-            coh = np.random.choice([-0.25, -0.2, -0.15, 0.15, 0.2, 0.25])
+            base_strength = np.random.uniform(0.9, 1.1)
+            coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
             strengths = np.array([base_strength+coh, base_strength-coh])
             max_strength = np.argmax(strengths)
 
@@ -342,13 +342,19 @@ class DM(Task):
         self.mods = np.empty(num_trials, dtype=tuple)
         self.stim_mod_arr =  np.empty((2, 2, num_trials), dtype=tuple)
         self.target_dirs = np.empty(num_trials)
-
+        self.coh_list = []
         for i in range(num_trials):
             directions = self._draw_ortho_dirs()
             if self.task_type == 'MultiDM' or task_type == 'Anti MultiDM': 
-                base_strength = np.random.uniform(1.1, 1.3, size=2)
+                base_strength = np.random.uniform(0.8, 1.2, size=2)
                 
-                coh = np.random.choice([-0.25, -0.2, -0.15, 0.15, 0.2, 0.25], size=2, replace=False)
+                redraw = True
+                while redraw: 
+                    coh = np.random.choice([-0.15, -0.1, -0.05, 0.05, 0.1, 0.15], size=2, replace=False)
+                    if abs(coh[0]) != abs(coh[1]): 
+                        redraw = False
+
+
                 strengths = np.array([base_strength + coh, base_strength - coh])
                 self.stim_mod_arr[0, 0, i] = [(strengths[0, 0], directions[0])]
                 self.stim_mod_arr[1, 0, i] = [(strengths[1, 0], directions[1])]
@@ -359,8 +365,8 @@ class DM(Task):
                 else: 
                     self.target_dirs[i] = directions[np.argmin(np.sum(strengths, axis=1))]
             else:
-                base_strength = np.random.uniform(1.1, 1.3)
-                coh = np.random.choice([-0.25, -0.2, -0.15, 0.15, 0.2, 0.25])
+                base_strength = np.random.uniform(0.8, 1.2)
+                coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
                 strengths = np.array([base_strength+coh, base_strength-coh])
                 if task_type == 'DM': 
                     self.target_dirs[i] = directions[np.argmax(strengths)]
@@ -371,6 +377,7 @@ class DM(Task):
                 self.stim_mod_arr[1, mod, i] = [(strengths[1], directions[1])]
                 self.stim_mod_arr[0, ((mod+1)%2), i] = None
                 self.stim_mod_arr[1, ((mod+1)%2), i] = None
+            self.coh_list.append(coh)
 
         self.inputs = self._get_trial_inputs(self.task_type, self.stim_mod_arr)
         self.targets = self._get_trial_targets(self.target_dirs)
@@ -418,3 +425,54 @@ def construct_batch(task_type, num):
     return trial 
 
 
+# trials = Comp('COMP1', 1)
+# trials.plot_trial(0)
+
+# sub = np.subtract(np.array(trials.directions)[:, 0], np.array(trials.directions)[:, 1])
+# sub
+
+
+# np.mean(np.isnan(trials.target_dirs))
+
+# np.mean(np.array(trials.coh_list) > 0)
+
+
+# trials.stim_mod_arr[0, 0, 0]
+# trials.stim_mod_arr[0, 1, 0]
+
+# coh_list = []
+# for i in range(100): 
+#     dir1_str = trials.stim_mod_arr[1, 0, i][0][0]+trials.stim_mod_arr[1, 1, i][0][0]
+#     dir2_str = trials.stim_mod_arr[0, 0, i][0][0]+trials.stim_mod_arr[0, 1, i][0][0]
+#     dir1_str-dir2_str
+#     coh_list.append(dir1_str-dir2_str > 0)
+#     print(abs(dir1_str-dir2_str)<0.001)
+
+# np.mean(coh_list)
+
+# base_strength = np.random.uniform(0.8, 1.2, size=2)
+# coh = np.random.choice([0.15, 0.2, 0.25], size=2)
+# coh
+# positive_strength = base_strength + coh
+# positive_strength
+# base_strength
+# negative_strength = base_strength - coh
+
+# strengths = np.array([positive_strength, negative_strength])
+
+# strengths[0,1]
+
+# self.stim_mod_arr[0, 0, i] = [(strengths[0, 0], direction1)]
+# self.stim_mod_arr[1, 0, i] = [(strengths[1, 0], direction2)]
+# self.stim_mod_arr[0, 1, i] = [(strengths[0, 1], direction1)]
+# self.stim_mod_arr[1, 1, i] = [(strengths[1, 1], direction2)]
+
+# num_trials = 50
+
+# requires_response_list = list(np.random.permutation([True]*int(num_trials/2) + [False] * int(num_trials/2)))
+
+# len(requires_response_list)
+# requires_response_list.pop()
+# requires_response_list
+
+# strengths
