@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
 
-from Taskedit import Task
+from Task import Task
 from CogModule import CogModule
 from LangModule import swaps
 
@@ -472,52 +472,52 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, instruct_mode=N
     return trials
 
 
-unit = 110
-time = 60
+# unit = 110
+# time = 60
 
-trials = plot_neural_resp(ModelS, 'Go', 'direction', unit, 1)
-trials = plot_neural_resp(ModelS, 'RT Go', 'direction', unit, 1)
+# trials = plot_neural_resp(ModelS, 'Go', 'direction', unit, 1)
+# trials = plot_neural_resp(ModelS, 'RT Go', 'direction', unit, 1)
 
-trials = plot_neural_resp(ModelS, 'Anti Go', 'direction', unit, 1)
+# trials = plot_neural_resp(ModelS, 'Anti Go', 'direction', unit, 1)
 
-trials = plot_neural_resp(ModelS, holdout, 'direction', unit, 1)
-trials = plot_neural_resp(ModelS, holdout, 'direction', unit, 1, instruct_mode='instruct_swap')
-
-
-trials = make_tuning_curve(ModelS, 'Go', 'direction', unit, 99, 1, instruct_mode=None)
-trials = make_tuning_curve(ModelS, 'RT Go', 'direction', unit, 115, 1, instruct_mode=None)
-trials = make_tuning_curve(ModelS, 'Anti Go', 'direction', unit, 99, 1, instruct_mode=None)
-trials = make_tuning_curve(ModelS, 'Anti RT Go', 'direction', unit, 115, 1, instruct_mode=None)
-
-trials = make_tuning_curve(ModelS, holdout, 'direction', unit, 115, 1, instruct_mode='masked')
+# trials = plot_neural_resp(ModelS, holdout, 'direction', unit, 1)
+# trials = plot_neural_resp(ModelS, holdout, 'direction', unit, 1, instruct_mode='instruct_swap')
 
 
+# trials = make_tuning_curve(ModelS, 'Go', 'direction', unit, 99, 1, instruct_mode=None)
+# trials = make_tuning_curve(ModelS, 'RT Go', 'direction', unit, 115, 1, instruct_mode=None)
+# trials = make_tuning_curve(ModelS, 'Anti Go', 'direction', unit, 99, 1, instruct_mode=None)
+# trials = make_tuning_curve(ModelS, 'Anti RT Go', 'direction', unit, 115, 1, instruct_mode=None)
 
-cog.plot_response('S-Bert train', 'Anti RT Go', instruct_mode='masked')
-
-cog._plot_trained_performance()
+# trials = make_tuning_curve(ModelS, holdout, 'direction', unit, 115, 1, instruct_mode='masked')
 
 
 
-for task in ['Go', 'Anti Go', 'RT Go', 'Anti RT Go', 'DM']:
-    trials = plot_neural_resp([ModelS], task, 10, 'direction', 1)
+# cog.plot_response('S-Bert train', 'Anti RT Go', instruct_mode='masked')
 
-for task in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']:
-    trials = plot_neural_resp([Model1], task, 17, 'diff_strength', 1)
+# cog._plot_trained_performance()
 
 
-trials.plot_trial(0)
+
+# for task in ['Go', 'Anti Go', 'RT Go', 'Anti RT Go', 'DM']:
+#     trials = plot_neural_resp([ModelS], task, 10, 'direction', 1)
+
+# for task in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']:
+#     trials = plot_neural_resp([Model1], task, 17, 'diff_strength', 1)
 
 
+# trials.plot_trial(0)
 
 
 
 
 
-fig, axn = plt.subplots()
-plt.plot(np.linspace(0, 2*np.pi, num=num_trials), hid[:, 60, j], alpha = normed[i], c = cmap(normed[i]))
-axn.set_ylim(-1, 1)
-plt.show()
+
+
+# fig, axn = plt.subplots()
+# plt.plot(np.linspace(0, 2*np.pi, num=num_trials), hid[:, 60, j], alpha = normed[i], c = cmap(normed[i]))
+# axn.set_ylim(-1, 1)
+# plt.show()
 
 
 

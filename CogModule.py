@@ -311,7 +311,10 @@ class CogModule():
             torch.save(model.state_dict(), filename)
 
     def load_models(self, holdout_task, foldername):
-        self.load_training_data(holdout_task, foldername, holdout_task)
+        try:
+            self.load_training_data(holdout_task, foldername, holdout_task)
+        except: 
+            pass
         for model_name, model in self.model_dict.items():
             filename = foldername+'/'+holdout_task+'/'+holdout_task+'_'+model_name+'.pt'
             filename = filename.replace(' ', '_')
@@ -334,9 +337,10 @@ class CogModule():
                 ####ISSUE HERE - how to properly pass instruct_mode
                 #instruct = self._get_lang_input(model, batch_len, task_type, model.instruct_mode)
                 instruct = self._get_lang_input(model, batch_len, task_type, instruct_mode)
-                print(instruct)
+                #print(instruct)
                 out, hid = model(instruct, ins, h0)
         else: 
+            instruct = None
             if instruct_mode == 'masked': 
                 ins = mask_input_rule(ins).to(device)
             if instruct_mode == 'comp': 
@@ -347,7 +351,7 @@ class CogModule():
                 ins = use_shuffled_one_hot(ins, task_type)
 
             out, hid = model(ins, h0)
-        return out, hid
+        return out, hid, instruct
 
     def train(self, data, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, milestones = [], 
                         holdout_task = None, instruct_mode = None, freeze_langModel = False, langLR = None, langWeightDecay=None): 
@@ -396,7 +400,7 @@ class CogModule():
                     tar_dir = tar_dir_vec[index]
 
                     opt.zero_grad()
-                    out, _ = self._get_model_resp(model, batch_len, ins, task_type, instruct_mode)
+                    out, _, _ = self._get_model_resp(model, batch_len, ins, task_type, instruct_mode)
 
                     loss = masked_MSE_Loss(out, tar, mask) 
                     loss.backward()
@@ -467,7 +471,7 @@ class CogModule():
                     mean_list = [] 
                     trial = construct_batch(task_type, batch_len)
                     ins = trial.inputs
-                    out, _ = self._get_model_resp(model, batch_len, torch.Tensor(ins).to(device), task_type, instruct_mode) 
+                    out, _, _ = self._get_model_resp(model, batch_len, torch.Tensor(ins).to(device), task_type, instruct_mode) 
                     mean_list.append(np.mean(isCorrect(out, torch.Tensor(trial.targets).to(device), trial.target_dirs)))
                 perf_dict[task_type] = np.mean(mean_list)
         return perf_dict 
@@ -494,11 +498,13 @@ class CogModule():
         plt.legend()
         plt.show()
 
-    def plot_response(self, model_name, task_type, instruct = None, instruct_mode=None):
+    def plot_response(self, model_name, task_type, task = None, trial_num = 0, instruct = None, instruct_mode=None, show=True):
         model = self.model_dict[model_name]
         model.eval()
         with torch.no_grad(): 
-            task = construct_batch(task_type, 1)
+            if task == None: 
+                task = construct_batch(task_type, 1)
+
             tar = task.targets
             ins = task.inputs
             h0 = model.initHidden(1, 0.1).to(device)
@@ -511,24 +517,24 @@ class CogModule():
                 ins = del_input_rule(torch.Tensor(ins)).to(device)
                 out, hid = model(instruct, ins, h0)
             else: 
-                out, hid = self._get_model_resp(model, 1, torch.Tensor(ins).to(device), task_type, instruct_mode)
+                out, hid, instruct = self._get_model_resp(model, ins.shape[0], torch.Tensor(ins).to(device), task_type, instruct_mode)
             
-            correct = isCorrect(out, torch.Tensor(tar), task.target_dirs)
+            correct = isCorrect(out, torch.Tensor(tar), task.target_dirs)[trial_num]
 
 
-            out = out.squeeze().detach().cpu().numpy()
-            hid = hid.squeeze().detach().cpu().numpy()
+            out = out.detach().cpu().numpy()[trial_num, :, :]
+            hid = hid.detach().cpu().numpy()[trial_num, :, :]
 
 
 
-            fix = ins[0, :, 0:1]            
+            fix = ins[trial_num, :, 0:1]            
             num_rules = len(Task.TASK_LIST)
-            rule_vec = ins[0, :, 1:num_rules+1]
-            mod1 = ins[0, :, 1+num_rules:1+num_rules+Task.STIM_DIM]
-            mod2 = ins[0, :, 1+num_rules+Task.STIM_DIM:1+num_rules+(2*Task.STIM_DIM)]
+            rule_vec = ins[trial_num, :, 1:num_rules+1]
+            mod1 = ins[trial_num, :, 1+num_rules:1+num_rules+Task.STIM_DIM]
+            mod2 = ins[trial_num, :, 1+num_rules+Task.STIM_DIM:1+num_rules+(2*Task.STIM_DIM)]
 
             #to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, rule_vec.squeeze().T, tar.squeeze().T, out.squeeze().T]
-            to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, tar.squeeze().T, out.squeeze().T]
+            to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, tar[trial_num, :, :].T, out.squeeze().T]
             gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 2, 5, 5])
             ylabels = ['fix.', 'mod. 1', 'mod. 2',  'Target', 'Response']
 
@@ -556,10 +562,9 @@ class CogModule():
                     ax.set_xlabel('time')
             #plt.tight_layout()
 
-
-            print(correct)
-            plt.show()
-            return correct
+            if show: 
+                plt.show()
+            return correct, instruct[trial_num]
 
 
     def plot_k_shot_learning(self, ks, task_type, model_dict=None, include_legend = False):
