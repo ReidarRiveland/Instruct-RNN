@@ -190,7 +190,7 @@ class Go(Task):
             for i in range(num_trials):
                 direction = np.random.uniform(0, 2*np.pi)
                 self.directions[i] = direction
-                base_strength = np.random.uniform(0.8, 1.2)
+                base_strength = np.random.uniform(1.0, 1.2)
                 strength_dir = [(base_strength, direction)]
                 
                 mod = np.random.choice([0, 1])
@@ -300,17 +300,20 @@ class Delay(Task):
             if match_trial and task_type in ['DMS', 'DNMS']: direction2 = direction1
             elif match_trial and task_type in ['DMC', 'DNMC']: direction2 = np.random.uniform(cat_range[0], cat_range[1])
             elif not match_trial and task_type in ['DMC', 'DNMC']: direction2 = (np.random.uniform(cat_range[0]+(np.pi/3), cat_range[1]-(np.pi/3)) + np.pi)%(2*np.pi)
-            else: direction2 = (direction1 + np.random.uniform(np.pi/3, (2*np.pi - np.pi/3)))%(2*np.pi)
+            else: direction2 = (direction1 + np.random.uniform(np.pi/2, (2*np.pi - np.pi/2)))%(2*np.pi)
 
             self.directions.append((direction1, direction2))
 
-            base_strength = np.random.uniform(1.3, 1.5)
-            coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
-            strengths = np.array([base_strength+coh, base_strength-coh])
-            max_strength = np.argmax(strengths)
+            # base_strength = np.random.uniform(1.3, 1.5)
+            # coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
+            # strengths = np.array([base_strength+coh, base_strength-coh])
+            # max_strength = np.argmax(strengths)
 
-            strength_dir1 = [(strengths[0], direction1)]
-            strength_dir2 = [(strengths[1], direction2)]
+            # strength_dir1 = [(strengths[0], direction1)]
+            # strength_dir2 = [(strengths[1], direction2)]
+
+            strength_dir1 = [(1, direction1)]
+            strength_dir2 = [(1, direction2)]
             
             mod = np.random.choice([0, 1])
             self.stim_mod_arr[0, mod, i] = strength_dir1
