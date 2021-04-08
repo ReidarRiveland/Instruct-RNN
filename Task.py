@@ -148,9 +148,9 @@ class Task():
             elif self.DM_DELAY == 'staggered': 
                 input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((fix, rule_vec, stim1+stim2), 1),  
                                     np.concatenate((fix, rule_vec, stim2), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1)) 
-        # elif 'COMP' in task_type:
-        #     input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((fix, rule_vec, stim1+stim2), 1),  
-        #                         np.concatenate((fix, rule_vec, stim2), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1))
+        elif 'COMP' in task_type:
+            input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((fix, rule_vec, stim1+stim2), 1),  
+                                np.concatenate((fix, rule_vec, stim2), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1))
         else: 
             input_vecs = (np.concatenate((fix, rule_vec, self.null_stim), 1), np.concatenate((fix, rule_vec, stim1), 1), np.concatenate((fix, rule_vec, self.null_stim), 1),  
                                 np.concatenate((fix, rule_vec, stim2), 1), np.concatenate((no_fix, rule_vec, self.null_stim), 1))
@@ -240,12 +240,12 @@ class Comp(Task):
 
             
             if 'Multi' in self.task_type: 
-                base_strength = np.random.uniform(0.8, 1.2, size=2)
+                base_strength = np.random.uniform(1.3, 1.5, size=2)
                 coh = np.random.choice([0.05, 0.1, 0.15], size=2)
                 positive_strength = base_strength + coh
                 negative_strength = base_strength - coh
             else: 
-                base_strength = np.random.uniform(0.8, 1.2)
+                base_strength = np.random.uniform(1.3, 1.5)
                 coh = np.random.choice([0.1, 0.15, 0.2])
                 positive_strength = base_strength + coh
                 negative_strength = base_strength - coh
@@ -304,7 +304,7 @@ class Delay(Task):
 
             self.directions.append((direction1, direction2))
 
-            base_strength = np.random.uniform(0.9, 1.1)
+            base_strength = np.random.uniform(1.3, 1.5)
             coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
             strengths = np.array([base_strength+coh, base_strength-coh])
             max_strength = np.argmax(strengths)
