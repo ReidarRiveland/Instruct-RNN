@@ -242,6 +242,7 @@ class Comp(Task):
             if 'Multi' in self.task_type: 
                 base_strength = np.random.uniform(1.3, 1.5, size=2)
                 coh = np.random.choice([0.05, 0.1, 0.15], size=2)
+
                 positive_strength = base_strength + coh
                 negative_strength = base_strength - coh
             else: 
@@ -312,8 +313,11 @@ class Delay(Task):
             # strength_dir1 = [(strengths[0], direction1)]
             # strength_dir2 = [(strengths[1], direction2)]
 
-            strength_dir1 = [(1, direction1)]
-            strength_dir2 = [(1, direction2)]
+            base_strength = np.random.uniform(0.8, 1.2)
+            coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
+
+            strength_dir1 = [(base_strength+coh, direction1)]
+            strength_dir2 = [(base_strength-coh, direction2)]
             
             mod = np.random.choice([0, 1])
             self.stim_mod_arr[0, mod, i] = strength_dir1
@@ -428,7 +432,7 @@ def construct_batch(task_type, num):
     return trial 
 
 
-# trials = Comp('COMP1', 1)
+# trials = Comp('MultiCOMP1', 50)
 # trials.plot_trial(0)
 
 # sub = np.subtract(np.array(trials.directions)[:, 0], np.array(trials.directions)[:, 1])
