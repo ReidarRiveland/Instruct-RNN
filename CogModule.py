@@ -303,8 +303,8 @@ class CogModule():
             self.task_sorted_correct[model_type] = correct_temp_dict
             self.task_sorted_loss[model_type] = loss_temp_dict
 
-    def save_models(self, holdout_task, foldername):
-        self.save_training_data(holdout_task, foldername, holdout_task)
+    def save_models(self, holdout_task, foldername, name):
+        self.save_training_data(holdout_task, foldername, name)
         for model_name, model in self.model_dict.items():
             filename = foldername+'/'+holdout_task+'/'+holdout_task+'_'+model_name+'.pt'
             filename = filename.replace(' ', '_')

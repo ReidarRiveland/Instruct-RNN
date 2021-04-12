@@ -312,29 +312,29 @@ from RNNs import instructNet, simpleNet
 from LangModule import LangModule
 from CogModule import CogModule
 
-foldername = '_ReLU128_dmStaggered'
+# foldername = '_ReLU128_dmStaggered'
 
 
-holdout = 'Anti RT Go'
+# holdout = 'Anti RT Go'
 
-model_dict = {}
-#model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-model1_name = 'ReLU128_/'+holdout+'/'+holdout+'_Model1.pt'
-model1_name = model1_name.replace(' ', '_')
-Model1 = simpleNet(81, 128, 1, 'relu')
-Model1.load_state_dict(torch.load(model1_name))
-model_dict['Model1'] = Model1
+# model_dict = {}
+# #model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+# model1_name = 'ReLU128_/'+holdout+'/'+holdout+'_Model1.pt'
+# model1_name = model1_name.replace(' ', '_')
+# Model1 = simpleNet(81, 128, 1, 'relu')
+# Model1.load_state_dict(torch.load(model1_name))
+# model_dict['Model1'] = Model1
 
-ModelS = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-ModelS_name = foldername +'/'+holdout+'/'+holdout+'_S-Bert_train.pt'
-ModelS_name = ModelS_name.replace(' ', '_')
-ModelS.load_state_dict(torch.load(ModelS_name))
-model_dict['S-Bert train'] = ModelS
+# ModelS = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+# ModelS_name = foldername +'/'+holdout+'/'+holdout+'_S-Bert_train.pt'
+# ModelS_name = ModelS_name.replace(' ', '_')
+# ModelS.load_state_dict(torch.load(ModelS_name))
+# model_dict['S-Bert train'] = ModelS
 
-cog = CogModule(model_dict)
+# cog = CogModule(model_dict)
 
-cog.load_training_data(holdout, foldername, 'holdout')
-cog.plot_learning_curve('correct', holdout, smoothing=0.1)
+# cog.load_training_data(holdout, foldername, 'holdout')
+# cog.plot_learning_curve('correct', holdout, smoothing=0.1)
 
 def make_test_trials(task_type, task_variable, mod, instruct_mode, num_trials=100): 
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
