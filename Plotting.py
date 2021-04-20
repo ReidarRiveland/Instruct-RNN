@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+from collections import defaultdict
 from scipy.ndimage.filters import gaussian_filter1d
 
 import matplotlib 
@@ -16,6 +17,29 @@ from pylab import *
 
 task_list = Task.TASK_LIST
 
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from NLPmodels import SBERT
+from RNNs import instructNet, simpleNet
+from LangModule import LangModule
+from CogModule import CogModule
+
+
+i = 0
+seed = '_seed'+str(i)
+model_dict = {}
+model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+cog = CogModule(model_dict)
+
+model_dict = {}
+model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
+cog = CogModule(model_dict)
+
+foldername = '_ReLU128_12.4'
+
+
 def label_plot(fig, Patches, Markers, legend_loc = (0.9, 0.3)): 
     arch_legend = plt.legend(handles=Patches, title = r"$\textbf{Language Module}$", bbox_to_anchor = legend_loc, loc = 'lower center')
     ax = plt.gca().add_artist(arch_legend)
@@ -23,8 +47,58 @@ def label_plot(fig, Patches, Markers, legend_loc = (0.9, 0.3)):
     fig.text(0.5, 0.04, 'Training Examples', ha='center')
     fig.text(0.04, 0.5, 'Fraction Correct', va='center', rotation='vertical')
 
-def plot_avg_curves(model_dict, foldername, smoothing = 1, plot_background_traces=False): 
 
+def collect_data_across_seeds(foldername, model_list, seeds): 
+    all_correct = defaultdict(np.array)
+    all_loss = defaultdict(np.array)
+    all_summary_correct = defaultdict(np.array)
+    all_summary_loss = defaultdict(np.array)
+    for model_name in model_list: 
+        correct_data_dict = {task : np.zeros((100, len(seeds))) for task in task_list}
+        correct_summary_dict = {}
+        loss_data_dict = {task : np.zeros((100, len(seeds))) for task in task_list}
+        loss_summary_dict = {}
+        for holdout in task_list: 
+            for i, seed_num in enumerate(seeds):
+                seed = '_seed'+str(seed_num)
+                model_dict = {}
+                model_dict[model_name+seed] = None                
+                cog = CogModule(model_dict)
+                cog.load_training_data(holdout, foldername, seed+'holdout')
+                correct_data_dict[holdout][:, i] = cog.task_sorted_correct[model_name+seed][holdout]
+                loss_data_dict[holdout][:, i] = cog.task_sorted_loss[model_name+seed][holdout]
+
+            correct_summary_dict[holdout]=np.array([np.mean(correct_data_dict[holdout], axis=1), np.std(correct_data_dict[holdout], axis=1)])
+            loss_summary_dict[holdout]=np.array([np.mean(loss_data_dict[holdout], axis=1), np.std(loss_data_dict[holdout], axis=1)])
+
+        all_correct[model_name] = correct_data_dict
+        all_loss[model_name] = loss_data_dict
+        all_summary_correct[model_name] = correct_summary_dict
+        all_summary_loss[model_name] = loss_summary_dict
+
+
+    return all_correct, all_loss, all_summary_correct, all_summary_loss
+
+
+num_seeds =5
+model_list = list(model_dict.keys())
+smoothing = 0.01
+
+def plot_avg_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list(range(5))): 
+    all_correct, _, _, _ = collect_data_across_seeds(foldername, model_list, seeds)
+    seeds_summary_dict = {}
+    seeds_avg_dict = {}
+    for model_name in all_correct.keys(): 
+        seeds_avg = np.empty((100, len(seeds)))
+        for i in range(len(seeds)):
+            model_task_data = np.empty((100, len(task_list)))
+            for j, task in enumerate(task_list): 
+                model_task_data[:, j] = all_correct[model_name][task][:, i]
+
+            seeds_avg[:, i] = np.mean(model_task_data, axis=1)
+        seeds_avg_dict[model_name] = seeds_avg
+        seeds_summary_dict[model_name] = np.array([np.round(np.mean(seeds_avg_dict[model_name], axis=1), decimals=3), 
+                                                        np.round(np.std(seeds_avg_dict[model_name], axis=1), decimals=3)])
 
     # activate latex text rendering
     rc('text', usetex=True)
@@ -32,78 +106,52 @@ def plot_avg_curves(model_dict, foldername, smoothing = 1, plot_background_trace
     rc('font', weight='bold')
     rcParams['text.latex.preamble'] = [r'\usepackage{sfmath} \boldmath']
 
-
-
     fig, ax = plt.subplots(1,1, figsize =(12, 8))
     plt.suptitle(r'$\textbf{Avg. Performance over All Holdout Tasks}$')
-    ax.set_ylim(-0.05, 1.15)
-    cog = CogModule(model_dict)
-    avg_perf_dict = {}
-    for model_name in model_dict.keys(): 
-        avg_perf_dict[model_name] = np.zeros(100)
-    for holdout_task in task_list: 
-        cog.reset_data()
-        cog.load_training_data(holdout_task, foldername, 'holdout')
-        for model_type in model_dict.keys():       
-            train_data = cog.task_sorted_correct[model_type][holdout_task]
-            avg_perf_dict[model_type]+=np.array(train_data)
-            if plot_background_traces:
-                smoothed_perf = gaussian_filter1d(train_data, sigma=smoothing)
-                ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_type][0], linewidth = 2, marker=cog.ALL_STYLE_DICT[model_type][1], markersize=8, markevery=2, alpha=0.05)
-    for model_type in model_dict.keys(): 
-        train_data = avg_perf_dict[model_type]/len(task_list)
-        smoothed_perf = gaussian_filter1d(train_data, sigma=smoothing)
-        ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_type][0], linewidth = 2, marker=cog.ALL_STYLE_DICT[model_type][1], alpha=1, markersize=7, markevery=2)
+
+    ax.set_ylim(-0.05, 1.05)
+    plt.yticks(np.arange(0, 1.1, 0.1))
+
+    for model_name in model_list: 
+        smoothed_perf = gaussian_filter1d(seeds_summary_dict[model_name][0], sigma=smoothing)
+        ax.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), seeds_summary_dict[model_name][0]+seeds_summary_dict[model_name][1]]), axis=0), 
+            seeds_summary_dict[model_name][0]-seeds_summary_dict[model_name][1], color =  cog.ALL_STYLE_DICT[model_name][0], alpha= 0.1)
+        ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_name][0], marker=cog.ALL_STYLE_DICT[model_name][1], alpha=1, markersize=5, markevery=3)
     Patches, Markers = cog.get_model_patches()
     ax.xaxis.set_tick_params(labelsize=20)
     ax.yaxis.set_tick_params(labelsize=20)
-    # fig.text(0.5, 0.02, r'$\textbf{Training Examples}$', ha='center')
-    # fig.text(0.02, 0.5, r'$\textbf{Fraction Correct}$', va='center', rotation='vertical')
     plt.legend(handles=Patches+Markers, loc = 'lower right', title = r"$\textbf{Language Module}$")
     plt.tight_layout()
+    plt.show()
+    return seeds_summary_dict
 
-    fig.show()
+def plot_all_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list(range(5))): 
+    all_correct, all_loss, all_summary_correct, all_summary_loss = collect_data_across_seeds(foldername, model_list, seeds)
 
-
-def plot_all_tasks_by_model(model_name, foldername, smoothing=1):
-    fig, ax = plt.subplots(1,1)
-    name_to_plot = CogModule.NAME_TO_PLOT_DICT[model_name]
-    plt.suptitle(name_to_plot + ' Performance over Tasks')
-    ax.set_ylim(-0.05, 1.15)
-    model_dict = dict(zip([model_name], [None]))
-    cog = CogModule(model_dict)
-
-    cmap = matplotlib.cm.get_cmap('tab20')
-
-    for i, holdout_task in enumerate(task_list): 
-        cog.reset_data()
-        cog.load_training_data(holdout_task, foldername, 'holdout')
-        train_data = cog.task_sorted_correct[model_name][holdout_task]
-        smoothed_perf = gaussian_filter1d(train_data, sigma=smoothing)
-        ax.plot(smoothed_perf, color = cmap(i))
-
-    Patches = [mpatches.Patch(color=cmap(d), label=task_list[d]) for d in range(len(task_list))]
-    plt.legend(handles=Patches)
-
-    fig.text(0.5, 0.04, 'Training Examples', ha='center')
-    fig.text(0.04, 0.5, 'Fraction Correct', va='center', rotation='vertical')
-    fig.show()
-
-def plot_all_holdout_curves(model_dict, foldername, smoothing=1):
-    cog = CogModule(model_dict)
-    fig, axn = plt.subplots(4,4, sharey = True, sharex=True)
-    plt.suptitle('Holdout Learning for All Tasks')
+    fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(14, 10))
+    plt.suptitle(r'$\textbf{Holdout Learning for All Tasks}$')
     for i, ax in enumerate(axn.flat):
         ax.set_ylim(-0.05, 1.15)
         holdout_task = task_list[i]
-        cog.load_training_data(holdout_task, foldername, 'holdout')
         for model_name in model_dict.keys(): 
-            smoothed_perf = gaussian_filter1d(cog.task_sorted_correct[model_name][holdout_task][0:100], sigma=smoothing)
+            smoothed_perf = gaussian_filter1d(all_summary_correct[model_name][holdout_task][0], sigma=smoothing)
+            ax.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), all_summary_correct[model_name][holdout_task][0]+all_summary_correct[model_name][holdout_task][1]]), axis=0), 
+                all_summary_correct[model_name][holdout_task][0]-all_summary_correct[model_name][holdout_task][1], color =  cog.ALL_STYLE_DICT[model_name][0], alpha= 0.1)
             ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_name][0], marker=cog.ALL_STYLE_DICT[model_name][1], alpha=1, markersize=5, markevery=3)
         ax.set_title(holdout_task)
+
     Patches, Markers = cog.get_model_patches()
-    label_plot(fig, Patches, Markers, legend_loc=(1.3, 0.5))
-    fig.show()
+    label_plot(fig, Patches, Markers, legend_loc=(1.2, 0.5))
+    plt.show()
+    return all_summary_correct, all_summary_loss
+
+seeds_summary_dict = plot_avg_holdout_curves(foldername, model_list, seeds = [0, 2, 3, 4])
+
+seeds_summary_dict
+
+plot_all_holdout_curves(foldername, model_list, seeds = [0, 2, 3, 4])
+
+
 
 def plot_learning_curves(model_dict, tasks, foldername, comparison, dim, smoothing=1): 
     cog = CogModule(model_dict)
@@ -282,60 +330,6 @@ def plot_side_by_side(ax_list, title, ax_titles):
     plt.legend(handles = Patches, loc='lower right')
     plt.show()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-from Task import construct_batch, Go, DM
-import torch
-from sklearn.preprocessing import normalize
-from LangModule import get_batch
-import matplotlib.pyplot as plt
-import matplotlib
-import matplotlib.colors as colors
-import matplotlib.cm as cmx
-from matplotlib.patches import Rectangle
-import numpy as np
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-from NLPmodels import SBERT
-from RNNs import instructNet, simpleNet
-from LangModule import LangModule
-from CogModule import CogModule
-
-# foldername = '_ReLU128_dmStaggered'
-
-
-# holdout = 'Anti RT Go'
-
-# model_dict = {}
-# #model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-# model1_name = 'ReLU128_/'+holdout+'/'+holdout+'_Model1.pt'
-# model1_name = model1_name.replace(' ', '_')
-# Model1 = simpleNet(81, 128, 1, 'relu')
-# Model1.load_state_dict(torch.load(model1_name))
-# model_dict['Model1'] = Model1
-
-# ModelS = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-# ModelS_name = foldername +'/'+holdout+'/'+holdout+'_S-Bert_train.pt'
-# ModelS_name = ModelS_name.replace(' ', '_')
-# ModelS.load_state_dict(torch.load(ModelS_name))
-# model_dict['S-Bert train'] = ModelS
-
-# cog = CogModule(model_dict)
-
-# cog.load_training_data(holdout, foldername, 'holdout')
-# cog.plot_learning_curve('correct', holdout, smoothing=0.1)
-
 def make_test_trials(task_type, task_variable, mod, instruct_mode, num_trials=100): 
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
     intervals = np.empty((num_trials, 5), dtype=tuple)
@@ -403,7 +397,6 @@ def get_hid_var_resp(model, task_type, trials, num_repeats = 10, instruct_mode=N
     mean_neural_response = np.mean(total_neuron_response, axis=0)
     return mean_neural_response
 
-
 def make_tuning_curve(model, task_type, task_variable, unit, time, mod, instruct_mode=None): 
     trials, var_of_interest = make_test_trials(task_type, task_variable, 1, instruct_mode=instruct_mode)
     hid = get_hid_var_resp(ModelS, task_type, trials, instruct_mode=instruct_mode)
@@ -426,8 +419,6 @@ def make_tuning_curve(model, task_type, task_variable, unit, time, mod, instruct
     plt.xlabel(task_variable)
     plt.show()
     return trials
-
-
 
 def plot_neural_resp(model, task_type, task_variable, unit, mod, instruct_mode=None):
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
