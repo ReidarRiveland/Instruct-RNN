@@ -215,7 +215,12 @@ def swap_input_rule(in_tensor, task_type):
     swapped_input = torch.cat((in_tensor[:, :, 0:1], swapped_one_hot, in_tensor[:, :, len(task_list)+1:]), axis=2)
     return swapped_input
 
-
+def strip_model_name(model_name): 
+    try:
+        stripped_name = model_name[:model_name.index('_seed')]
+    except: 
+        stripped_name = model_name
+    return stripped_name
 
 class CogModule():
     ALL_STYLE_DICT = {'Model1': ('blue', None), 'Model1shuffled': ('blue', '+'), 'SIF':('brown', None), 'BoW': ('orange', None), 'GPT_cat': ('red', '^'), 'GPT train': ('red', '.'), 
@@ -255,8 +260,8 @@ class CogModule():
             Patches.append(patch)
 
         for model_name in self.model_dict.keys(): 
-            print(model_name)
-            if model_name in ['Model1', 'BoW', 'SIF', 'S-Bert']: 
+            print(strip_model_name(model_name))
+            if strip_model_name(model_name) in ['Model1', 'BoW', 'SIF', 'S-Bert']: 
                 continue
             where_array = np.array([model_name.find(key) for key in self.MODEL_MARKER_DICT.keys()])
             marker = self.MODEL_MARKER_DICT[list(self.MODEL_MARKER_DICT.keys())[np.where(where_array >= 0)[0][0]]]
@@ -407,7 +412,7 @@ class CogModule():
                     torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
                     opt.step()
 
-                    frac_correct = np.mean(isCorrect(out, tar, tar_dir))
+                    frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
                     self.total_loss_dict[model_type].append(loss.item())
                     self.total_correct_dict[model_type].append(frac_correct)
                     if j%50 == 0:
@@ -443,7 +448,7 @@ class CogModule():
                 cur_task = Task.TASK_LIST[i]
                 for model_name in self.model_dict.keys():
                     smoothed_perf = gaussian_filter1d(perf_dict[model_name][cur_task], sigma=smoothing)
-                    ax.plot(smoothed_perf, color = self.ALL_STYLE_DICT[model_name][0], marker = self.ALL_STYLE_DICT[model_name][1], linewidth= 1.0, markersize = 5, markevery=20)
+                    ax.plot(smoothed_perf, color = self.ALL_STYLE_DICT[strip_model_name(model_name)][0], marker = self.ALL_STYLE_DICT[strip_model_name(model_name)][1], linewidth= 1.0, markersize = 5, markevery=20)
                 ax.set_title(cur_task)
         else:
             fig, ax = plt.subplots(1,1)
@@ -451,7 +456,7 @@ class CogModule():
             ax.set_ylim(y_lim)
             for model_name in self.model_dict.keys():    
                 smoothed_perf = gaussian_filter1d(perf_dict[model_name][task_type], sigma=smoothing)
-                ax.plot(smoothed_perf, color = self.ALL_STYLE_DICT[model_name][0], marker = self.ALL_STYLE_DICT[model_name][1], markersize = 5, markevery=3)
+                ax.plot(smoothed_perf, color = self.ALL_STYLE_DICT[strip_model_name(model_name)][0], marker = self.ALL_STYLE_DICT[strip_model_name(model_name)][1], markersize = 5, markevery=3)
             ax.set_title(task_type + ' holdout')
 
         Patches, Markers = self.get_model_patches()
@@ -699,7 +704,7 @@ class CogModule():
     def get_hid_traj(self, models, tasks, dim, instruct_mode):
         models = [self.model_dict[model] for model in models]
         for model in models: 
-            if not next(model.rnn.parameters()).is_cuda:
+            if not next(model.parameters()).is_cuda:
                 model.to(device)
  
         task_info_list = []

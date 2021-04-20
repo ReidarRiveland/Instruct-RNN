@@ -28,6 +28,8 @@ class simpleNet(nn.Module):
 
         if self.activ_func is not 'tanh': 
             self.recurrent_units = customGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
+        elif self.activ_func is 'elman': 
+            self.recurrent_units = nn.RNN(self.in_dim, hid_dim, self.num_layers, nonlinearity = 'relu', batch_first=True)
         else: 
             self.recurrent_units = nn.GRU(self.in_dim, hid_dim, self.num_layers, batch_first=True)
 

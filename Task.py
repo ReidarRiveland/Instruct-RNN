@@ -429,7 +429,7 @@ def construct_batch(task_type, num):
     return trial 
 
 
-# trials = Go('Anti RT Go', 50)
+# trials = Delay('DNMS', 50)
 # trials.plot_trial(0)
 
 # sub = np.subtract(np.array(trials.directions)[:, 0], np.array(trials.directions)[:, 1])

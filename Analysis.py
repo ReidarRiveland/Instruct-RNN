@@ -80,9 +80,9 @@ milestones = [10, 15, 20]
 
 seeds=5
 foldername = '_ReLU128_12.4'
-for i in range(seeds): 
+for i in [2]: 
     seed = '_seed'+str(i)
-    for holdout in task_list+['Multitask']:
+    for holdout in ['DMC']:
         model_dict = {}
         model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
         model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
@@ -95,166 +95,149 @@ for i in range(seeds):
         cog.save_models(holdout, foldername, seed)
 
 
+i = 0
+seed = '_seed'+str(i)
+model_dict = {}
+model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+cog = CogModule(model_dict)
 
-cog.model_dict.keys()
-holdout
-cog.save_models(holdout, foldername, seed)
+cog.plot_hid_traj(['Model1'+seed], ['RT Go'], 2)
 
+import pickle
 
+foldername = '_ReLU128_12.4'
+seeds = 4
 
+seed = '_seed'+str(2)
+modelS_name = 'S-Bert train'+seed
+model1_name = 'Model1'+seed
+for holdout in ['DMC']:
+    correct_dict = {key : np.zeros(100) for key in [modelS_name, model1_name]}
+    loss_dict = correct_dict.copy()
+    for i in range(5): 
+        holdout_data = make_data(task_dict = {holdout:1}, num_batches=100, batch_size=256)
+        model_dict = {}
+        model_dict[modelS_name] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+        model_dict[model1_name] = simpleNet(81, 128, 1, 'relu')
+        cog = CogModule(model_dict)
+        cog.load_models(holdout, foldername)
+        cog.train(holdout_data, 1, lr=0.001)
+        cog.sort_perf_by_task()
+        for model_name in cog.model_dict.keys():
+            correct_dict[model_name]+=np.round(np.array(cog.total_correct_dict[model_name])/5, 2)
+            loss_dict[model_name]+= np.round(np.array(cog.total_loss_dict[model_name])/5, 2)
+    holdout_name = holdout.replace(' ', '_')
+    cog.total_correct_dict = correct_dict
+    cog.total_loss_dict = loss_dict
+    cog.sort_perf_by_task()
+    cog.save_training_data(holdout_name, foldername, seed+'holdout')
+        
 
+foldername = '_ReLU128_12.4'
 
+num_seeds = 5
+model_list = ['S-Bert train', 'Model1']
 
-foldername = '_ReLU128_COMPstag_COMPboosted'
+def get_summary_perf(foldername, num_seeds, model_list, holdout):
+    correct_data_dict = {model_name : np.zeros((100, num_seeds)) for model_name in model_list}
+    correct_summary_dict = {}
+    loss_data_dict = {model_name : np.zeros((100, num_seeds)) for model_name in model_list}
+    loss_summary_dict = {}
+    for i in range(num_seeds):
+        seed = '_seed'+str(i)
+        model_dict = {}
+        for model_name in model_list: 
+            model_dict[model_name+seed] = None
+        
+        cog = CogModule(model_dict)
+        cog.load_training_data(holdout, foldername, seed+'holdout')
+
+        for key in cog.model_dict.keys():
+            correct_data_dict[key.replace(seed, '')][:, i] = cog.task_sorted_correct[key][holdout]
+            loss_data_dict[key.replace(seed, '')][:, i] = cog.task_sorted_loss[key][holdout]
+
+    for name in model_list:
+        correct_summary_dict[name]=np.array([np.mean(correct_data_dict[name], axis=1), np.std(correct_data_dict[name], axis=1)])
+        loss_summary_dict[name]=np.array([np.mean(loss_data_dict[name], axis=1), np.std(loss_data_dict[name], axis=1)])
+
+    return correct_summary_dict, correct_data_dict
+
+correct_summary_dict = get_summary_perf(foldername, num_seeds, model_list, 'Anti Go')
+
+correct_summary_dict
+
+from scipy.ndimage.filters import gaussian_filter1d
+
+import matplotlib 
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.lines import Line2D
+from Plotting import label_plot
+
+smoothing = 0.01
+holdout_task = 'DM'
 model_dict = {}
 model_dict['S-Bert train'] = None
 model_dict['Model1'] = None
 cog = CogModule(model_dict)
 
-cog.load_models('DMS', foldername)
-cog.load_training_data('DNMC', foldername,'')
-cog.task_sorted_correct.keys()
-cog.plot_learning_curve('correct')
+
+fig, axn = plt.subplots(4,4, sharey = True, sharex=True)
+plt.suptitle('Holdout Learning for All Tasks')
+for i, ax in enumerate(axn.flat):
+    ax.set_ylim(-0.05, 1.15)
+    holdout_task = task_list[i]
+    correct_summary_dict = get_summary_perf(foldername, 5, list(cog.model_dict.keys()), holdout_task)
+    for model_name in model_dict.keys(): 
+        smoothed_perf = gaussian_filter1d(correct_summary_dict[model_name][0], sigma=smoothing)
+        ax.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), correct_summary_dict[model_name][0]+correct_summary_dict[model_name][1]]), axis=0), 
+            correct_summary_dict[model_name][0]-correct_summary_dict[model_name][1], color =  cog.ALL_STYLE_DICT[model_name][0], alpha= 0.1)
+        ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_name][0], marker=cog.ALL_STYLE_DICT[model_name][1], alpha=1, markersize=5, markevery=3)
+    ax.set_title(holdout_task)
+
+Patches, Markers = cog.get_model_patches()
+label_plot(fig, Patches, Markers, legend_loc=(1.3, 0.5))
+plt.show()
 
 
-cog.plot_response('S-Bert train', 'DNMC')
 
-cog.model_dict['S-Bert train'].langMod.plot_embedding(tasks = ['DMS', 'DNMS', 'DMC', 'DNMC'])
-
-cog.plot_learning_curve('correct', smoothing=1, task_type='DM')
-cog._plot_trained_performance()
-
-
-cog._plot_trained_performance()
-cog.plot_learning_curve('correct')
-
-
-foldername = '_ReLU128_COMPstag_COMPboosted'
-
-foldername
-
-holdout = 'MultiCOMP2'
-from Task import construct_batch
-from CogModule import isCorrect
-from LangModule import get_batch
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-cog.load_models(holdout, foldername)
-
-trials = construct_batch(holdout, 100)
-
-tar = torch.Tensor(trials.targets).to(device)
-mask = torch.Tensor(trials.masks).to(device)
-ins = torch.Tensor(trials.inputs).to(device)
-tar_dir = trials.target_dirs
-
-modelS = cog.model_dict['S-Bert train']
-
-out, _, instruct = cog._get_model_resp(cog.model_dict['S-Bert train'], 100, ins, 'MultiCOMP2', None)
-
-out, _ = modelS(instruct, ins, modelS.initHidden(100, 0.1))
-
-corrects = isCorrect(out, tar, tar_dir)
-corrects
-np.mean(corrects)
-
-instruct, _ = get_batch(100, None, task_type='DNMS')
-instruct
-
-instruct = ['respond to the second direction when it has larger combined value over modalities than the first direction otherwise do not respond'] * 100
-
-len(instruct)
-
-cog.plot_response('S-Bert train', 'MultiCOMP2', task=trials, instruct = instruct, trial_num=2)
-
-trials.plot_trial(4)
-
-import pickle
-foldername = '_ReLU128_4.9'
-seeds = 4
-
-for i in range(seeds): 
-    seed = '_seed'+str(i)
-    modelS_name = 'S-Bert train'+seed
-    model1_name = 'Model1'+seed
-    for holdout in task_list:
-        correct_dict = {key : np.zeros(100) for key in [modelS_name, model1_name]}
-        loss_dict = correct_dict.copy()
-        holdout_data = make_data(task_dict = {holdout:1}, num_batches=100, batch_size=256)
-        for i in range(5): 
-            model_dict = {}
-            model_dict[modelS_name] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-            model_dict[model1_name] = simpleNet(81, 128, 1, 'relu')
-            cog = CogModule(model_dict)
-            cog.load_models(holdout, foldername)
-            cog.train(holdout_data, 1, lr=0.001)
-            cog.sort_perf_by_task()
-            for model_name in cog.model_dict.keys():
-                correct_dict[model_name]+=np.array(cog.task_sorted_correct[model_name][holdout])/5
-                loss_dict[model_name]+= np.array(cog.task_sorted_loss[model_name][holdout])/5
-        holdout_name = holdout.replace(' ', '_')
-        pickle.dump(correct_dict, open(foldername+'/'+holdout_name+'/'+seed+'avg_holdout_training_correct_dict', 'wb'))
-        pickle.dump(loss_dict, open(foldername+'/'+holdout_name+'/'+seed+'avg_holdout_training_loss_dict', 'wb'))
+holdout = 'COMP2'
+for seed_num in range(5): 
+    seed = '_seed'+str(seed_num)
+    model_dict = {}
+    model_dict['S-Bert train'+seed] = None
+    model_dict['Model1'+seed] = None
+    cog = CogModule(model_dict)
+    cog.load_training_data(holdout, foldername, seed+'holdout')
+    cog.plot_learning_curve('correct', task_type=holdout)
 
 
-pickle.load(open(foldername+'/'+holdout_task+'/'+seed+'avg_holdout_loss', 'wb'))
 
-task = 'RT_Go'
-seed_num = 5
-for i in range(seed_num)
-
-i=0
-seed = '_seed'+str(i)
-modelS_name = 'S-Bert train'+seed
-model1_name = 'Model1'+seed
-holdout_correct_dict = pickle.load(open(foldername+'/'+task+'/'+seed+'_training_correct_dict', 'rb'))
-holdout_correct_dict['Model1']
-
-holdout_correct_dict
-
-list(holdout_correct_dict.values())[0]
+seed_num = 2
+smoothing = 0.01
 
 
-correct_dict
-
-seed_num = 0
 seed = '_seed'+str(seed_num)
 model_dict = {}
 model_dict['S-Bert train'+seed] = None
 model_dict['Model1'+seed] = None
-
 cog = CogModule(model_dict)
-cog.load_training_data('Go', foldername, seed+'avg_holdout')
+fig, axn = plt.subplots(4,4, sharey = True, sharex=True)
+plt.suptitle('Holdout Learning for All Tasks')
+for i, ax in enumerate(axn.flat):
+    ax.set_ylim(-0.05, 1.15)
+    holdout_task = task_list[i]
+    cog.load_training_data(holdout_task, foldername, seed+'holdout')
+    for model_name in model_dict.keys(): 
+        smoothed_perf = gaussian_filter1d(cog.task_sorted_correct[model_name][holdout_task][0:100], sigma=smoothing)
+        ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_name.replace(seed, '')][0], marker=cog.ALL_STYLE_DICT[model_name.replace(seed, '')][1], alpha=1, markersize=5, markevery=3)
+    ax.set_title(holdout_task)
+Patches, Markers = cog.get_model_patches()
+label_plot(fig, Patches, Markers, legend_loc=(1.3, 0.5))
+fig.show()
 
-
-cog.plot_learning_curve('correct', task_type='Go')
-
-for model_name in cog.model_dict.keys():    
-    smoothed_perf = cog.task_sorted_correct[model_name]['Go']
-
-cog.task_sorted_correct
-
-cog._plot_trained_performance()
-
-
-seed_num = 0
-seed = '_seed'+str(seed_num)
 model_dict = {}
-model_dict['S-Bert train'+seed] = None
-model_dict['Model1'+seed] = None
-plot_all_holdout_curves(model_dict, foldername, smoothing=0.01)
-
-
-model_dict.keys()
-for model_name in model_dict.keys(): 
-    print(model_name.replace('_seed0','' ))
-
-correct_dict = plot_avg_curves(model_dict, foldername, '_seed0', smoothing=0.01)
-
-correct_dict['S-Bert train']/16
-
-test_str = 'jfsadklfj_seed0'
-
-test_str.index('_seed')
-
-test_str[:test_str.index('_seed')]
+model_dict['S-Bert train'] = None
+model_dict['Model1'] = None
+plot_all_holdout_curves(model_dict, '_ReLU128_COMPstag_COMPboosted')
