@@ -127,9 +127,9 @@ class LangTransformer(nn.Module):
         return out
 
 
-class gpt2(nn.Module): 
+class GPT(nn.Module): 
     def __init__(self, out_dim, d_reduce='avg', size = 'base'): 
-        super(gpt2, self).__init__()
+        super(GPT, self).__init__()
         from transformers import GPT2Model, GPT2Tokenizer
         self.d_reduce = d_reduce
         self.embedderStr = 'gpt'
@@ -141,18 +141,25 @@ class gpt2(nn.Module):
             self.proj_out = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
 
         if size == 'large': 
-            self.transformer = GPT2Model.from_pretrained('gpt2-medium')
+            self.model = GPT2Model.from_pretrained('gpt2-medium')
             self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2-medium')
         elif size == 'XL': 
-            self.transformer = GPT2Model.from_pretrained('gpt2-xl')
+            self.model = GPT2Model.from_pretrained('gpt2-xl')
             self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2-xl')
         else: 
-            self.transformer = GPT2Model.from_pretrained('gpt2')
+            self.model = GPT2Model.from_pretrained('gpt2')
             self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+
+        self.tokenizer.pad_token = self.tokenizer.eos_token
 
 
     def forward(self, x): 
-        trans_out = self.transformer(x)[0]
+        tokens = self.tokenizer(x, return_tensors='pt', padding=True)
+        for key, value in tokens.items():
+            tokens[key] = value.to(device)
+
+        trans_out = self.model(**tokens).last_hidden_state
+
         if self.d_reduce == 'linear': 
             out = self.proj_out(trans_out.flatten(1))
         elif self.d_reduce ==  'max': 
@@ -178,15 +185,19 @@ class BERT(nn.Module):
             self.proj_out = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
 
         if size == 'large': 
-            self.transformer = BertModel.from_pretrained('bert-large-uncased')
+            self.model = BertModel.from_pretrained('bert-large-uncased')
             self.tokenizer = BertTokenizer.from_pretrained('bert-large-uncased')
         else: 
-            self.transformer = BertModel.from_pretrained('bert-base-uncased')
+            self.model = BertModel.from_pretrained('bert-base-uncased')
             self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 
     def forward(self, x): 
-        trans_out = self.transformer(x)[0]
+        tokens = self.tokenizer(x, return_tensors="pt", padding=True)
+        for key, value in tokens.items():
+            tokens[key] = value.to(device)
+        trans_out = self.model(**tokens).last_hidden_state
+
         if self.d_reduce == 'linear': 
             out = self.proj_out(trans_out.flatten(1))
         elif self.d_reduce ==  'max': 
@@ -195,8 +206,7 @@ class BERT(nn.Module):
         elif self.d_reduce == 'avg': 
             trans_out = torch.mean((trans_out), dim =1) 
             out =self.proj_out(trans_out)
-        elif self.d_reduce == 'avg_conv': 
-            trans_out = nn.AvgPool2d((1, ), (2,1))
+
         return out
 
 

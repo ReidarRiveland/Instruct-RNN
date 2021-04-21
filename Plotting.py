@@ -18,26 +18,26 @@ from pylab import *
 task_list = Task.TASK_LIST
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-from NLPmodels import SBERT
-from RNNs import instructNet, simpleNet
-from LangModule import LangModule
-from CogModule import CogModule
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# from NLPmodels import SBERT
+# from RNNs import instructNet, simpleNet
+# from LangModule import LangModule
+# from CogModule import CogModule
 
 
-i = 0
-seed = '_seed'+str(i)
-model_dict = {}
-model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
-cog = CogModule(model_dict)
+# i = 0
+# seed = '_seed'+str(i)
+# model_dict = {}
+# model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+# model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+# cog = CogModule(model_dict)
 
-model_dict = {}
-model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
-cog = CogModule(model_dict)
+# model_dict = {}
+# model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+# model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
+# cog = CogModule(model_dict)
 
-foldername = '_ReLU128_12.4'
+# foldername = '_ReLU128_12.4'
 
 
 def label_plot(fig, Patches, Markers, legend_loc = (0.9, 0.3)): 

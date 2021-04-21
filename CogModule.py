@@ -31,7 +31,7 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from Task import Task, construct_batch
-from LangModule import get_batch, toNumerals, swaps
+from LangModule import get_batch, swaps
 from RNNs import simpleNet
 
 task_list = Task.TASK_LIST
@@ -515,10 +515,7 @@ class CogModule():
             h0 = model.initHidden(1, 0.1).to(device)
 
             if instruct is not None: 
-                if model.embedderStr is not 'SBERT': 
-                    instruct = toNumerals(model.embedderStr, instruct)
-                else: 
-                    instruct = [instruct]
+                instruct = [instruct]
                 ins = del_input_rule(torch.Tensor(ins)).to(device)
                 out, hid = model(instruct, ins, h0)
             else: 

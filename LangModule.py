@@ -37,14 +37,6 @@ instruct_swap_dict['Anti RT Go']
 
 PAD_LEN = 25
 
-def toNumerals(tokenizer, instructions): 
-    ins_temp = []
-    for instruct in instructions:
-        embedding = torch.ones((PAD_LEN, 1))
-        tokenized = torch.Tensor(tokenizer.encode(instruct)).unsqueeze(1)
-        embedding[:tokenized.shape[0]] = tokenized
-        ins_temp.append(embedding)
-    return torch.stack(ins_temp).squeeze().long().to(device)
 
 def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
     assert instruct_mode in [None, 'instruct_swap', 'shuffled', 'comp', 'validation', 'random']
@@ -60,16 +52,17 @@ def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
             instruct_dict = test_instruct_dict
         else: 
             instruct_dict = train_instruct_dict
+
         instruct = random.choice(instruct_dict[task])
         batch_target_index.append(task_list.index(task))
+
         if instruct_mode == 'shuffled': 
             instruct = instruct.split()
             shuffled = np.random.permutation(instruct)
             instruct = ' '.join(list(shuffled))
 
         batch.append(instruct)
-    if tokenizer is not None: 
-        batch = toNumerals(tokenizer, batch)
+
     return batch, batch_target_index
 
 
@@ -140,8 +133,6 @@ class LangModule():
         self.model_classifier.eval()
         for i, task in enumerate(task_list): 
             instructions = test_instruct_dict[task]
-            if self.langModel.tokenizer is not None: 
-                instructions = toNumerals(self.langModel.tokenizer, instructions)
             out = self.model_classifier(instructions)
             tensor_targets = torch.full((len(instructions), ), i).to(device)
             loss = self.classifier_criterion(out, tensor_targets.long())            
@@ -171,8 +162,6 @@ class LangModule():
         for i, task in enumerate(task_list): 
             num_correct = 0
             instructions = test_instruct_dict[task]
-            if self.langModel.tokenizer is not None: 
-                instructions = toNumerals(self.langModel.tokenizer, instructions)
             model_cat = torch.argmax(self.model_classifier(instructions), dim=1).cpu().numpy()
             for j in model_cat: 
                 confuse_mat[i, j] += 1
@@ -196,8 +185,6 @@ class LangModule():
             rep_tensor = torch.Tensor().to(device)
             for i, task in enumerate(instruct_dict.keys()):
                 instructions = instruct_dict[task]
-                if self.langModel.tokenizer is not None: 
-                    instructions = toNumerals(self.langModel.tokenizer, instructions)
                 out_rep = self.langModel(instructions)
                 task_indices += ([i]*len(instructions))
                 rep_tensor = torch.cat((rep_tensor, out_rep), dim=0)
