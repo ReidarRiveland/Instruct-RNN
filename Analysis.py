@@ -1,9 +1,9 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-from Plotting import plot_all_holdout_curves, plot_all_tasks_by_model, plot_avg_curves, plot_learning_curves
+#from Plotting import plot_all_holdout_curves, plot_learning_curves
 from LangModule import LangModule, swaps
-from NLPmodels import GPT, BERT, SBERT, BoW, SIFmodel, LangTransformer
+from NLPmodels import GPT, BERT, SBERT, BoW
 from RNNs import instructNet, simpleNet
 from jitRNNs import scriptSimpleNet 
 import torch
@@ -31,9 +31,9 @@ seeds=5
 foldername = '_ReLU128_12.4'
 for i in range(5): 
     seed = '_seed'+str(i)
-    for holdout in task_list + ['Multitask']:
+    for holdout in task_list+['Multitask']:
         model_dict = {}
-        model_dict['BERT train'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+        model_dict['GPT'+seed] = instructNet(LangModule(GPT(20)), 128, 1, 'relu', tune_langModel=False)
         #model_dict['GPT train'+seed] = instructNet(LangModule(GPT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
         cog = CogModule(model_dict)
         if holdout == 'Multitask':
@@ -41,7 +41,9 @@ for i in range(5):
         else:
             holdout_data = make_data(holdouts=[holdout], batch_size=128)
         cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
-        cog.save_models(holdout, foldername, seed)
+        cog.save_models(holdout, foldername, 'bert'+seed)
+
+
 
 
 ###Holdout training loop 
@@ -71,3 +73,9 @@ for holdout in ['DMC']:
         
 
 
+
+seed = '_seed'+str(2)
+model_dict = {}
+model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+cog = CogModule(model_dict)

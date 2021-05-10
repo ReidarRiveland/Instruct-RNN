@@ -305,14 +305,6 @@ class Delay(Task):
 
             self.directions.append((direction1, direction2))
 
-            # base_strength = np.random.uniform(1.3, 1.5)
-            # coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
-            # strengths = np.array([base_strength+coh, base_strength-coh])
-            # max_strength = np.argmax(strengths)
-
-            # strength_dir1 = [(strengths[0], direction1)]
-            # strength_dir2 = [(strengths[1], direction2)]
-
             strength_dir1 = [(1, direction1)]
             strength_dir2 = [(1, direction2)]
             
@@ -339,7 +331,7 @@ class Delay(Task):
         self._plot_trial(trial_ins, trial_tars, self.task_type)
 
 class DM(Task): 
-    def __init__(self, task_type, num_trials, intervals=None):
+    def __init__(self, task_type, num_trials, intervals=None, stim_mod_arr =None, directions=None):
         super().__init__(num_trials, intervals)
         assert task_type in ['DM', 'MultiDM', 'Anti DM', 'Anti MultiDM'], "entered invalid task_type: %r" %task_type
         self.task_type = task_type
@@ -347,41 +339,47 @@ class DM(Task):
         self.stim_mod_arr =  np.empty((2, 2, num_trials), dtype=tuple)
         self.target_dirs = np.empty(num_trials)
         self.coh_list = []
-        for i in range(num_trials):
-            directions = self._draw_ortho_dirs()
-            if self.task_type == 'MultiDM' or task_type == 'Anti MultiDM': 
-                base_strength = np.random.uniform(0.8, 1.2, size=2)
-                
-                redraw = True
-                while redraw: 
-                    coh = np.random.choice([-0.15, -0.1, -0.05, 0.05, 0.1, 0.15], size=2, replace=False)
-                    if abs(coh[0]) != abs(coh[1]): 
-                        redraw = False
+        if type(intervals) == type(None): 
+
+            for i in range(num_trials):
+                directions = self._draw_ortho_dirs()
+                if self.task_type == 'MultiDM' or task_type == 'Anti MultiDM': 
+                    base_strength = np.random.uniform(0.8, 1.2, size=2)
+                    
+                    redraw = True
+                    while redraw: 
+                        coh = np.random.choice([-0.15, -0.1, -0.05, 0.05, 0.1, 0.15], size=2, replace=False)
+                        if abs(coh[0]) != abs(coh[1]): 
+                            redraw = False
 
 
-                strengths = np.array([base_strength + coh, base_strength - coh])
-                self.stim_mod_arr[0, 0, i] = [(strengths[0, 0], directions[0])]
-                self.stim_mod_arr[1, 0, i] = [(strengths[1, 0], directions[1])]
-                self.stim_mod_arr[0, 1, i] = [(strengths[0, 1], directions[0])]
-                self.stim_mod_arr[1, 1, i] = [(strengths[1, 1], directions[1])]
-                if task_type=='MultiDM': 
-                    self.target_dirs[i] = directions[np.argmax(np.sum(strengths, axis=1))]
-                else: 
-                    self.target_dirs[i] = directions[np.argmin(np.sum(strengths, axis=1))]
-            else:
-                base_strength = np.random.uniform(0.8, 1.2)
-                coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
-                strengths = np.array([base_strength+coh, base_strength-coh])
-                if task_type == 'DM': 
-                    self.target_dirs[i] = directions[np.argmax(strengths)]
-                else: 
-                    self.target_dirs[i] = directions[np.argmin(strengths)]
-                mod = np.random.choice([0, 1])
-                self.stim_mod_arr[0, mod, i] = [(strengths[0], directions[0])]
-                self.stim_mod_arr[1, mod, i] = [(strengths[1], directions[1])]
-                self.stim_mod_arr[0, ((mod+1)%2), i] = None
-                self.stim_mod_arr[1, ((mod+1)%2), i] = None
-            self.coh_list.append(coh)
+                    strengths = np.array([base_strength + coh, base_strength - coh])
+                    self.stim_mod_arr[0, 0, i] = [(strengths[0, 0], directions[0])]
+                    self.stim_mod_arr[1, 0, i] = [(strengths[1, 0], directions[1])]
+                    self.stim_mod_arr[0, 1, i] = [(strengths[0, 1], directions[0])]
+                    self.stim_mod_arr[1, 1, i] = [(strengths[1, 1], directions[1])]
+                    if task_type=='MultiDM': 
+                        self.target_dirs[i] = directions[np.argmax(np.sum(strengths, axis=1))]
+                    else: 
+                        self.target_dirs[i] = directions[np.argmin(np.sum(strengths, axis=1))]
+                else:
+                    base_strength = np.random.uniform(0.8, 1.2)
+                    coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
+                    strengths = np.array([base_strength+coh, base_strength-coh])
+                    if task_type == 'DM': 
+                        self.target_dirs[i] = directions[np.argmax(strengths)]
+                    else: 
+                        self.target_dirs[i] = directions[np.argmin(strengths)]
+                    mod = np.random.choice([0, 1])
+                    self.stim_mod_arr[0, mod, i] = [(strengths[0], directions[0])]
+                    self.stim_mod_arr[1, mod, i] = [(strengths[1], directions[1])]
+                    self.stim_mod_arr[0, ((mod+1)%2), i] = None
+                    self.stim_mod_arr[1, ((mod+1)%2), i] = None
+                self.coh_list.append(coh)
+        else:
+            self.stim_mod_arr = stim_mod_arr
+            self.directions = directions
+
 
         self.inputs = self._get_trial_inputs(self.task_type, self.stim_mod_arr)
         self.targets = self._get_trial_targets(self.target_dirs)

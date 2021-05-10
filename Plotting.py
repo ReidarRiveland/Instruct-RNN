@@ -7,48 +7,100 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
+from matplotlib import colors, cm 
 
-from Task import Task
-from CogModule import CogModule
+import matplotlib.patches as mpatches
+import matplotlib.gridspec as gridspec
+import matplotlib.animation as animation
+
+
+from sklearn.decomposition import PCA
+from scipy.ndimage.filters import gaussian_filter1d
+import umap
+from sklearn.manifold import TSNE
+
+import torch
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+import itertools
+
+
+from Task import Task, construct_batch
 from LangModule import swaps
+from CogModule import CogModule
 
 from matplotlib import rc,rcParams
 from pylab import *
 
+from Task import Go, DM
+
 task_list = Task.TASK_LIST
 
 
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# from NLPmodels import SBERT
-# from RNNs import instructNet, simpleNet
-# from LangModule import LangModule
-# from CogModule import CogModule
+ALL_STYLE_DICT = {'Model1': ('blue', None), 'Model1shuffled': ('blue', '+'), 'SIF':('brown', None), 'BoW': ('orange', None), 'GPT_cat': ('red', '^'), 'GPT train': ('red', '.'), 
+                        'BERT_cat': ('green', '^'), 'BERT train': ('green', '+'), 'S-Bert_cat': ('purple', '^'), 'S-Bert train': ('purple', '.'), 'S-Bert' : ('purple', None), 
+                        'InferSent train': ('yellow', '.'), 'InferSent_cat': ('yellow', '^'), 'Transformer': ('pink', '.')}
+COLOR_DICT = {'Model1': 'blue', 'SIF':'brown', 'BoW': 'orange', 'GPT': 'red', 'BERT': 'green', 'S-Bert': 'purple', 'InferSent':'yellow', 'Transformer': 'pink'}
+MODEL_MARKER_DICT = {'SIF':None, 'BoW':None, 'shuffled':'+', 'cat': '^', 'train': '.', 'Transformer':'.'}
+MARKER_DICT = {'^': 'task categorization', '.': 'end-to-end', '+':'shuffled'}
+NAME_TO_PLOT_DICT = {'Model1': 'One-Hot Task Vec.','Model1shuffled': 'Shuffled One-Hot', 'SIF':'SIF', 'BoW': 'BoW', 'GPT_cat': 'GPT (task cat.)', 'GPT train': 'GPT (end-to-end)', 
+                        'BERT_cat': 'BERT (task cat.)', 'BERT train': 'BERT (end-to-end)', 'S-Bert_cat': 'S-BERT (task cat.)', 'S-Bert train': 'S-BERT (end-to-end)',  
+                        'S-Bert': 'S-BERT (raw)', 'InferSent train': 'InferSent (end-to-end)', 'InferSent_cat': 'InferSent (task cat.)', 'Transformer': 'Transformer (end-to-end)'}
 
 
-# i = 0
-# seed = '_seed'+str(i)
-# model_dict = {}
-# model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-# model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
-# cog = CogModule(model_dict)
 
-# model_dict = {}
-# model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-# model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
-# cog = CogModule(model_dict)
-
-# foldername = '_ReLU128_12.4'
+from RNNs import instructNet, simpleNet
+from LangModule import LangModule
+from NLPmodels import SBERT
+from CogModule import CogModule
+foldername = '_ReLU128_12.4'
 
 
-def label_plot(fig, Patches, Markers, legend_loc = (0.9, 0.3)): 
+
+
+
+def strip_model_name(model_name): 
+    try:
+        stripped_name = model_name[:model_name.index('_seed')]
+    except: 
+        stripped_name = model_name
+    return stripped_name
+
+def get_model_patches(model_list): 
+    Patches = []
+    Markers = []
+    color_dict = COLOR_DICT.copy()
+    for model_name in model_list: 
+        architecture_type = list(COLOR_DICT.keys())[np.where([model_name.startswith(key) for key in COLOR_DICT.keys()])[0][0]]
+        try:
+            color = color_dict.pop(architecture_type)
+        except:
+            continue
+        if architecture_type == 'Model1': architecture_type = 'One-Hot Vec.'
+        patch = mpatches.Patch(color=color, label=architecture_type)
+        Patches.append(patch)
+
+    for model_name in model_list: 
+        print(strip_model_name(model_name))
+        if strip_model_name(model_name) in ['Model1', 'BoW', 'SIF', 'S-Bert']: 
+            continue
+        where_array = np.array([model_name.find(key) for key in MODEL_MARKER_DICT.keys()])
+        marker = MODEL_MARKER_DICT[list(MODEL_MARKER_DICT.keys())[np.where(where_array >= 0)[0][0]]]
+        if any([marker == m.get_marker() for m in Markers]): 
+            continue
+        mark = Line2D([0], [0], marker=marker, color='w', label=MARKER_DICT[marker], markerfacecolor='grey', markersize=10)
+        Markers.append(mark)
+
+    return Patches, Markers
+
+def _label_plot(fig, Patches, Markers, legend_loc = (0.9, 0.3)): 
     arch_legend = plt.legend(handles=Patches, title = r"$\textbf{Language Module}$", bbox_to_anchor = legend_loc, loc = 'lower center')
     ax = plt.gca().add_artist(arch_legend)
     plt.legend(handles= Markers, title = r"$\textbf{Transformer Fine-Tuning}$", bbox_to_anchor = legend_loc, loc = 'upper center')
     fig.text(0.5, 0.04, 'Training Examples', ha='center')
     fig.text(0.04, 0.5, 'Fraction Correct', va='center', rotation='vertical')
 
-
-def collect_data_across_seeds(foldername, model_list, seeds): 
+def _collect_data_across_seeds(foldername, model_list, seeds): 
     all_correct = defaultdict(np.array)
     all_loss = defaultdict(np.array)
     all_summary_correct = defaultdict(np.array)
@@ -79,13 +131,8 @@ def collect_data_across_seeds(foldername, model_list, seeds):
 
     return all_correct, all_loss, all_summary_correct, all_summary_loss
 
-
-num_seeds =5
-model_list = list(model_dict.keys())
-smoothing = 0.01
-
 def plot_avg_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list(range(5))): 
-    all_correct, _, _, _ = collect_data_across_seeds(foldername, model_list, seeds)
+    all_correct, _, _, _ = _collect_data_across_seeds(foldername, model_list, seeds)
     seeds_summary_dict = {}
     seeds_avg_dict = {}
     for model_name in all_correct.keys(): 
@@ -115,9 +162,9 @@ def plot_avg_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list
     for model_name in model_list: 
         smoothed_perf = gaussian_filter1d(seeds_summary_dict[model_name][0], sigma=smoothing)
         ax.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), seeds_summary_dict[model_name][0]+seeds_summary_dict[model_name][1]]), axis=0), 
-            seeds_summary_dict[model_name][0]-seeds_summary_dict[model_name][1], color =  cog.ALL_STYLE_DICT[model_name][0], alpha= 0.1)
-        ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_name][0], marker=cog.ALL_STYLE_DICT[model_name][1], alpha=1, markersize=5, markevery=3)
-    Patches, Markers = cog.get_model_patches()
+            seeds_summary_dict[model_name][0]-seeds_summary_dict[model_name][1], color = ALL_STYLE_DICT[model_name][0], alpha= 0.1)
+        ax.plot(smoothed_perf, color = ALL_STYLE_DICT[model_name][0], marker=ALL_STYLE_DICT[model_name][1], alpha=1, markersize=5, markevery=3)
+    Patches, Markers = get_model_patches(model_list)
     ax.xaxis.set_tick_params(labelsize=20)
     ax.yaxis.set_tick_params(labelsize=20)
     plt.legend(handles=Patches+Markers, loc = 'lower right', title = r"$\textbf{Language Module}$")
@@ -126,32 +173,24 @@ def plot_avg_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list
     return seeds_summary_dict
 
 def plot_all_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list(range(5))): 
-    all_correct, all_loss, all_summary_correct, all_summary_loss = collect_data_across_seeds(foldername, model_list, seeds)
+    all_correct, all_loss, all_summary_correct, all_summary_loss = _collect_data_across_seeds(foldername, model_list, seeds)
 
     fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(14, 10))
     plt.suptitle(r'$\textbf{Holdout Learning for All Tasks}$')
     for i, ax in enumerate(axn.flat):
         ax.set_ylim(-0.05, 1.15)
         holdout_task = task_list[i]
-        for model_name in model_dict.keys(): 
+        for model_name in model_list: 
             smoothed_perf = gaussian_filter1d(all_summary_correct[model_name][holdout_task][0], sigma=smoothing)
             ax.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), all_summary_correct[model_name][holdout_task][0]+all_summary_correct[model_name][holdout_task][1]]), axis=0), 
-                all_summary_correct[model_name][holdout_task][0]-all_summary_correct[model_name][holdout_task][1], color =  cog.ALL_STYLE_DICT[model_name][0], alpha= 0.1)
-            ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_name][0], marker=cog.ALL_STYLE_DICT[model_name][1], alpha=1, markersize=5, markevery=3)
+                all_summary_correct[model_name][holdout_task][0]-all_summary_correct[model_name][holdout_task][1], color =  ALL_STYLE_DICT[model_name][0], alpha= 0.1)
+            ax.plot(smoothed_perf, color = ALL_STYLE_DICT[model_name][0], marker=ALL_STYLE_DICT[model_name][1], alpha=1, markersize=5, markevery=3)
         ax.set_title(holdout_task)
 
-    Patches, Markers = cog.get_model_patches()
-    label_plot(fig, Patches, Markers, legend_loc=(1.2, 0.5))
+    Patches, Markers = get_model_patches(model_list)
+    _label_plot(fig, Patches, Markers, legend_loc=(1.2, 0.5))
     plt.show()
     return all_summary_correct, all_summary_loss
-
-seeds_summary_dict = plot_avg_holdout_curves(foldername, model_list, seeds = [0, 2, 3, 4])
-
-seeds_summary_dict
-
-plot_all_holdout_curves(foldername, model_list, seeds = [0, 2, 3, 4])
-
-
 
 def plot_learning_curves(model_dict, tasks, foldername, comparison, dim, smoothing=1): 
     cog = CogModule(model_dict)
@@ -205,11 +244,11 @@ def plot_learning_curves(model_dict, tasks, foldername, comparison, dim, smoothi
                 if load_type[0] == 'holdoutcomp' and model_name != 'Model1':
                     continue
                 smoothed_perf = gaussian_filter1d(cog.task_sorted_correct[model_name][task][0:99], sigma=smoothing)
-                ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_name][0], marker=cog.ALL_STYLE_DICT[model_name][1], linestyle = load_type[1], markevery=5)
+                ax.plot(smoothed_perf, color = ALL_STYLE_DICT[model_name][0], marker=ALL_STYLE_DICT[model_name][1], linestyle = load_type[1], markevery=5)
         ax.set_title(task + ' Holdout')
         # if i == 0: 
         #     ax.set_ylabel('Fraction Correct')
-    Patches, Markers = cog.get_model_patches()
+    Patches, Markers = get_model_patches(model_dict.keys())
     plt.legend(handles=Patches+Markers+mark, title = r"$\textbf{Language Module}$", loc = 'lower right')
 
     fig.text(0.5, 0.01, r'$\textbf{Training Examples}$', ha='center', fontsize = 14)
@@ -217,11 +256,155 @@ def plot_learning_curves(model_dict, tasks, foldername, comparison, dim, smoothi
     fig.tight_layout(rect=(0.02, 0.02, 0.98, 0.98))
     fig.show()
 
-def plot_hid_PCA_comparison(cogMod, tasks, holdout_task, ax_titles): 
-    colors = ['Red']*250  + ['Yellow']*250 + ['Blue']*250 + ['Green']*250
+def plot_task_rep(model, epoch, reduction_method = 'PCA', num_trials = 250, dim = 2, instruct_mode = None, holdout_task = None, tasks = task_list, avg_rep = False, Title=''): 
+    if instruct_mode == 'comp': 
+        assert holdout_task != None 
+    # if not next(model.rnn.parameters()).is_cuda:
+    #     model.to(device)
+
+    assert epoch in ['input', 'stim', 'response', 'prep'] or epoch.isnumeric(), "entered invalid epoch: %r" %epoch
+    
+    task_reps = []
+    for task in task_list: 
+        trials = construct_batch(task, num_trials)
+        tar = trials.targets
+        ins = trials.inputs
+
+        if instruct_mode == 'comp': 
+            if task == holdout_task: 
+                out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, 'comp')
+            else: 
+                out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, None)
+        else: 
+            out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, instruct_mode)
+
+
+        hid = hid.detach().cpu().numpy()
+        epoch_state = []
+
+        for i in range(num_trials): 
+            if epoch.isnumeric(): 
+                epoch_index = int(epoch)
+                epoch_state.append(hid[i, epoch_index, :])
+            if epoch == 'stim': 
+                epoch_index = np.where(tar[i, :, 0] == 0.85)[0][-1]
+                epoch_state.append(hid[i, epoch_index, :])
+            if epoch == 'response':
+                epoch_state.append(hid[i, -1, :])
+            if epoch == 'input':
+                epoch_state.append(hid[i, 0, :])
+            if epoch == 'prep': 
+                epoch_index = np.where(ins[i, :, 18:]>0.25)[0][0]-1
+                epoch_state.append(hid[i, epoch_index, :])
+        
+        if avg_rep: 
+            epoch_state = [np.mean(np.stack(epoch_state), axis=0)]
+        
+        task_reps += epoch_state
+
+
+    if reduction_method == 'PCA': 
+        embedder = PCA(n_components=dim)
+    elif reduction_method == 'UMAP':
+        embedder = umap.UMAP()
+    elif reduction_method == 'tSNE': 
+        embedder = TSNE(n_components=2)
+
+    embedded = embedder.fit_transform(task_reps)
+
+    if reduction_method == 'PCA': 
+        explained_variance = embedder.explained_variance_ratio_
+    else: 
+        explained_variance = None
+
+    if avg_rep: 
+        to_plot = np.stack([embedded[task_list.index(task), :] for task in tasks])
+        task_indices = np.array([task_list.index(task) for task in tasks]).astype(int)
+        marker_size = 100
+    else: 
+        to_plot = np.stack([embedded[task_list.index(task)*num_trials: task_list.index(task)*num_trials+num_trials, :] for task in tasks]).reshape(len(tasks)*num_trials, dim)
+        task_indices = np.array([[task_list.index(task)]*num_trials for task in tasks]).astype(int).flatten()
+        marker_size = 25
+
+    cmap = matplotlib.cm.get_cmap('tab20')
+    Patches = []
+    if dim ==3: 
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        scatter = [to_plot[:, 0], to_plot[:, 1], to_plot[:,2], cmap(task_indices), cmap, marker_size]
+        ax.scatter(to_plot[:, 0], to_plot[:, 1], to_plot[:,2], c = cmap(task_indices), cmap=cmap, s=marker_size)
+        ax.set_xlabel('PC 1')
+        ax.set_ylabel('PC 2')
+        ax.set_zlabel('PC 3')
+
+    else:             
+        fig, ax = plt.subplots(figsize=(12, 10))
+        scatter = [to_plot[:, 0], to_plot[:, 1], cmap(task_indices), cmap, marker_size]
+        # for i, color in enumerate(['Red', 'Blue', 'Green', 'Yellow']): 
+        #     start = i*num_trials
+        #     stop = start+num_trials
+        #     plt.scatter(to_plot[:, 0][start:stop], to_plot[:, 1][start:stop], color=listset(task_indices), s=marker_size)
+        #     Patches.append(mpatches.Patch(color = cmap(task_indices), label = task_list[list(set(task_indices))[i]]))
+        ax.scatter(to_plot[:, 0], to_plot[:, 1], c = cmap(task_indices), cmap=cmap, s=marker_size)
+        plt.xlabel("PC 1", fontsize = 18)
+        plt.ylabel("PC 2", fontsize = 18)
+
+    #plt.suptitle(r"$\textbf{PCA Embedding for Task Representation$", fontsize=18)
+    plt.title(Title)
+    digits = np.arange(len(tasks))
+    plt.tight_layout()
+    Patches = [mpatches.Patch(color=cmap(d), label=task_list[d]) for d in set(task_indices)]
+    scatter.append(Patches)
+    plt.legend(handles=Patches)
+    #plt.show()
+
+
+    return explained_variance, scatter
+
+def get_hid_traj(cogMod, tasks, dim, instruct_mode):
+    with torch.no_grad(): 
+        for model in cogMod.model_dict.values(): 
+            if not next(model.parameters()).is_cuda:
+                model.to(device)
+
+        task_info_list = []
+        for task in tasks: 
+            trial = construct_batch(task, 1)
+            task_info_list.append(trial.inputs)
+
+        model_task_state_dict = {}
+        for model_name, model in cogMod.model_dict.items(): 
+            tasks_dict = {}
+            for i, task in enumerate(tasks): 
+                out, hid = cogMod._get_model_resp(model, 1, torch.Tensor(task_info_list[i]).to(device), task, instruct_mode)
+                embedded = PCA(n_components=dim).fit_transform(hid.squeeze().detach().cpu())
+                tasks_dict[task] = embedded
+            model_task_state_dict[model_name] = tasks_dict
+        return model_task_state_dict
+
+task_group_colors = defaultdict(dict)
+task_group_colors['Go'] = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT Go':'orange'}
+task_group_colors['Decision Making'] = { 'DM':'Red', 'Anti DM':'Green', 'MultiDM':'Blue', 'Anti MultiDM':'Yellow'}
+task_group_colors['Comparison'] = { 'COMP1':'sienna', 'COMP2':'seagreen', 'MultiCOMP1':'skyblue', 'MultiCOMP2':'gold'}
+task_group_colors['Delay'] = { 'DMS':'firebrick', 'DNMS':'lightgreen', 'DMC':'dodgerblue', 'DNMC':'darkorange'}
+
+def task_cmap(array): 
+    all_task_dict = {}
+    for task_colors in task_group_colors.values(): 
+        all_task_dict.update(task_colors)
+    color_list = []
+
+    for index in array: 
+        color_list.append(all_task_dict[task_list[index]])
+
+    return color_list
+
+
+def plot_hid_PCA_comparison(cogMod, task_group, holdout_task, ax_titles): 
+    plot_colors= list(itertools.chain.from_iterable([[color]*250 for color in task_group_colors[task_group].values()]))
     ax_list = []
-    for model_name in cogMod.model_dict.keys(): 
-        _, ax = cogMod.plot_task_rep(model_name, dim = 2, tasks = tasks, epoch = 'prep', avg_rep = False)
+    for model in cogMod.model_dict.values(): 
+        _, ax = plot_task_rep(model, dim = 2, reduction_method = 'tSNE', tasks = list(task_group_colors[task_group].keys()), epoch = 'prep', avg_rep = False)
         ax_list.append(ax)
 
     fig, axn = plt.subplots(1, len(ax_list), figsize = (10, 4))
@@ -231,15 +414,14 @@ def plot_hid_PCA_comparison(cogMod, tasks, holdout_task, ax_titles):
         scatter = ax_list[i]
         ax = axn.flat[i]
         ax.set_title(ax_titles[i]) 
-        ax.scatter(scatter[0], scatter[1], color=colors, cmap = scatter[3], s=10)
+        ax.scatter(scatter[0], scatter[1], c=plot_colors, cmap = scatter[3], s=10)
         if i == 0: 
             ax.set_ylabel('PC1')
         ax.set_xlabel('PC2')
         ax.xaxis.set_major_locator(plt.MaxNLocator(3))
-        ax.yaxis.set_major_locator(plt.MaxNLocator(3))        
 
     Patches = []
-    for label, color in [('DM', 'Red'), ('Anti DM', 'Green'), ('MultiDM', 'Blue'), ('Anti MultiDM', 'Yellow')]:
+    for label, color in task_group_colors[task_group].items():
         patch = mpatches.Patch(color=color, label=label)
         Patches.append(patch)
 
@@ -247,63 +429,91 @@ def plot_hid_PCA_comparison(cogMod, tasks, holdout_task, ax_titles):
     plt.show()
 
 
+seed = '_seed'+str(1)
+model_dict = {}
+model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+cog = CogModule(model_dict)
+cog.load_models('Anti DM', foldername)
 
-# def plot_learning_curves(model_dict, tasks, foldername, comparison, smoothing=1): 
-#     cog = CogModule(model_dict)
-#     fig, axn = plt.subplots(3,1, sharey = True, sharex=True, figsize =(4, 12))
-#     legend_loc = (1.1, 0.7)
-#     if comparison is None: 
-#         plt.suptitle(r"$\textbf{Holdout Learning Curves}$")
-#         load_list = [('holdout', '-')]
-#     elif comparison == 'shuffled': 
-#         plt.suptitle(r"$\textbf{Shuffled Instructions Comparisons}$")
-#         load_list = [('holdout', '-'), ('holdoutshuffled', '--')]
-#         mark = Line2D([0], [0], color='grey', linestyle = load_list[1][1], label = 'Shuffled', markerfacecolor='grey', markersize=10)
-#         arch_legend = plt.legend(handles=[mark], loc = 'lower center', bbox_to_anchor = legend_loc)
-#         ax = plt.gca().add_artist(arch_legend)
-    
-#     elif comparison == 'comp': 
-#         plt.suptitle(r"$\textbf{Compositional One-Hot Comparisons}$")
-#         load_list = [('holdout', '-'), ('holdoutcomp', '--')]
-#         mark = Line2D([0], [0], color='grey', linestyle = load_list[1][1], label = 'Compositional One-hot', markerfacecolor='grey', markersize=10)
-#         arch_legend = plt.legend(handles=[mark], loc = 'lower center', bbox_to_anchor = legend_loc)
-#         ax = plt.gca().add_artist(arch_legend)
+plot_hid_PCA_comparison(cog, 'Decision Making', 'Anti DM', ['S-Bert train', 'One-Hot Encodings'])
 
-#     elif comparison == 'swapped': 
-#         plt.suptitle(r"$\textbf{Swapped Instructions Comparisons}$")
-#         load_list = [('holdout', '-'), ('swappedholdout', '--')]
-#         assert all([task in ['Go', 'Anti DM', 'Anti RT Go', 'DMC', 'RT Go', 'COMP2'] for task in tasks])
-#         mark = Line2D([0], [0], color='grey', linestyle = load_list[1][1], label = 'Swapped', markerfacecolor='grey', markersize=10)
-#         arch_legend = plt.legend(handles=[mark], loc = 'lower center', bbox_to_anchor = legend_loc)
-#         ax = plt.gca().add_artist(arch_legend)
 
-#     for i, task in enumerate(tasks): 
-#         ax = axn.flat[i]
-#         holdout_folder = task
-#         for load_type in load_list: 
-#             if load_type[0] == 'swappedholdout': 
-#                 holdout_folder = ''.join([x for x in swaps if task in x][0]).replace(' ', '_')
-#             cog.load_training_data(holdout_folder, foldername, load_type[0])
-#             for model_name in model_dict.keys(): 
-#                 if load_type[0] != 'holdout' and model_name == 'Model1' and comparison == 'shuffled': 
-#                     continue
-#                 if load_type[0] == 'holdoutcomp' and model_name != 'Model1':
-#                     continue
-#                 smoothed_perf = gaussian_filter1d(cog.task_sorted_correct[model_name][task][0:99], sigma=smoothing)
-#                 ax.plot(smoothed_perf, color = cog.ALL_STYLE_DICT[model_name][0], linestyle = load_type[1], markevery=5)
-#         ax.set_title(task + ' Holdout')
-#         # if i == 0: 
-#         #     ax.set_ylabel('Fraction Correct')
-#     Patches = []
-#     Patches.append(mpatches.Patch(color='blue', label='One-Hot Task Vec.'))
-#     Patches.append(mpatches.Patch(color='Red', label='GPT'))
-#     Patches.append(mpatches.Patch(color='Purple', label='S-Bert'))
-#     plt.legend(handles=Patches, title = r"$\textbf{Language Module}$")
+# model_dict['S-Bert train'+seed].langMod.plot_embedding(dim=3, embedder = 'TSNE', interm_dim = 20, tasks=task_group_colors[''].keys(), depth='transformer', train_only=True)
 
-#     fig.text(0.5, 0.01, r'$\textbf{Training Examples}$', ha='center')
-#     fig.text(0.01, 0.5, r'$\textbf{Fraction Correct}$', va='center', rotation='vertical')
-#     fig.tight_layout(rect=(0.02, 0.02, 0.98, 0.98))
-#     fig.show()
+# naiveSBERT = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+
+# naiveSBERT.langMod.plot_embedding(dim = 3, embedder = 'TSNE', interm_dim = 20, tasks=task_group_colors['Delay'].keys(), depth='transformer', train_only=True)
+
+
+
+def plot_hid_traj(model_dict, tasks, dim, instruct_mode = None): 
+    models = list(model_dict.values())
+    if dim == 2: 
+        fig, ax = plt.subplots()
+    else: 
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+    fig.suptitle('RNN Hidden State Trajectory')
+    model_task_state_dict = get_hid_traj(CogModule(model_dict), tasks, dim, instruct_mode)
+
+    data_array = np.empty((len(models)* len(tasks)*dim), dtype=list)
+
+    for i in range(data_array.shape[0]): 
+        data_array[i] = [] 
+    data_array = np.reshape(data_array, (len(models), len(tasks), dim))
+
+    plot_list = []
+    style_list = ['-', '--']
+    for i in range(len(models)):
+        for j in range (len(tasks)): 
+            model_name = models[i]
+            if dim == 2: 
+                plot_list.append(plt.plot([],[], label = model_name, color = ALL_STYLE_DICT[list(model_dict.keys())[i]][0], linestyle = style_list[j]))
+            else:
+                embedding_data = model_task_state_dict[models[i]][tasks[j]]
+                plot_list.append(plt.plot(embedding_data[0, 0:1],embedding_data[1, 0:1], embedding_data[2, 0:1], color = ALL_STYLE_DICT[list(model_dict.keys())[i]][0], linestyle = style_list[j]))
+
+    plot_array = np.array(plot_list).reshape((len(models), len(tasks)))
+
+    def init():
+        ax.set_xlim(-10, 10)
+        ax.set_xlabel('PC 1')
+        ax.set_ylim(-10, 10)
+        ax.set_ylabel('PC 2')
+        if dim == 3: 
+            ax.set_zlim(-10, 10)
+            ax.set_zlabel('PC 3')
+        return tuple(plot_array.flatten())
+
+
+    def update(i): 
+        for j, model_name in enumerate(models): 
+            for k, task in enumerate(tasks):
+                embedding_data = model_task_state_dict[model_name][task]
+                if dim ==3: 
+                    plot_array[j][k].set_data(embedding_data[0:i, 0], embedding_data[0:i, 1])
+                    plot_array[j][k].set_3d_properties(embedding_data[0:i, 2])
+                else: 
+                    data_array[j][k][0].append(embedding_data[i, 0])
+                    data_array[j][k][1].append(embedding_data[i, 1])
+                    plot_array[j][k].set_data(data_array[j][k][0], data_array[j][k][1])
+        return tuple(plot_array.flatten())
+
+
+
+    ani = animation.FuncAnimation(fig, update, frames=119,
+                        init_func=init, blit=True)
+
+    Patches, _ = get_model_patches(model_dict.keys())
+
+    for i, task in enumerate(tasks):
+        Patches.append(Line2D([0], [0], linestyle=style_list[i], color='grey', label=task, markerfacecolor='grey', markersize=10))
+    plt.legend(handles=Patches)
+    plt.show()
+
+    ax.clear()
 
 
 def plot_side_by_side(ax_list, title, ax_titles): 
@@ -389,9 +599,9 @@ def get_hid_var_resp(model, task_type, trials, num_repeats = 10, instruct_mode=N
     num_trials = trials.inputs.shape[0]
     total_neuron_response = np.empty((num_repeats, 100, 120, 128))
     for i in range(num_repeats): 
-        h0 = model.initHidden(num_trials, 0.1).to(device)
+        h0 = model.initHidden(num_trials, 0.1)
         model.eval()
-        out, hid = cog._get_model_resp(model, num_trials, torch.Tensor(trials.inputs).to(device), task_type, instruct_mode)
+        out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(trials.inputs).to(device), task_type, instruct_mode)
         hid = hid.detach().cpu().numpy()
         total_neuron_response[i, :, :, :] = hid
     mean_neural_response = np.mean(total_neuron_response, axis=0)
@@ -399,7 +609,7 @@ def get_hid_var_resp(model, task_type, trials, num_repeats = 10, instruct_mode=N
 
 def make_tuning_curve(model, task_type, task_variable, unit, time, mod, instruct_mode=None): 
     trials, var_of_interest = make_test_trials(task_type, task_variable, 1, instruct_mode=instruct_mode)
-    hid = get_hid_var_resp(ModelS, task_type, trials, instruct_mode=instruct_mode)
+    hid = get_hid_var_resp(model, task_type, trials, instruct_mode=instruct_mode)
 
     if task_variable == 'direction': 
         labels = ["0", "$2\pi$"]
@@ -437,7 +647,7 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, instruct_mode=N
         labels = ["delta -0.5", "delta 0.5"]
         cmap = plt.get_cmap('plasma') 
     cNorm  = colors.Normalize(vmin=0, vmax=100)
-    scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cmap)
+    scalarMap = cm.ScalarMappable(norm=cNorm, cmap=cmap)
     fig, axn = plt.subplots()
     ylim = np.max(hid[:,:,unit])
     for i in [x*4 for x in range(25)]:
@@ -463,8 +673,21 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, instruct_mode=N
     return trials
 
 
-# unit = 110
-# time = 60
+unit = 110
+time = 60
+
+seed = '_seed'+str(2)
+model_dict = {}
+model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+cog = CogModule(model_dict)
+cog.load_models('Anti Go', foldername)
+
+cog._plot_trained_performance()
+
+
+ModelS = model_dict['S-Bert train'+seed]
+
 
 # trials = plot_neural_resp(ModelS, 'Go', 'direction', unit, 1)
 # trials = plot_neural_resp(ModelS, 'RT Go', 'direction', unit, 1)
@@ -475,10 +698,12 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, instruct_mode=N
 # trials = plot_neural_resp(ModelS, holdout, 'direction', unit, 1, instruct_mode='instruct_swap')
 
 
-# trials = make_tuning_curve(ModelS, 'Go', 'direction', unit, 99, 1, instruct_mode=None)
-# trials = make_tuning_curve(ModelS, 'RT Go', 'direction', unit, 115, 1, instruct_mode=None)
-# trials = make_tuning_curve(ModelS, 'Anti Go', 'direction', unit, 99, 1, instruct_mode=None)
-# trials = make_tuning_curve(ModelS, 'Anti RT Go', 'direction', unit, 115, 1, instruct_mode=None)
+trials = make_tuning_curve(ModelS, 'Go', 'direction', unit, 99, 1, instruct_mode=None)
+trials = make_tuning_curve(ModelS, 'RT Go', 'direction', unit, 115, 1, instruct_mode=None)
+trials = make_tuning_curve(ModelS, 'Anti Go', 'direction', unit, 99, 1, instruct_mode=None)
+trials = make_tuning_curve(ModelS, 'Anti RT Go', 'direction', unit, 110, 1, instruct_mode=None)
+
+
 
 # trials = make_tuning_curve(ModelS, holdout, 'direction', unit, 115, 1, instruct_mode='masked')
 
@@ -495,159 +720,3 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, instruct_mode=N
 
 # for task in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']:
 #     trials = plot_neural_resp([Model1], task, 17, 'diff_strength', 1)
-
-
-# trials.plot_trial(0)
-
-
-
-
-
-
-
-# fig, axn = plt.subplots()
-# plt.plot(np.linspace(0, 2*np.pi, num=num_trials), hid[:, 60, j], alpha = normed[i], c = cmap(normed[i]))
-# axn.set_ylim(-1, 1)
-# plt.show()
-
-
-
-# torch.cat((torch.empty(100, 120, 81), torch.zeros(100, 120, 30)), dim=2).shape
-
-
-# cog = CogModule(model_dict)
-# cog.model_dict.keys()
-# cog.load_models('Anti DM', foldername)
-
-# from LangModule import train_instruct_dict
-# from collections import defaultdict
-# import seaborn as sns
-# import matplotlib.pyplot as plt
-
-
-# indices, reps = cog.model_dict['S-Bert train'].langMod._get_instruct_rep(train_instruct_dict)
-# indices, reps = cog.model_dict['S-Bert_cat'].langMod._get_instruct_rep(train_instruct_dict)
-# indices, reps = LangModule(SBERT(20))._get_instruct_rep(train_instruct_dict)
-
-# rep_dict = defaultdict(list)
-# for index, rep in list(zip(indices, reps)): 
-#     rep_dict[task_list[index]].append(rep)
-
-# sims = cosine_similarity(rep_dict['COMP1'], rep_dict['COMP2'])
-
-# sims = cosine_similarity(np.array([np.mean(np.array(rep_dict['COMP1']), 0), np.mean(np.array(rep_dict['COMP2']), 0)]))
-
-# sns.heatmap(sims, annot=True, vmin=0, vmax=1)
-# plt.title('S-BERT (end-to-end)')
-# plt.ylabel('COMP1 Instructions')
-# plt.xlabel('COMP2 Instructions')
-# plt.show()
-
-# shuffled_dict = {}
-
-# for task, instructs in train_instruct_dict.items(): 
-#     instruction_list = []
-#     for instruct in instructs: 
-#         instruct = instruct.split()
-#         shuffled = np.random.permutation(instruct)
-#         instruct = ' '.join(list(shuffled))
-#         instruction_list.append(instruct)
-#     shuffled_dict[task] = instruction_list
-
-# shuffled_dict['Go']
-
-
-# indices, reps = cog.model_dict['S-Bert train'].langMod._get_instruct_rep(train_instruct_dict)
-# shuffled_rep_dict = defaultdict(list)
-# for index, rep in list(zip(indices, reps)): 
-#     shuffled_rep_dict[task_list[index]].append(rep)
-# shuffled_sims = cosine_similarity(rep_dict['DM'], rep_dict['DM'])
-
-# sns.heatmap(shuffled_sims,  annot=True, vmin=0, vmax=1)
-# plt.title('Language Representation Similarity Scores (S-BERT train)')
-# plt.ylabel('COMP1 Instructions')
-# plt.xlabel('COMP2 Instructions')
-# plt.show()
-
-
-
-# cog.load_models('Anti DM', foldername)
-
-
-# from Task import construct_batch
-# from CogModule import mask_input_rule, isCorrect
-# import torch
-# from sklearn.decomposition import PCA
-# import matplotlib.pyplot as plt
-# import matplotlib
-
-
-# dim=2
-# epoch = 'prep'
-# avg_rep = False
-# instruct_mode = None
-# num_trials = 50
-# model = cog.model_dict['Model1']
-# holdout_task= None
-
-# tasks = ['Go', 'Anti Go']
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-# task_reps = []
-# correct_list  = []
-# for task in task_list: 
-#     trials = construct_batch(task, num_trials)
-#     tar_dirs = trials.target_dirs
-#     tar = trials.targets
-#     ins = mask_input_rule(torch.Tensor(trials.inputs), num_trials, 120).to(device)
-#     h0 = torch.FloatTensor(num_trials, 128).uniform_(-1, 1).unsqueeze(0).to(device)
-#     out, hid = model(ins, h0)
-
-#     correct_list += list(isCorrect(out, tar, tar_dirs))
-#     hid = hid.detach().cpu().numpy()
-#     epoch_state = []
-
-#     for i in range(num_trials): 
-#         if epoch.isnumeric(): 
-#             epoch_index = int(epoch)
-#             epoch_state.append(hid[i, epoch_index, :])
-#         if epoch == 'stim': 
-#             epoch_index = np.where(tar[i, :, 0] == 0.85)[0][-1]
-#             epoch_state.append(hid[i, epoch_index, :])
-#         if epoch == 'response':
-#             epoch_state.append(hid[i, -1, :])
-#         if epoch == 'input':
-#             epoch_state.append(hid[i, 0, :])
-#         if epoch == 'prep': 
-#             epoch_index = np.where(ins[i, :, 18:]>0.25)[0][0]-1
-#             epoch_state.append(hid[i, epoch_index, :])
-    
-#     if avg_rep: 
-#         epoch_state = [np.mean(np.stack(epoch_state), axis=0)]
-    
-#     task_reps += epoch_state
-
-# embedded = PCA(n_components=dim).fit_transform(task_reps)
-# cmap = matplotlib.cm.get_cmap('tab20')
-
-# if avg_rep: 
-#     to_plot = np.stack([embedded[task_list.index(task), :] for task in tasks])
-#     task_indices = np.array([task_list.index(task) for task in tasks]).astype(int)
-#     marker_size = 100
-# else: 
-#     to_plot = np.stack([embedded[task_list.index(task)*num_trials: task_list.index(task)*num_trials+num_trials, :] for task in tasks]).reshape(len(tasks)*num_trials, dim)
-#     correct = np.stack([correct_list[task_list.index(task)*num_trials: task_list.index(task)*num_trials+num_trials] for task in tasks]).flatten()
-#     task_indices = np.array([[task_list.index(task)]*num_trials for task in tasks]).astype(int).flatten()
-#     marker_size = 25
-# tasks
-# len(task_indices)
-# dots = cmap(task_indices)
-# correct = np.where(correct<1, 0.25, correct)
-# dots[:, 3] = correct
-
-# plt.scatter(to_plot[:, 0], to_plot[:, 1], c=dots, s=25)
-# plt.xlabel("PC 1", fontsize = 18)
-# plt.ylabel("PC 2", fontsize = 18)
-# plt.show()
-

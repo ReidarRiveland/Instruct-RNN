@@ -6,8 +6,8 @@ import gensim.downloader as api
 from gensim.models import KeyedVectors
 from gensim.models import Word2Vec
 
-from fse.models import SIF
-from fse import IndexedList
+# from fse.models import SIF
+# from fse import IndexedList
 
 import numpy as np
 import pickle
@@ -266,28 +266,28 @@ class SBERT(nn.Module):
 #         sent_embedding = self.proj_out(torch.Tensor(sent_embedding).to(device))
 #         return sent_embedding
 
-class SIFmodel(nn.Module): 
-    def __init__(self): 
-        super(SIFmodel, self).__init__()
-        self.out_shape = ['batch_len', 50]
-        self.in_shape = ['batch_len', 50]
-        self.out_dim = 50
-        self.embedderStr = 'SIF'
-        self.tokenizer = None
-        self.embedder = pickle.load(open('PreTrainedLanguageModels/glove-50-sif', 'rb'))
+# class SIFmodel(nn.Module): 
+#     def __init__(self): 
+#         super(SIFmodel, self).__init__()
+#         self.out_shape = ['batch_len', 50]
+#         self.in_shape = ['batch_len', 50]
+#         self.out_dim = 50
+#         self.embedderStr = 'SIF'
+#         self.tokenizer = None
+#         self.embedder = pickle.load(open('PreTrainedLanguageModels/glove-50-sif', 'rb'))
 
-    def get_SIF_embedding(self, instruct): 
-        if instruct in all_sentences: 
-            index = IndexedList(split_sentences).items.index(instruct.split())
-            embedded = self.embedder.sv[index]
-        else: 
-            tmp = (instruct.split(), 0)
-            embedded = self.embedder.infer([tmp])
-        return embedded.squeeze()
+#     def get_SIF_embedding(self, instruct): 
+#         if instruct in all_sentences: 
+#             index = IndexedList(split_sentences).items.index(instruct.split())
+#             embedded = self.embedder.sv[index]
+#         else: 
+#             tmp = (instruct.split(), 0)
+#             embedded = self.embedder.infer([tmp])
+#         return embedded.squeeze()
 
-    def forward(self, x):
-        embedded = [self.get_SIF_embedding(x[i]) for i in range(len(x))]
-        return torch.Tensor(np.array(embedded, dtype = np.float32)).to(device)
+#     def forward(self, x):
+#         embedded = [self.get_SIF_embedding(x[i]) for i in range(len(x))]
+#         return torch.Tensor(np.array(embedded, dtype = np.float32)).to(device)
 
 class BoW(nn.Module): 
     def __init__(self): 

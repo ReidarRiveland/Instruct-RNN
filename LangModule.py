@@ -16,6 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+import umap
 from scipy.ndimage.filters import gaussian_filter1d
 import pickle
 
@@ -36,6 +37,26 @@ instruct_swap_dict = dict(zip(swapped_task_list, train_instruct_dict.values()))
 instruct_swap_dict['Anti RT Go']
 
 PAD_LEN = 25
+
+from collections import defaultdict
+
+task_group_colors = defaultdict(dict)
+task_group_colors['Go'] = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT Go':'orange'}
+task_group_colors['Decision Making'] = { 'DM':'Red', 'Anti DM':'Green', 'MultiDM':'Blue', 'Anti MultiDM':'Yellow'}
+task_group_colors['Comparison'] = { 'COMP1':'sienna', 'COMP2':'seagreen', 'MultiCOMP1':'skyblue', 'MultiCOMP2':'gold'}
+task_group_colors['Delay'] = { 'DMS':'firebrick', 'DNMS':'lightgreen', 'DMC':'dodgerblue', 'DNMC':'darkorange'}
+
+def task_cmap(array): 
+    all_task_dict = {}
+    for task_colors in task_group_colors.values(): 
+        all_task_dict.update(task_colors)
+    color_list = []
+
+    for index in array: 
+        color_list.append(all_task_dict[task_list[index]])
+
+    return color_list
+
 
 
 def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
@@ -177,7 +198,7 @@ class LangModule():
         f.suptitle('Confusion Matrix; embedder: {}'.format(self.embedderStr))
         plt.show()
 
-    def _get_instruct_rep(self, instruct_dict):
+    def _get_instruct_rep(self, instruct_dict, depth='full'):
         self.langModel.to(device)
         self.langModel.eval()
         with torch.no_grad(): 
@@ -185,7 +206,14 @@ class LangModule():
             rep_tensor = torch.Tensor().to(device)
             for i, task in enumerate(instruct_dict.keys()):
                 instructions = instruct_dict[task]
-                out_rep = self.langModel(instructions)
+                if depth == 'full': 
+                    out_rep = self.langModel(instructions)
+                elif depth == 'transformer': 
+                    tokens = self.langModel.model.tokenize(instructions)
+                    for key, value in tokens.items():
+                        tokens[key] = value.to(device)
+                    sent_embedding = self.langModel.model(tokens)['sentence_embedding']
+                    out_rep = sent_embedding
                 task_indices += ([i]*len(instructions))
                 rep_tensor = torch.cat((rep_tensor, out_rep), dim=0)
         return task_indices, rep_tensor.cpu().detach().numpy()
@@ -205,11 +233,11 @@ class LangModule():
         return task_set, avg_reps
 
 
-    def plot_embedding(self, dim=2, tasks = task_list, plot_avg = False, train_only=False, RGBY = False):
+    def plot_embedding(self, dim=2, embedder = 'PCA', interm_dim = 20, depth = 'full', tasks = task_list, plot_avg = False, train_only=False, RGBY = False, cmap = matplotlib.cm.get_cmap('tab20')):
         assert dim in [2, 3], "embedding dimension must be 2 or 3"
 
-        train_indices, train_rep = self._get_instruct_rep(train_instruct_dict)
-        test_indices, test_rep = self._get_instruct_rep(test_instruct_dict)
+        train_indices, train_rep = self._get_instruct_rep(train_instruct_dict, depth=depth)
+        test_indices, test_rep = self._get_instruct_rep(test_instruct_dict, depth=depth)
 
         if plot_avg: 
             train_indices, train_rep = self._get_avg_rep(train_indices, train_rep)
@@ -217,9 +245,18 @@ class LangModule():
         if len(test_rep.shape)>2: 
             test_rep = test_rep.squeeze()
 
-        embedded_train = PCA(n_components=dim).fit_transform(train_rep)
-        embedded_test = PCA(n_components=dim).fit_transform(test_rep)
-
+        if embedder == 'PCA': 
+            embedded_train = PCA(n_components=dim).fit_transform(train_rep)
+            embedded_test = PCA(n_components=dim).fit_transform(test_rep)
+        elif embedder == 'TSNE': 
+            pca_reduced_train = PCA(n_components=interm_dim).fit_transform(train_rep)
+            pca_reduced_test = PCA(n_components=interm_dim).fit_transform(test_rep)
+            embedded_train = TSNE(n_components=dim).fit_transform(pca_reduced_train)
+            embedded_test = TSNE(n_components=dim).fit_transform(pca_reduced_test)
+        elif embedder == 'UMAP': 
+            embedded_train = umap.UMAP().fit_transform(train_rep)
+            embedded_test = umap.UMAP().fit_transform(test_rep)
+            
         task_indices = [task_list.index(task) for task in tasks] 
 
         if tasks != task_list:
@@ -231,42 +268,47 @@ class LangModule():
             embedded_test = np.stack(embedded_test)
 
 
-        cmap = matplotlib.cm.get_cmap('tab20')
-
         color_train = np.array(train_indices).astype(int)
         color_test = np.array(test_indices).astype(int)
 
         if dim == 2: 
             fig, ax = plt.subplots(figsize=(6, 5))
             if RGBY == True: 
-                colors = ['Green']*12 + ['Red']*12 + ['Yellow']*10 + ['Blue']*10 
+                colors = ['Green']*15 + ['Red']*15 + ['Yellow']*15 + ['Blue']*15
                 jitter = np.random.uniform(0.0, 0.1, size=len(colors))
-                plt.scatter(embedded_train[:, 0], embedded_train[:, 1] + jitter, color= colors, cmap=cmap, s=100)    
+                plt.scatter(embedded_train[:, 0], embedded_train[:, 1] + jitter, color= colors, cmap=cmap, s=100) 
+                if not train_only:
+                    test_colors =  ['Green']*5 + ['Red']*5 + ['Yellow']*5 + ['Blue']*5
+                    plt.scatter(embedded_test[:, 0], embedded_test[:, 1], color = test_colors, marker= "X", s=100)   
+            # else: 
+            #     plt.scatter(embedded_train[:, 0], embedded_train[:, 1], c=cmap(color_train), cmap=cmap, s=100)
+            # if not train_only:
+            #     plt.scatter(embedded_test[:, 0], embedded_test[:, 1], c=cmap(color_test), marker= "X", s=100)
+
             else: 
-                plt.scatter(embedded_train[:, 0], embedded_train[:, 1], c=cmap(color_train), cmap=cmap, s=100)
+                plt.scatter(embedded_train[:, 0], embedded_train[:, 1], color=task_cmap(color_train), cmap=cmap, s=100)
             if not train_only:
-                plt.scatter(embedded_test[:, 0], embedded_test[:, 1], c=cmap(color_test), marker= "X", s=100)
-            #plt.setp(ax, xticks=[], yticks=[])
+                plt.scatter(embedded_test[:, 0], embedded_test[:, 1], color=task_cmap(color_test), marker= "X", s=100)
             plt.xlabel("PC 1", fontsize = 18)
             plt.ylabel("PC 2", fontsize = 18)
         else: 
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
-            ax.scatter(embedded_train[:, 0], embedded_train[:, 1], embedded_train[:,2], c=cmap(color_train), cmap=cmap, s=100)
+            ax.scatter(embedded_train[:, 0], embedded_train[:, 1], embedded_train[:,2], color=task_cmap(color_train), cmap=cmap, s=100)
             if not train_only:
-                ax.scatter(embedded_test[:, 0], embedded_test[:, 1], embedded_test[:, 2], c=cmap(color_test), marker= "X", s=100)
+                ax.scatter(embedded_test[:, 0], embedded_test[:, 1], embedded_test[:, 2], color=task_cmap(color_test), marker= "X", s=100)
             ax.set_xlabel('PC 1')
             ax.set_ylabel('PC 2')
             ax.set_zlabel('PC 3')
 
 
-        plt.suptitle(r'$\textbf{PCA of Instruction Embeddings (Anti DM Holdout)}$', fontsize=14, fontweight='bold')
+        plt.suptitle(r'$\textbf{PCA of Instruction Embeddings}$', fontsize=14, fontweight='bold')
         plt.title('S-Bert (end-to-end)')
         digits = np.arange(len(tasks))
         if RGBY == True: 
             Patches = [mpatches.Patch(color=['Red', 'Green', 'Blue', 'Yellow'][i-task_indices[0]], label=task_list[i]) for i in task_indices]
         else: 
-            Patches = [mpatches.Patch(color=cmap(i), label=task_list[i]) for i in task_indices]
+            Patches = [mpatches.Patch(color=task_cmap([i])[0], label=task_list[i]) for i in task_indices]
         if not train_only: 
             Patches.append(Line2D([0], [0], marker='X', color='w', label='test data', markerfacecolor='grey', markersize=10))
             Patches.append(Line2D([0], [0], marker='o', color='w', label='train data', markerfacecolor='grey', markersize=10))
