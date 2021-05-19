@@ -15,8 +15,6 @@ from Task import Task
 task_list = Task.TASK_LIST
 
 
-
-
 # epochs = 50
 # init_lr = 0.001
 # milestones = [10, 20, 25, 30, 35, 40]
@@ -28,14 +26,14 @@ init_lr = 0.001
 milestones = [10, 15, 20]
 
 seeds=5
-foldername = '_ReLU128_12.4'
+foldername = '_ReLU128_19.5'
 for i in range(5): 
     seed = '_seed'+str(0)
     for holdout in task_list+['Multitask']:
         model_dict = {}
-        model_dict['BERT_train'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu',  tune_langModel=True, langLayerList=['layer.11'])
         model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-        model_dict['BOW'+seed]= instructNet(LangModule(BoW()), 128, 1, 'relu', tune_langModel=False)
+        model_dict['BERT_train'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu',  tune_langModel=True, langLayerList=['layer.11'])
+        model_dict['BOW'+seed]= instructNet(LangModule(BoW()), 128, 1, 'relu', tune_langModel=True)
         model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
         #model_dict['GPT train'+seed] = instructNet(LangModule(GPT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
         cog = CogModule(model_dict)
@@ -53,9 +51,9 @@ foldername = '_ReLU128_12.4'
 seed = '_seed'+str(0)
 model_dict = {}
 model_dict['BERT_train'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=False)
-model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu',  tune_langModel=False)
+model_dict['S-Bert train'+seed] = instructNet(LangModule(BoW()), 128, 1, 'relu',  tune_langModel=True)
 
-for n,p in model_dict['S-Bert train'+seed].named_parameters(): 
+for n, p in model_dict['S-Bert train'+seed].named_parameters(): 
     if p.requires_grad: 
         print(n)
 

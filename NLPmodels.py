@@ -290,11 +290,16 @@ class SBERT(nn.Module):
 #         return torch.Tensor(np.array(embedded, dtype = np.float32)).to(device)
 
 class BoW(nn.Module): 
-    def __init__(self): 
+    def __init__(self, reduction_dim = None): 
         super(BoW, self).__init__()
         self.embedderStr = 'BoW'
         self.tokenizer = None
-        self.out_dim = len(vocab)    
+        self.reduction_dim = reduction_dim
+        if self.reduction_dim == None: 
+            self.out_dim = len(vocab)    
+        else: 
+            self.out_dim = reduction_dim
+            self.lin = nn.Sequential(nn.Linear(len(vocab), self.out_dim), nn.ReLU())
 
     def forward(self, x): 
         batch_vectorized = []
@@ -304,5 +309,7 @@ class BoW(nn.Module):
                 index = vocab.index(word)
                 out_vec[index] += 1
             batch_vectorized.append(out_vec)
-        return torch.stack(batch_vectorized).to(device)
-
+            out = torch.stack(batch_vectorized).to(device)
+        if self.reduction_dim is not None: 
+            out = self.lin(out)
+        return out
