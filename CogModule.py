@@ -303,7 +303,8 @@ class CogModule():
             filename = filename.replace(' ', '_')
             torch.save(model.state_dict(), filename)
 
-    def load_models(self, holdout_task, foldername):
+    def load_models(self, holdout_task, foldername, name):
+        self.load_training_data(holdout_task, foldername, name)
         for model_name, model in self.model_dict.items():
             filename = foldername+'/'+holdout_task+'/'+holdout_task+'_'+model_name+'.pt'
             filename = filename.replace(' ', '_')

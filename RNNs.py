@@ -80,15 +80,18 @@ class instructNet(nn.Module):
                 for param in self.langModel.parameters(): 
                     param.requires_grad = True
             else: 
-                for n,p in self.langModel.named_parameters(): 
+                for n,p in self.langModel.model.named_parameters(): 
                     if any([layer in n for layer in langLayerList]):
                         p.requires_grad=True
                     else: 
                         p.requires_grad=False
         else: 
-            for param in self.langModel.model.parameters(): 
-                param.requires_grad = False
-            self.langModel.eval()
+            try: 
+                for param in self.langModel.model.parameters(): 
+                    param.requires_grad = False
+                self.langModel.eval()
+            except: 
+                pass
 
     def weights_init(self): 
         self.rnn.weights_init()

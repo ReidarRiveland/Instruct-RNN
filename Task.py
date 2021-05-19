@@ -340,7 +340,6 @@ class DM(Task):
         self.target_dirs = np.empty(num_trials)
         self.coh_list = []
         if type(intervals) == type(None): 
-
             for i in range(num_trials):
                 directions = self._draw_ortho_dirs()
                 if self.task_type == 'MultiDM' or task_type == 'Anti MultiDM': 
@@ -427,7 +426,7 @@ def construct_batch(task_type, num):
     return trial 
 
 
-# trials = Delay('DNMS', 50)
+# trials = DM('Anti DM', 30)
 # trials.plot_trial(0)
 
 # sub = np.subtract(np.array(trials.directions)[:, 0], np.array(trials.directions)[:, 1])
