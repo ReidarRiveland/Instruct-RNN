@@ -6,14 +6,14 @@ import gensim.downloader as api
 from gensim.models import KeyedVectors
 from gensim.models import Word2Vec
 
-from fse.models import SIF
-from fse import IndexedList
+# from fse.models import SIF
+# from fse import IndexedList
 
 import numpy as np
 import pickle
 import os
 
-from Taskedit import Task
+from Task import Task
 from LangModule import PAD_LEN, train_instruct_dict, test_instruct_dict
 
 task_list = Task.TASK_LIST
@@ -127,9 +127,9 @@ class LangTransformer(nn.Module):
         return out
 
 
-class gpt2(nn.Module): 
+class GPT(nn.Module): 
     def __init__(self, out_dim, d_reduce='avg', size = 'base'): 
-        super(gpt2, self).__init__()
+        super(GPT, self).__init__()
         from transformers import GPT2Model, GPT2Tokenizer
         self.d_reduce = d_reduce
         self.embedderStr = 'gpt'
@@ -141,18 +141,25 @@ class gpt2(nn.Module):
             self.proj_out = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
 
         if size == 'large': 
-            self.transformer = GPT2Model.from_pretrained('gpt2-medium')
+            self.model = GPT2Model.from_pretrained('gpt2-medium')
             self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2-medium')
         elif size == 'XL': 
-            self.transformer = GPT2Model.from_pretrained('gpt2-xl')
+            self.model = GPT2Model.from_pretrained('gpt2-xl')
             self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2-xl')
         else: 
-            self.transformer = GPT2Model.from_pretrained('gpt2')
+            self.model = GPT2Model.from_pretrained('gpt2')
             self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+
+        self.tokenizer.pad_token = self.tokenizer.eos_token
 
 
     def forward(self, x): 
-        trans_out = self.transformer(x)[0]
+        tokens = self.tokenizer(x, return_tensors='pt', padding=True)
+        for key, value in tokens.items():
+            tokens[key] = value.to(device)
+
+        trans_out = self.model(**tokens).last_hidden_state
+
         if self.d_reduce == 'linear': 
             out = self.proj_out(trans_out.flatten(1))
         elif self.d_reduce ==  'max': 
@@ -178,15 +185,19 @@ class BERT(nn.Module):
             self.proj_out = nn.Sequential(nn.Linear(768, self.out_dim), nn.ReLU())
 
         if size == 'large': 
-            self.transformer = BertModel.from_pretrained('bert-large-uncased')
+            self.model = BertModel.from_pretrained('bert-large-uncased')
             self.tokenizer = BertTokenizer.from_pretrained('bert-large-uncased')
         else: 
-            self.transformer = BertModel.from_pretrained('bert-base-uncased')
+            self.model = BertModel.from_pretrained('bert-base-uncased')
             self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 
     def forward(self, x): 
-        trans_out = self.transformer(x)[0]
+        tokens = self.tokenizer(x, return_tensors="pt", padding=True)
+        for key, value in tokens.items():
+            tokens[key] = value.to(device)
+        trans_out = self.model(**tokens).last_hidden_state
+
         if self.d_reduce == 'linear': 
             out = self.proj_out(trans_out.flatten(1))
         elif self.d_reduce ==  'max': 
@@ -195,8 +206,7 @@ class BERT(nn.Module):
         elif self.d_reduce == 'avg': 
             trans_out = torch.mean((trans_out), dim =1) 
             out =self.proj_out(trans_out)
-        elif self.d_reduce == 'avg_conv': 
-            trans_out = nn.AvgPool2d((1, ), (2,1))
+
         return out
 
 
@@ -218,8 +228,11 @@ class SBERT(nn.Module):
             self.lin = nn.Sequential(nn.Linear(768, int(768/2)), self.output_nonlinearity, nn.Linear(int(768/2), self.out_dim), self.output_nonlinearity)
         
     def forward(self, x): 
-        sent_embedding = np.array(self.model.encode(x))
-        sent_embedding = self.lin(torch.Tensor(sent_embedding).to(device))
+        tokens = self.model.tokenize(x)
+        for key, value in tokens.items():
+            tokens[key] = value.to(device)
+        sent_embedding = self.model(tokens)['sentence_embedding']
+        sent_embedding = self.lin(sent_embedding)
         return sent_embedding
 
 
@@ -253,35 +266,40 @@ class SBERT(nn.Module):
 #         sent_embedding = self.proj_out(torch.Tensor(sent_embedding).to(device))
 #         return sent_embedding
 
-class SIFmodel(nn.Module): 
-    def __init__(self): 
-        super(SIFmodel, self).__init__()
-        self.out_shape = ['batch_len', 50]
-        self.in_shape = ['batch_len', 50]
-        self.out_dim = 50
-        self.embedderStr = 'SIF'
-        self.tokenizer = None
-        self.embedder = pickle.load(open('PreTrainedLanguageModels/glove-50-sif', 'rb'))
+# class SIFmodel(nn.Module): 
+#     def __init__(self): 
+#         super(SIFmodel, self).__init__()
+#         self.out_shape = ['batch_len', 50]
+#         self.in_shape = ['batch_len', 50]
+#         self.out_dim = 50
+#         self.embedderStr = 'SIF'
+#         self.tokenizer = None
+#         self.embedder = pickle.load(open('PreTrainedLanguageModels/glove-50-sif', 'rb'))
 
-    def get_SIF_embedding(self, instruct): 
-        if instruct in all_sentences: 
-            index = IndexedList(split_sentences).items.index(instruct.split())
-            embedded = self.embedder.sv[index]
-        else: 
-            tmp = (instruct.split(), 0)
-            embedded = self.embedder.infer([tmp])
-        return embedded.squeeze()
+#     def get_SIF_embedding(self, instruct): 
+#         if instruct in all_sentences: 
+#             index = IndexedList(split_sentences).items.index(instruct.split())
+#             embedded = self.embedder.sv[index]
+#         else: 
+#             tmp = (instruct.split(), 0)
+#             embedded = self.embedder.infer([tmp])
+#         return embedded.squeeze()
 
-    def forward(self, x):
-        embedded = [self.get_SIF_embedding(x[i]) for i in range(len(x))]
-        return torch.Tensor(np.array(embedded, dtype = np.float32)).to(device)
+#     def forward(self, x):
+#         embedded = [self.get_SIF_embedding(x[i]) for i in range(len(x))]
+#         return torch.Tensor(np.array(embedded, dtype = np.float32)).to(device)
 
 class BoW(nn.Module): 
-    def __init__(self): 
+    def __init__(self, reduction_dim = None): 
         super(BoW, self).__init__()
         self.embedderStr = 'BoW'
         self.tokenizer = None
-        self.out_dim = len(vocab)    
+        self.reduction_dim = reduction_dim
+        if self.reduction_dim == None: 
+            self.out_dim = len(vocab)    
+        else: 
+            self.out_dim = reduction_dim
+            self.lin = nn.Sequential(nn.Linear(len(vocab), self.out_dim), nn.ReLU())
 
     def forward(self, x): 
         batch_vectorized = []
@@ -291,5 +309,7 @@ class BoW(nn.Module):
                 index = vocab.index(word)
                 out_vec[index] += 1
             batch_vectorized.append(out_vec)
-        return torch.stack(batch_vectorized).to(device)
-
+            out = torch.stack(batch_vectorized).to(device)
+        if self.reduction_dim is not None: 
+            out = self.lin(out)
+        return out

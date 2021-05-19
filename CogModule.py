@@ -9,9 +9,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 import seaborn as sns
 import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import matplotlib.gridspec as gridspec
-import matplotlib.animation as animation
 from matplotlib.lines import Line2D
 from matplotlib import rc
 
@@ -27,9 +24,12 @@ import pickle
 import random
 from collections import defaultdict
 
-from Taskedit import Task, construct_batch
-from LangModule import get_batch, toNumerals, swaps
-from RNNs import simpleNet
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+from Task import Task, construct_batch
+from LangModule import get_batch, swaps
+
 
 task_list = Task.TASK_LIST
 tuning_dirs = Task.TUNING_DIRS
@@ -213,18 +213,7 @@ def swap_input_rule(in_tensor, task_type):
     return swapped_input
 
 
-
 class CogModule():
-    ALL_STYLE_DICT = {'Model1': ('blue', None), 'Model1shuffled': ('blue', '+'), 'SIF':('brown', None), 'BoW': ('orange', None), 'GPT_cat': ('red', '^'), 'GPT train': ('red', '.'), 
-                            'BERT_cat': ('green', '^'), 'BERT train': ('green', '+'), 'S-Bert_cat': ('purple', '^'), 'S-Bert train': ('purple', '.'), 'S-Bert' : ('purple', None), 
-                            'InferSent train': ('yellow', '.'), 'InferSent_cat': ('yellow', '^'), 'Transformer': ('pink', '.')}
-    COLOR_DICT = {'Model1': 'blue', 'SIF':'brown', 'BoW': 'orange', 'GPT': 'red', 'BERT': 'green', 'S-Bert': 'purple', 'InferSent':'yellow', 'Transformer': 'pink'}
-    MODEL_MARKER_DICT = {'SIF':None, 'BoW':None, 'shuffled':'+', 'cat': '^', 'train': '.', 'Transformer':'.'}
-    MARKER_DICT = {'^': 'task categorization', '.': 'end-to-end', '+':'shuffled'}
-    NAME_TO_PLOT_DICT = {'Model1': 'One-Hot Task Vec.','Model1shuffled': 'Shuffled One-Hot', 'SIF':'SIF', 'BoW': 'BoW', 'GPT_cat': 'GPT (task cat.)', 'GPT train': 'GPT (end-to-end)', 
-                            'BERT_cat': 'BERT (task cat.)', 'BERT train': 'BERT (end-to-end)', 'S-Bert_cat': 'S-BERT (task cat.)', 'S-Bert train': 'S-BERT (end-to-end)',  
-                            'S-Bert': 'S-BERT (raw)', 'InferSent train': 'InferSent (end-to-end)', 'InferSent_cat': 'InferSent (task cat.)', 'Transformer': 'Transformer (end-to-end)'}
-
     def __init__(self, model_dict):
         self.model_dict = model_dict
         for model in self.model_dict.values(): 
@@ -234,34 +223,7 @@ class CogModule():
         self.total_correct_dict = defaultdict(list)
         self.task_sorted_loss = {}
         self.task_sorted_correct = {}
-
-
-    def get_model_patches(self): 
-        Patches = []
-        Markers = []
-        color_dict = self.COLOR_DICT.copy()
-        for model_name in self.model_dict.keys(): 
-            architecture_type = list(self.COLOR_DICT.keys())[np.where([model_name.startswith(key) for key in self.COLOR_DICT.keys()])[0][0]]
-            try:
-                color = color_dict.pop(architecture_type)
-            except:
-                continue
-            if architecture_type == 'Model1': architecture_type = 'One-Hot Vec.'
-            patch = mpatches.Patch(color=color, label=architecture_type)
-            Patches.append(patch)
-
-        for model_name in self.model_dict.keys(): 
-            print(model_name)
-            if model_name in ['Model1', 'BoW', 'SIF', 'S-Bert']: 
-                continue
-            where_array = np.array([model_name.find(key) for key in self.MODEL_MARKER_DICT.keys()])
-            marker = self.MODEL_MARKER_DICT[list(self.MODEL_MARKER_DICT.keys())[np.where(where_array >= 0)[0][0]]]
-            if any([marker == m.get_marker() for m in Markers]): 
-                continue
-            mark = Line2D([0], [0], marker=marker, color='w', label=self.MARKER_DICT[marker], markerfacecolor='grey', markersize=10)
-            Markers.append(mark)
-
-        return Patches, Markers
+        self.opt_dict = None
 
     def reset_data(self): 
         self.total_task_list = []
@@ -269,6 +231,41 @@ class CogModule():
         self.total_correct_dict = defaultdict(list)
         self.task_sorted_loss = {}
         self.task_sorted_correct = {}
+    
+    @staticmethod
+    def _get_lang_input(model, batch_len, task_type, instruct_mode): 
+        tokenizer = model.langModel.tokenizer
+        batch_instruct, _ = get_batch(batch_len, tokenizer, task_type=task_type, instruct_mode=instruct_mode)
+        return batch_instruct
+
+    @staticmethod
+    def _get_model_resp(model, batch_len, ins, task_type, instruct_mode): 
+        h0 = model.initHidden(batch_len, 0.1).to(device)
+        if model.isLang: 
+            if instruct_mode == 'masked': 
+                masked = torch.zeros(ins.shape[0], ins.shape[1], model.langModel.out_dim).to(device)
+                ins = torch.cat((del_input_rule(ins), masked), dim=2)
+                out, hid = model.rnn(ins, h0)
+            else: 
+                ins = del_input_rule(ins)
+                ####ISSUE HERE - how to properly pass instruct_mode
+                #instruct = self._get_lang_input(model, batch_len, task_type, model.instruct_mode)
+                instruct = CogModule._get_lang_input(model, batch_len, task_type, instruct_mode)
+                #print(instruct)
+                out, hid = model(instruct, ins, h0)
+        else: 
+            instruct = None
+            if instruct_mode == 'masked': 
+                ins = mask_input_rule(ins).to(device)
+            if instruct_mode == 'comp': 
+                ins = comp_input_rule(ins, task_type)
+            if instruct_mode == 'instruct_swap': 
+                ins = swap_input_rule(ins, task_type)
+            if model.instruct_mode == 'shuffled_one_hot':
+                ins = use_shuffled_one_hot(ins, task_type)
+
+            out, hid = model(ins, h0)
+        return out, hid
 
     def save_training_data(self, holdout_task,  foldername, name): 
         holdout_task = holdout_task.replace(' ', '_')
@@ -299,68 +296,39 @@ class CogModule():
             self.task_sorted_correct[model_type] = correct_temp_dict
             self.task_sorted_loss[model_type] = loss_temp_dict
 
-    def save_models(self, holdout_task, foldername):
-        self.save_training_data(holdout_task, foldername, holdout_task)
+    def save_models(self, holdout_task, foldername, name):
+        self.save_training_data(holdout_task, foldername, name)
         for model_name, model in self.model_dict.items():
             filename = foldername+'/'+holdout_task+'/'+holdout_task+'_'+model_name+'.pt'
             filename = filename.replace(' ', '_')
             torch.save(model.state_dict(), filename)
 
-    def load_models(self, holdout_task, foldername):
-        self.load_training_data(holdout_task, foldername, holdout_task)
+    def load_models(self, holdout_task, foldername, name):
+        self.load_training_data(holdout_task, foldername, name)
         for model_name, model in self.model_dict.items():
             filename = foldername+'/'+holdout_task+'/'+holdout_task+'_'+model_name+'.pt'
             filename = filename.replace(' ', '_')
             model.load_state_dict(torch.load(filename))
-
-    def _get_lang_input(self, model, batch_len, task_type, instruct_mode): 
-        tokenizer = model.langModel.tokenizer
-        batch_instruct, _ = get_batch(batch_len, tokenizer, task_type=task_type, instruct_mode=instruct_mode)
-        return batch_instruct
-
-    def _get_model_resp(self, model, batch_len, ins, task_type, instruct_mode): 
-        h0 = model.initHidden(batch_len, 0.1).to(device)
-        if model.isLang: 
-            if instruct_mode == 'masked': 
-                masked = torch.zeros(ins.shape[0], ins.shape[1], model.langModel.out_dim).to(device)
-                ins = torch.cat((del_input_rule(ins), masked), dim=2)
-                out, hid = model.rnn(ins, h0)
-            else: 
-                ins = del_input_rule(ins)
-                instruct = self._get_lang_input(model, batch_len, task_type, model.instruct_mode)
-                out, hid = model(instruct, ins, h0)
-        else: 
-            if instruct_mode == 'masked': 
-                ins = mask_input_rule(ins).to(device)
-            if instruct_mode == 'comp': 
-                ins = comp_input_rule(ins, task_type)
-            if instruct_mode == 'instruct_swap': 
-                ins = swap_input_rule(ins, task_type)
-            if model.instruct_mode == 'shuffled_one_hot':
-                ins = use_shuffled_one_hot(ins, task_type)
-            # sns.heatmap(ins[0, :, :].detach().cpu().numpy())
-            # plt.show()
-            out, hid = model(ins, h0)
-        return out, hid
+    
 
     def train(self, data, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, milestones = [], 
                         holdout_task = None, instruct_mode = None, freeze_langModel = False, langLR = None, langWeightDecay=None): 
         #torch.autograd.set_detect_anomaly
-        opt_dict = {}
+        self.opt_dict = {}
         for model_type, model in self.model_dict.items(): 
             if (model.isLang and not model.tune_langModel) or (model.tune_langModel and freeze_langModel): 
                 optimizer = optim.Adam(model.rnn.parameters(), lr=lr, weight_decay=weight_decay)
-                opt_dict[model_type] =(optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5))
+                self.opt_dict[model_type] =(optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5))
             else: 
-                if langWeightDecay is not None and model.isLang: 
+                if (langWeightDecay is not None or langLR is not None) and model.isLang: 
                     print('LangWeightDecay')
                     optimizer = optim.Adam([
                             {'params' : model.rnn.parameters()},
-                            {'params' : model.langModel.parameters(), 'lr': langLR, 'weight_decay':langWeightDecay}
+                            {'params' : model.langModel.model.parameters(), 'lr': langLR, 'weight_decay':langWeightDecay}
                         ], lr=lr, weight_decay=weight_decay)
                 else: 
                     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-                opt_dict[model_type] = (optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5))
+                self.opt_dict[model_type] = (optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5))
                 print(model_type)
             model.train()
         
@@ -374,6 +342,8 @@ class CogModule():
         batch_num = ins_tensor.shape[0]
         correct_array = np.empty((batch_len, batch_num), dtype=bool)
         for model_type, model in self.model_dict.items(): 
+            opt = self.opt_dict[model_type][0]
+            opt_scheduler = self.opt_dict[model_type][1]
             for i in range(epochs):
                 print('epoch', i)
                 index_list = list(np.arange(batch_num))
@@ -387,19 +357,15 @@ class CogModule():
                     ins = torch.Tensor(ins_tensor[index, :, :, :]).to(device)
                     tar_dir = tar_dir_vec[index]
 
-                    opt = opt_dict[model_type][0]
-                    opt_scheduler = opt_dict[model_type][1]
                     opt.zero_grad()
                     out, _ = self._get_model_resp(model, batch_len, ins, task_type, instruct_mode)
+
                     loss = masked_MSE_Loss(out, tar, mask) 
                     loss.backward()
-                    if model.isLang:
-                        torch.nn.utils.clip_grad_value_(model.rnn.rnn.parameters(), 0.5)
-                    else: 
-                        torch.nn.utils.clip_grad_value_(model.rnn.parameters(), 0.5)                    
+                    torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
                     opt.step()
 
-                    frac_correct = np.mean(isCorrect(out, tar, tar_dir))
+                    frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
                     self.total_loss_dict[model_type].append(loss.item())
                     self.total_correct_dict[model_type].append(frac_correct)
                     if j%50 == 0:
@@ -408,52 +374,11 @@ class CogModule():
                         self.sort_perf_by_task()
                         print('Frac Correct ' + str(frac_correct) + '\n')
                     self.total_task_list.append(task_type) 
-                self.sort_perf_by_task()
                 if scheduler: 
-                    opt_scheduler.step()               
+                    opt_scheduler.step()    
 
 
-    def plot_learning_curve(self, mode, task_type=None, smoothing = 2):
-        assert mode in ['loss', 'correct'], "mode must be 'loss' or 'correct', entered: %r" %mode
-        if mode == 'loss': 
-            y_label = 'MSE Loss'
-            y_lim = (0, 0.05)
-            title = 'MSE Loss over training'
-            perf_dict = self.task_sorted_loss
-        if mode == 'correct': 
-            y_label = 'Fraction Correct'
-            y_lim = (-0.05, 1.15)
-            title = 'Fraction Correct Response over training'
-            perf_dict = self.task_sorted_correct
-
-        if task_type is None: 
-            fig, axn = plt.subplots(4,4, sharey = True, figsize=(16, 18))
-            plt.suptitle(title)
-            for i, ax in enumerate(axn.flat):
-                ax.set_ylim(y_lim)
-
-                cur_task = Task.TASK_LIST[i]
-                for model_name in self.model_dict.keys():
-                    smoothed_perf = gaussian_filter1d(perf_dict[model_name][cur_task], sigma=smoothing)
-                    ax.plot(smoothed_perf, color = self.ALL_STYLE_DICT[model_name][0], marker = self.ALL_STYLE_DICT[model_name][1], linewidth= 1.0, markersize = 5, markevery=20)
-                ax.set_title(cur_task)
-        else:
-            fig, ax = plt.subplots(1,1)
-            plt.suptitle(title)
-            ax.set_ylim(y_lim)
-            for model_name in self.model_dict.keys():    
-                smoothed_perf = gaussian_filter1d(perf_dict[model_name][task_type], sigma=smoothing)
-                ax.plot(smoothed_perf, color = self.ALL_STYLE_DICT[model_name][0], marker = self.ALL_STYLE_DICT[model_name][1], markersize = 5, markevery=3)
-            ax.set_title(task_type + ' holdout')
-
-        Patches, Markers = self.get_model_patches()
-        arch_legend = plt.figlegend(handles=Patches+Markers, title = r"$\textbf{Language Module}$", loc='center right')
-
-        fig.text(0.5, 0.04, 'Training Examples', ha='center')
-        fig.text(0.04, 0.5, y_label, va='center', rotation='vertical')
-        fig.show()
-
-    def _get_performance(self, model, num_batches = 5, instruct_mode = None): 
+    def _get_performance(self, model, instruct_mode, num_batches): 
         model.eval()
         batch_len = 128
         with torch.no_grad():
@@ -471,7 +396,7 @@ class CogModule():
     def _plot_trained_performance(self, instruct_mode = None):
         barWidth = 0.1
         for i, model in enumerate(self.model_dict.values()):  
-            perf_dict = self._get_performance(model, num_batches=3, instruct_mode=None)
+            perf_dict = self._get_performance(model, instruct_mode, 3)
             keys = list(perf_dict.keys())
             values = list(perf_dict.values())
             len_values = len(task_list)
@@ -490,41 +415,40 @@ class CogModule():
         plt.legend()
         plt.show()
 
-    def plot_response(self, model_name, task_type, instruct = None, instruct_mode=None):
+    def plot_response(self, model_name, task_type, task = None, trial_num = 0, instruct = None, instruct_mode=None, show=True):
         model = self.model_dict[model_name]
         model.eval()
         with torch.no_grad(): 
-            task = construct_batch(task_type, 1)
+            if task == None: 
+                task = construct_batch(task_type, 1)
+
             tar = task.targets
             ins = task.inputs
             h0 = model.initHidden(1, 0.1).to(device)
 
             if instruct is not None: 
-                if model.embedderStr is not 'SBERT': 
-                    instruct = toNumerals(model.embedderStr, instruct)
-                else: 
-                    instruct = [instruct]
+                instruct = [instruct]
                 ins = del_input_rule(torch.Tensor(ins)).to(device)
                 out, hid = model(instruct, ins, h0)
             else: 
-                out, hid = self._get_model_resp(model, 1, torch.Tensor(ins).to(device), task_type, instruct_mode)
+                out, hid, instruct = self._get_model_resp(model, ins.shape[0], torch.Tensor(ins).to(device), task_type, instruct_mode)
             
-            correct = isCorrect(out, torch.Tensor(tar), task.target_dirs)
+            correct = isCorrect(out, torch.Tensor(tar), task.target_dirs)[trial_num]
 
 
-            out = out.squeeze().detach().cpu().numpy()
-            hid = hid.squeeze().detach().cpu().numpy()
+            out = out.detach().cpu().numpy()[trial_num, :, :]
+            hid = hid.detach().cpu().numpy()[trial_num, :, :]
 
 
 
-            fix = ins[0, :, 0:1]            
+            fix = ins[trial_num, :, 0:1]            
             num_rules = len(Task.TASK_LIST)
-            rule_vec = ins[0, :, 1:num_rules+1]
-            mod1 = ins[0, :, 1+num_rules:1+num_rules+Task.STIM_DIM]
-            mod2 = ins[0, :, 1+num_rules+Task.STIM_DIM:1+num_rules+(2*Task.STIM_DIM)]
+            rule_vec = ins[trial_num, :, 1:num_rules+1]
+            mod1 = ins[trial_num, :, 1+num_rules:1+num_rules+Task.STIM_DIM]
+            mod2 = ins[trial_num, :, 1+num_rules+Task.STIM_DIM:1+num_rules+(2*Task.STIM_DIM)]
 
             #to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, rule_vec.squeeze().T, tar.squeeze().T, out.squeeze().T]
-            to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, tar.squeeze().T, out.squeeze().T]
+            to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, tar[trial_num, :, :].T, out.squeeze().T]
             gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 2, 5, 5])
             ylabels = ['fix.', 'mod. 1', 'mod. 2',  'Target', 'Response']
 
@@ -552,228 +476,6 @@ class CogModule():
                     ax.set_xlabel('time')
             #plt.tight_layout()
 
-
-
-            plt.show()
-            return correct
-
-
-    def plot_k_shot_learning(self, ks, task_type, model_dict=None, include_legend = False):
-        if model_dict is None: 
-            model_dict = self.model_dict
-        barWidth = 0.1
-        for i, model_name in enumerate(list(model_dict.keys())): 
-            per_correct = [self.task_sorted_correct[model_name][task_type][k] for k in ks]
-            len_values = len(ks)
-            if i == 0:
-                r = np.arange(len_values)
-            else:
-                r = [x + barWidth for x in r]
-            plt.bar(r, per_correct, width =barWidth, label = list(model_dict.keys())[i], color = self.ALL_STYLE_DICT[model_name][0])
-
-        plt.ylim(0, 1.15)
-        plt.title('Few-Shot Learning Performance')
-        plt.xlabel('Number of Training Batches', fontweight='bold')
-        plt.ylabel('Percentage Correct')
-        r = np.arange(len_values)
-        plt.xticks([r + barWidth for r in range(len_values)], ks)
-        if include_legend: 
-            plt.legend()
-        plt.show()
-
-    def plot_task_rep(self, model_name, epoch, reduction_method = 'PCA', num_trials = 250, dim = 2, instruct_mode = None, holdout_task = None, tasks = task_list, avg_rep = False, Title=''): 
-        if instruct_mode == 'comp': 
-            assert holdout_task != None 
-                
-        model = self.model_dict[model_name]
-        # if not next(model.rnn.parameters()).is_cuda:
-        #     model.to(device)
-
-        assert epoch in ['input', 'stim', 'response', 'prep'] or epoch.isnumeric(), "entered invalid epoch: %r" %epoch
-        
-        task_reps = []
-        for task in task_list: 
-            trials = construct_batch(task, num_trials)
-            tar = trials.targets
-            ins = trials.inputs
-
-            if instruct_mode == 'comp': 
-                if task == holdout_task: 
-                    out, hid = self._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, 'comp')
-                else: 
-                    out, hid = self._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, None)
-            else: 
-                out, hid = self._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, instruct_mode)
-
-
-            hid = hid.detach().cpu().numpy()
-            epoch_state = []
-
-            for i in range(num_trials): 
-                if epoch.isnumeric(): 
-                    epoch_index = int(epoch)
-                    epoch_state.append(hid[i, epoch_index, :])
-                if epoch == 'stim': 
-                    epoch_index = np.where(tar[i, :, 0] == 0.85)[0][-1]
-                    epoch_state.append(hid[i, epoch_index, :])
-                if epoch == 'response':
-                    epoch_state.append(hid[i, -1, :])
-                if epoch == 'input':
-                    epoch_state.append(hid[i, 0, :])
-                if epoch == 'prep': 
-                    epoch_index = np.where(ins[i, :, 18:]>0.25)[0][0]-1
-                    epoch_state.append(hid[i, epoch_index, :])
-            
-            if avg_rep: 
-                epoch_state = [np.mean(np.stack(epoch_state), axis=0)]
-            
-            task_reps += epoch_state
-
-
-        if reduction_method == 'PCA': 
-            embedder = PCA(n_components=dim)
-        elif reduction_method == 'UMAP':
-            embedder = umap.UMAP()
-        elif reduction_method == 'tSNE': 
-            embedder = TSNE(n_components=2)
-
-        embedded = embedder.fit_transform(task_reps)
-        if reduction_method == 'PCA': 
-            explained_variance = embedder.explained_variance_ratio_
-        else: 
-            explained_variance = None
-
-        if avg_rep: 
-            to_plot = np.stack([embedded[task_list.index(task), :] for task in tasks])
-            task_indices = np.array([task_list.index(task) for task in tasks]).astype(int)
-            marker_size = 100
-        else: 
-            to_plot = np.stack([embedded[task_list.index(task)*num_trials: task_list.index(task)*num_trials+num_trials, :] for task in tasks]).reshape(len(tasks)*num_trials, dim)
-            task_indices = np.array([[task_list.index(task)]*num_trials for task in tasks]).astype(int).flatten()
-            marker_size = 25
-
-        cmap = matplotlib.cm.get_cmap('tab20')
-        Patches = []
-        if dim ==3: 
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            scatter = [to_plot[:, 0], to_plot[:, 1], to_plot[:,2], cmap(task_indices), cmap, marker_size]
-            ax.scatter(to_plot[:, 0], to_plot[:, 1], to_plot[:,2], c = cmap(task_indices), cmap=cmap, s=marker_size)
-            ax.set_xlabel('PC 1')
-            ax.set_ylabel('PC 2')
-            ax.set_zlabel('PC 3')
-
-        else:             
-            fig, ax = plt.subplots(figsize=(12, 10))
-            scatter = [to_plot[:, 0], to_plot[:, 1], cmap(task_indices), cmap, marker_size]
-            # for i, color in enumerate(['Red', 'Blue', 'Green', 'Yellow']): 
-            #     start = i*num_trials
-            #     stop = start+num_trials
-            #     plt.scatter(to_plot[:, 0][start:stop], to_plot[:, 1][start:stop], color=listset(task_indices), s=marker_size)
-            #     Patches.append(mpatches.Patch(color = cmap(task_indices), label = task_list[list(set(task_indices))[i]]))
-            ax.scatter(to_plot[:, 0], to_plot[:, 1], c = cmap(task_indices), cmap=cmap, s=marker_size)
-            plt.xlabel("PC 1", fontsize = 18)
-            plt.ylabel("PC 2", fontsize = 18)
-
-        #plt.suptitle(r"$\textbf{PCA Embedding for Task Representation$", fontsize=18)
-        plt.title(Title)
-        digits = np.arange(len(tasks))
-        plt.tight_layout()
-        Patches = [mpatches.Patch(color=cmap(d), label=task_list[d]) for d in set(task_indices)]
-        scatter.append(Patches)
-        plt.legend(handles=Patches)
-        plt.show()
-
-
-        return explained_variance, scatter
-
-    def get_hid_traj(self, models, tasks, dim, instruct_mode):
-        models = [self.model_dict[model] for model in models]
-        for model in models: 
-            if not next(model.rnn.parameters()).is_cuda:
-                model.to(device)
- 
-        task_info_list = []
-        for task in tasks: 
-            trial = construct_batch(task, 1)
-            task_info_list.append(trial.inputs)
-
-        model_task_state_dict = {}
-        for model_name, model in self.model_dict.items(): 
-            tasks_dict = {}
-            for i, task in enumerate(tasks): 
-                out, hid = self._get_model_resp(model, 1, torch.Tensor(task_info_list[i]).to(device), task, instruct_mode)
-                embedded = PCA(n_components=dim).fit_transform(hid.squeeze().detach().cpu())
-                tasks_dict[task] = embedded
-            model_task_state_dict[model_name] = tasks_dict
-        return model_task_state_dict
-
-    def plot_hid_traj(self, models, tasks, dim, instruct_mode = None): 
-        if dim == 2: 
-            fig, ax = plt.subplots()
-        else: 
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-
-        fig.suptitle('RNN Hidden State Trajectory')
-        model_task_state_dict = self.get_hid_traj(models, tasks, dim, instruct_mode)
-
-        data_array = np.empty((len(models)* len(tasks)*dim), dtype=list)
-
-        for i in range(data_array.shape[0]): 
-            data_array[i] = [] 
-        data_array = np.reshape(data_array, (len(models), len(tasks), dim))
-
-        plot_list = []
-        style_list = ['-', '--']
-        for i in range(len(models)):
-            for j in range (len(tasks)): 
-                model_name = models[i]
-                if dim == 2: 
-                    plot_list.append(plt.plot([],[], label = model_name, color = self.ALL_STYLE_DICT[models[i]][0], linestyle = style_list[j]))
-                else:
-                    embedding_data = model_task_state_dict[models[i]][tasks[j]]
-                    plot_list.append(plt.plot(embedding_data[0, 0:1],embedding_data[1, 0:1], embedding_data[2, 0:1], color = self.ALL_STYLE_DICT[models[i]][0], linestyle = style_list[j]))
-
-        plot_array = np.array(plot_list).reshape((len(models), len(tasks)))
-
-        def init():
-            ax.set_xlim(-10, 10)
-            ax.set_xlabel('PC 1')
-            ax.set_ylim(-10, 10)
-            ax.set_ylabel('PC 2')
-            if dim == 3: 
-                ax.set_zlim(-10, 10)
-                ax.set_zlabel('PC 3')
-            return tuple(plot_array.flatten())
-
-
-        def update(i): 
-            for j, model_name in enumerate(models): 
-                for k, task in enumerate(tasks):
-                    embedding_data = model_task_state_dict[model_name][task]
-                    if dim ==3: 
-                        plot_array[j][k].set_data(embedding_data[0:i, 0], embedding_data[0:i, 1])
-                        plot_array[j][k].set_3d_properties(embedding_data[0:i, 2])
-                    else: 
-                        data_array[j][k][0].append(embedding_data[i, 0])
-                        data_array[j][k][1].append(embedding_data[i, 1])
-                        plot_array[j][k].set_data(data_array[j][k][0], data_array[j][k][1])
-            return tuple(plot_array.flatten())
-
-
-
-        ani = animation.FuncAnimation(fig, update, frames=119,
-                            init_func=init, blit=True)
-
-        Patches, _ = self.get_model_patches()
-
-        for i, task in enumerate(tasks):
-            Patches.append(Line2D([0], [0], linestyle=style_list[i], color='grey', label=task, markerfacecolor='grey', markersize=10))
-        plt.legend(handles=Patches)
-        plt.show()
-
-        ax.clear()
-
-
-
+            if show: 
+                plt.show()
+            return correct, instruct[trial_num]
