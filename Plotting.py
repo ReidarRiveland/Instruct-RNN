@@ -40,6 +40,9 @@ from RNNs import instructNet, simpleNet
 from LangModule import LangModule
 from NLPmodels import SBERT
 from CogModule import CogModule
+
+from scipy import stats
+
 foldername = '_ReLU128_12.4'
 
 def plot_avg_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list(range(5))): 
@@ -167,7 +170,8 @@ def plot_learning_curves(model_dict, tasks, foldername, comparison, dim, smoothi
     fig.tight_layout(rect=(0.02, 0.02, 0.98, 0.98))
     fig.show()
 
-def plot_task_rep(model, epoch, reduction_method = 'PCA', num_trials = 250, dim = 2, instruct_mode = None, holdout_task = None, tasks = task_list, avg_rep = False, Title=''): 
+
+def plot_task_rep(model, epoch, reduction_method, z_score, num_trials = 250, dim = 2, instruct_mode = None, holdout_task = None, tasks = task_list, avg_rep = False, Title=''): 
     if instruct_mode == 'comp': 
         assert holdout_task != None 
     # if not next(model.rnn.parameters()).is_cuda:
@@ -223,6 +227,9 @@ def plot_task_rep(model, epoch, reduction_method = 'PCA', num_trials = 250, dim 
 
     embedded = embedder.fit_transform(task_reps)
 
+    if z_score: 
+        embedded = stats.zscore(embedded)
+
     if reduction_method == 'PCA': 
         explained_variance = embedder.explained_variance_ratio_
     else: 
@@ -268,15 +275,13 @@ def plot_task_rep(model, epoch, reduction_method = 'PCA', num_trials = 250, dim 
     scatter.append(Patches)
     plt.legend(handles=Patches)
     #plt.show()
-
-
     return explained_variance, scatter
 
-def plot_hid_PCA_comparison(cogMod, task_group, holdout_task, ax_titles): 
+def plot_hid_PCA_comparison(cogMod, task_group, ax_titles, reduction_method = 'PCA', z_score = False): 
     plot_colors= list(itertools.chain.from_iterable([[color]*250 for color in task_group_colors[task_group].values()]))
     ax_list = []
     for model in cogMod.model_dict.values(): 
-        _, ax = plot_task_rep(model, dim = 2, reduction_method = 'tSNE', tasks = list(task_group_colors[task_group].keys()), epoch = 'prep', avg_rep = False)
+        _, ax = plot_task_rep(model, 'prep', reduction_method, z_score, dim = 2, tasks = list(task_group_colors[task_group].keys()), avg_rep = False)
         ax_list.append(ax)
 
     fig, axn = plt.subplots(1, len(ax_list), figsize = (10, 4))
@@ -376,7 +381,6 @@ def make_test_trials(task_type, task_variable, mod, instruct_mode, num_trials=10
         trials = DM(task_type, num_trials, intervals=intervals, stim_mod_arr=stim_mod_arr, directions=directions)
     return trials, var_of_interest
 
-
 def plot_hid_traj(cogMod, tasks, dim, instruct_mode = None): 
     models = list(cogMod.model_dict.keys())
     if dim == 2: 
@@ -406,7 +410,7 @@ def plot_hid_traj(cogMod, tasks, dim, instruct_mode = None):
                 plot_list.append(plt.plot([],[], label = model_name, color = ALL_STYLE_DICT[model_name][0], linestyle = style_list[j]))
             else:
                 embedding_data = model_task_state_dict[models[i]][tasks[j]]
-                plot_list.append(plt.plot(embedding_data[0, 0:1],embedding_data[1, 0:1], embedding_data[2, 0:1], color = ALL_STYLE_DICT[list(model_dict.keys())[i]][0], linestyle = style_list[j]))
+                plot_list.append(plt.plot(embedding_data[0, 0:1],embedding_data[1, 0:1], embedding_data[2, 0:1], color = ALL_STYLE_DICT[model_name][0], linestyle = style_list[j]))
 
     plot_array = np.array(plot_list).reshape((len(models), len(tasks)))
 
@@ -447,30 +451,6 @@ def plot_hid_traj(cogMod, tasks, dim, instruct_mode = None):
     plt.show()
 
     ax.clear()
-
-def plot_side_by_side(ax_list, title, ax_titles): 
-    num_trials = 250
-    fig, axn = plt.subplots(len(ax_list), 1, figsize = (5, 12))
-    plt.suptitle(r'$\textbf{PCA of Preparatory Sensory-Motor Activity (COMP2 Holdout)}$', fontsize=14, fontweight='bold')
-    Patches = []
-    for i, ax in enumerate(ax_list):
-        ax = axn.flat[i]
-        ax.set_title(ax_titles[i]) 
-        scatter = ax_list[i]
-            
-        for j, color in enumerate(['Red', 'Green', 'Blue', 'Yellow']): 
-            start = j*num_trials
-            stop = start+num_trials
-            ax.scatter(scatter[0][start:stop], scatter[1][start:stop], color=color, s=25)
-            if i ==1: 
-                Patches.append(mpatches.Patch(color = color, label = task_list[j+8]))
-                ax.set_xlabel('PC2')
-
-        ax.set_ylabel('PC1')
-        ax.xaxis.set_major_locator(plt.MaxNLocator(3))
-        ax.yaxis.set_major_locator(plt.MaxNLocator(3))        
-    plt.legend(handles = Patches, loc='lower right')
-    plt.show()
 
 def get_hid_var_resp(model, task_type, trials, num_repeats = 10, instruct_mode=None): 
     tar_dirs = trials.target_dirs
@@ -552,27 +532,24 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, instruct_mode=N
 
 
 
-seed = '_seed'+str(1)
+seed = '_seed'+str(0)
 model_dict = {}
 model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
 model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
 cog = CogModule(model_dict)
-cog.load_models('DM', foldername, seed)
+cog.load_models('Anti DM', foldername, seed)
 
 plot_all_holdout_curves(foldername, ['S-Bert train', 'Model1'])
 plot_avg_holdout_curves(foldername, ['S-Bert train', 'Model1'])
 
+plot_hid_PCA_comparison(cog, 'Decision Making', ['', ''])
 
-
-
-plot_hid_traj(cog, ['DM'], 3, instruct_mode=None)
-
-
-cog._plot_trained_performance()
+plot_hid_traj(cog, ['Anti DM', 'DM'], 2, instruct_mode=None)
 
 
 ModelS = model_dict['S-Bert train'+seed]
 
+ModelS.langMod.plot_embedding()
 
 unit = 110
 task_variable = 'diff_strength'

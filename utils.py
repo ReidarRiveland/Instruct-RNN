@@ -1,6 +1,8 @@
 from collections import defaultdict
-import Task
+
+from Task import Task
 task_list = Task.TASK_LIST
+
 from matplotlib.lines import Line2D
 import numpy as np
 import matplotlib.pyplot as plt

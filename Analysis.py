@@ -31,10 +31,8 @@ for i in range(5):
     seed = '_seed'+str(0)
     for holdout in task_list+['Multitask']:
         model_dict = {}
-        model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-        model_dict['BERT_train'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu',  tune_langModel=True, langLayerList=['layer.11'])
-        model_dict['BOW'+seed]= instructNet(LangModule(BoW()), 128, 1, 'relu', tune_langModel=True)
-        model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+        model_dict['S-Bert'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=False)
+        model_dict['BERT'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu',  tune_langModel=False)
         #model_dict['GPT train'+seed] = instructNet(LangModule(GPT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
         cog = CogModule(model_dict)
         if holdout == 'Multitask':
@@ -42,7 +40,7 @@ for i in range(5):
         else:
             holdout_data = make_data(holdouts=[holdout], batch_size=128)
         cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
-        cog.save_models(holdout, foldername, seed)
+        cog.save_models(holdout, foldername, seed+'no_tuning')
 
 
 
@@ -50,10 +48,10 @@ for i in range(5):
 foldername = '_ReLU128_12.4'
 seed = '_seed'+str(0)
 model_dict = {}
-model_dict['BERT_train'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=False)
+model_dict['BERT'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=False)
 model_dict['S-Bert train'+seed] = instructNet(LangModule(BoW()), 128, 1, 'relu',  tune_langModel=True)
 
-for n, p in model_dict['S-Bert train'+seed].named_parameters(): 
+for n, p in model_dict['BERT'+seed].named_parameters(): 
     if p.requires_grad: 
         print(n)
 
