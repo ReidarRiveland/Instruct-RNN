@@ -13,7 +13,8 @@ import numpy as np
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) 
- 
+
+
 class simpleNet(nn.Module): 
     def __init__(self, in_dim, hid_dim, num_layers, activ_func, instruct_mode=None):
         super(simpleNet, self).__init__()
@@ -58,7 +59,7 @@ class simpleNet(nn.Module):
 
 
 class instructNet(nn.Module): 
-    def __init__(self, langMod, hid_dim, num_layers, activ_func = 'tanh', drop_p = 0.0, instruct_mode=None, tune_langModel = False, langLayerList = []): 
+    def __init__(self, langMod, hid_dim, num_layers=1, activ_func = 'tanh', drop_p = 0.0, instruct_mode=None, tune_langModel = False, langLayerList = []): 
         super(instructNet, self).__init__()
         self.instruct_mode = instruct_mode
         self.tune_langModel = tune_langModel

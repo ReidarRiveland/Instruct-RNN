@@ -170,7 +170,6 @@ def plot_learning_curves(model_dict, tasks, foldername, comparison, dim, smoothi
     fig.tight_layout(rect=(0.02, 0.02, 0.98, 0.98))
     fig.show()
 
-
 def plot_task_rep(model, epoch, reduction_method, z_score, num_trials = 250, dim = 2, instruct_mode = None, holdout_task = None, tasks = task_list, avg_rep = False, Title=''): 
     if instruct_mode == 'comp': 
         assert holdout_task != None 
@@ -305,28 +304,6 @@ def plot_hid_PCA_comparison(cogMod, task_group, ax_titles, reduction_method = 'P
     plt.legend(handles = Patches)
     plt.show()
 
-
-def get_hid_traj(cogMod, tasks, dim, instruct_mode):
-    with torch.no_grad(): 
-        for model in cogMod.model_dict.values(): 
-            if not next(model.parameters()).is_cuda:
-                model.to(device)
-
-        task_info_list = []
-        for task in tasks: 
-            trial = construct_batch(task, 1)
-            task_info_list.append(trial.inputs)
-
-        model_task_state_dict = {}
-        for model_name, model in cogMod.model_dict.items(): 
-            tasks_dict = {}
-            for i, task in enumerate(tasks): 
-                out, hid = cogMod._get_model_resp(model, 1, torch.Tensor(task_info_list[i]).to(device), task, instruct_mode)
-                embedded = PCA(n_components=dim).fit_transform(hid.squeeze().detach().cpu())
-                tasks_dict[task] = embedded
-            model_task_state_dict[model_name] = tasks_dict
-        return model_task_state_dict, trial.intervals[0]
-
 def make_test_trials(task_type, task_variable, mod, instruct_mode, num_trials=100): 
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
     intervals = np.empty((num_trials, 5), dtype=tuple)
@@ -443,7 +420,7 @@ def plot_hid_traj(cogMod, tasks, dim, instruct_mode = None):
     ani = animation.FuncAnimation(fig, update, frames=119,
                         init_func=init, blit=True)
 
-    Patches, _ = get_model_patches(model_dict.keys())
+    Patches, _ = get_model_patches(cogMod.model_dict.keys())
 
     for i, task in enumerate(tasks):
         Patches.append(Line2D([0], [0], linestyle=style_list[i], color='grey', label=task, markerfacecolor='grey', markersize=10))
@@ -452,19 +429,40 @@ def plot_hid_traj(cogMod, tasks, dim, instruct_mode = None):
 
     ax.clear()
 
+
+def get_hid_traj(cogMod, tasks, dim, instruct_mode):
+    with torch.no_grad(): 
+        for model in cogMod.model_dict.values(): 
+            if not next(model.parameters()).is_cuda:
+                model.to(device)
+
+        task_info_list = []
+        for task in tasks: 
+            trial = construct_batch(task, 1)
+            task_info_list.append(trial.inputs)
+
+        model_task_state_dict = {}
+        for model_name, model in cogMod.model_dict.items(): 
+            tasks_dict = {}
+            for i, task in enumerate(tasks): 
+                out, hid = cogMod._get_model_resp(model, 1, torch.Tensor(task_info_list[i]).to(device), task, instruct_mode)
+                embedded = PCA(n_components=dim).fit_transform(hid.squeeze().detach().cpu())
+                tasks_dict[task] = embedded
+            model_task_state_dict[model_name] = tasks_dict
+        return model_task_state_dict, trial.intervals[0]
+
 def get_hid_var_resp(model, task_type, trials, num_repeats = 10, instruct_mode=None): 
-    tar_dirs = trials.target_dirs
-    tar = trials.targets
-    num_trials = trials.inputs.shape[0]
-    total_neuron_response = np.empty((num_repeats, 100, 120, 128))
-    for i in range(num_repeats): 
-        h0 = model.initHidden(num_trials, 0.1)
-        model.eval()
-        out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(trials.inputs).to(device), task_type, instruct_mode)
-        hid = hid.detach().cpu().numpy()
-        total_neuron_response[i, :, :, :] = hid
-    mean_neural_response = np.mean(total_neuron_response, axis=0)
-    return mean_neural_response
+    with torch.no_grad(): 
+        num_trials = trials.inputs.shape[0]
+        total_neuron_response = np.empty((num_repeats, num_trials, 120, 128))
+        for i in range(num_repeats): 
+            h0 = model.initHidden(num_trials, 0.1)
+            model.eval()
+            out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(trials.inputs).to(device), task_type, instruct_mode)
+            hid = hid.detach().cpu().numpy()
+            total_neuron_response[i, :, :, :] = hid
+        mean_neural_response = np.mean(total_neuron_response, axis=0)
+    return total_neuron_response, mean_neural_response
 
 def make_tuning_curve(model, task_type, task_variable, unit, time, mod, instruct_mode=None): 
     trials, var_of_interest = make_test_trials(task_type, task_variable, mod, instruct_mode=instruct_mode)
@@ -532,45 +530,45 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, instruct_mode=N
 
 
 
-seed = '_seed'+str(0)
-model_dict = {}
-model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
-cog = CogModule(model_dict)
-cog.load_models('Anti DM', foldername, seed)
+# seed = '_seed'+str(0)
+# model_dict = {}
+# model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+# model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+# cog = CogModule(model_dict)
+# cog.load_models('Anti DM', foldername, seed)
 
-plot_all_holdout_curves(foldername, ['S-Bert train', 'Model1'])
-plot_avg_holdout_curves(foldername, ['S-Bert train', 'Model1'])
+# plot_all_holdout_curves(foldername, ['S-Bert train', 'Model1'])
+# plot_avg_holdout_curves(foldername, ['S-Bert train', 'Model1'])
 
-plot_hid_PCA_comparison(cog, 'Decision Making', ['', ''])
+# plot_hid_PCA_comparison(cog, 'Decision Making', ['', ''])
 
-plot_hid_traj(cog, ['Anti DM', 'DM'], 2, instruct_mode=None)
+# plot_hid_traj(cog, ['Anti DM', 'DM'], 2, instruct_mode=None)
 
 
-ModelS = model_dict['S-Bert train'+seed]
+# ModelS = model_dict['S-Bert train'+seed]
 
-ModelS.langMod.plot_embedding()
+# ModelS.langMod.plot_embedding()
 
-unit = 110
-task_variable = 'diff_strength'
+# unit = 110
+# task_variable = 'diff_strength'
 
-trials = plot_neural_resp(ModelS, 'DM', task_variable, unit, 0)
+# trials = plot_neural_resp(ModelS, 'DM', task_variable, unit, 0)
 
-trials.intervals
+# trials.intervals
 
-trials = plot_neural_resp(ModelS, 'Anti DM', task_variable, unit, 0)
-trials = plot_neural_resp(ModelS, 'MultiDM', task_variable, unit, 0)
-trials = plot_neural_resp(ModelS, 'Anti MultiDM', task_variable, unit, 0)
+# trials = plot_neural_resp(ModelS, 'Anti DM', task_variable, unit, 0)
+# trials = plot_neural_resp(ModelS, 'MultiDM', task_variable, unit, 0)
+# trials = plot_neural_resp(ModelS, 'Anti MultiDM', task_variable, unit, 0)
 
-trials.plot_trial(0)
+# trials.plot_trial(0)
 
 # trials = plot_neural_resp(ModelS, holdout, 'direction', unit, 1, instruct_mode='instruct_swap')
 
 
-trials = make_tuning_curve(ModelS, 'DM', task_variable, unit, 115, 1, instruct_mode=None)
-trials = make_tuning_curve(ModelS, 'Anti DM', task_variable, unit, 115, 1, instruct_mode=None)
-trials = make_tuning_curve(ModelS, 'MultiDM', task_variable, unit, 50, 115, instruct_mode=None)
-trials = make_tuning_curve(ModelS, 'Anti MultiDM', task_variable, unit, 115, 1, instruct_mode=None)
+# trials = make_tuning_curve(ModelS, 'DM', task_variable, unit, 115, 1, instruct_mode=None)
+# trials = make_tuning_curve(ModelS, 'Anti DM', task_variable, unit, 115, 1, instruct_mode=None)
+# trials = make_tuning_curve(ModelS, 'MultiDM', task_variable, unit, 50, 115, instruct_mode=None)
+# trials = make_tuning_curve(ModelS, 'Anti MultiDM', task_variable, unit, 115, 1, instruct_mode=None)
 
 
 

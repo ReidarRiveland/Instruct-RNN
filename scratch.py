@@ -1,257 +1,101 @@
+from numpy.core.fromnumeric import size
+from scipy.ndimage.measurements import label
+from dPCA import dPCA
+
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
+import matplotlib.pyplot as plt
 
-from Plotting import plot_all_holdout_curves, plot_all_tasks_by_model, plot_avg_curves, plot_learning_curves
-from LangModule import LangModule, swaps
-from NLPmodels import gpt2, BERT, SBERT, BoW, SIFmodel, LangTransformer
 from RNNs import instructNet, simpleNet
-import torch
+from LangModule import LangModule
+from NLPmodels import SBERT
+from CogModule import CogModule
+from Plotting import make_test_trials, get_hid_var_resp
 
-from CogModule import CogModule, isCorrect
-from Data import make_data
-from Taskedit import Task
+from scipy.stats import zscore
+
+
+foldername = '_ReLU128_12.4'
+
+seed = '_seed'+str(0)
+model_dict = {}
+model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+cog = CogModule(model_dict)
+cog.load_models('Anti DM', foldername, seed)
+
+trials, var_of_insterest = make_test_trials('DM', 'diff_strength', 0, None, num_trials=6)
+var_of_insterest
+hid_resp, mean_hid_resp = get_hid_var_resp(model_dict['S-Bert train'+seed], 'DM', trials)
+
+# # trial-average data
+# R = mean(trialR,0)
+
+# # center data
+# R -= mean(R.reshape((N,-1)),1)[:,None,None]
+
+reshape_mean_hid_resp = mean_hid_resp.T.swapaxes(-1, 1)
+reshape_hid_resp = hid_resp.swapaxes(1, 2).swapaxes(-1, 1)
+
+np.expand_dims(reshape_mean_hid_resp, -1).shape
+
+#reshape_mean_hid_resp -= np.mean(mean_hid_resp.reshape((128, -1)), 1)[:, None, None]
+
+dpca = dPCA.dPCA(labels='std',regularizer='auto')
+dpca.protect = ['t']
+
+Z = dpca.fit_transform(np.expand_dims(reshape_mean_hid_resp, -1), np.expand_dims(reshape_hid_resp, -1))
+
+
+time = np.arange(120)
+
+plt.figure(figsize=(16,7))
+plt.subplot(131)
+
+for s in range(6):
+    plt.plot(time,Z['st'][0,s])
+
+plt.title('1st mixing component')
+
+plt.subplot(132)
+
+for s in range(6):
+    plt.plot(time,Z['t'][0,s])
+
+plt.title('1st time component')
+    
+plt.subplot(133)
+for s in range(6):
+    plt.plot(time,Z['s'][0,s])
+
+plt.title('1st Decision Variable component')
+    
+
+plt.figlegend(['delta'+ str(num) for num in np.round(var_of_insterest, 2)], loc=5)
+
+plt.show()
+
+
+from LangModule import train_instruct_dict
+indices, reps = model_dict['S-Bert train'+seed].langMod._get_instruct_rep(train_instruct_dict)
+
+reps_reshaped = reps.reshape(16, -1, 20)
+
+reps_reshaped.mean(1)
+
+from CogModule import comp_one_hot
+
+
+from Task import Task
 task_list = Task.TASK_LIST
 
-foldername = 'swapModel3.3'
+task_list.index('Go')
 
-swaps= [['Go', 'Anti DM'], ['Anti RT Go', 'DMC']]
+def get_lang_comp_rep(task_type):
+    return reps_reshaped.mean(1)[task_list.index(task_type)]-np.matmul(comp_one_hot(task_type), reps_reshaped.mean(1))
 
-epochs = 40
-lr = 0.001
-milestones = [30, 35]
 
-for swap in swaps:   
-    swapped_tasks = ''.join(swap).replace(' ', '_')
-    print(swapped_tasks)
-    model_dict = {}
-    model_dict['Model1'] = simpleNet(81, 128, 1, 'tanh')
-    model_dict['Model1shuffled'] = simpleNet(81, 128, 1, 'tanh', instruct_mode='shuffled_one_hot')
-    cog = CogModule(model_dict)
-    holdout_data = make_data(holdouts=swap)
-    cog.train(holdout_data, epochs,  weight_decay=0.0, lr = lr)
-    cog.save_models(swapped_tasks, foldername)
 
+import torch
 
+fixed_point = torch.randn(128, requires_grad=True)
 
-
-model_dict = {}
-model_dict['Model1'] = simpleNet(81, 128, 1, 'sigmoid')
-model_dict['S-Bert train'] = simpleNet(81, 128, 1, 'sigmoid', instruct_mode='shuffled_one_hot') 
-cog = CogModule(model_dict)
-
-
-
-
-foldername = 'swapModel3.3'
-
-model_dict = {}
-model_dict['Model1'] = None
-model_dict['Model1shuffled'] = None
-cog = CogModule(model_dict)
-
-task = 'Anti RT GoDMC'
-cog.load_training_data(task, foldername, 'holdout')
-cog.plot_learning_curve('correct', task)
-
-cog.load_training_data(task, foldername, 'holdoutAllLR0.005')
-cog.plot_learning_curve('correct', task)
-
-
-for swap in swaps:
-    swapped_tasks = ''.join(swap).replace(' ', '_')
-    model_dict = {}
-    model_dict['Model1'] = simpleNet(81, 128, 1, 'tanh')
-    model_dict['Model1shuffled'] = simpleNet(81, 128, 1, 'tanh', instruct_mode='shuffled_one_hot')
-    cog = CogModule(model_dict)
-    cog.load_models(swapped_tasks, foldername)
-    try: 
-        cog.load_training_data(swapped_tasks, foldername, mode + 'holdout')
-    except:
-        pass
-    task_dict = dict(zip(swap, [1/len(swap)]*len(swap)))
-    print(task_dict)
-    holdout_only = make_data(task_dict=task_dict, num_batches = 100, batch_size=256)
-    cog.train(holdout_only, 2,  weight_decay=0.0, lr = 0.001, instruct_mode = 'instruct_swap')
-    cog.save_training_data(swapped_tasks, foldername, 'swap_holdout')
-
-
-model_dict = {}
-model_dict['Model1'] = simpleNet(81, 128, 1, 'tanh')
-model_dict['Model1shuffled'] = simpleNet(81, 128, 1, 'tanh', instruct_mode='shuffled_one_hot')
-cog = CogModule(model_dict)
-cog.load_models('GoAnti_DM', foldername)
-cog.load_training_data('GoAnti_DM', foldername, 'holdout')
-cog._plot_trained_performance()
-
-cog.plot_learning_curve('correct', 'Anti DM')
-
-
-foldername = '22.9Models'
-
-
-
-import torch.nn as nn
-model_dict = {}
-model_dict['S-Bert train'] = instructNet(LangModule(SBERT(20, nn.Sigmoid())), 128, 1, 'relu', tune_langModel=True)
-
-model_dict['S-Bert train'] = None
-
-plot_avg_curves(model_dict, foldername, smoothing=0.0001)
-
-print(model_dict['S-Bert train'].langModel.state_dict()['model.0.bert.encoder.layer.11.attention.output.dense.weight'].grad)
-
-cog = CogModule(model_dict)
-
-cog.load_models('DM', foldername)
-
-cog.plot_response('S-Bert train', 'DM')
-
-cog._plot_trained_performance()
-
-stock_params = SBERT(20).state_dict()
-trained_params = model_dict['S-Bert train'].langModel.state_dict()
-
-layer_list = ['layer.{layer_num}'.format(layer_num=layer) for layer in np.arange(12)]
-
-with torch.no_grad():
-    difference_dict = {}
-    for n, p in model_dict['S-Bert train'].langModel.named_parameters(): 
-        difference_dict[n] = torch.mean(torch.log(torch.abs(p - SBERT(20).state_dict()[n]))).cpu().numpy()
-
-difference_dict
-
-def count_parameters(model):
-    return sum(p.numel() for p in model.parameters() if p.requires_grad) 
-
-len(list(model_dict['S-Bert train'].rnn.parameters()))
-
-
-
-
-import torch.optim as optim
-from CogModule import masked_MSE_Loss
-
-s_bert_train = instructNet(LangModule(SBERT(20)), 128, 1, 'sigmoid', tune_langModel=True)
-
-cog = CogModule({'S-Bert train': s_bert_train})
-
-data = make_data(num_batches=200)
-
-model = cog.model_dict['S-Bert train']
-
-
-model.train
-opt = optim.Adam(model.parameters(), lr=0.0005, weight_decay=0.0)
-
-
-ins_tensor = data[0]
-tar_tensor = data[1]
-mask_tensor = data[2]
-tar_dir_vec = data[3]
-task_type_vec = data[4]
-
-batch_len = ins_tensor.shape[1]
-batch_num = ins_tensor.shape[0]
-correct_array = np.empty((batch_len, batch_num), dtype=bool)
-
-epochs = 1
-opt = optim.Adam(cog.model_dict['S-Bert train'].langModel.model.parameters(), lr=0.0001)
-
-from LangModule import get_batch
-
-sentence_batch = get_batch(128, None, 'Go')[0]
-
-sentence_batch
-
-model = SentenceTransformer('bert-base-nli-mean-tokens')
-
-
-tokens = model.tokenize(sentence_batch)
-
-out_dict = model(tokens)
-
-out_dict['sentence_embedding'].shape
-loss_list = []
-
-for _ in range(1000): 
-    lang_ins = cog._get_lang_input(cog.model_dict['S-Bert train'], 128, 'Go', None)
-
-    tokens = cog.model_dict['S-Bert train'].langModel.model.tokenize(lang_ins)
-    for keys, values in tokens.items(): 
-        tokens[keys] = values.to(device)
-    tokens['input_ids'].shape
-    lang_out= cog.model_dict['S-Bert train'].langModel.model(tokens)['sentence_embedding']
-    #sent_embedding = torch.tensor(lang_out, requires_grad=True).to(device)
-
-    loss = torch.abs(torch.mean(lang_out-torch.zeros_like(lang_out)))
-
-    loss.backward()
-    opt.step()
-
-    # for n, p in cog.model_dict['S-Bert train'].langModel.named_parameters():
-    #     if 'layer.11' in n:
-    #         print(p.grad)
-    loss_list.append(loss_list)
-    print(loss.item())
-
-s_bert_train.langModel.state_dict().keys()
-
-
-epochs = 1
-
-opt = optim.Adam(cog.model_dict['S-Bert train'].parameters(), lr=0.001)
-
-for i in range(epochs):
-    print('epoch', i)
-    index_list = list(np.arange(batch_num))
-    np.random.shuffle(index_list)
-    for j in range(batch_num): 
-        index = index_list[j]
-        task_type = task_type_vec[index]
-        task_index = task_list.index(task_type)
-        tar = torch.Tensor(tar_tensor[index, :, :, :]).to(device)
-        mask = torch.Tensor(mask_tensor[index, :, :, :]).to(device)
-        ins = torch.Tensor(ins_tensor[index, :, :, :]).to(device)
-        tar_dir = tar_dir_vec[index]
-
-        model.langModel.training
-        for params in model.parameters(): 
-            print(params.requires_grad)
-        
-        opt.zero_grad()
-        out, _ = cog._get_model_resp(model, batch_len, ins, task_type, None)
-        loss = masked_MSE_Loss(out, tar, mask)
-
-        for n, p in model.named_parameters(): 
-            if 'layer.11' in n:
-                p.retain_grad()
-        for n, p in model.named_parameters():
-            if 'weight_ih' in n:
-                p.retain_grad()
-        loss.backward()
-        for n, p in model.langModel.named_parameters(): 
-            if 'layer.11' in n:
-                print(p.grad)
-        for n, p in model.named_parameters():
-            if 'weight_ih' in n:
-                print(p.grad)
-
-
-        if model.isLang:
-            torch.nn.utils.clip_grad_value_(model.rnn.rnn.parameters(), 0.5)
-        else: 
-            torch.nn.utils.clip_grad_value_(model.rnn.parameters(), 0.5)                    
-        opt.step()
-
-        frac_correct = np.mean(isCorrect(out, tar, tar_dir))
-        cog.total_loss_dict[model_type].append(loss.item())
-        cog.total_correct_dict[model_type].append(frac_correct)
-        if j%50 == 0:
-            print(task_type)
-            print(j, ':', model_type, ":", "{:.2e}".format(loss.item()))
-            self.sort_perf_by_task()
-            print('Frac Correct ' + str(frac_correct) + '\n')
-        cog.total_task_list.append(task_type) 
-    cog.sort_perf_by_task()
-    if scheduler: 
-        opt_scheduler.step()               

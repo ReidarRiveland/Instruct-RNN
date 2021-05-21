@@ -142,15 +142,7 @@ def del_input_rule(in_tensor):
     new_input = torch.cat((in_tensor[:, :, 0:1], in_tensor[:, :, len(task_list)+1:]), axis=2)
     return new_input
 
-def comp_input_rule(in_tensor, task_type): 
-    """Replaces one-hot input rule with a analagous linear combination of rules for related tasks
-    Args:      
-        in_tensor (Tensor): input tensor for a batch of trials; shape: (batch_num, seq_len, features)
-    
-    Returns:
-        Tensor: identical input data as in_tensor with combinational input rule; shape: (batch_num, seq_len, features-#tasks) 
-    """
-
+def comp_one_hot(task_type): 
     if task_type == 'Go': 
         comp_vec = Task._rule_one_hot('RT Go')+(Task._rule_one_hot('Anti Go')-Task._rule_one_hot('Anti RT Go'))
     if task_type == 'RT Go':
@@ -183,7 +175,18 @@ def comp_input_rule(in_tensor, task_type):
         comp_vec = Task._rule_one_hot('DNMC') + (Task._rule_one_hot('DMS')-Task._rule_one_hot('DMC'))
     if task_type == 'DNMC': 
         comp_vec = Task._rule_one_hot('DNMS') + (Task._rule_one_hot('DMC')-Task._rule_one_hot('DMS'))
+
+    return comp_vec
+
+def comp_input_rule(in_tensor, task_type): 
+    """Replaces one-hot input rule with a analagous linear combination of rules for related tasks
+    Args:      
+        in_tensor (Tensor): input tensor for a batch of trials; shape: (batch_num, seq_len, features)
     
+    Returns:
+        Tensor: identical input data as in_tensor with combinational input rule; shape: (batch_num, seq_len, features-#tasks) 
+    """
+    comp_vec = comp_one_hot(task_type)
     comp_tensor = torch.Tensor(comp_vec).unsqueeze(0).repeat(in_tensor.shape[0], in_tensor.shape[1], 1).to(in_tensor.get_device())
     comp_input = torch.cat((in_tensor[:, :, 0:1], comp_tensor, in_tensor[:, :, len(task_list)+1:]), axis=2)
     return comp_input
