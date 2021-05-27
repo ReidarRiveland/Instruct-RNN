@@ -172,8 +172,8 @@ def plot_learning_curves(model_dict, tasks, foldername, comparison, dim, smoothi
     fig.tight_layout(rect=(0.02, 0.02, 0.98, 0.98))
     fig.show()
 
-def plot_task_rep(model, epoch, reduction_method, z_score, num_trials = 250, dim = 2, instruct_mode = None, holdout_task = None, tasks = task_list, avg_rep = False, Title=''): 
-    if instruct_mode == 'comp': 
+def plot_task_rep(model, epoch, reduction_method, z_score, num_trials = 250, dim = 2, holdout_task = None, tasks = task_list, avg_rep = False, Title=''): 
+    if model.instruct_mode == 'comp': 
         assert holdout_task != None 
     # if not next(model.rnn.parameters()).is_cuda:
     #     model.to(device)
@@ -186,13 +186,13 @@ def plot_task_rep(model, epoch, reduction_method, z_score, num_trials = 250, dim
         tar = trials.targets
         ins = trials.inputs
 
-        if instruct_mode == 'comp': 
+        if model.instruct_mode == 'comp': 
             if task == holdout_task: 
-                out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, 'comp')
+                out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task)
             else: 
-                out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, None)
+                out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task)
         else: 
-            out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, instruct_mode)
+            out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task)
 
 
         hid = hid.detach().cpu().numpy()
@@ -539,9 +539,12 @@ model_dict = {}
 model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
 model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
 cog = CogModule(model_dict)
-cog.load_models('Anti DM', foldername, seed)
+cog.load_models('DMC', foldername, seed)
 
-#cog._plot_trained_performance()
+cog._plot_trained_performance()
+
+
+ModelS.langModel.out_dim
 
 # plot_all_holdout_curves(foldername, ['S-Bert train', 'Model1'])
 # plot_avg_holdout_curves(foldername, ['S-Bert train', 'Model1'])

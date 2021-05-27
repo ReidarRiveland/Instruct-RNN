@@ -147,7 +147,6 @@ class LangModule():
         self.loss_list = pickle.load(open(self.foldername+'LanguageModels/'+self.filename+'_training_loss', 'rb'))
         self.val_loss_list = pickle.load(open(self.foldername+'/LanguageModels/'+self.filename+'_val_loss', 'rb'))
 
-
     def get_val_loss(self): 
         total_loss = 0
         num_sentences = 0
