@@ -284,6 +284,7 @@ class CogModule():
         for model_type in self.model_dict.keys():
             loss_temp_dict=defaultdict(list)
 
+            #do you need to conditions?
             if holdout is None: 
                 tasks = self.total_task_list
             else: 

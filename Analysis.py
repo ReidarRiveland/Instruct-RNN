@@ -35,33 +35,25 @@ for i in [1, 2, 3, 4]:
         model_dict['BERT train'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu',  tune_langModel=True, langLayerList=['layer.11'])
         model_dict['BoW'+seed] = instructNet(LangModule(BoW()), 128, 1, 'relu', tune_langModel=False)
         model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+
+        try: 
+            cog.load_training_data(holdout, foldername, seed)
+        except: 
+            pass
+
         cog = CogModule(model_dict)
+
         if holdout == 'Multitask':
             holdout_data = make_data(batch_size=128)
         else:
             holdout_data = make_data(holdouts=[holdout], batch_size=128)
+
         cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
         cog.save_models(holdout, foldername, seed)
 
 
 
 
-foldername = '_ReLU128_12.4'
-seed = '_seed'+str(0)
-model_dict = {}
-model_dict['BERT'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=False)
-model_dict['S-Bert train'+seed] = instructNet(LangModule(BoW()), 128, 1, 'relu',  tune_langModel=True)
-
-for n, p in model_dict['BERT'+seed].named_parameters(): 
-    if p.requires_grad: 
-        print(n)
-
-cog = CogModule(model_dict)
-cog.task_sorted_correct.keys()
-cog.load_models('Anti RT Go', foldername, seed+'holdout')
-
-
-foldername = '_ReLU128_12.4'
 ###Holdout training loop 
 for i in range(5):
     seed = '_seed'+str(i)
@@ -91,18 +83,3 @@ for i in range(5):
             
 
 
-
-seed = '_seed'+str(2)
-model_dict = {}
-model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-#model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
-cog = CogModule(model_dict)
-cog.load_models('Multitask', foldername)
-
-
-
-
-Sbert_rnn = model_dict['S-Bert train'+seed].rnn.recurrent_units
-
-for i in range(250): 
-    fixed_point_candidate = 
