@@ -1,7 +1,6 @@
 import numpy as np
 import pickle
 from collections import defaultdict
-from numpy.lib.index_tricks import fill_diagonal
 from scipy.ndimage.filters import gaussian_filter1d
 
 import matplotlib 
@@ -44,8 +43,7 @@ from CogModule import CogModule
 
 from scipy import stats
 
-
-
+foldername = '_ReLU128_12.4'
 
 def plot_avg_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list(range(5))): 
     all_correct, _, _, _ = _collect_data_across_seeds(foldername, model_list, seeds)
@@ -172,8 +170,8 @@ def plot_learning_curves(model_dict, tasks, foldername, comparison, dim, smoothi
     fig.tight_layout(rect=(0.02, 0.02, 0.98, 0.98))
     fig.show()
 
-def plot_task_rep(model, epoch, reduction_method, z_score, num_trials = 250, dim = 2, holdout_task = None, tasks = task_list, avg_rep = False, Title=''): 
-    if model.instruct_mode == 'comp': 
+def plot_task_rep(model, epoch, reduction_method, z_score, num_trials = 250, dim = 2, instruct_mode = None, holdout_task = None, tasks = task_list, avg_rep = False, Title=''): 
+    if instruct_mode == 'comp': 
         assert holdout_task != None 
     # if not next(model.rnn.parameters()).is_cuda:
     #     model.to(device)
@@ -186,13 +184,13 @@ def plot_task_rep(model, epoch, reduction_method, z_score, num_trials = 250, dim
         tar = trials.targets
         ins = trials.inputs
 
-        if model.instruct_mode == 'comp': 
+        if instruct_mode == 'comp': 
             if task == holdout_task: 
-                out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task)
+                out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, 'comp')
             else: 
-                out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task)
+                out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, None)
         else: 
-            out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task)
+            out, hid = CogModule._get_model_resp(model, num_trials, torch.Tensor(ins).to(device), task, instruct_mode)
 
 
         hid = hid.detach().cpu().numpy()
@@ -306,6 +304,60 @@ def plot_hid_PCA_comparison(cogMod, task_group, ax_titles, reduction_method = 'P
     plt.legend(handles = Patches)
     plt.show()
 
+def make_test_trials(task_type, task_variable, mod, instruct_mode, num_trials=100): 
+    assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
+    intervals = np.empty((num_trials, 5), dtype=tuple)
+    if task_variable == 'direction': 
+        directions = np.linspace(0, 2*np.pi, num=num_trials)
+        strengths = [1]* num_trials
+        var_of_interest = directions
+    elif task_variable == 'strength': 
+        directions = np.array([np.pi+1] * num_trials)
+        strengths = np.linspace(0.3, 1.8, num=num_trials)
+        var_of_interest = strengths
+    elif task_variable == 'diff_strength': 
+        directions = np.array([np.pi] * num_trials)
+        strengths = [1]* num_trials
+        diff_strength = np.linspace(-0.5, 0.5, num=num_trials)
+        var_of_interest = diff_strength
+    elif task_variable == 'diff_direction': 
+        directions = np.array([np.pi] * num_trials)
+        diff_directions = np.linspace(0, np.pi, num=num_trials)
+        strengths = [0.5] * num_trials
+        var_of_interest = diff_directions
+    if task_type in ['Go', 'Anti Go', 'RT Go', 'Anti RT Go']:
+        stim_mod_arr = np.empty((2, num_trials), dtype=list)
+        for i in range(num_trials): 
+            intervals[i, :] = ((0, 20), (20, 60), (60, 80), (80, 100), (100, 120))
+            strength_dir = [(strengths[i], directions[i])]
+            stim_mod_arr[mod, i] = strength_dir
+            stim_mod_arr[((mod+1)%2), i] = None
+        trials = Go(task_type, num_trials, intervals=intervals, stim_mod_arr=stim_mod_arr, directions=directions)
+    if task_type in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']:
+        stim_mod_arr = np.empty((2, 2, num_trials), dtype=tuple)
+        for i in range(num_trials): 
+            intervals[i, :] = ((0, 20), (20, 60), (60, 80), (80, 100), (100, 120))
+            if task_variable == 'diff_direction': 
+                stim_mod_arr[0, mod, i] = [(1+(strengths[i]/2), np.pi)]
+                stim_mod_arr[1 ,mod, i] = [(1-(strengths[i]/2), np.pi+diff_directions[i])]
+            elif task_variable == 'diff_strength':
+                stim_mod_arr[0, mod, i] = [(strengths[i], directions[i])]
+                stim_mod_arr[1 ,mod, i] = [(strengths[i]+diff_strength[i], directions[i]+np.pi)]
+            else: 
+                stim_mod_arr[0, mod, i] = [(strengths[i], directions[i])]
+                stim_mod_arr[1 ,mod, i] = [(1, np.pi)]
+
+            if 'Multi' in task_type: 
+                stim_mod_arr[0, ((mod+1)%2), i] = stim_mod_arr[0, mod, i]
+                stim_mod_arr[1, ((mod+1)%2), i] = stim_mod_arr[1, mod, i]
+            else: 
+                stim_mod_arr[0, ((mod+1)%2), i] = None
+                stim_mod_arr[1, ((mod+1)%2), i] = None
+
+            stim_mod_arr.shape
+        trials = DM(task_type, num_trials, intervals=intervals, stim_mod_arr=stim_mod_arr, directions=directions)
+    return trials, var_of_interest
+
 def plot_hid_traj(cogMod, tasks, dim, instruct_mode = None): 
     models = list(cogMod.model_dict.keys())
     if dim == 2: 
@@ -377,6 +429,7 @@ def plot_hid_traj(cogMod, tasks, dim, instruct_mode = None):
 
     ax.clear()
 
+
 def get_hid_traj(cogMod, tasks, dim, instruct_mode):
     with torch.no_grad(): 
         for model in cogMod.model_dict.values(): 
@@ -397,63 +450,6 @@ def get_hid_traj(cogMod, tasks, dim, instruct_mode):
                 tasks_dict[task] = embedded
             model_task_state_dict[model_name] = tasks_dict
         return model_task_state_dict, trial.intervals[0]
-
-
-def make_test_trials(task_type, task_variable, mod, num_trials=100): 
-    assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
-    
-    conditions_arr = np.empty((2, 2, 2, num_trials))
-    intervals = np.empty((num_trials, 5), dtype=tuple)
-    for i in range(num_trials): intervals[i, :] = ((0, 20), (20, 60), (60, 80), (80, 100), (100, 120))
-    
-
-    if task_variable == 'direction': 
-        directions = np.linspace(0, 2*np.pi, num=num_trials)
-        strengths = np.array([1]* num_trials)
-        var_of_interest = directions
-
-    elif task_variable == 'strength': 
-        directions = np.array([np.pi] * num_trials)
-        strengths = np.linspace(0.3, 1.8, num=num_trials)
-        var_of_interest = strengths
-
-    elif task_variable == 'diff_strength': 
-        directions = np.array([[np.pi] * num_trials, [2*np.pi] * num_trials])
-        fixed_strengths = np.array([1]* num_trials)
-        diff_strength = np.linspace(-0.5, 0.5, num=num_trials)
-        strengths = np.array([fixed_strengths, fixed_strengths-diff_strength])
-        var_of_interest = diff_strength
-
-    elif task_variable == 'diff_direction': 
-        fixed_direction = np.array([np.pi] * num_trials)
-        diff_directions = np.linspace(np.pi/4, 2*pi-np.pi/4, num=num_trials)
-        directions = np.array([fixed_direction, fixed_direction-diff_directions])
-        strengths = np.array([[1] * num_trials, [1.2] * num_trials])
-        var_of_interest = diff_directions
-    
-    
-    if task_type in ['Go', 'Anti Go', 'RT Go', 'Anti RT Go']:
-        conditions_arr[mod, 0, 0, :] = directions
-        conditions_arr[mod, 0, 1, :] = strengths
-        conditions_arr[mod, 1, 0, :] = np.NaN
-        conditions_arr[((mod+1)%2), :, :, :] = np.NaN
-        trials = Go(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr)
-
-
-    if task_type in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']:
-        assert task_variable not in ['directions', 'strengths']
-        conditions_arr[mod, :, 0, : ] = directions
-        conditions_arr[mod, :, 1, : ] = strengths
-
-        if 'Multi' in task_type: 
-            conditions_arr[((mod+1)%2), :, :, :] = conditions_arr[mod, :, :, : ]
-        else: 
-            conditions_arr[((mod+1)%2), :, :, : ] = np.NaN
-
-        trials = DM(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr)
-
-    return trials, var_of_interest
-
 
 def get_hid_var_resp(model, task_type, trials, num_repeats = 10, instruct_mode=None): 
     with torch.no_grad(): 
@@ -493,8 +489,8 @@ def make_tuning_curve(model, task_type, task_variable, unit, time, mod, instruct
 
 def plot_neural_resp(model, task_type, task_variable, unit, mod, instruct_mode=None):
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
-    trials, _ = make_test_trials(task_type, task_variable, mod)
-    _, hid = get_hid_var_resp(model, task_type, trials, instruct_mode=instruct_mode)
+    trials, _ = make_test_trials(task_type, task_variable, mod, instruct_mode)
+    hid = get_hid_var_resp(model, task_type, trials, instruct_mode=instruct_mode)
     if task_variable == 'direction': 
         labels = ["0", "$2\pi$"]
         cmap = plt.get_cmap('twilight') 
@@ -533,18 +529,13 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, instruct_mode=N
     return trials
 
 
-foldername = '_ReLU128_12.4'
-seed = '_seed'+str(0)
-model_dict = {}
-model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
-cog = CogModule(model_dict)
-cog.load_models('DMC', foldername, seed)
 
-cog._plot_trained_performance()
-
-
-ModelS.langModel.out_dim
+# seed = '_seed'+str(0)
+# model_dict = {}
+# model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+# model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+# cog = CogModule(model_dict)
+# cog.load_models('Anti DM', foldername, seed)
 
 # plot_all_holdout_curves(foldername, ['S-Bert train', 'Model1'])
 # plot_avg_holdout_curves(foldername, ['S-Bert train', 'Model1'])
@@ -553,18 +544,19 @@ ModelS.langModel.out_dim
 
 # plot_hid_traj(cog, ['Anti DM', 'DM'], 2, instruct_mode=None)
 
-ModelS = model_dict['S-Bert train'+seed]
+
+# ModelS = model_dict['S-Bert train'+seed]
 
 # ModelS.langMod.plot_embedding()
 
-unit = 110
-task_variable = 'diff_strength'
+# unit = 110
+# task_variable = 'diff_strength'
 
 # trials = plot_neural_resp(ModelS, 'DM', task_variable, unit, 0)
 
 # trials.intervals
 
-trials = plot_neural_resp(ModelS, 'DM', task_variable, unit, 0)
+# trials = plot_neural_resp(ModelS, 'Anti DM', task_variable, unit, 0)
 # trials = plot_neural_resp(ModelS, 'MultiDM', task_variable, unit, 0)
 # trials = plot_neural_resp(ModelS, 'Anti MultiDM', task_variable, unit, 0)
 

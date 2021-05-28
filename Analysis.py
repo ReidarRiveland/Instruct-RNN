@@ -20,18 +20,6 @@ task_list = Task.TASK_LIST
 # milestones = [10, 20, 25, 30, 35, 40]
 
 
-foldername = '_ReLU128_12.4'
-seed = '_seed'+str(0)
-model_dict = {}
-model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
-cog = CogModule(model_dict)
-cog.load_models('Anti DM', foldername, seed)
-
-cog._plot_trained_performance()
-
-
-
 ###Model training loop
 epochs = 25
 init_lr = 0.001
