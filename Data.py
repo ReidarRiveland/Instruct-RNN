@@ -31,7 +31,9 @@ def make_data(task_dict = default_task_dict, batch_size = 128, num_batches = 500
         task_dict = dict.fromkeys(holdout_list, 1/len(holdout_list))
     
     batches_per_task = int(np.ceil(num_batches/len(task_dict.keys())))
-    trial_type = np.array((list(task_dict.keys())*batches_per_task)[:num_batches])
+    trial_type = (list(task_dict.keys())*batches_per_task)[:num_batches]
+    trial_indices = np.array([Task.TASK_LIST.index(task) for task in trial_type])    
+    
     for i in range(num_batches):
         trial = construct_batch(trial_type[i], batch_size)
         input_data[i, :, :, :] = trial.inputs
@@ -39,7 +41,37 @@ def make_data(task_dict = default_task_dict, batch_size = 128, num_batches = 500
         masks_data[i, :, :, :] = trial.masks
         target_dirs[i, :] = trial.target_dirs
 
-    return input_data, target_data, masks_data, target_dirs, trial_type
+    return input_data, target_data, masks_data, target_dirs, trial_indices
 
 
 
+
+# np.save('training_data/Multitask_trials/input_data', input_data)
+# np.save('training_data/Multitask_trials/target_data', target_data)
+# np.save('training_data/Multitask_trials/masks_data', masks_data)
+# np.save('training_data/Multitask_trials/target_dirs', target_dirs)
+# np.save('training_data/Multitask_trials/type_indices', trial_indices)
+
+
+class data_streamer(): 
+    def __init__(self, data_folder, num_batches): 
+        self.data_folder = data_folder
+        self.memmap_inputs = np.memmap(self.data_folder+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (num_batches, 128, 120, 65))
+        self.memmap_target = np.memmap(self.data_folder+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (num_batches, 128, 120, 33))
+        self.memmap_masks = np.memmap(self.data_folder+'/masks_data.npy', dtype = 'float32', mode = 'r', shape = (num_batches, 128, 120, 33))
+        self.memmap_target_dirs = np.memmap(self.data_folder+ '/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (num_batches, 128))
+        self.memmap_task_types = np.memmap(self.data_folder+ '/type_indices.npy', dtype = 'int', mode = 'r', shape = (num_batches,))
+
+    def get_data(self, i): 
+        return self.memmap_inputs[i, ].copy(), self.memmap_target[i, ].copy(), self.memmap_masks[i, ].copy(), self.memmap_target_dirs[i, ].copy(), Task.TASK_LIST[self.memmap_task_types[i, ]]
+
+
+
+
+# multitask_data = data_streamer('training_data/Multitask_trials', 100)
+
+# ins, tar, mask, tar_dir, task_type = multitask_data.get_data(50)
+
+# import torch
+
+# torch.Tensor(ins)

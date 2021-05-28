@@ -1,3 +1,4 @@
+from Data import data_streamer
 import numpy as np
 
 import torch
@@ -29,6 +30,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from Task import Task, construct_batch
 from LangModule import get_batch, swaps
+from Data import data_streamer
 
 
 task_list = Task.TASK_LIST
@@ -81,7 +83,7 @@ def isCorrect(nn_out, nn_target, target_dirs):
     """
     batch_size = nn_out.shape[0]
     nn_out = gpu_to_np(nn_out)
-    nn_target = gpu_to_np(nn_target)
+    #nn_target = gpu_to_np(nn_target)
 
     isCorrect = np.empty(batch_size, dtype=bool)
     criterion = (2*np.pi)/10
@@ -315,10 +317,7 @@ class CogModule():
             filename = filename.replace(' ', '_')
             model.load_state_dict(torch.load(filename))
     
-
-    def train(self, data, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, milestones = [], 
-                        holdout_task = None, instruct_mode = None, freeze_langModel = False, langLR = None, langWeightDecay=None): 
-        #torch.autograd.set_detect_anomaly
+    def init_optimizers(self, weight_decay, lr, milestones, freeze_langModel, langLR, langWeightDecay):
         self.opt_dict = {}
         for model_type, model in self.model_dict.items(): 
             if (model.isLang and not model.tune_langModel) or (model.tune_langModel and freeze_langModel): 
@@ -337,14 +336,13 @@ class CogModule():
                 print(model_type)
             model.train()
         
-        ins_tensor = data[0]
-        tar_tensor = data[1]
-        mask_tensor = data[2]
-        tar_dir_vec = data[3]
-        task_type_vec = data[4]
+    def train(self, data_path, batch_len, batch_num, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, milestones = [], 
+                freeze_langModel = False, langLR = None, langWeightDecay=None): 
+        #torch.autograd.set_detect_anomaly
+        self.init_optimizers(weight_decay, lr, milestones, freeze_langModel, langLR, langWeightDecay)
+        
+        data_set = data_streamer(data_path, batch_num)
 
-        batch_len = ins_tensor.shape[1]
-        batch_num = ins_tensor.shape[0]
         correct_array = np.empty((batch_len, batch_num), dtype=bool)
         for model_type, model in self.model_dict.items(): 
             opt = self.opt_dict[model_type][0]
@@ -353,19 +351,13 @@ class CogModule():
                 print('epoch', i)
                 index_list = list(np.arange(batch_num))
                 np.random.shuffle(index_list)
-                for j in range(batch_num): 
-                    index = index_list[j]
-                    task_type = task_type_vec[index]
-                    task_index = task_list.index(task_type)
-                    tar = torch.Tensor(tar_tensor[index, :, :, :]).to(device)
-                    mask = torch.Tensor(mask_tensor[index, :, :, :]).to(device)
-                    ins = torch.Tensor(ins_tensor[index, :, :, :]).to(device)
-                    tar_dir = tar_dir_vec[index]
+                for j, index in enumerate(index_list): 
+                    ins, tar, mask, tar_dir, task_type = data_set.get_data(index)
 
                     opt.zero_grad()
-                    out, _ = self._get_model_resp(model, batch_len, ins, task_type, instruct_mode)
+                    out, _ = self._get_model_resp(model, batch_len, torch.Tensor(ins).to(device), task_type)
 
-                    loss = masked_MSE_Loss(out, tar, mask) 
+                    loss = masked_MSE_Loss(out, torch.Tensor(tar).to(device), torch.Tensor(mask).to(device)) 
                     loss.backward()
                     torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
                     opt.step()
