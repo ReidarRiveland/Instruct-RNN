@@ -43,8 +43,9 @@ def make_data(task_dict = default_task_dict, batch_size = 128, num_batches = 500
 
     return input_data, target_data, masks_data, target_dirs, trial_indices
 
+input_data, target_data, masks_data, target_dirs, trial_indices = make_data(task_dict = {'Anti Go': 1}, num_batches=250)
 
-
+np.savez('training_data/Anti_Go', input_data=input_data, target_data=target_data, masks_data=masks_data, target_dirs=target_dirs, trial_indices=trial_indices)
 
 # np.save('training_data/Multitask_trials/input_data', input_data)
 # np.save('training_data/Multitask_trials/target_data', target_data)
