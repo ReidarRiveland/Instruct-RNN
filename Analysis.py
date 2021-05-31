@@ -23,7 +23,7 @@ task_list = Task.TASK_LIST
 ###Model training loop
 epochs = 40
 init_lr = 0.001
-milestones = [10, 15, 20]
+milestones = [20, 25, 30]
 
 seeds=5
 foldername = '_ReLU128_19.5'
@@ -32,8 +32,8 @@ for i in range(seeds):
     for holdout in task_list + ['Multitask']:
         model_dict = {}
         model_dict['S-Bert'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=False)
-        model_dict['BERT'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=False)
-        model_dict['GPT'+seed] = instructNet(LangModule(GPT(20)), 128, 1, 'relu', tune_langModel=False)
+        # model_dict['BERT'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=False)
+        # model_dict['GPT'+seed] = instructNet(LangModule(GPT(20)), 128, 1, 'relu', tune_langModel=False)
 
         # model_dict['BoW'+seed] = instructNet(LangModule(BoW()), 128, 1, 'relu', tune_langModel=False)
         # model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
@@ -68,24 +68,23 @@ for i in range(5):
 
     for holdout in task_list+['Multitask']:
 
-        correct_dict = {key : np.zeros(100) for key in [modelBERT_name]}
+        correct_dict = {key : np.zeros(100) for key in [modelSBERT_name, modelBERT_name, modelBOW_name, model1_name]}
         loss_dict = correct_dict.copy()
 
+        model_dict = {}
+        model_dict[modelSBERT_name] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+        model_dict[modelBERT_name] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+        model_dict[modelBOW_name] = instructNet(LangModule(BoW()), 128, 1, 'relu', tune_langModel=False)
+        model_dict[model1_name] = simpleNet(81, 128, 1, 'relu')
+        cog = CogModule(model_dict)
+
+        try: 
+            cog.load_training_data(holdout, foldername, seed + '_holdout')
+        except: 
+            pass
+
         for i in range(5): 
-
             holdout_data = make_data(task_dict = {holdout:1}, num_batches=100, batch_size=256)
-            model_dict = {}
-            model_dict[modelSBERT_name] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-            model_dict[modelBERT_name] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-            model_dict[modelBOW_name] = instructNet(LangModule(BoW()), 128, 1, 'relu', tune_langModel=False)
-            model_dict[model1_name] = simpleNet(81, 128, 1, 'relu')
-            cog = CogModule(model_dict)
-
-            try: 
-                cog.load_training_data(holdout, foldername, seed + '_holdout')
-            except: 
-                pass
-
             cog.load_models(holdout, foldername)
 
 
@@ -102,4 +101,5 @@ for i in range(5):
         cog.sort_perf_by_task()
         cog.save_training_data(holdout_name, foldername, seed+'_holdout')
             
+
 
