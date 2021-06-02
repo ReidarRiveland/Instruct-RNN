@@ -7,23 +7,11 @@ import torch.optim as optim
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 import seaborn as sns
-import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-from matplotlib import rc
-
-rc('text', usetex=True)
-rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-
-from sklearn.decomposition import PCA
-from scipy.ndimage.filters import gaussian_filter1d
-import umap
-from sklearn.manifold import TSNE
 
 import pickle
-import random
-from collections import defaultdict
 
+from collections import defaultdict
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
