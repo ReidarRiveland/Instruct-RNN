@@ -340,19 +340,16 @@ class CogModule():
                 freeze_langModel = False, langLR = None, langWeightDecay=None): 
         #torch.autograd.set_detect_anomaly
         self.init_optimizers(weight_decay, lr, milestones, freeze_langModel, langLR, langWeightDecay)
-        
-        data_set = data_streamer(data_path, batch_num)
-
+        streamer = data_streamer(data_path, batch_num)
         correct_array = np.empty((batch_len, batch_num), dtype=bool)
         for model_type, model in self.model_dict.items(): 
             opt = self.opt_dict[model_type][0]
             opt_scheduler = self.opt_dict[model_type][1]
             for i in range(epochs):
                 print('epoch', i)
-                index_list = list(np.arange(batch_num))
-                np.random.shuffle(index_list)
-                for j, index in enumerate(index_list): 
-                    ins, tar, mask, tar_dir, task_type = data_set.get_data(index)
+                streamer.permute_task_order()
+                for j, data in enumerate(streamer.get_data()): 
+                    ins, tar, mask, tar_dir, task_type = data
 
                     opt.zero_grad()
                     out, _ = self._get_model_resp(model, batch_len, torch.Tensor(ins).to(device), task_type)
