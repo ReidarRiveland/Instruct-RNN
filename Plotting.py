@@ -16,7 +16,6 @@ import matplotlib.animation as animation
 
 from sklearn.decomposition import PCA
 from scipy.ndimage.filters import gaussian_filter1d
-import umap
 from sklearn.manifold import TSNE
 
 import torch
@@ -86,8 +85,8 @@ def plot_avg_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list
     plt.show()
     return seeds_summary_dict
 
-def plot_all_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list(range(5))): 
-    all_correct, all_loss, all_summary_correct, all_summary_loss = _collect_data_across_seeds(foldername, model_list, seeds)
+def plot_all_holdout_curves(foldername, model_list, smoothing=0.01, name= 'holdout', seeds = list(range(5)), num_trials = 100, multitask=False): 
+    _, _, all_summary_correct, all_summary_loss = _collect_data_across_seeds(foldername, model_list, seeds, name, num_trials, multitask)
 
     fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(14, 10))
     plt.suptitle(r'$\textbf{Holdout Learning for All Tasks}$')
@@ -96,7 +95,7 @@ def plot_all_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list
         holdout_task = task_list[i]
         for model_name in model_list: 
             smoothed_perf = gaussian_filter1d(all_summary_correct[model_name][holdout_task][0], sigma=smoothing)
-            ax.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), all_summary_correct[model_name][holdout_task][0]+all_summary_correct[model_name][holdout_task][1]]), axis=0), 
+            ax.fill_between(np.linspace(0, num_trials, num_trials), np.min(np.array([np.ones(num_trials), all_summary_correct[model_name][holdout_task][0]+all_summary_correct[model_name][holdout_task][1]]), axis=0), 
                 all_summary_correct[model_name][holdout_task][0]-all_summary_correct[model_name][holdout_task][1], color =  ALL_STYLE_DICT[model_name][0], alpha= 0.1)
             ax.plot(smoothed_perf, color = ALL_STYLE_DICT[model_name][0], marker=ALL_STYLE_DICT[model_name][1], alpha=1, markersize=5, markevery=3)
         ax.set_title(holdout_task)
@@ -105,6 +104,77 @@ def plot_all_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list
     _label_plot(fig, Patches, Markers, legend_loc=(1.2, 0.5))
     plt.show()
     return all_summary_correct, all_summary_loss
+
+
+def plot_single_seed(foldername, task_file, model_list,  seed, name, smoothing=0.1):
+    seed = '_seed' + str(seed)
+    task_file = task_file.replace(' ', '_')
+    task_sorted_correct = pickle.load(open(foldername+'/'+task_file+'/'+seed+name+'_training_correct_dict', 'rb'))
+    fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(14, 10))
+    plt.suptitle('Holdout Learning for All Tasks' +seed)
+    for i, ax in enumerate(axn.flat):
+        ax.set_ylim(-0.05, 1.15)
+        holdout_task = task_list[i]
+        for model_name in model_list: 
+            smoothed_perf = gaussian_filter1d(task_sorted_correct[model_name+seed][holdout_task], sigma=smoothing)
+            ax.plot(smoothed_perf, color = ALL_STYLE_DICT[model_name][0], marker=ALL_STYLE_DICT[model_name][1], alpha=1, markersize=5, markevery=3)
+        ax.set_title(holdout_task)
+
+    Patches, Markers = get_model_patches(model_list)
+    _label_plot(fig, Patches, Markers, legend_loc=(1.2, 0.5))
+    plt.show()
+
+foldername = '_ReLU128_19.5'
+modelSBERT_name = 'S-Bert train'
+modelBERT_name = 'BERT train'
+modelBOW_name = 'BoW'
+model1_name = 'Model1'
+
+# for task in task_list: 
+#     i = 0
+#     holdout_file = task.replace(' ', '_')
+#     task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'rb'))
+#     task_sorted_correct.keys()
+
+
+# name=''
+# for task in task_list: 
+#     for i in range(5): 
+#         seed = '_seed'+str(i)
+#         holdout_file = task.replace(' ', '_')
+#         task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'rb'))
+#         print('before: ') 
+#         task_sorted_correct.keys()
+#         for model_name in task_sorted_correct.keys(): 
+#             # if model_name.startswith('BOW'): 
+#             #     task_sorted_correct['BoW_seed0'] = task_sorted_correct.pop(model_name)
+#             # if model_name.startswith('BERT train'): 
+#             #     task_sorted_correct['BERT train_seed0'] = task_sorted_correct.pop(model_name)
+#             if model_name.startswith('S-Ber train'): 
+#                 task_sorted_correct['S-Bert train'+seed] = task_sorted_correct.pop(model_name)
+#                 break
+#         print('after: ')
+#         task_sorted_correct.keys()
+#         pickle.dump(task_sorted_correct, open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'wb'))    
+
+
+
+
+model_list= [modelBOW_name, model1_name, modelBERT_name, modelSBERT_name]
+name=''
+for task in ['MultiDM']: 
+    for i in [2]: 
+        print('seed ' + str(i))
+        holdout_file = task.replace(' ', '_')
+        task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'rb'))
+        task_sorted_correct.keys()
+        plot_single_seed(foldername, task, model_list, i, '', smoothing=0.3)
+
+
+
+plot_all_holdout_curves('_ReLU128_19.5', model_list, 750, name='', seeds = [0, 1, 2, 3, 4], num_trials=800, multitask=True)
+
+
 
 def plot_learning_curves(model_dict, tasks, foldername, comparison, dim, smoothing=1): 
     cog = CogModule(model_dict)
@@ -170,6 +240,8 @@ def plot_learning_curves(model_dict, tasks, foldername, comparison, dim, smoothi
     fig.tight_layout(rect=(0.02, 0.02, 0.98, 0.98))
     fig.show()
 
+
+
 def plot_task_rep(model, epoch, reduction_method, z_score, num_trials = 250, dim = 2, instruct_mode = None, holdout_task = None, tasks = task_list, avg_rep = False, Title=''): 
     if instruct_mode == 'comp': 
         assert holdout_task != None 
@@ -219,8 +291,6 @@ def plot_task_rep(model, epoch, reduction_method, z_score, num_trials = 250, dim
 
     if reduction_method == 'PCA': 
         embedder = PCA(n_components=dim)
-    elif reduction_method == 'UMAP':
-        embedder = umap.UMAP()
     elif reduction_method == 'tSNE': 
         embedder = TSNE(n_components=2)
 
@@ -530,17 +600,17 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, instruct_mode=N
 
 
 
-# seed = '_seed'+str(0)
-# model_dict = {}
-# model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-# model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
-# cog = CogModule(model_dict)
-# cog.load_models('Anti DM', foldername, seed)
+seed = '_seed'+str(0)
+model_dict = {}
+model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+cog = CogModule(model_dict)
+cog.load_models('Anti DM', foldername, seed)
 
 # plot_all_holdout_curves(foldername, ['S-Bert train', 'Model1'])
 # plot_avg_holdout_curves(foldername, ['S-Bert train', 'Model1'])
 
-# plot_hid_PCA_comparison(cog, 'Decision Making', ['', ''])
+plot_hid_PCA_comparison(cog, 'Decision Making', ['', ''])
 
 # plot_hid_traj(cog, ['Anti DM', 'DM'], 2, instruct_mode=None)
 

@@ -7,7 +7,31 @@ from matplotlib.lines import Line2D
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import CogModule
+import pickle
+
+import pandas as pd
+
+foldername = '_ReLU128_19.5'
+name=''
+data_dict = {}
+for task in ['Go']: 
+    for i in range(5): 
+        temp_dict = {}
+        seed = '_seed'+str(i)
+        holdout_file = task.replace(' ', '_')
+        task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'rb'))
+        for model_name in task_sorted_correct.keys(): 
+            temp_dict[model_name.replace(seed, '')] = task_sorted_correct[model_name]
+        data_dict[i] = pd.DataFrame(temp_dict)
+
+data_dict[1]['S-Bert train']
+
+data = pd.DataFrame(data_dict)
+
+data[]
+
+data.keys()
+
 
 ALL_STYLE_DICT = {'Model1': ('blue', None), 'Model1shuffled': ('blue', '+'), 'SIF':('brown', None), 'BoW': ('orange', None), 'GPT_cat': ('red', '^'), 'GPT train': ('red', '.'), 
                         'BERT_cat': ('green', '^'), 'BERT train': ('green', '+'), 'S-Bert_cat': ('purple', '^'), 'S-Bert train': ('purple', '.'), 'S-Bert' : ('purple', None), 
@@ -79,33 +103,39 @@ def _label_plot(fig, Patches, Markers, legend_loc = (0.9, 0.3)):
     fig.text(0.5, 0.04, 'Training Examples', ha='center')
     fig.text(0.04, 0.5, 'Fraction Correct', va='center', rotation='vertical')
 
-def _collect_data_across_seeds(foldername, model_list, seeds): 
+def _collect_data_across_seeds(foldername, model_list, seeds, name, num_trials, multitask=False): 
     all_correct = defaultdict(np.array)
     all_loss = defaultdict(np.array)
     all_summary_correct = defaultdict(np.array)
     all_summary_loss = defaultdict(np.array)
     for model_name in model_list: 
-        correct_data_dict = {task : np.zeros((100, len(seeds))) for task in task_list}
+        correct_data_dict = {task : np.zeros((num_trials, len(seeds))) for task in task_list}
         correct_summary_dict = {}
-        loss_data_dict = {task : np.zeros((100, len(seeds))) for task in task_list}
+        loss_data_dict = {task : np.zeros((num_trials, len(seeds))) for task in task_list}
         loss_summary_dict = {}
         for holdout in task_list: 
             for i, seed_num in enumerate(seeds):
+                
                 seed = '_seed'+str(seed_num)
-                model_dict = {}
-                model_dict[model_name+seed] = None                
-                cog = CogModule(model_dict)
-                cog.load_training_data(holdout, foldername, seed+'holdout')
-                correct_data_dict[holdout][:, i] = cog.task_sorted_correct[model_name+seed][holdout]
-                loss_data_dict[holdout][:, i] = cog.task_sorted_loss[model_name+seed][holdout]
+                if multitask: holdout_file = 'Multitask'
+                else: holdout_file = holdout.replace(' ', '_')
+
+                task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+seed+name+'_training_correct_dict', 'rb'))
+                task_sorted_loss = pickle.load(open(foldername+'/'+holdout_file+'/'+seed+name+'_training_loss_dict', 'rb'))
+                correct_data_dict[holdout][0:len(task_sorted_correct[model_name+seed][holdout]), i] = task_sorted_correct[model_name+seed][holdout]
+                loss_data_dict[holdout][0:len(task_sorted_loss[model_name+seed][holdout]), i] = task_sorted_loss[model_name+seed][holdout]
+                print(model_name+str(holdout)+str(seed_num))
 
             correct_summary_dict[holdout]=np.array([np.mean(correct_data_dict[holdout], axis=1), np.std(correct_data_dict[holdout], axis=1)])
             loss_summary_dict[holdout]=np.array([np.mean(loss_data_dict[holdout], axis=1), np.std(loss_data_dict[holdout], axis=1)])
 
         all_correct[model_name] = correct_data_dict
         all_loss[model_name] = loss_data_dict
+
+
         all_summary_correct[model_name] = correct_summary_dict
         all_summary_loss[model_name] = loss_summary_dict
 
 
     return all_correct, all_loss, all_summary_correct, all_summary_loss
+
