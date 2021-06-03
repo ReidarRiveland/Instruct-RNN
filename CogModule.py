@@ -82,8 +82,10 @@ def isCorrect(nn_out, nn_target, target_dirs):
         np.array: weighted loss of neural network response; shape: (batch)
     """
     batch_size = nn_out.shape[0]
-    nn_out = gpu_to_np(nn_out)
-    nn_target = gpu_to_np(nn_target)
+    if type(nn_out) == torch.Tensor: 
+        nn_out = gpu_to_np(nn_out)
+    if type(nn_target) == torch.Tensor: 
+        nn_target = gpu_to_np(nn_target)
 
     isCorrect = np.empty(batch_size, dtype=bool)
     criterion = (2*np.pi)/10

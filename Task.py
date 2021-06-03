@@ -381,7 +381,7 @@ class DM(Task):
                         if abs(coh[0]) != abs(coh[1]): 
                             redraw = False
                     
-                    strengths = np.array([base_strength + coh, base_strength - coh])
+                    strengths = np.array([base_strength + coh, base_strength - coh]).T
                     self.conditions_arr[:, :, 0, i] = np.array([directions, directions])
                     self.conditions_arr[:, :, 1, i] = strengths
 
@@ -390,7 +390,7 @@ class DM(Task):
                     base_strength = np.random.uniform(0.8, 1.2)
                     coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
 
-                    strengths = np.array([base_strength+coh, base_strength-coh])
+                    strengths = np.array([base_strength+coh, base_strength-coh]).T
                     
                     self.conditions_arr[mod, :, 0, i] = np.array(directions)
                     self.conditions_arr[mod, :, 1, i] = strengths
