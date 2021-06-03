@@ -336,12 +336,13 @@ class CogModule():
                 print(model_type)
             model.train()
         
-    def train(self, data_path, batch_len, batch_num, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, milestones = [], 
+    def train(self, data_path, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, milestones = [], 
                 freeze_langModel = False, langLR = None, langWeightDecay=None): 
         #torch.autograd.set_detect_anomaly
         self.init_optimizers(weight_decay, lr, milestones, freeze_langModel, langLR, langWeightDecay)
-        streamer = data_streamer(data_path, batch_num)
-        correct_array = np.empty((batch_len, batch_num), dtype=bool)
+        streamer = data_streamer(data_path)
+        batch_len = streamer.batch_len
+        
         for model_type, model in self.model_dict.items(): 
             opt = self.opt_dict[model_type][0]
             opt_scheduler = self.opt_dict[model_type][1]
