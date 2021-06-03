@@ -83,7 +83,7 @@ def isCorrect(nn_out, nn_target, target_dirs):
     """
     batch_size = nn_out.shape[0]
     nn_out = gpu_to_np(nn_out)
-    #nn_target = gpu_to_np(nn_target)
+    nn_target = gpu_to_np(nn_target)
 
     isCorrect = np.empty(batch_size, dtype=bool)
     criterion = (2*np.pi)/10
@@ -383,7 +383,7 @@ class CogModule():
                     mean_list = [] 
                     trial = construct_batch(task_type, batch_len)
                     ins = trial.inputs
-                    out, _ = self._get_model_resp(model, batch_len, torch.Tensor(ins).to(device), task_type, instruct_mode) 
+                    out, _ = self._get_model_resp(model, batch_len, torch.Tensor(ins).to(device), task_type) 
                     mean_list.append(np.mean(isCorrect(out, torch.Tensor(trial.targets).to(device), trial.target_dirs)))
                 perf_dict[task_type] = np.mean(mean_list)
         return perf_dict 

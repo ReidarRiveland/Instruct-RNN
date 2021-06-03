@@ -108,10 +108,20 @@ init_lr = 0.001
 milestones = [10, 15, 20]
 
 
-for holdout in ['Multitask']:
-    model_dict = {}
-    model_dict['Model1'] = simpleNet(81, 128, 1, 'relu')
-    cog = CogModule(model_dict)
-    cog.train('training_data/Multitask_trials', 128, 100, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
+model_dict = {}
+model_dict['Model1_seed0'] = simpleNet(81, 128, 1, 'relu')
+cog = CogModule(model_dict)
+
+# cog.train('training_data/Go/holdout_training', epochs, lr=init_lr, milestones = milestones)
     
+cog._plot_trained_performance()
+
+cog.load_models('Go', '_ReLU128_19.5', '_seed0')
+
+cog.load_training_data('data_loader_test', 'SigModels200_copy', '')
+
+import pickle
+
+training_data = pickle.load(open('SigModels200_copy/data_loader_test/_training_correct_dict', 'rb'))
+training_data['Model1']['MultiDM']
 

@@ -78,15 +78,12 @@ class data_streamer():
         self.permute_task_order()
 
     def permute_task_order(self): 
-        self.task_order = np.random.permutation(self.memmap_task_types.copy())
+        self.task_order = np.random.permutation(self.num_batches)
 
     def get_data(self): 
         for i in self.task_order: 
             yield self.memmap_inputs[i, ].copy(), self.memmap_target[i, ].copy(), self.memmap_masks[i, ].copy(), self.memmap_target_dirs[i, ].copy(), Task.TASK_LIST[self.memmap_task_types[i, ]]
 
-
-# streamer = data_streamer('training_data/Multitask_data', 500)
-# streamer.task_order
 
 # for i in range(5):
 #     print(i)
