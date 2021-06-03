@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 
-import gensim
-import gensim.downloader as api
-from gensim.models import KeyedVectors
-from gensim.models import Word2Vec
+# import gensim
+# import gensim.downloader as api
+# from gensim.models import KeyedVectors
+# from gensim.models import Word2Vec
 
 # from fse.models import SIF
 # from fse import IndexedList

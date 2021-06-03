@@ -11,30 +11,30 @@ import pickle
 
 import pandas as pd
 
-foldername = '_ReLU128_19.5'
-name=''
-data_dict = {}
-for task in ['Go']: 
-    for i in range(5): 
-        temp_dict = {}
-        seed = '_seed'+str(i)
-        holdout_file = task.replace(' ', '_')
-        task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'rb'))
-        for model_name in task_sorted_correct.keys(): 
-            temp_dict[model_name.replace(seed, '')] = task_sorted_correct[model_name]
-        data_dict[i] = pd.DataFrame(temp_dict)
+# foldername = '_ReLU128_19.5'
+# name=''
+# data_dict = {}
+# for task in ['Go']: 
+#     for i in range(5): 
+#         temp_dict = {}
+#         seed = '_seed'+str(i)
+#         holdout_file = task.replace(' ', '_')
+#         task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'rb'))
+#         for model_name in task_sorted_correct.keys(): 
+#             temp_dict[model_name.replace(seed, '')] = task_sorted_correct[model_name]
+#         data_dict[i] = pd.DataFrame(temp_dict)
 
-data_dict[1]['S-Bert train']
+# data_dict[1]['S-Bert train']
 
-data = pd.DataFrame(data_dict)
+# data = pd.DataFrame(data_dict)
 
-data[]
+# data[]
 
-data.keys()
+# data.keys()
 
 
 ALL_STYLE_DICT = {'Model1': ('blue', None), 'Model1shuffled': ('blue', '+'), 'SIF':('brown', None), 'BoW': ('orange', None), 'GPT_cat': ('red', '^'), 'GPT train': ('red', '.'), 
-                        'BERT_cat': ('green', '^'), 'BERT train': ('green', '+'), 'S-Bert_cat': ('purple', '^'), 'S-Bert train': ('purple', '.'), 'S-Bert' : ('purple', None), 
+                        'BERT_cat': ('green', '^'), 'BERT train': ('green', '.'), 'S-Bert_cat': ('purple', '^'), 'S-Bert train': ('purple', '.'), 'S-Bert' : ('purple', None), 
                         'InferSent train': ('yellow', '.'), 'InferSent_cat': ('yellow', '^'), 'Transformer': ('pink', '.')}
 COLOR_DICT = {'Model1': 'blue', 'SIF':'brown', 'BoW': 'orange', 'GPT': 'red', 'BERT': 'green', 'S-Bert': 'purple', 'InferSent':'yellow', 'Transformer': 'pink'}
 MODEL_MARKER_DICT = {'SIF':None, 'BoW':None, 'shuffled':'+', 'cat': '^', 'train': '.', 'Transformer':'.'}

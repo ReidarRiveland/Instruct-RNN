@@ -30,6 +30,13 @@ from CogModule import CogModule
 from matplotlib import rc,rcParams
 from pylab import *
 
+# activate latex text rendering
+rc('text', usetex=True)
+#rc('axes', linewidth=2)
+rc('font', weight='bold')
+rcParams['text.latex.preamble'] = [r'\usepackage{sfmath} \boldmath']
+
+
 from Task import Go, DM
 
 task_list = Task.TASK_LIST
@@ -59,12 +66,6 @@ def plot_avg_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list
         seeds_avg_dict[model_name] = seeds_avg
         seeds_summary_dict[model_name] = np.array([np.round(np.mean(seeds_avg_dict[model_name], axis=1), decimals=3), 
                                                         np.round(np.std(seeds_avg_dict[model_name], axis=1), decimals=3)])
-
-    # activate latex text rendering
-    rc('text', usetex=True)
-    #rc('axes', linewidth=2)
-    rc('font', weight='bold')
-    rcParams['text.latex.preamble'] = [r'\usepackage{sfmath} \boldmath']
 
     fig, ax = plt.subplots(1,1, figsize =(12, 8))
     plt.suptitle(r'$\textbf{Avg. Performance over All Holdout Tasks}$')
@@ -111,13 +112,13 @@ def plot_single_seed(foldername, task_file, model_list,  seed, name, smoothing=0
     task_file = task_file.replace(' ', '_')
     task_sorted_correct = pickle.load(open(foldername+'/'+task_file+'/'+seed+name+'_training_correct_dict', 'rb'))
     fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(14, 10))
-    plt.suptitle('Holdout Learning for All Tasks' +seed)
+    #plt.suptitle('Holdout Learning for All Tasks' +seed)
     for i, ax in enumerate(axn.flat):
         ax.set_ylim(-0.05, 1.15)
         holdout_task = task_list[i]
         for model_name in model_list: 
             smoothed_perf = gaussian_filter1d(task_sorted_correct[model_name+seed][holdout_task], sigma=smoothing)
-            ax.plot(smoothed_perf, color = ALL_STYLE_DICT[model_name][0], marker=ALL_STYLE_DICT[model_name][1], alpha=1, markersize=5, markevery=3)
+            ax.plot(smoothed_perf, color = ALL_STYLE_DICT[model_name][0], marker=ALL_STYLE_DICT[model_name][1], alpha=1, markersize=8, markevery=25)
         ax.set_title(holdout_task)
 
     Patches, Markers = get_model_patches(model_list)
@@ -162,13 +163,13 @@ model1_name = 'Model1'
 
 model_list= [modelBOW_name, model1_name, modelBERT_name, modelSBERT_name]
 name=''
-for task in ['MultiDM']: 
-    for i in [2]: 
+for task in task_list: 
+    for i in [0, 1, 2, 3, 4]: 
         print('seed ' + str(i))
         holdout_file = task.replace(' ', '_')
         task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'rb'))
         task_sorted_correct.keys()
-        plot_single_seed(foldername, task, model_list, i, '', smoothing=0.3)
+        plot_single_seed(foldername, 'DNMC', model_list, 4, '', smoothing=5)
 
 
 

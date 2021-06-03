@@ -18,32 +18,20 @@ task_list = Task.TASK_LIST
 ##Model training loop
 epochs = 25
 init_lr = 0.001
-milestones = [10, 15, 20]
+milestones = [5, 10, 15, 20]
 
 
 foldername = '_ReLU128_19.5'
 
-retrain_list = [('RT Go', '_seed2', ['BERT train']), ('RT Go', '_seed4', ['BERT train']),
+retrain_list = [('Go', '_seed1', ['S-Bert train']), 
+                ('Anti Go', '_seed1', ['S-Bert train']), 
+                ('Anti Go', '_seed4', ['S-Bert train']), 
+                ('Anti Go', '_seed3', ['BERT train']), 
 
-('Anti Go', '_seed1', ['S-Bert train']), ('Anti Go', '_seed4', ['S-Bert train']), 
-
-('Anti Go', '_seed3', ['BERT train']), 
-
-('Anti DM', '_seed3', ['BERT train']), 
-
-('MultiDM', '_seed2', ['S-Bert train']), 
-
-('Anti MultiDM', '_seed0', ['BERT train']), 
-
-('COMP1', '_seed3', ['S-Bert train']), 
-
-('COMP2', '_seed4', ['BERT train']), 
-
-('DMS', '_seed1', ['BERT train']), 
-
-('DNMS', '_seed4', ['BERT train']), 
-
-('DMC', '_seed4', ['S-Bert train'])]
+                ('Anti DM', '_seed1', ['S-Bert train']),  
+                ('COMP2', '_seed1', ['S-Bert train']), 
+                ('COMP2', '_seed4', ['S-Bert train']), 
+                ('DMC', '_seed4', ['S-Bert train'])]
 
 
 
