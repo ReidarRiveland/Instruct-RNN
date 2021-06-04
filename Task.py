@@ -213,7 +213,7 @@ class Go(Task):
         self.task_type = task_type
 
         #mod, stim, dir_strengths, num_trials
-        self.conditions_arr = np.empty((2, 2, 2, num_trials))
+        self.conditions_arr = np.empty((2, 2, 2, num_trials), dtype=np.float32)
 
         self.conditions_arr[:, 1, :, :] = np.NaN
         if type(intervals) == type(None): 
