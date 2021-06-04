@@ -286,7 +286,7 @@ class Comp(Task):
             
             if 'Multi' in self.task_type: 
                 self.conditions_arr[:, :, 0, i] = np.array([directions, directions])
-                self.conditions_arr[:, :, 1, i] = strengths.T
+                self.conditions_arr[:, :, 1, i] = strengths
 
             else: 
                 mod = np.random.choice([0, 1])
@@ -459,6 +459,6 @@ def construct_batch(task_type, num):
         trial = Delay('DMC', num)
     if task_type == 'DNMC': 
         trial = Delay('DNMC', num)
-    return trial 
+    return trial.inputs, trial.targets, trial.masks, trial.target_dirs, Task.TASK_LIST.index(task_type)
 
 
