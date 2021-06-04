@@ -86,7 +86,7 @@ def plot_avg_holdout_curves(foldername, model_list, smoothing=0.01, seeds = list
     plt.show()
     return seeds_summary_dict
 
-def plot_all_holdout_curves(foldername, model_list, smoothing=0.01, name= 'holdout', seeds = list(range(5)), num_trials = 100, multitask=False): 
+def plot_all_holdout_curves(foldername, model_list, smoothing=0.01, name= '_holdout', seeds = list(range(5)), num_trials = 100, multitask=False): 
     _, _, all_summary_correct, all_summary_loss = _collect_data_across_seeds(foldername, model_list, seeds, name, num_trials, multitask)
 
     fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(14, 10))
@@ -138,30 +138,38 @@ model1_name = 'Model1'
 #     task_sorted_correct.keys()
 
 
-# name=''
-# for task in task_list: 
-#     for i in range(5): 
-#         seed = '_seed'+str(i)
-#         holdout_file = task.replace(' ', '_')
-#         task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'rb'))
-#         print('before: ') 
-#         task_sorted_correct.keys()
-#         for model_name in task_sorted_correct.keys(): 
-#             # if model_name.startswith('BOW'): 
-#             #     task_sorted_correct['BoW_seed0'] = task_sorted_correct.pop(model_name)
-#             # if model_name.startswith('BERT train'): 
-#             #     task_sorted_correct['BERT train_seed0'] = task_sorted_correct.pop(model_name)
-#             if model_name.startswith('S-Ber train'): 
-#                 task_sorted_correct['S-Bert train'+seed] = task_sorted_correct.pop(model_name)
-#                 break
-#         print('after: ')
-#         task_sorted_correct.keys()
-#         pickle.dump(task_sorted_correct, open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'wb'))    
-
-
-
+name=''
+for task in ['Multitask']: 
+    for i in range(5): 
+        seed = '_seed'+str(i)
+        holdout_file = task.replace(' ', '_')
+        task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_loss_dict', 'rb'))
+        
+        for model_name in task_sorted_correct.keys(): 
+            if model_name.startswith('BOW'): 
+                task_sorted_correct['BoW'+seed] = task_sorted_correct.pop(model_name)
+                print('corrected')
+                break
+            if model_name.startswith('BERT_train'): 
+                task_sorted_correct['BERT train'+seed] = task_sorted_correct.pop(model_name)
+                print('corrected')
+                break
+                
+            # if model_name.startswith('S-Ber train'): 
+            #     task_sorted_correct['S-Bert train'+seed] = task_sorted_correct.pop(model_name)
+            #     break
+        
+        pickle.dump(task_sorted_correct, open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_loss_dict', 'wb'))    
 
 model_list= [modelBOW_name, model1_name, modelBERT_name, modelSBERT_name]
+
+plot_all_holdout_curves(foldername, model_list, seeds = [0, 2])
+
+
+
+plot_single_seed(foldername, task, model_list, 4, '', smoothing=5)
+
+
 name=''
 for task in task_list: 
     for i in [0, 1, 2, 3, 4]: 
@@ -169,7 +177,7 @@ for task in task_list:
         holdout_file = task.replace(' ', '_')
         task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'rb'))
         task_sorted_correct.keys()
-        plot_single_seed(foldername, 'DNMC', model_list, 4, '', smoothing=5)
+        plot_single_seed(foldername, task, model_list, 4, '', smoothing=5)
 
 
 

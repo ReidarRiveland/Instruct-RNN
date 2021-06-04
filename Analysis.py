@@ -16,87 +16,87 @@ task_list = Task.TASK_LIST
 
 
 ##Model training loop
-epochs = 25
+epochs = 30
 init_lr = 0.001
 milestones = [5, 10, 15, 20]
 
 
-foldername = '_ReLU128_19.5'
+# foldername = '_ReLU128_19.5'
 
-retrain_list = [('Go', '_seed1', ['S-Bert train']), 
-                ('Anti Go', '_seed1', ['S-Bert train']), 
-                ('Anti Go', '_seed4', ['S-Bert train']), 
-                ('Anti Go', '_seed3', ['BERT train']), 
+# retrain_list = [('Go', '_seed1', ['S-Bert train']), 
+#                 ('Anti Go', '_seed1', ['S-Bert train']), 
+#                 ('Anti Go', '_seed4', ['S-Bert train']), 
+#                 ('Anti Go', '_seed3', ['BERT train']), 
 
-                ('Anti DM', '_seed1', ['S-Bert train']),  
-                ('COMP2', '_seed1', ['S-Bert train']), 
-                ('COMP2', '_seed4', ['S-Bert train']), 
-                ('DMC', '_seed4', ['S-Bert train'])]
-
-
+#                 ('Anti DM', '_seed1', ['S-Bert train']),  
+#                 ('COMP2', '_seed1', ['S-Bert train']), 
+#                 ('COMP2', '_seed4', ['S-Bert train']), 
+#                 ('DMC', '_seed4', ['S-Bert train'])]
 
 
-for holdout, seed, models in retrain_list:
-    print(holdout, seed, models) 
-    model_dict = {}
-    if 'S-Bert train' in models: 
-        model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-    elif 'BERT train' in models: 
-        model_dict['BERT train'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-    else: 
-        pass
+
+
+# for holdout, seed, models in retrain_list:
+#     print(holdout, seed, models) 
+#     model_dict = {}
+#     if 'S-Bert train' in models: 
+#         model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+#     elif 'BERT train' in models: 
+#         model_dict['BERT train'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+#     else: 
+#         pass
     
-    cog = CogModule(model_dict)
-    print(cog.model_dict.keys())
+#     cog = CogModule(model_dict)
+#     print(cog.model_dict.keys())
 
-    try: 
-        cog.load_training_data(holdout, foldername, seed)
-    except: 
-        pass
+#     try: 
+#         cog.load_training_data(holdout, foldername, seed)
+#     except: 
+#         pass
     
-    holdout_data = make_data(holdouts=[holdout], batch_size=128)
+#     holdout_data = make_data(holdouts=[holdout], batch_size=128)
 
-    cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
-    cog.save_models(holdout, foldername, seed)
-
-
+#     cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
+# #     cog.save_models(holdout, foldername, seed)
 
 
-seeds = list(np.arange(5))
-for i in range(seeds): 
-    seed = '_seed'+str(i)
-    for holdout in task_list + ['Multitask']:
-        model_dict = {}
-        model_dict['S-Bert linear'+seed] = instructNet(LangModule(SBERT(20, output_nonlinearity=nn.Identity())), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-        model_dict['S-Bert'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=False)
-        # model_dict['BERT'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=False)
-        # model_dict['GPT'+seed] = instructNet(LangModule(GPT(20)), 128, 1, 'relu', tune_langModel=False)
+# foldername = '_ReLU128_19.5'
 
-        # model_dict['BoW'+seed] = instructNet(LangModule(BoW()), 128, 1, 'relu', tune_langModel=False)
-        # model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
-        cog = CogModule(model_dict)
+# seeds = list(np.arange(5))
+# for i in [1, 2, 3, 4]: 
+#     seed = '_seed'+str(i)
+#     for holdout in task_list + ['Multitask']:
+#         model_dict = {}
+#         model_dict['S-Bert linear'+seed] = instructNet(LangModule(SBERT(20, output_nonlinearity=nn.Identity())), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+#         #model_dict['S-Bert'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=False)
+#         # model_dict['BERT'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=False)
+#         # model_dict['GPT'+seed] = instructNet(LangModule(GPT(20)), 128, 1, 'relu', tune_langModel=False)
+
+#         # model_dict['BoW'+seed] = instructNet(LangModule(BoW()), 128, 1, 'relu', tune_langModel=False)
+#         # model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+#         cog = CogModule(model_dict)
         
-        try: 
-            cog.load_training_data(holdout, foldername, seed)
-        except: 
-            pass
+#         try: 
+#             cog.load_training_data(holdout, foldername, seed)
+#         except: 
+#             pass
 
-        if holdout == 'Multitask':
-            holdout_data = make_data(batch_size=128)
-        else:
-            holdout_data = make_data(holdouts=[holdout], batch_size=128)
+#         if holdout == 'Multitask':
+#             holdout_data = make_data(batch_size=128)
+#         else:
+#             holdout_data = make_data(holdouts=[holdout], batch_size=128)
 
-        cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
-        cog.save_models(holdout, foldername, seed)
+#         cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
+#         cog.save_models(holdout, foldername, seed)
 
 
 
 
 foldername = '_ReLU128_19.5'
 
+import pickle
 ###Holdout training loop 
 for i in range(5):
-
     seed = '_seed'+str(i)
     modelSBERT_name = 'S-Bert train'+seed
     modelBERT_name = 'BERT train'+seed
@@ -117,7 +117,10 @@ for i in range(5):
         cog = CogModule(model_dict)
 
 
-        for i in range(5): 
+        for i in range(2): 
+
+            print('Pass ' + str(i))
+            
             holdout_data = make_data(task_dict = {holdout:1}, num_batches=100, batch_size=256)
             cog.load_models(holdout, foldername)
 
@@ -132,12 +135,14 @@ for i in range(5):
             cog.reset_data()
 
         holdout_name = holdout.replace(' ', '_')
-        try: 
-            cog.load_training_data(holdout, foldername, seed + '_holdout')
-        except: 
-            pass
 
-        cog.total_correct_dict = {**cog.total_correct_dict, **correct_dict}
-        cog.total_loss_dict = {**cog.total_loss_dict, **loss_dict}
-        cog.save_training_data(holdout_name, foldername, seed+'_holdout')
-            
+        pickle.dump(correct_dict, open(foldername+'/'+holdout_name+'/'+seed+'_holdout_training_correct_dict', 'wb'))
+        pickle.dump(loss_dict, open(foldername+'/'+holdout_name+'/'+seed+'_holdout_training_loss_dict', 'wb'))
+
+        #cog.save_training_data(holdout_name, foldername, seed+'_holdout')
+
+
+
+import pickle
+task_sorted_correct = pickle.load(open(foldername+'/Go/_seed0_holdout_training_correct_dict', 'rb'))
+task_sorted_correct
