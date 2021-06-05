@@ -113,57 +113,57 @@ def _convert_data_to_pandas(foldername, model_list, seeds, name, multitask=False
     return pd.DataFrame(all_correct), pd.DataFrame(all_loss)
 
 
-seed = '_seed0'
+# seed = '_seed0'
 
-foldername = '_ReLU128_19.5' 
-modelSBERT_name = 'S-Bert train' 
-modelBERT_name = 'BERT train'
-modelBOW_name = 'BoW'
-model1_name = 'Model1'
+# foldername = '_ReLU128_19.5' 
+# modelSBERT_name = 'S-Bert train' 
+# modelBERT_name = 'BERT train'
+# modelBOW_name = 'BoW'
+# model1_name = 'Model1'
 
-model_list= [modelBOW_name, model1_name, modelBERT_name, modelSBERT_name]
-correct_frame, loss_frame = _convert_data_to_pandas(foldername, model_list, [0, 1, 2, 3], '', True)
+# model_list= [modelBOW_name, model1_name, modelBERT_name, modelSBERT_name]
+# correct_frame, loss_frame = _convert_data_to_pandas(foldername, model_list, [0, 1, 2, 3], '', True)
 
-task_sorted_correct = pickle.load(open(foldername+'/Go/_seed4_training_correct_dict', 'rb'))
-task_sorted_correct['S-Bert train_seed4']['Anti RT Go']
-
-
-np.mean(correct_frame['S-Bert train']['Anti RT Go'], axis=1)
-
-from scipy.ndimage.filters import gaussian_filter1d
-
-correct_data_dict = pd.DataFrame(columns=[0, 1, 2, 3, 4])
-correct_data_dict[0]=np.arange(797)
-correct_data_dict[1]=np.arange(800)
+# task_sorted_correct = pickle.load(open(foldername+'/Go/_seed4_training_correct_dict', 'rb'))
+# task_sorted_correct['S-Bert train_seed4']['Anti RT Go']
 
 
+# np.mean(correct_frame['S-Bert train']['Anti RT Go'], axis=1)
+
+# from scipy.ndimage.filters import gaussian_filter1d
+
+# correct_data_dict = pd.DataFrame(columns=[0, 1, 2, 3, 4])
+# correct_data_dict[0]=np.arange(797)
+# correct_data_dict[1]=np.arange(800)
 
 
 
-def plot_training_across_seesds(model_list, smoothing=0.01): 
 
-    fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(14, 10))
-    plt.suptitle(r'$\textbf{Holdout Learning for All Tasks}$')
-    for i, ax in enumerate(axn.flat):
-        ax.set_ylim(-0.05, 1.15)
-        holdout_task = task_list[i]
-        for model_name in model_list: 
-            smoothed_perf = gaussian_filter1d(np.mean(correct_frame[model_name][holdout_task], axis=1), sigma=smoothing)
-            # ax.fill_between(np.linspace(0, num_trials, num_trials), np.min(np.array([np.ones(num_trials), all_summary_correct[model_name][holdout_task][0]+all_summary_correct[model_name][holdout_task][1]]), axis=0), 
-            #     all_summary_correct[model_name][holdout_task][0]-all_summary_correct[model_name][holdout_task][1], color =  ALL_STYLE_DICT[model_name][0], alpha= 0.1)
-            ax.plot(smoothed_perf, color = ALL_STYLE_DICT[model_name][0], marker=ALL_STYLE_DICT[model_name][1], alpha=1, markersize=5, markevery=3)
-        ax.set_title(holdout_task)
 
-    Patches, Markers = get_model_patches(model_list)
-    _label_plot(fig, Patches, Markers, legend_loc=(1.2, 0.5))
-    plt.show()
+# def plot_training_across_seesds(model_list, smoothing=0.01): 
 
-plot_training_across_seesds(model_list, smoothing=1)
+#     fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(14, 10))
+#     plt.suptitle(r'$\textbf{Holdout Learning for All Tasks}$')
+#     for i, ax in enumerate(axn.flat):
+#         ax.set_ylim(-0.05, 1.15)
+#         holdout_task = task_list[i]
+#         for model_name in model_list: 
+#             smoothed_perf = gaussian_filter1d(np.mean(correct_frame[model_name][holdout_task], axis=1), sigma=smoothing)
+#             # ax.fill_between(np.linspace(0, num_trials, num_trials), np.min(np.array([np.ones(num_trials), all_summary_correct[model_name][holdout_task][0]+all_summary_correct[model_name][holdout_task][1]]), axis=0), 
+#             #     all_summary_correct[model_name][holdout_task][0]-all_summary_correct[model_name][holdout_task][1], color =  ALL_STYLE_DICT[model_name][0], alpha= 0.1)
+#             ax.plot(smoothed_perf, color = ALL_STYLE_DICT[model_name][0], marker=ALL_STYLE_DICT[model_name][1], alpha=1, markersize=5, markevery=3)
+#         ax.set_title(holdout_task)
 
-task_sorted_correct = pickle.load(open(foldername+'/RT_Go/_seed1_training_correct_dict', 'rb'))
+#     Patches, Markers = get_model_patches(model_list)
+#     _label_plot(fig, Patches, Markers, legend_loc=(1.2, 0.5))
+#     plt.show()
 
-task_sorted_correct['BERT train_seed1'][task][-100:-None]
+# plot_training_across_seesds(model_list, smoothing=1)
 
-task_sorted_correct.keys()
-for task in task_list: 
-    all(np.array(task_sorted_correct['BERT train_seed1'][task][-100:])>0.95)
+# task_sorted_correct = pickle.load(open(foldername+'/RT_Go/_seed1_training_correct_dict', 'rb'))
+
+# task_sorted_correct['BERT train_seed1'][task][-100:-None]
+
+# task_sorted_correct.keys()
+# for task in task_list: 
+#     all(np.array(task_sorted_correct['BERT train_seed1'][task][-100:])>0.95)
