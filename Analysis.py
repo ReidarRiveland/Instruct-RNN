@@ -23,7 +23,7 @@ milestones = [5, 10, 15, 20]
 
 foldername = '_ReLU128_19.5'
 
-retrain_list = [('Go', '_seed1', ['S-Bert train']), 
+retrain_list = [
 
                 ('RT Go', '_seed0', ['S-Bert train']), 
                 ('RT Go', '_seed4', ['BERT train']), 
