@@ -133,7 +133,7 @@ class Task():
             input_activity_vecs = np.array([np.concatenate((fix, self.null_stim), 1), np.concatenate((fix, stim1), 1), np.concatenate((fix, self.null_stim), 1),  
                                 np.concatenate((fix, stim2), 1), np.concatenate((no_fix, self.null_stim), 1)])
         
-        return add_noise(self._expand_along_intervals(self.intervals, input_activity_vecs))
+        return add_noise(self._expand_along_intervals(self.intervals, input_activity_vecs)).astype(np.float16)
         
     def _get_loss_mask(self) -> np.ndarray: 
         '''
@@ -160,7 +160,7 @@ class Task():
             zero_mask = zeros.repeat(zero_per, axis=0)
             go_mask = go_weights.repeat((self.TRIAL_LEN-(pre_go+zero_per)), axis = 0)
             return np.concatenate((pre_go_mask, zero_mask, go_mask), 0)
-        return np.array(list(map(__make_loss_mask__, self.intervals)))
+        return np.array(list(map(__make_loss_mask__, self.intervals))).astype(np.float16)
     
 
     def _get_trial_targets(self, target_dirs: np.array) -> np.ndarray: 
@@ -181,7 +181,7 @@ class Task():
         resp = np.concatenate((go, target_activities+0.05), 1)
         no_resp = np.concatenate((fix, np.full((self.num_trials, self.STIM_DIM), 0.05)), 1)
         trial_target = self._expand_along_intervals(self.intervals, (no_resp, no_resp, no_resp, no_resp, resp))
-        return trial_target
+        return trial_target.astype(np.float16)
 
     def _plot_trial(self, ins, tars, task_type):
         fix = np.expand_dims(ins[0, :], 0)
