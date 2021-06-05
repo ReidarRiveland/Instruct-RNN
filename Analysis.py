@@ -112,11 +112,12 @@ model_dict = {}
 model_dict['Model1_seed0'] = simpleNet(81, 128, 1, 'relu')
 cog = CogModule(model_dict)
 
-# cog.train('training_data/Go/holdout_training', epochs, lr=init_lr, milestones = milestones)
+cog.train(500, 128, epochs, lr=init_lr, milestones = milestones)
     
 cog._plot_trained_performance()
 
 cog.load_models('Go', '_ReLU128_19.5', '_seed0')
+
 
 cog.load_training_data('data_loader_test', 'SigModels200_copy', '')
 
@@ -125,3 +126,13 @@ import pickle
 training_data = pickle.load(open('SigModels200_copy/data_loader_test/_training_correct_dict', 'rb'))
 training_data['Model1']['MultiDM']
 
+
+from Task import construct_batch
+
+indices = np.random.choice(np.arange(100), size = 20)
+
+indices
+
+batch = construct_batch('DM', 100)
+
+np.array(batch)[0][indices, ].shape

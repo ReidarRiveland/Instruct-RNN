@@ -338,12 +338,11 @@ class CogModule():
                 print(model_type)
             model.train()
         
-    def train(self, data_path, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, milestones = [], 
+    def train(self, num_batches, batch_len, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, milestones = [], 
                 freeze_langModel = False, langLR = None, langWeightDecay=None): 
         #torch.autograd.set_detect_anomaly
         self.init_optimizers(weight_decay, lr, milestones, freeze_langModel, langLR, langWeightDecay)
-        streamer = data_streamer(data_path)
-        batch_len = streamer.batch_len
+        streamer = data_streamer(batch_len, num_batches)
         
         for model_type, model in self.model_dict.items(): 
             opt = self.opt_dict[model_type][0]
@@ -351,7 +350,7 @@ class CogModule():
             for i in range(epochs):
                 print('epoch', i)
                 streamer.permute_task_order()
-                for j, data in enumerate(streamer.get_data()): 
+                for j, data in enumerate(streamer.get_batch()): 
                     ins, tar, mask, tar_dir, task_type = data
 
                     opt.zero_grad()
@@ -375,7 +374,7 @@ class CogModule():
                     opt_scheduler.step()    
 
 
-    def _get_performance(self, model, instruct_mode, num_batches): 
+    def _get_performance(self, model, num_batches): 
         model.eval()
         batch_len = 128
         with torch.no_grad():
@@ -383,17 +382,16 @@ class CogModule():
             for task_type in task_list:
                 for _ in range(num_batches): 
                     mean_list = [] 
-                    trial = construct_batch(task_type, batch_len)
-                    ins = trial.inputs
+                    ins, targets, _, target_dirs, _ = construct_batch(task_type, batch_len)
                     out, _ = self._get_model_resp(model, batch_len, torch.Tensor(ins).to(device), task_type) 
-                    mean_list.append(np.mean(isCorrect(out, torch.Tensor(trial.targets).to(device), trial.target_dirs)))
+                    mean_list.append(np.mean(isCorrect(out, torch.Tensor(targets).to(device), target_dirs)))
                 perf_dict[task_type] = np.mean(mean_list)
         return perf_dict 
 
     def _plot_trained_performance(self, instruct_mode = None):
         barWidth = 0.1
         for i, model in enumerate(self.model_dict.values()):  
-            perf_dict = self._get_performance(model, instruct_mode, 3)
+            perf_dict = self._get_performance(model, 5)
             keys = list(perf_dict.keys())
             values = list(perf_dict.values())
             len_values = len(task_list)
