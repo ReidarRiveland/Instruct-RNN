@@ -236,6 +236,7 @@ class SBERT(nn.Module):
         return sent_embedding
 
 
+
 # class InferSent(nn.Module): 
 #     def __init__(self, out_dim): 
 #         super(InferSent, self).__init__()

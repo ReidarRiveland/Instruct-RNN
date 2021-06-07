@@ -45,13 +45,10 @@ class Task():
     def _expand_along_intervals(self, intervals: np.ndarray, activity_vecs: np.ndarray) -> np.ndarray:
         '''
         Exapnds activities in fill_vecs by time intervals given by intervals
-
         Parameters: 
             intervals[num_trials, 5]: ndarray of tuples containing the start and end times for given stimulus in a trial 
-
             activity_vecs[5, num_trials, activity_dim]: ndarray containing vectors of activity for a number of trials 
                 to be expanded in the time intervals defined by the intervals parameter 
-
         Returns: 
             batch_array[num_trials, TRIAL_LEN, activity_dim]: ndarray with activity vectors expanded across time intervals 
                 for a given number of trials
@@ -78,10 +75,8 @@ class Task():
         '''
         Constructs multi-dim arrays representing hills of activity across modalities and trials for a given stimulus 
         Modality dim may be 1 to create target activities
-
         Parameters: 
             mod_dir_str_conditions[mod, dir_str, num_trials]:  array contatining stimulus conditions for modalities and trials 
-
         Returns: 
             np.ndarray[num_trials, STIM_DIM*mod]: array representing hills of activity for both modalities in a given stimulus 
         '''
@@ -101,12 +96,9 @@ class Task():
     def _get_trial_inputs(self, task_type: str, conditions_arr: np.ndarray) -> np.ndarray:
         '''
         Creates stimulus activity arrays for given trials of a particular task type 
-
         Parameters: 
             task_type: string identifying the task type
-
             conditions_arr[mods, stim, dir_str, num_trials]: array defining the stimulus conditions for a batch of task trials 
-
         Returns: 
             ndarray[num_trials, TRIAL_LEN, INPUT_DIM]: array conditing stimulus inputs for a batch of task trials 
         '''
@@ -140,10 +132,8 @@ class Task():
         Defines loss mask used during task training where there is a zero weight 
         grace period in the first 5 time steps of the response stimulus followed by 
         higher weigthing 
-
         Parameters:
             None 
-
         Returns: 
             ndarray[num_trials, TRIAL_LEN, OUTPUT_DIM]: ndarray of weights for loss function
         '''
@@ -166,10 +156,8 @@ class Task():
     def _get_trial_targets(self, target_dirs: np.array) -> np.ndarray: 
         '''
         Makes target output activities for a batch of trials
-
         Parameters:
             target_dirs[num_trials]
-
         Returns: 
             ndarray[num_trials, TRIAL_LEN, OUTPUT_DIM]: ndarray of target activities for a batch of trials
         '''
@@ -456,7 +444,5 @@ def construct_batch(task_type, num):
         trial = Delay('DMC', num)
     if task_type == 'DNMC': 
         trial = Delay('DNMC', num)
-    return (trial.inputs.astype(np.float32), trial.targets.astype(np.float32), trial.masks.astype(int),
-                 trial.target_dirs.astype(np.float32), Task.TASK_LIST.index(task_type))
-
+    return (trial.inputs.astype(np.float32), trial.targets.astype(np.float32), trial.masks.astype(int), trial.target_dirs.astype(np.float32), Task.TASK_LIST.index(task_type))
 
