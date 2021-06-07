@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 
 from CogModule import CogModule, isCorrect
-from Data import make_data
+from Data import data_streamer, make_data
 from Task import Task
 task_list = Task.TASK_LIST
 
@@ -113,26 +113,48 @@ model_dict['Model1_seed0'] = simpleNet(81, 128, 1, 'relu')
 cog = CogModule(model_dict)
 
 cog.train(500, 128, epochs, lr=init_lr, milestones = milestones)
-    
-cog._plot_trained_performance()
-
-cog.load_models('Go', '_ReLU128_19.5', '_seed0')
 
 
-cog.load_training_data('data_loader_test', 'SigModels200_copy', '')
+
+foldername = '_ReLU128_19.5'
 
 import pickle
+###Holdout training loop 
+for i in range(5):
+    seed = '_seed'+str(i)
+    modelSBERT_name = 'S-Bert train'+seed
+    modelBERT_name = 'BERT train'+seed
+    modelBOW_name = 'BoW'+seed
+    model1_name = 'Model1'+seed
 
-training_data = pickle.load(open('SigModels200_copy/data_loader_test/_training_correct_dict', 'rb'))
-training_data['Model1']['MultiDM']
+    for holdout in task_list:
 
+        correct_dict = {key : np.zeros(100) for key in [modelSBERT_name, modelBERT_name, modelBOW_name, model1_name]}
+        loss_dict = correct_dict.copy()
 
-from Task import construct_batch
+        model_dict = {}
+        model_dict[modelSBERT_name] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+        model_dict[modelBERT_name] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+        model_dict[modelBOW_name] = instructNet(LangModule(BoW()), 128, 1, 'relu', tune_langModel=False)
+        model_dict[model1_name] = simpleNet(81, 128, 1, 'relu')
 
-indices = np.random.choice(np.arange(100), size = 20)
+        cog = CogModule(model_dict)
 
-indices
+        streamer = data_streamer(batch_len=256, num_batches=100, task_ratio_dict={holdout:1})
+        num_passes = 5
+        for i in range(num_passes): 
 
-batch = construct_batch('DM', 100)
+            print('Pass ' + str(i))
+            cog.load_models(holdout, foldername)
 
-np.array(batch)[0][indices, ].shape
+            cog.train(streamer, 1, lr=0.001)
+
+            cog.sort_perf_by_task()
+            for model_name in cog.model_dict.keys():
+                correct_dict[model_name]+=np.round(np.array(cog.total_correct_dict[model_name])/num_passes, 2)
+                loss_dict[model_name]+= np.round(np.array(cog.total_loss_dict[model_name])/num_passes, 2)
+
+            cog.reset_data()
+
+        holdout_name = holdout.replace(' ', '_')
+
