@@ -1,3 +1,4 @@
+from Data import data_streamer
 import numpy as np
 
 import torch
@@ -17,6 +18,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from Task import Task, construct_batch
 from LangModule import get_batch, swaps
+from Data import data_streamer
 
 
 task_list = Task.TASK_LIST
@@ -67,8 +69,10 @@ def isCorrect(nn_out, nn_target, target_dirs):
         np.array: weighted loss of neural network response; shape: (batch)
     """
     batch_size = nn_out.shape[0]
-    nn_out = gpu_to_np(nn_out)
-    nn_target = gpu_to_np(nn_target)
+    if type(nn_out) == torch.Tensor: 
+        nn_out = gpu_to_np(nn_out)
+    if type(nn_target) == torch.Tensor: 
+        nn_target = gpu_to_np(nn_target)
 
     isCorrect = np.empty(batch_size, dtype=bool)
     criterion = (2*np.pi)/10
@@ -301,10 +305,7 @@ class CogModule():
             filename = filename.replace(' ', '_')
             model.load_state_dict(torch.load(filename))
     
-
-    def train(self, data, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, milestones = [], 
-                        holdout_task = None, instruct_mode = None, freeze_langModel = False, langLR = None, langWeightDecay=None): 
-        #torch.autograd.set_detect_anomaly
+    def init_optimizers(self, weight_decay, lr, milestones, freeze_langModel, langLR, langWeightDecay):
         self.opt_dict = {}
         for model_type, model in self.model_dict.items(): 
             if (model.isLang and not model.tune_langModel) or (model.tune_langModel and freeze_langModel): 
@@ -323,35 +324,25 @@ class CogModule():
                 print(model_type)
             model.train()
         
-        ins_tensor = data[0]
-        tar_tensor = data[1]
-        mask_tensor = data[2]
-        tar_dir_vec = data[3]
-        task_type_vec = data[4]
+    def train(self, streamer, epochs, scheduler = True, weight_decay = 0.0, lr = 0.001, milestones = [], 
+                freeze_langModel = False, langLR = None, langWeightDecay=None): 
+        #torch.autograd.set_detect_anomaly
+        self.init_optimizers(weight_decay, lr, milestones, freeze_langModel, langLR, langWeightDecay)
+        batch_len = streamer.batch_len 
 
-        batch_len = ins_tensor.shape[1]
-        batch_num = ins_tensor.shape[0]
-        correct_array = np.empty((batch_len, batch_num), dtype=bool)
         for model_type, model in self.model_dict.items(): 
             opt = self.opt_dict[model_type][0]
             opt_scheduler = self.opt_dict[model_type][1]
             for i in range(epochs):
                 print('epoch', i)
-                index_list = list(np.arange(batch_num))
-                np.random.shuffle(index_list)
-                for j in range(batch_num): 
-                    index = index_list[j]
-                    task_type = task_type_vec[index]
-                    task_index = task_list.index(task_type)
-                    tar = torch.Tensor(tar_tensor[index, :, :, :]).to(device)
-                    mask = torch.Tensor(mask_tensor[index, :, :, :]).to(device)
-                    ins = torch.Tensor(ins_tensor[index, :, :, :]).to(device)
-                    tar_dir = tar_dir_vec[index]
+                streamer.permute_task_order()
+                for j, data in enumerate(streamer.get_batch()): 
+                    ins, tar, mask, tar_dir, task_type = data
 
                     opt.zero_grad()
-                    out, _ = self._get_model_resp(model, batch_len, ins, task_type, instruct_mode)
+                    out, _ = self._get_model_resp(model, batch_len, torch.Tensor(ins).to(device), task_type)
 
-                    loss = masked_MSE_Loss(out, tar, mask) 
+                    loss = masked_MSE_Loss(out, torch.Tensor(tar).to(device), torch.Tensor(mask).to(device)) 
                     loss.backward()
                     torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
                     opt.step()
@@ -369,7 +360,7 @@ class CogModule():
                     opt_scheduler.step()    
 
 
-    def _get_performance(self, model, instruct_mode, num_batches): 
+    def _get_performance(self, model, num_batches): 
         model.eval()
         batch_len = 128
         with torch.no_grad():
@@ -377,17 +368,16 @@ class CogModule():
             for task_type in task_list:
                 for _ in range(num_batches): 
                     mean_list = [] 
-                    trial = construct_batch(task_type, batch_len)
-                    ins = trial.inputs
-                    out, _ = self._get_model_resp(model, batch_len, torch.Tensor(ins).to(device), task_type, instruct_mode) 
-                    mean_list.append(np.mean(isCorrect(out, torch.Tensor(trial.targets).to(device), trial.target_dirs)))
+                    ins, targets, _, target_dirs, _ = construct_batch(task_type, batch_len)
+                    out, _ = self._get_model_resp(model, batch_len, torch.Tensor(ins).to(device), task_type) 
+                    mean_list.append(np.mean(isCorrect(out, torch.Tensor(targets).to(device), target_dirs)))
                 perf_dict[task_type] = np.mean(mean_list)
         return perf_dict 
 
     def _plot_trained_performance(self, instruct_mode = None):
         barWidth = 0.1
         for i, model in enumerate(self.model_dict.values()):  
-            perf_dict = self._get_performance(model, instruct_mode, 3)
+            perf_dict = self._get_performance(model, 5)
             keys = list(perf_dict.keys())
             values = list(perf_dict.values())
             len_values = len(task_list)
