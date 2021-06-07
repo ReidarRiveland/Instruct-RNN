@@ -16,26 +16,19 @@ task_list = Task.TASK_LIST
 
 
 ##Model training loop
-epochs = 25
+epochs = 30
 init_lr = 0.001
 milestones = [5, 10, 15, 20]
 
 
 foldername = '_ReLU128_19.5'
 
-retrain_list = [
-
-                ('RT Go', '_seed0', ['S-Bert train']), 
-                ('RT Go', '_seed4', ['BERT train']), 
-
-                ('Anti Go', '_seed1', ['S-Bert train']), 
-                ('Anti Go', '_seed2', ['S-Bert train']), 
-                ('Anti Go', '_seed4', ['S-Bert train']), 
+retrain_list = [('RT Go', '_seed4', ['S-Bert train']), 
                 ('Anti Go', '_seed3', ['BERT train']), 
 
-                ('MultiDM', '_seed2', ['S-Bert train']), 
+                ('MultiDM', '_seed4', ['S-Bert train']), 
 
-                ('Anti DM', '_seed0', ['S-Bert train']),  
+                ('Anti DM', '_seed1', ['S-Bert train']),  
                 ('Anti DM', '_seed3', ['S-Bert train']),  
                 ('Anti DM', '_seed2', ['BERT train']),  
 
@@ -90,9 +83,9 @@ foldername = '_ReLU128_19.5'
 seeds = list(np.arange(5))
 for i in [0]: 
     seed = '_seed'+str(i)
-    for holdout in ['Anti DM']:
+    for holdout in task_list:
         model_dict = {}
-        model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+        model_dict['S-Bert train2'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11', 'layer.10'])
         #model_dict['S-Bert'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=False)
         # model_dict['BERT'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=False)
         # model_dict['GPT'+seed] = instructNet(LangModule(GPT(20)), 128, 1, 'relu', tune_langModel=False)
@@ -111,8 +104,9 @@ for i in [0]:
         else:
             holdout_data = make_data(holdouts=[holdout], batch_size=128)
 
-        cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
+        cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0, langLR=0.0001, langWeightDecay=0.0)
         cog.save_models(holdout, foldername, seed)
+
 
 
 
@@ -132,9 +126,11 @@ cog.load_models('Anti RT Go', foldername)
 cog._plot_trained_performance()
 
 
+foldername = '_ReLU128_19.5'
+
 import pickle
 ###Holdout training loop 
-for i in [0]:
+for i in range(5):
     seed = '_seed'+str(i)
     modelSBERT_name = 'S-Bert train'+seed
     modelBERT_name = 'BERT train'+seed
@@ -148,14 +144,14 @@ for i in [0]:
 
         model_dict = {}
         model_dict[modelSBERT_name] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-        # model_dict[modelBERT_name] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-        # model_dict[modelBOW_name] = instructNet(LangModule(BoW()), 128, 1, 'relu', tune_langModel=False)
-        # model_dict[model1_name] = simpleNet(81, 128, 1, 'relu')
+        model_dict[modelBERT_name] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+        model_dict[modelBOW_name] = instructNet(LangModule(BoW()), 128, 1, 'relu', tune_langModel=False)
+        model_dict[model1_name] = simpleNet(81, 128, 1, 'relu')
 
         cog = CogModule(model_dict)
 
 
-        for i in range(2): 
+        for i in range(5): 
 
             print('Pass ' + str(i))
             

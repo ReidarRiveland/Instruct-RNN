@@ -177,7 +177,7 @@ for task in task_list:
         holdout_file = task.replace(' ', '_')
         task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'rb'))
         task_sorted_correct.keys()
-        plot_single_seed(foldername, task, model_list, 4, '', smoothing=5)
+        plot_single_seed(foldername, task, model_list, i, '', smoothing=3)
 
 
 
