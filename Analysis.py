@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 
 from CogModule import CogModule, isCorrect
-from Data import data_streamer, make_data
+from Data import data_streamer
 from Task import Task
 task_list = Task.TASK_LIST
 
@@ -24,17 +24,12 @@ milestones = [5, 10, 15, 20]
 foldername = '_ReLU128_19.5'
 
 retrain_list = [('RT Go', '_seed4', ['S-Bert train']), 
-                ('Anti Go', '_seed3', ['BERT train']), 
-
-                ('MultiDM', '_seed4', ['S-Bert train']), 
-
-                ('Anti DM', '_seed1', ['S-Bert train']),  
-                ('Anti DM', '_seed3', ['S-Bert train']),  
-                ('Anti DM', '_seed2', ['BERT train']),  
-
-                ('COMP2', '_seed2', ['S-Bert train']), 
-
-                ('DMC', '_seed4', ['S-Bert train'])]
+                ('Anti RT Go', '_seed1', ['S-Bert train']), 
+                ('Anti RT Go', '_seed3', ['S-Bert train']), 
+                ('COMP1', '_seed2', ['S-Bert train']), 
+                ('DNMS', '_seed1', ['S-Bert train']),
+                ('DNMS', '_seed1', ['S-Bert train']),
+                ('DMC', '_seed0', ['S-Bert train'])]
 
 
 
@@ -57,22 +52,11 @@ for holdout, seed, models in retrain_list:
     except: 
         pass
     
-    holdout_data = make_data(holdouts=[holdout], batch_size=128)
+    streamer = data_streamer(holdouts=[holdout])
 
-    cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
+    cog.train(streamer, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
     cog.save_models(holdout, foldername, seed)
 
-holdout = 'Anti DM'
-seed = '_seed4'
-model_dict = {}
-model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-model_dict['BERT'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-model_dict['BoW'+seed] = instructNet(LangModule(BoW()), 128, 1, 'relu', tune_langModel=False)
-model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
-cog = CogModule(model_dict)
-holdout_data = make_data(holdouts=[holdout], batch_size=128)
-cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0)
-cog.save_models(holdout, foldername, seed)
 
 
 # ###Model training loop
@@ -168,11 +152,6 @@ for i in [0]:
         except: 
             pass
 
-        if holdout == 'Multitask':
-            holdout_data = make_data(batch_size=128)
-        else:
-            holdout_data = make_data(holdouts=[holdout], batch_size=128)
-
         cog.train(holdout_data, epochs, lr=init_lr, milestones = milestones, weight_decay=0.0, langLR=0.0001, langWeightDecay=0.0)
         cog.save_models(holdout, foldername, seed)
 
@@ -199,7 +178,7 @@ foldername = '_ReLU128_19.5'
 
 import pickle
 ###Holdout training loop 
-for i in range(5):
+for i in [3, 4]:
     seed = '_seed'+str(i)
     modelSBERT_name = 'S-Bert train'+seed
     modelBERT_name = 'BERT train'+seed
@@ -219,21 +198,18 @@ for i in range(5):
 
         cog = CogModule(model_dict)
 
+        streamer = data_streamer(batch_len=256, num_batches=100, task_ratio_dict={holdout: 1})
+        num_passes = 5
+        for i in range(num_passes): 
 
-        for i in range(5): 
-
-            print('Pass ' + str(i))
-            
-            holdout_data = make_data(task_dict = {holdout:1}, num_batches=100, batch_size=256)
+            print('Pass ' + str(i))            
             cog.load_models(holdout, foldername)
 
-
-
-            cog.train(holdout_data, 1, lr=0.001)
+            cog.train(streamer, 1, lr=0.001)
             cog.sort_perf_by_task()
             for model_name in cog.model_dict.keys():
-                correct_dict[model_name]+=np.round(np.array(cog.total_correct_dict[model_name])/5, 2)
-                loss_dict[model_name]+= np.round(np.array(cog.total_loss_dict[model_name])/5, 2)
+                correct_dict[model_name]+=np.round(np.array(cog.total_correct_dict[model_name])/num_passes, 2)
+                loss_dict[model_name]+= np.round(np.array(cog.total_loss_dict[model_name])/num_passes, 2)
 
             cog.reset_data()
 
@@ -244,12 +220,6 @@ for i in range(5):
 
         #cog.save_training_data(holdout_name, foldername, seed+'_holdout')
 
-            cog.sort_perf_by_task()
-            for model_name in cog.model_dict.keys():
-                correct_dict[model_name]+=np.round(np.array(cog.total_correct_dict[model_name])/num_passes, 2)
-                loss_dict[model_name]+= np.round(np.array(cog.total_loss_dict[model_name])/num_passes, 2)
-
-            cog.reset_data()
 
 import pickle
 task_sorted_correct = pickle.load(open(foldername+'/Go/_seed4_holdout_training_correct_dict', 'rb'))

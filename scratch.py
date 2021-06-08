@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 
 from RNNs import instructNet, simpleNet
 from LangModule import LangModule
-from NLPmodels import SBERT
+from NLPmodels import SBERT, BERT
 from CogModule import CogModule
-from Plotting import make_test_trials, get_hid_var_resp
+#from Plotting import make_test_trials, get_hid_var_resp
 
 from scipy.stats import zscore
 
@@ -18,10 +18,22 @@ foldername = '_ReLU128_12.4'
 
 seed = '_seed'+str(0)
 model_dict = {}
-model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
-model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+model_dict['BERT train'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+#model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
+
+
 cog = CogModule(model_dict)
-cog.load_models('Anti DM', foldername, seed)
+
+from Data import data_streamer
+
+cog.train(data_streamer(), 1)
+
+
+cog.load_models('Anti DM', foldername)
+
+cog._plot_trained_performance()
+
+
 
 trials, var_of_insterest = make_test_trials('DM', 'diff_strength', 0, None, num_trials=6)
 var_of_insterest

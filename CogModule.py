@@ -109,7 +109,7 @@ def masked_MSE_Loss(nn_out, nn_target, mask):
     avg_applied = torch.mean(torch.mean(mask_applied, 2), 1)
     return torch.mean(avg_applied)
 
-def mask_input_rule(in_tensor): 
+def mask_input_rule(in_tensor, lang_dim=None): 
     """Masks the one-hot rule information in an input batch 
     Args:      
         in_tensor (Tensor): input tensor for a batch of trials; shape: (batch_size, seq_len, features) 
@@ -118,21 +118,14 @@ def mask_input_rule(in_tensor):
         Tensor: identical to in_tensor with one-hot rule information zero'd out; shape: (batch_size, seq_len, features) 
     """
 
-    mask = torch.zeros((in_tensor.shape[0], in_tensor.shape[1], len(task_list))).to(device)
-    masked_input = torch.cat((in_tensor[:, :, 0:1], mask, in_tensor[:, :, len(task_list)+1:]), axis=2)
+    if lang_dim is not None: 
+        mask = torch.zeros((in_tensor.shape[0], in_tensor.shape[1], lang_dim)).to(device)
+        masked_input = torch.cat((mask, in_tensor), axis=2)
+    else: 
+        mask = torch.zeros((in_tensor.shape[0], in_tensor.shape[1], len(task_list))).to(device)
+        masked_input = torch.cat((in_tensor[:, :, 0:1], mask, in_tensor[:, :, 1:]), axis=2)
     return masked_input
 
-def del_input_rule(in_tensor): 
-    """Deletes the one-hot rule information in an input batch 
-    Args:      
-        in_tensor (Tensor): input tensor for a batch of trials; shape: (batch_num, seq_len, features)
-    
-    Returns:
-        Tensor: identical input data as in_tensor with one-hot rule information deleted; shape: (batch_num, seq_len, features-#tasks) 
-    """
-
-    new_input = torch.cat((in_tensor[:, :, 0:1], in_tensor[:, :, len(task_list)+1:]), axis=2)
-    return new_input
 
 def comp_one_hot(task_type): 
     if task_type == 'Go': 
@@ -169,6 +162,17 @@ def comp_one_hot(task_type):
         comp_vec = Task._rule_one_hot('DNMS') + (Task._rule_one_hot('DMC')-Task._rule_one_hot('DMS'))
 
     return comp_vec
+
+
+def one_hot_input_rule(in_tensor, task_type, shuffled=False): 
+    if shuffled: index = Task.SHUFFLED_TASK_LIST.index(task_type) 
+    else: index = Task.TASK_LIST.index(task_type)
+    one_hot = torch.zeros(len(Task.TASK_LIST))
+    one_hot[index] = 1
+    one_hot_tensor= one_hot.unsqueeze(0).repeat(in_tensor.shape[0], in_tensor.shape[1], 1).to(in_tensor.get_device())
+    inputs = torch.cat((in_tensor[:, :, 0:1], one_hot_tensor, in_tensor[:, :, 1:]), axis=2)
+    return inputs
+
 
 def comp_input_rule(in_tensor, task_type): 
     """Replaces one-hot input rule with a analagous linear combination of rules for related tasks
@@ -228,36 +232,32 @@ class CogModule():
         self.task_sorted_correct = {}
     
     @staticmethod
-    def _get_lang_input(model, batch_len, task_type, instruct_mode): 
+    def _get_lang_input(model, batch_len, task_type): 
         tokenizer = model.langModel.tokenizer
-        batch_instruct, _ = get_batch(batch_len, tokenizer, task_type=task_type, instruct_mode=instruct_mode)
+        batch_instruct, _ = get_batch(batch_len, tokenizer, task_type=task_type, instruct_mode=model.instruct_mode)
         return batch_instruct
 
     @staticmethod
-    def _get_model_resp(model, batch_len, ins, task_type, instruct_mode): 
+    def _get_model_resp(model, batch_len, ins, task_type): 
         h0 = model.initHidden(batch_len, 0.1).to(device)
         if model.isLang: 
-            if instruct_mode == 'masked': 
-                masked = torch.zeros(ins.shape[0], ins.shape[1], model.langModel.out_dim).to(device)
-                ins = torch.cat((del_input_rule(ins), masked), dim=2)
-                out, hid = model.rnn(ins, h0)
+            if model.instruct_mode == 'masked': 
+                ins = mask_input_rule(ins, model.langModel.out_dim)
             else: 
-                ins = del_input_rule(ins)
-                ####ISSUE HERE - how to properly pass instruct_mode
-                #instruct = self._get_lang_input(model, batch_len, task_type, model.instruct_mode)
-                instruct = CogModule._get_lang_input(model, batch_len, task_type, instruct_mode)
-                #print(instruct)
+                instruct = CogModule._get_lang_input(model, batch_len, task_type)
                 out, hid = model(instruct, ins, h0)
         else: 
             instruct = None
-            if instruct_mode == 'masked': 
+            if model.instruct_mode == 'masked': 
                 ins = mask_input_rule(ins).to(device)
-            if instruct_mode == 'comp': 
+            if model.instruct_mode == 'comp': 
                 ins = comp_input_rule(ins, task_type)
-            if instruct_mode == 'instruct_swap': 
+            if model.instruct_mode == 'instruct_swap': 
                 ins = swap_input_rule(ins, task_type)
             if model.instruct_mode == 'shuffled_one_hot':
                 ins = use_shuffled_one_hot(ins, task_type)
+            else: 
+                ins = one_hot_input_rule(ins, task_type)
 
             out, hid = model(ins, h0)
         return out, hid
