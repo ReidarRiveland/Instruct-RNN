@@ -14,10 +14,10 @@ import numpy as np
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) 
 
-class cogNet(nn.Module):
-    def __init__(self, in_dim, hid_dim, num_layers, activ_func, instruct_mode=None):
-        super(cogNet, self).__init__()
 
+class simpleNet(nn.Module): 
+    def __init__(self, in_dim, hid_dim, num_layers, activ_func, instruct_mode=None):
+        super(simpleNet, self).__init__()
         self.tune_langModel = None
         self.instruct_mode = instruct_mode
         self.in_dim = in_dim
@@ -37,10 +37,6 @@ class cogNet(nn.Module):
         self.weights_init()
         self.W_out = nn.Linear(hid_dim, self.out_dim)
 
-
-        self.weights_init()
-        self.W_out = nn.Linear(hid_dim, self.out_dim)
-
     def weights_init(self):
         for n, p in self.named_parameters():
             if 'weight_ih' in n:
@@ -52,34 +48,44 @@ class cogNet(nn.Module):
             elif 'W_out' in n:
                 torch.nn.init.normal_(p, std = 0.4/np.sqrt(self.hid_dim))
 
-    def initHidden(self, batch_size, value):
-        return torch.full((self.num_layers, batch_size, self.hid_dim), value)
-
-
-class simpleNet(nn.Module): 
-    def __init__(self, in_dim, hid_dim, num_layers, activ_func, instruct_mode=None):
-        super(simpleNet, self).__init__()
-
     def forward(self, x, h): 
         rnn_hid, _ = self.recurrent_units(x, h)
         motor_out = self.W_out(rnn_hid)
         out = torch.sigmoid(motor_out)
         return out, rnn_hid
 
+    def initHidden(self, batch_size, value):
+        return torch.full((self.num_layers, batch_size, self.hid_dim), value)
+
 
 class instructNet(nn.Module): 
     def __init__(self, langMod, hid_dim, num_layers=1, activ_func = 'tanh', drop_p = 0.0, instruct_mode=None, tune_langModel = False, langLayerList = []): 
         super(instructNet, self).__init__()
+        self.instruct_mode = instruct_mode
+        self.tune_langModel = tune_langModel
+        self.sensory_in_dim = 65
+        self.isLang = True 
+        self.hid_dim = hid_dim
+        self.embedderStr = langMod.embedderStr
+        self.langModel = langMod.langModel
+        self.langMod = langMod
+        self.num_layers = num_layers
+        self.lang_embed_dim = langMod.langModel.out_dim
+        self.activ_func = activ_func
         self.rnn = simpleNet(self.lang_embed_dim + self.sensory_in_dim, hid_dim, self.num_layers, self.activ_func)
-        self.weights_init()
-
+        
         if tune_langModel:
             self.langModel.train()
-            for n,p in self.langModel.model.named_parameters(): 
-                if any([layer in n for layer in langLayerList]):
-                    p.requires_grad=True
-                else: 
-                    p.requires_grad=False
+            if len(langLayerList) == 0:  
+                
+                for param in self.langModel.parameters(): 
+                    param.requires_grad = True
+            else: 
+                for n,p in self.langModel.model.named_parameters(): 
+                    if any([layer in n for layer in langLayerList]):
+                        p.requires_grad=True
+                    else: 
+                        p.requires_grad=False
         else: 
             try: 
                 for param in self.langModel.model.parameters(): 
@@ -88,6 +94,8 @@ class instructNet(nn.Module):
             except: 
                 pass
 
+    def weights_init(self): 
+        self.rnn.weights_init()
 
     def forward(self, instruction_tensor, x, h):
         embedded_instruct = self.langModel(instruction_tensor)
@@ -95,6 +103,9 @@ class instructNet(nn.Module):
         rnn_ins = torch.cat((seq_blocked, x.type(torch.float32)), 2)
         outs, rnn_hid = self.rnn(rnn_ins, h)
         return outs, rnn_hid
+
+    def initHidden(self, batch_size, value):
+        return torch.full((self.num_layers, batch_size, self.hid_dim), value)
 
 
 class customGRUCell(nn.Module): 
@@ -201,7 +212,3 @@ class customGRU(nn.Module):
         if self.batch_first: 
             output = output.transpose(0, 1)
         return output, h_n
-
-
-
-
