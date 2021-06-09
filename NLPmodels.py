@@ -11,27 +11,44 @@ from sentence_transformers import SentenceTransformer
 from transformers import GPT2Model, GPT2Tokenizer
 from transformers import BertModel, BertTokenizer
 
-def wordFreq():
-    freq_dict = {}
-    all_words = []
-    all_sentences = []
-    for task_type in task_list:
-        instructions = train_instruct_dict[task_type] + test_instruct_dict[task_type]
-        for sentence in instructions: 
-            all_sentences.append(sentence)
-            for word in sentence.split(): 
-                all_words.append(word)
-    for word in set(all_words):
-        freq_dict[word] = all_words.count(word)
-    
-    split_sentences = []
-    for sentence in all_sentences:
-        list_sent = sentence.split()
-        split_sentences.append(list_sent)
+import numpy as np 
+import pickle
 
-    return freq_dict, sorted(list(set(all_words))), all_sentences, split_sentences
+train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict2', 'rb'))
+test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict2', 'rb'))
 
-freq_dict, vocab, all_sentences, split_sentences = wordFreq()
+
+swaps= [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['COMP2', 'RT Go']]
+swapped_task_list = ['Anti DM', 'COMP2', 'Anti Go', 'DMC', 'DM', 'Go', 'MultiDM', 'Anti MultiDM', 'COMP1', 'RT Go', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'Anti RT Go', 'DNMC']
+instruct_swap_dict = dict(zip(swapped_task_list, train_instruct_dict.values()))
+
+def shuffle_instruction(instruct): 
+    instruct = instruct.split()
+    shuffled = np.random.permutation(instruct)
+    instruct = ' '.join(list(shuffled))
+    return instruct
+
+def get_batch(batch_size, task_type, instruct_mode = None):
+    assert instruct_mode in [None, 'instruct_swap', 'shuffled', 'comp', 'validation', 'random']
+
+    if instruct_mode == 'instruct_swap': 
+        instruct_dict = instruct_swap_dict
+    elif instruct_mode == 'validation': 
+        instruct_dict = test_instruct_dict
+    else: 
+        instruct_dict = train_instruct_dict
+
+    instructs = np.random.choice(instruct_dict[task_type], size=batch_size)
+    if instruct_mode == 'shuffled': 
+        instructs = list(map(shuffle_instruction, instructs))
+
+    return instructs
+
+def sort_vocab(): 
+    combined_instruct= {key: list(train_instruct_dict[key]) + list(test_instruct_dict[key]) for key in train_instruct_dict}
+    all_sentences = sum(list(combined_instruct.values()), [])
+    sorted_vocab = sorted(list(set(' '.join(all_sentences).split(' '))))
+    return sorted_vocab
 
 
 class TransformerEmbedder(nn.Module): 
@@ -83,14 +100,21 @@ class SBERT(TransformerEmbedder):
 class BoW(nn.Module): 
     def __init__(self, reduction_dim = None): 
         super(BoW, self).__init__()
+        self.vocab = sorted_vocab()
         self.embedderStr = 'BoW'
         self.tokenizer = None
         self.reduction_dim = reduction_dim
         if self.reduction_dim == None: 
-            self.out_dim = len(vocab)    
+            self.out_dim = len(self.vocab)    
         else: 
             self.out_dim = reduction_dim
-            self.lin = nn.Sequential(nn.Linear(len(vocab), self.out_dim), nn.ReLU())
+            self.lin = nn.Sequential(nn.Linear(len(self.vocab), self.out_dim), nn.ReLU())
+
+    def count_freq(instruct): 
+                    out_vec = torch.zeros(self.out_dim)
+            for word in instruct.split():
+                index = vocab.index(word)
+                out_vec[index] += 1
 
     def forward(self, x): 
         batch_vectorized = []
@@ -104,4 +128,5 @@ class BoW(nn.Module):
         if self.reduction_dim is not None: 
             out = self.lin(out)
         return out
+
 

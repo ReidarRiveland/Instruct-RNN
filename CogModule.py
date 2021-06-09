@@ -17,7 +17,7 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from Task import Task, construct_batch
-from LangModule import get_batch, swaps
+from NLPmodels import get_batch, swaps
 from Data import data_streamer
 
 
@@ -233,8 +233,7 @@ class CogModule():
     
     @staticmethod
     def _get_lang_input(model, batch_len, task_type): 
-        tokenizer = model.langModel.tokenizer
-        batch_instruct, _ = get_batch(batch_len, tokenizer, task_type=task_type, instruct_mode=model.instruct_mode)
+        batch_instruct = get_batch(batch_len, task_type, instruct_mode=model.instruct_mode)
         return batch_instruct
 
     @staticmethod
@@ -409,7 +408,6 @@ class CogModule():
 
             if instruct is not None: 
                 instruct = [instruct]
-                ins = del_input_rule(torch.Tensor(ins)).to(device)
                 out, hid = model(instruct, ins, h0)
             else: 
                 out, hid, instruct = self._get_model_resp(model, ins.shape[0], torch.Tensor(ins).to(device), task_type, instruct_mode)
