@@ -5,7 +5,7 @@ from dPCA import dPCA
 import numpy as np
 import matplotlib.pyplot as plt
 
-from RNNs import instructNet, simpleNet
+from cog import instructNet, simpleNet
 from LangModule import LangModule
 from NLPmodels import SBERT, BERT
 from CogModule import CogModule
@@ -13,12 +13,14 @@ from CogModule import CogModule
 
 from scipy.stats import zscore
 
-
-foldername = '_ReLU128_12.4'
+##Model training loop
+epochs = 30
+init_lr = 0.001
+milestones = [5, 10, 15, 20]
 
 seed = '_seed'+str(0)
 model_dict = {}
-model_dict['BERT train'+seed] = instructNet(LangModule(BERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
+model_dict['S-Bert train'+seed] = instructNet(LangModule(SBERT(20)), 128, 1, 'relu', tune_langModel=True, langLayerList=['layer.11'])
 #model_dict['Model1'+seed] = simpleNet(81, 128, 1, 'relu')
 
 
@@ -26,7 +28,9 @@ cog = CogModule(model_dict)
 
 from Data import data_streamer
 
-cog.train(data_streamer(), 1)
+cog.train(data_streamer(), 15, lr=init_lr, milestones=milestones)
+
+
 
 
 cog.load_models('Anti DM', foldername)

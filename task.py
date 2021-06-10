@@ -1,10 +1,8 @@
-import math
 import numpy as np
 
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-
 
 def add_noise(array):
     noise = np.sqrt(2/Task.DELTA_T)*(Task.SIGMA_IN) * np.random.normal(size=array.shape)
@@ -14,7 +12,6 @@ def _draw_ortho_dirs():
     dir1 = np.random.uniform(0, 2*np.pi)
     dir2 = (dir1+np.pi+np.random.uniform(-np.pi*0.2, np.pi*0.2))%(2*np.pi)
     return (dir1, dir2)
-
 
 class Task():
     TASK_LIST = ['Go', 'RT Go', 'Anti Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']

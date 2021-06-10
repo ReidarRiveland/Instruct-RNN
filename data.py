@@ -1,6 +1,5 @@
 import numpy as np
-from Task import Task, construct_batch
-
+from task import Task
 task_list = Task.TASK_LIST
 default_task_dict = dict.fromkeys(Task.TASK_LIST, 1/len(Task.TASK_LIST))
 
@@ -48,8 +47,4 @@ class data_streamer():
             batch_indices = list(np.random.choice(np.arange(8000), size=self.batch_len))
             memmaps = self.memmap_dict[task]
             yield memmaps[0][batch_indices, ].copy(), memmaps[1][batch_indices, ].copy(), memmaps[2][batch_indices, ].copy(), memmaps[3][batch_indices, ].copy(), task
-
-
-
-
 

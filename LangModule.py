@@ -20,217 +20,40 @@ import umap
 from scipy.ndimage.filters import gaussian_filter1d
 import pickle
 
-from Task import Task
-task_list = Task.TASK_LIST
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#device = 'cpu'
+def _get_instruct_rep(self, instruct_dict, depth='full'):
+    self.langModel.to(device)
+    self.langModel.eval()
+    with torch.no_grad(): 
+        task_indices = []
+        rep_tensor = torch.Tensor().to(device)
+        for i, task in enumerate(instruct_dict.keys()):
+            instructions = instruct_dict[task]
+            if depth == 'full': 
+                out_rep = self.langModel(instructions)
+            elif depth == 'transformer': 
+                tokens = self.langModel.model.tokenize(instructions)
+                for key, value in tokens.items():
+                    tokens[key] = value.to(device)
+                sent_embedding = self.langModel.model(tokens)['sentence_embedding']
+                out_rep = sent_embedding
+            task_indices += ([i]*len(instructions))
+            rep_tensor = torch.cat((rep_tensor, out_rep), dim=0)
+    return task_indices, rep_tensor.cpu().detach().numpy()
 
-train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict2', 'rb'))
-test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict2', 'rb'))
+def _get_avg_rep(self, task_indices, reps): 
+    avg_rep_list = []
+    for i in set(task_indices):
+        avg_rep = np.zeros(reps.shape[-1])
+        for index, rep in zip(task_indices, reps):
+            if i == index: 
+                avg_rep += rep
+        avg_rep_list.append(avg_rep/task_indices.count(i))
 
-
-swaps= [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['COMP2', 'RT Go']]
-swapped_task_list = ['Anti DM', 'COMP2', 'Anti Go', 'DMC', 'DM', 'Go', 'MultiDM', 'Anti MultiDM', 'COMP1', 'RT Go', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'Anti RT Go', 'DNMC']
-instruct_swap_dict = dict(zip(swapped_task_list, train_instruct_dict.values()))
-
-instruct_swap_dict['Anti RT Go']
-
-PAD_LEN = 25
-
-from collections import defaultdict
-
-task_group_colors = defaultdict(dict)
-task_group_colors['Go'] = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT Go':'orange'}
-task_group_colors['Decision Making'] = { 'DM':'Red', 'Anti DM':'Green', 'MultiDM':'Blue', 'Anti MultiDM':'Yellow'}
-task_group_colors['Comparison'] = { 'COMP1':'sienna', 'COMP2':'seagreen', 'MultiCOMP1':'skyblue', 'MultiCOMP2':'gold'}
-task_group_colors['Delay'] = { 'DMS':'firebrick', 'DNMS':'lightgreen', 'DMC':'dodgerblue', 'DNMC':'darkorange'}
-
-def task_cmap(array): 
-    all_task_dict = {}
-    for task_colors in task_group_colors.values(): 
-        all_task_dict.update(task_colors)
-    color_list = []
-
-    for index in array: 
-        color_list.append(all_task_dict[task_list[index]])
-
-    return color_list
-
-
-
-def get_batch(batch_size, tokenizer, task_type = None, instruct_mode = None):
-    assert instruct_mode in [None, 'instruct_swap', 'shuffled', 'comp', 'validation', 'random']
-    batch = []
-    batch_target_index = []
-    for i in range(batch_size):
-        task = task_type
-        if task is None: 
-            task = np.random.choice(task_list)
-        elif instruct_mode == 'instruct_swap': 
-            instruct_dict = instruct_swap_dict
-        elif instruct_mode == 'validation': 
-            instruct_dict = test_instruct_dict
-        else: 
-            instruct_dict = train_instruct_dict
-
-        instruct = random.choice(instruct_dict[task])
-        batch_target_index.append(task_list.index(task))
-
-        if instruct_mode == 'shuffled': 
-            instruct = instruct.split()
-            shuffled = np.random.permutation(instruct)
-            instruct = ' '.join(list(shuffled))
-
-        batch.append(instruct)
-
-    return batch, batch_target_index
-
-
-class LangModule(): 
-    def __init__(self, langModel, foldername = '', instruct_mode = None): 
-        self.langModel = langModel
-        self.embedderStr = langModel.embedderStr
-        if len(foldername) > 0: foldername = foldername+'/'
-        self.loss_list = []
-        self.val_loss_list = []
-        self.instruct_mode = instruct_mode
-        self.model_classifier = nn.Sequential(self.langModel, nn.Linear(self.langModel.out_dim, len(task_list), nn.ReLU()))
-        self.shuffled = False
-        self.classifier_criterion = nn.CrossEntropyLoss()
-
-        self.foldername = foldername
-        self.filename = self.embedderStr + '_' + str(self.langModel.out_dim)
-
-    def train_classifier(self, batch_len, num_batches, epochs, optim_method = 'adam', lr=0.001, weight_decay=0, shuffle = False, train_out_only = False):
-        self.shuffled = shuffle
-        if optim_method == 'adam': 
-            opt = optim.Adam(self.model_classifier.parameters(), lr, weight_decay=weight_decay)
-        if optim_method == 'SGD': 
-            opt = optim.SGD(self.model_classifier.parameters(), lr, weight_decay=weight_decay)
-        if train_out_only: 
-            opt = optim.Adam(self.model_classifier.linear.parameters(), lr, weight_decay=weight_decay)
-        self.identity = nn.Identity()
-
-        best_val_loss = 1e5
-        self.model_classifier.to(device)
-        self.model_classifier.train()
-        for i in range(epochs):
-            for j in range(num_batches): 
-                opt.zero_grad()
-                ins_temp, targets = get_batch(batch_len, tokenizer = self.langModel.tokenizer, instruct_mode = self.instruct_mode)
-                tensor_targets = torch.Tensor(targets).to(device)
-                out = self.model_classifier(ins_temp)
-                loss = self.classifier_criterion(out, tensor_targets.long())
-                loss.backward()
-                opt.step()
-                if j%100 == 0: 
-                    print(j, ':', loss.item())
-                self.loss_list.append(loss.item())
-
-                val_loss = self.get_val_loss()
-                self.val_loss_list.append(val_loss)
-
-                if val_loss < best_val_loss: 
-                    best_val_loss = val_loss
-                    torch.save(self.model_classifier.state_dict(), self.foldername+ 'LanguageModels/'+self.filename+'.pt')
-        self.model_classifier.load_state_dict(torch.load(self.foldername+'LanguageModels/'+ self.filename+'.pt'))
-
-    def loadLangModel(self): 
-        self.model_classifier.load_state_dict(torch.load(self.foldername+'/LanguageModels/'+ self.filename+'.pt'))
+    task_set = list(set(task_indices))
+    avg_reps = np.array(avg_rep_list)
     
-    def save_classifier_training_data(self): 
-        pickle.dump(self.loss_list, open(self.foldername+'LanguageModels/'+self.filename+'_training_loss', 'wb'))
-        pickle.dump(self.val_loss_list, open(self.foldername+'LanguageModels/'+self.filename+'_val_loss', 'wb'))
-
-    def load_classifier_training_data(self): 
-        self.loss_list = pickle.load(open(self.foldername+'LanguageModels/'+self.filename+'_training_loss', 'rb'))
-        self.val_loss_list = pickle.load(open(self.foldername+'/LanguageModels/'+self.filename+'_val_loss', 'rb'))
-
-
-    def get_val_loss(self): 
-        total_loss = 0
-        num_sentences = 0
-        self.model_classifier.eval()
-        for i, task in enumerate(task_list): 
-            instructions = test_instruct_dict[task]
-            out = self.model_classifier(instructions)
-            tensor_targets = torch.full((len(instructions), ), i).to(device)
-            loss = self.classifier_criterion(out, tensor_targets.long())            
-            total_loss += loss.item()
-        self.model_classifier.train()
-        return total_loss/len(task_list)
-
-    def plot_loss(self, mode):
-        assert mode in ['train', 'validation'], 'mode must be "train" or "validation"'
-        if mode == 'train':
-            plt.plot(self.loss_list, label = self.embedderStr)
-            plt.legend()
-            plt.title('Training Loss')
-        if mode == 'validation': 
-            plt.plot(self.val_loss_list, label = self.embedderStr)
-            plt.legend()
-            plt.title('Validation Loss')
-        plt.ylabel('Cross Entropy Loss')
-        plt.xlabel('total mini-batches')
-        plt.show()
-
-    def _test_performance(self): 
-        self.model_classifier.eval()
-        perf_dict = {}
-        num_task = len(task_list)
-        confuse_mat = np.zeros((num_task, num_task), dtype=int)
-        for i, task in enumerate(task_list): 
-            num_correct = 0
-            instructions = test_instruct_dict[task]
-            model_cat = torch.argmax(self.model_classifier(instructions), dim=1).cpu().numpy()
-            for j in model_cat: 
-                confuse_mat[i, j] += 1
-                if j == i:
-                    num_correct += 1  
-            perf_dict[task] = num_correct/(j+1)
-        return perf_dict, confuse_mat
-
-    def plot_confusion_matrix(self): 
-        _, confuse_mat = self._test_performance()
-        f, ax = plt.subplots(1,1)
-        ax = sns.heatmap(confuse_mat, ax = ax, yticklabels = task_list, xticklabels= task_list, cbar = False, annot=True, fmt="d")
-        f.suptitle('Confusion Matrix; embedder: {}'.format(self.embedderStr))
-        plt.show()
-
-    def _get_instruct_rep(self, instruct_dict, depth='full'):
-        self.langModel.to(device)
-        self.langModel.eval()
-        with torch.no_grad(): 
-            task_indices = []
-            rep_tensor = torch.Tensor().to(device)
-            for i, task in enumerate(instruct_dict.keys()):
-                instructions = instruct_dict[task]
-                if depth == 'full': 
-                    out_rep = self.langModel(instructions)
-                elif depth == 'transformer': 
-                    tokens = self.langModel.model.tokenize(instructions)
-                    for key, value in tokens.items():
-                        tokens[key] = value.to(device)
-                    sent_embedding = self.langModel.model(tokens)['sentence_embedding']
-                    out_rep = sent_embedding
-                task_indices += ([i]*len(instructions))
-                rep_tensor = torch.cat((rep_tensor, out_rep), dim=0)
-        return task_indices, rep_tensor.cpu().detach().numpy()
-
-    def _get_avg_rep(self, task_indices, reps): 
-        avg_rep_list = []
-        for i in set(task_indices):
-            avg_rep = np.zeros(reps.shape[-1])
-            for index, rep in zip(task_indices, reps):
-                if i == index: 
-                    avg_rep += rep
-            avg_rep_list.append(avg_rep/task_indices.count(i))
-
-        task_set = list(set(task_indices))
-        avg_reps = np.array(avg_rep_list)
-        
-        return task_set, avg_reps
+    return task_set, avg_reps
 
 
     def plot_embedding(self, dim=2, embedder = 'PCA', interm_dim = 20, depth = 'full', tasks = task_list, plot_avg = False, train_only=False, RGBY = False, cmap = matplotlib.cm.get_cmap('tab20')):
