@@ -3,7 +3,7 @@ from task import Task
 task_list = Task.TASK_LIST
 default_task_dict = dict.fromkeys(Task.TASK_LIST, 1/len(Task.TASK_LIST))
 
-class data_streamer(): 
+class DataStreamer(): 
     def __init__(self, batch_len=128, num_batches=500, task_ratio_dict = default_task_dict.copy(), holdouts=[]): 
         self.batch_len = batch_len
         self.num_batches = num_batches

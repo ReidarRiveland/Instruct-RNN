@@ -1,8 +1,9 @@
+import numpy as np
 import torch
 from torch._C import device
 import torch.nn as nn
-
 import numpy as np
+
 from collections import defaultdict
 
 import pandas as pd
@@ -11,6 +12,7 @@ from custom_GRU import CustomGRU
 from utils import get_input_rule, get_instructions
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class BaseNet(nn.Module): 
     def __init__(self, in_dim, hid_dim, num_layers, activ_func, instruct_mode):
@@ -28,7 +30,7 @@ class BaseNet(nn.Module):
             self.recurrent_units = CustomGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
         else: 
             self.recurrent_units = nn.RNN(self.in_dim, hid_dim, self.num_layers, nonlinearity = 'relu', batch_first=True)
-        self.W_out = nn.Linear(hid_dim, self.out_dim)
+        self.sensory_motor_outs = nn.Sequential(nn.Linear(hid_dim, self.out_dim), nn.Sigmoid())
 
         self.__weights_init__()
         
@@ -44,17 +46,14 @@ class BaseNet(nn.Module):
                 torch.nn.init.normal_(p, std = 0.4/np.sqrt(self.hid_dim))
 
     def __initHidden__(self, batch_size, value):
-        return torch.full((self.num_layers, batch_size, self.hid_dim), value)
-
+        return torch.full((self.num_layers, batch_size, self.hid_dim), value, device=device.type)
 
     def forward(self, task_info, x , t=120): 
-        h0 = self.__initHidden__(x.shape[0], 0.1).to(device)
-        task_info_block = task_info.unsqueeze(1).repeat(1, t, 1).to(device)
+        h0 = self.__initHidden__(x.shape[0], 0.1)
+        task_info_block = task_info.unsqueeze(1).repeat(1, t, 1)
         rnn_ins = torch.cat((task_info_block, x.type(torch.float32)), 2)
-
         rnn_hid, _ = self.recurrent_units(rnn_ins, h0)
-        motor_out = self.W_out(rnn_hid)
-        out = torch.sigmoid(motor_out)
+        out = self.sensory_motor_outs(rnn_hid)
         return out, rnn_hid
 
     def get_training_df(self): 
@@ -73,14 +72,14 @@ class BaseNet(nn.Module):
 
 class SimpleNet(BaseNet):
     def __init__(self, hid_dim, num_layers, activ_func='relu', instruct_mode=None):
-        super(BaseNet, self).__init__(81, hid_dim, num_layers, activ_func, instruct_mode)
+        super().__init__(81, hid_dim, num_layers, activ_func, instruct_mode)
         self.model_name = 'simpleNet'
 
     def reset_weights(self): 
         self.__weights_init__()
 
     def get_task_info(self, batch_len, task_type): 
-        return get_input_rule(batch_len, task_type, self.instruct_mode)
+        return get_input_rule(batch_len, task_type, self.instruct_mode).to(device)
 
     def forward(self, task_rule, x):
         outs, rnn_hid = super().forward(task_rule, x)
