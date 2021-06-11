@@ -13,7 +13,7 @@ import itertools
 
 from task import Task
 task_list = Task.TASK_LIST
-tuning_dirs = torch.Tensor(Task.TUNING_DIRS)
+tuning_dirs = Task.TUNING_DIRS
 
 
 train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict2', 'rb'))
@@ -46,34 +46,99 @@ swaps= [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['COMP2', 'RT Go']]
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) 
 
-def popvec(act_vec, tuning_dirs):
+# def popvec(act_vec, tuning_dirs):
+#     """Population vector decoder that reads the orientation of activity in vector of activities
+#     Args:      
+#         act_vec (np.array): output tensor of neural network model; shape: (features, 1)
+
+#     Returns:
+#         float: decoded orientation of activity (in radians)
+#     """
+
+#     act_sum = torch.sum(act_vec)
+#     temp_cos = torch.sum(torch.multiply(act_vec, torch.cos(tuning_dirs)))/act_sum
+#     temp_sin = torch.sum(torch.multiply(act_vec, torch.sin(tuning_dirs)))/act_sum
+#     loc = torch.atan2(temp_sin, temp_cos)
+#     return loc % 2*np.pi
+
+# def get_dist(angle1, angle2):
+#     """Returns the true distance between two angles mod 2pi
+#     Args:      
+#         angle1, angle2 (float): angles in radians
+
+#     Returns:
+#         float: distance between given angles mod 2pi
+#     """
+#     dist = angle1-angle2
+#     return torch.minimum(abs(dist),2*np.pi-abs(dist))
+
+
+# def isCorrect(nn_out, nn_target, target_dirs, tuning_dirs): 
+#     """Determines whether a given neural network response is correct, computed by batch
+#     Args:      
+#         nn_out (Tensor): output tensor of neural network model; shape: (batch_size, seq_len, features)
+#         nn_target (Tensor): batch supervised target responses for neural network response; shape: (batch_size, seq_len, features)
+#         target_dirs (np.array): masks of weights for loss; shape: (batch_num, seq_len, features)
+    
+#     Returns:
+#         np.array: weighted loss of neural network response; shape: (batch)
+#     """
+#     batch_size = nn_out.shape[0]
+
+#     isCorrect = torch.empty(batch_size)
+#     criterion = (2*np.pi)/10
+
+#     for i in range(batch_size):
+#         #checks response maintains fixataion
+#         isFixed = all(torch.where(nn_target[i, :, 0] == 0.85, nn_out[i, :, 0] > 0.5, True))
+
+#         #checks trials that requiring repressing responses
+#         if np.isnan(target_dirs[i]): 
+#             isDir = all((nn_out[i, 114:119, :].flatten() < 0.2))
+        
+#         #checks responses are coherent and in the correct direction
+#         else:
+#             is_response = torch.max(nn_out[i, -1, 1:]) > 0.6
+#             loc = popvec(nn_out[i, -1, 1:], tuning_dirs)
+#             dist = get_dist(loc, target_dirs[i])        
+#             isDir = dist < criterion and is_response
+#         isCorrect[i] = isDir and isFixed
+
+#     return isCorrect
+
+def gpu_to_np(t):
+    """removes tensor from gpu and converts to np.array""" 
+    if t.get_device() == 0: 
+        t = t.detach().to('cpu').numpy()
+    elif t.get_device() == -1: 
+        t = t.detach().numpy()
+    return t
+
+def popvec(act_vec):
     """Population vector decoder that reads the orientation of activity in vector of activities
     Args:      
         act_vec (np.array): output tensor of neural network model; shape: (features, 1)
-
     Returns:
         float: decoded orientation of activity (in radians)
     """
 
-    act_sum = torch.sum(act_vec)
-    temp_cos = torch.sum(torch.multiply(act_vec, torch.cos(tuning_dirs)))/act_sum
-    temp_sin = torch.sum(torch.multiply(act_vec, torch.sin(tuning_dirs)))/act_sum
-    loc = torch.atan2(temp_sin, temp_cos)
-    return loc % 2*np.pi
+    act_sum = np.sum(act_vec)
+    temp_cos = np.sum(np.multiply(act_vec, np.cos(tuning_dirs)))/act_sum
+    temp_sin = np.sum(np.multiply(act_vec, np.sin(tuning_dirs)))/act_sum
+    loc = np.arctan2(temp_sin, temp_cos)
+    return np.mod(loc, 2*np.pi)
 
 def get_dist(angle1, angle2):
     """Returns the true distance between two angles mod 2pi
     Args:      
         angle1, angle2 (float): angles in radians
-
     Returns:
         float: distance between given angles mod 2pi
     """
     dist = angle1-angle2
-    return torch.minimum(abs(dist),2*np.pi-abs(dist))
+    return np.minimum(abs(dist),2*np.pi-abs(dist))
 
-
-def isCorrect(nn_out, nn_target, target_dirs, tuning_dirs): 
+def isCorrect(nn_out, nn_target, target_dirs): 
     """Determines whether a given neural network response is correct, computed by batch
     Args:      
         nn_out (Tensor): output tensor of neural network model; shape: (batch_size, seq_len, features)
@@ -84,32 +149,30 @@ def isCorrect(nn_out, nn_target, target_dirs, tuning_dirs):
         np.array: weighted loss of neural network response; shape: (batch)
     """
     batch_size = nn_out.shape[0]
+    if type(nn_out) == torch.Tensor: 
+        nn_out = gpu_to_np(nn_out)
+    if type(nn_target) == torch.Tensor: 
+        nn_target = gpu_to_np(nn_target)
 
-    isCorrect = torch.empty(batch_size)
+    isCorrect = np.empty(batch_size, dtype=bool)
     criterion = (2*np.pi)/10
 
     for i in range(batch_size):
         #checks response maintains fixataion
-        isFixed = all(torch.where(nn_target[i, :, 0] == 0.85, nn_out[i, :, 0] > 0.5, True))
+        isFixed = all(np.where(nn_target[i, :, 0] == 0.85, nn_out[i, :, 0] > 0.5, True))
 
         #checks trials that requiring repressing responses
         if np.isnan(target_dirs[i]): 
-            isDir = all((nn_out[i, 114:119, :].flatten() < 0.2))
+            isDir = all((nn_out[i, 114:119, :].flatten() < 0.15))
         
         #checks responses are coherent and in the correct direction
         else:
-            is_response = torch.max(nn_out[i, -1, 1:]) > 0.6
-            loc = popvec(nn_out[i, -1, 1:], tuning_dirs)
+            is_response = np.max(nn_out[i, -1, 1:]) > 0.6
+            loc = popvec(nn_out[i, -1, 1:])
             dist = get_dist(loc, target_dirs[i])        
             isDir = dist < criterion and is_response
         isCorrect[i] = isDir and isFixed
-
     return isCorrect
-
-
-
-
-
 
 def shuffle_instruction(instruct): 
     instruct = instruct.split()
@@ -138,7 +201,6 @@ def get_instructions(batch_size, task_type, instruct_mode):
             instructs = list(map(shuffle_instruction, instructs))
 
         return list(instructs)
-
 
 
 
