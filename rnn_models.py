@@ -11,9 +11,6 @@ import pickle
 from custom_GRU import CustomGRU
 from utils import get_input_rule, get_instructions
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
 class BaseNet(nn.Module): 
     def __init__(self, in_dim, hid_dim, num_layers, activ_func, instruct_mode):
         super(BaseNet, self).__init__()
@@ -33,7 +30,8 @@ class BaseNet(nn.Module):
         self.sensory_motor_outs = nn.Sequential(nn.Linear(hid_dim, self.out_dim), nn.Sigmoid())
 
         self.__weights_init__()
-        
+        self.__device__ = torch.device('cpu')
+
     def __weights_init__(self):
         for n, p in self.named_parameters():
             if 'weight_ih' in n:
@@ -46,9 +44,10 @@ class BaseNet(nn.Module):
                 torch.nn.init.normal_(p, std = 0.4/np.sqrt(self.hid_dim))
 
     def __initHidden__(self, batch_size, value):
-        return torch.full((self.num_layers, batch_size, self.hid_dim), value, device=device.type)
+        return torch.full((self.num_layers, batch_size, self.hid_dim), value, device=self.__device__.type)
 
     def forward(self, task_info, x , t=120): 
+        x.to(self.__device__)
         h0 = self.__initHidden__(x.shape[0], 0.1)
         task_info_block = task_info.unsqueeze(1).repeat(1, t, 1)
         rnn_ins = torch.cat((task_info_block, x.type(torch.float32)), 2)
@@ -74,12 +73,17 @@ class SimpleNet(BaseNet):
     def __init__(self, hid_dim, num_layers, activ_func='relu', instruct_mode=None):
         super().__init__(81, hid_dim, num_layers, activ_func, instruct_mode)
         self.model_name = 'simpleNet'
+        self.to(self.device)
+
+    def to(self, cuda_device): 
+        super().to(cuda_device)
+        self.__device__ = cuda_device
 
     def reset_weights(self): 
         self.__weights_init__()
 
     def get_task_info(self, batch_len, task_type): 
-        return get_input_rule(batch_len, task_type, self.instruct_mode).to(device)
+        return get_input_rule(batch_len, task_type, self.instruct_mode).to(self.device)
 
     def forward(self, task_rule, x):
         outs, rnn_hid = super().forward(task_rule, x)
@@ -89,9 +93,13 @@ class InstructNet(BaseNet):
     def __init__(self, langModel, hid_dim, num_layers, activ_func = 'relu', instruct_mode=None): 
         super().__init__(langModel.out_dim+65, hid_dim, num_layers, activ_func, instruct_mode)
         self.langModel = langModel
-        self.langModel.device = device
         self.model_name = self.langModel.embedder_name + 'Net'
 
+    def to(self, cuda_device): 
+        super().to(cuda_device)
+        self.__device__ = cuda_device
+        self.langModel.device = cuda_device
+        
     def reset_weights(self):
         super().__weights_init__()
         self.langModel.__init__(self.langModel.out_dim)

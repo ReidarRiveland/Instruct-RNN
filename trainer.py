@@ -80,10 +80,11 @@ def train(model, streamer, epochs, optimizer, scheduler):
 
 
 import torch
-from cog_rnns import InstructNet
-from nlp_models import BERT
-model = InstructNet(BERT(20, train_layers=['layer.11', 'proj_out']), 128, 1)
+from rnn_models import InstructNet
+from nlp_models import SBERT
+model = InstructNet(SBERT(20, train_layers=['layer.11', 'proj_out']), 128, 1)
 model.to(device)
+
 
 opt, sch = init_optimizer(model, 0.001, [5, 10, 15, 20])
 data = TaskDataSet()
