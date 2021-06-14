@@ -50,7 +50,7 @@ class TaskDataSet():
         batches_per_task = [int(np.floor(self.num_batches*ratio)) for ratio in self.task_ratio_dict.values()] 
         self.trial_types = sum([[task]*batches for task, batches in zip(self.task_ratio_dict.keys(), batches_per_task)], [])
         while len(self.trial_types) < self.num_batches:
-            self.trial_types.append(task_list[-(self.num_batches-len(self.trial_types))])
+            self.trial_types.append(list(self.task_ratio_dict.keys())[-(self.num_batches-len(self.trial_types))])
 
     def __populate_data__(self): 
         tmp_in_data = np.empty((self.num_batches, self.batch_len, 120, 65), dtype=np.float32)
