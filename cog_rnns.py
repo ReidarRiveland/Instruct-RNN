@@ -90,7 +90,7 @@ class InstructNet(BaseNet):
         super().__init__(langModel.out_dim+65, hid_dim, num_layers, activ_func, instruct_mode)
         self.langModel = langModel
         self.langModel.device = device
-        self.model_name = self.langModel.embedderStr + 'Net'
+        self.model_name = self.langModel.embedder_name + 'Net'
 
     def reset_weights(self):
         super().__weights_init__()

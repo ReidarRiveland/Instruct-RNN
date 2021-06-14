@@ -121,10 +121,9 @@ def popvec(act_vec):
     Returns:
         float: decoded orientation of activity (in radians)
     """
-
-    act_sum = np.sum(act_vec)
-    temp_cos = np.sum(np.multiply(act_vec, np.cos(tuning_dirs)))/act_sum
-    temp_sin = np.sum(np.multiply(act_vec, np.sin(tuning_dirs)))/act_sum
+    act_sum = np.sum(act_vec, axis=1)
+    temp_cos = np.sum(np.multiply(act_vec, np.cos(tuning_dirs)), axis=1)/act_sum
+    temp_sin = np.sum(np.multiply(act_vec, np.sin(tuning_dirs)), axis=1)/act_sum
     loc = np.arctan2(temp_sin, temp_cos)
     return np.mod(loc, 2*np.pi)
 
@@ -148,31 +147,33 @@ def isCorrect(nn_out, nn_target, target_dirs):
     Returns:
         np.array: weighted loss of neural network response; shape: (batch)
     """
+
     batch_size = nn_out.shape[0]
     if type(nn_out) == torch.Tensor: 
         nn_out = gpu_to_np(nn_out)
     if type(nn_target) == torch.Tensor: 
         nn_target = gpu_to_np(nn_target)
 
-    isCorrect = np.empty(batch_size, dtype=bool)
     criterion = (2*np.pi)/10
 
-    for i in range(batch_size):
-        #checks response maintains fixataion
-        isFixed = all(np.where(nn_target[i, :, 0] == 0.85, nn_out[i, :, 0] > 0.5, True))
+    #checks response maintains fixataion
+    isFixed = np.all(np.where(nn_target[:, :, 0] == 0.85, nn_out[:, :, 0] > 0.5, True), axis=1)
 
-        #checks trials that requiring repressing responses
-        if np.isnan(target_dirs[i]): 
-            isDir = all((nn_out[i, 114:119, :].flatten() < 0.15))
-        
-        #checks responses are coherent and in the correct direction
-        else:
-            is_response = np.max(nn_out[i, -1, 1:]) > 0.6
-            loc = popvec(nn_out[i, -1, 1:])
-            dist = get_dist(loc, target_dirs[i])        
-            isDir = dist < criterion and is_response
-        isCorrect[i] = isDir and isFixed
-    return isCorrect
+    #checks for repressed responses
+    isRepressed = np.all(nn_out[:, 114:119, :].reshape(batch_size, -1) < 0.15, axis = 1)
+
+    #checks is responses are in the correct direction 
+    is_response = np.max(nn_out[:, -1, 1:]) > 0.6
+    loc = popvec(nn_out[:, -1, 1:])
+    dist = get_dist(loc, np.nan_to_num(target_dirs))        
+    isDir = np.logical_and(dist < criterion, is_response)
+
+    #checks if responses were correctly repressed or produced 
+    correct_reponse = np.where(np.isnan(target_dirs), isRepressed, isDir)
+
+    #checks if correct responses also maintained fixation 
+    is_correct = np.logical_and(correct_reponse, isFixed)
+    return is_correct
 
 def shuffle_instruction(instruct): 
     instruct = instruct.split()
