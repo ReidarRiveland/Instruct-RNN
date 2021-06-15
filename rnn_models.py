@@ -93,7 +93,9 @@ class InstructNet(BaseNet):
     def __init__(self, langModel, hid_dim, num_layers, activ_func = 'relu', instruct_mode=None): 
         super().__init__(langModel.out_dim+65, hid_dim, num_layers, activ_func, instruct_mode)
         self.langModel = langModel
-        self.model_name = self.langModel.embedder_name + 'Net'
+        self.model_name = self.langModel.embedder_name + 'Net' 
+        if len(self.langModel.train_layers) > 0: 
+            self.model_name += '_'.join(['_layer']+self.langModel.train_layers)
 
     def to(self, cuda_device): 
         super().to(cuda_device)

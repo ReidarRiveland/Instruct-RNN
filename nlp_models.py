@@ -23,14 +23,16 @@ class InstructionEmbedder(nn.Module):
             pass
 
 class TransformerEmbedder(InstructionEmbedder): 
+    SET_TRAIN_LAYER_LIST = ['proj_out', 'pooler', 'ln_f']
     def __init__(self, embedder_name, out_dim,  reducer, train_layers, output_nonlinearity): 
         super().__init__(embedder_name, 768, out_dim, output_nonlinearity )
         self.reducer = reducer
         self.train_layers = train_layers
 
-    def set_train_layers(self, train_layers): 
+    def set_train_layers(self): 
+        tmp_train_layers = self.train_layers+self.SET_TRAIN_LAYER_LIST
         for n,p in self.named_parameters(): 
-            if any([layer in n for layer in train_layers]):
+            if any([layer in n for layer in tmp_train_layers]):
                 p.requires_grad=True
             else: 
                 p.requires_grad=False
@@ -51,7 +53,7 @@ class BERT(TransformerEmbedder):
         super().__init__('bert', out_dim, reducer, train_layers, output_nonlinearity)
         self.transformer = BertModel.from_pretrained('bert-base-uncased')
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        self.set_train_layers(self.train_layers)
+        self.set_train_layers()
 
 class GPT(TransformerEmbedder): 
     def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
@@ -59,14 +61,14 @@ class GPT(TransformerEmbedder):
         self.transformer = GPT2Model.from_pretrained('gpt2')
         self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.set_train_layers(self.train_layers)
+        self.set_train_layers()
 
 class SBERT(TransformerEmbedder): 
     def __init__(self, out_dim, reducer=None, train_layers = [], output_nonlinearity = nn.ReLU()): 
         super().__init__('sbert', out_dim, reducer, train_layers, output_nonlinearity)
         self.transformer = SentenceTransformer('bert-base-nli-mean-tokens')
         self.tokenizer = self.transformer.tokenize
-        self.set_train_layers(self.train_layers)
+        self.set_train_layers()
 
     def forward_transformer(self, x): 
         tokens = self.tokenizer(x)
