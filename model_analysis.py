@@ -45,7 +45,6 @@ def plot_trained_performance(self, model_list):
     plt.xticks([r + barWidth for r in range(len_values)], task_list)
     plt.legend()
     plt.show()
-    
 
 def plot_model_response(model, task_type, trials = None, trial_num = 0, instruct = None):
     model.eval()
@@ -89,6 +88,43 @@ def plot_model_response(model, task_type, trials = None, trial_num = 0, instruct
                 ax.set_xlabel('time')
 
         plt.show()
+
+
+
+def _get_instruct_rep(self, instruct_dict, depth='full'):
+    self.langModel.to(device)
+    self.langModel.eval()
+    with torch.no_grad(): 
+        task_indices = []
+        rep_tensor = torch.Tensor().to(device)
+        for i, task in enumerate(instruct_dict.keys()):
+            instructions = instruct_dict[task]
+            if depth == 'full': 
+                out_rep = self.langModel(instructions)
+            elif depth == 'transformer': 
+                tokens = self.langModel.model.tokenize(instructions)
+                for key, value in tokens.items():
+                    tokens[key] = value.to(device)
+                sent_embedding = self.langModel.model(tokens)['sentence_embedding']
+                out_rep = sent_embedding
+            task_indices += ([i]*len(instructions))
+            rep_tensor = torch.cat((rep_tensor, out_rep), dim=0)
+    return task_indices, rep_tensor.cpu().detach().numpy()
+
+def _get_avg_rep(self, task_indices, reps): 
+    avg_rep_list = []
+    for i in set(task_indices):
+        avg_rep = np.zeros(reps.shape[-1])
+        for index, rep in zip(task_indices, reps):
+            if i == index: 
+                avg_rep += rep
+        avg_rep_list.append(avg_rep/task_indices.count(i))
+
+    task_set = list(set(task_indices))
+    avg_reps = np.array(avg_rep_list)
+
+    return task_set, avg_reps
+
 
 def plot_embedding(self, dim=2, embedder = 'PCA', interm_dim = 20, depth = 'full', tasks = task_list, plot_avg = False, train_only=False, RGBY = False, cmap = matplotlib.cm.get_cmap('tab20')):
     assert dim in [2, 3], "embedding dimension must be 2 or 3"

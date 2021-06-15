@@ -80,10 +80,19 @@ def train(model, streamer, epochs, optimizer, scheduler):
 
 
 import torch
-from rnn_models import InstructNet
-from nlp_models import SBERT
-model = InstructNet(SBERT(20, train_layers=['layer.11', 'proj_out']), 128, 1)
-model.to(device)
+import torch.nn as nn
+from rnn_models import InstructNet, SimpleNet
+from nlp_models import SBERT, BERT, GPT, BoW
+
+lang_train_params = {'out_dim': 20, 'train_layers':['layer.11', 'proj_out']}
+lang_set_params = {'out_dim': 20, 'train_layers':['proj_out'], 'output_nonlinearity':nn.Identity()}
+
+lang_params_list = [lang_set_params, lang_train_params]
+bert = BERT(**lang_params_list[0])
+
+model = InstructNet(SBERT(**lang_params_list[0]), 128, 1)
+
+model.model_name+
 
 
 opt, sch = init_optimizer(model, 0.001, [5, 10, 15, 20])
