@@ -444,6 +444,3 @@ def construct_batch(task_type, num):
     return (trial.inputs.astype(np.float32), trial.targets.astype(np.float32), trial.masks.astype(int), trial.target_dirs.astype(np.float32), Task.TASK_LIST.index(task_type))
 
 
-trials = Comp('COMP1', 32)
-
-np.isnan(trials.target_dirs)

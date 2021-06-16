@@ -1,17 +1,18 @@
 import numpy as np
 import torch
-from task import Task
+from task import Task, construct_batch
 task_list = Task.TASK_LIST
 default_task_dict = dict.fromkeys(Task.TASK_LIST, 1/len(Task.TASK_LIST))
 
 
 class TaskDataSet(): 
-    def __init__(self, batch_len=128, num_batches=500, task_ratio_dict = default_task_dict.copy(), holdouts=[]): 
+    def __init__(self, data_folder = 'training_data', batch_len=128, num_batches=500, task_ratio_dict = None, holdouts=[]): 
         __len__ = num_batches
         self.batch_len = batch_len
         self.num_batches = num_batches
-        self.data_folder = 'training_data'
-        self.task_ratio_dict = task_ratio_dict
+        self.data_folder = data_folder
+        if task_ratio_dict is None: self.task_ratio_dict = default_task_dict.copy()
+        else: self.task_ratio_dict=task_ratio_dict
         self.holdouts = holdouts
 
         self.trial_types = None

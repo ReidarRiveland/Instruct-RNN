@@ -10,7 +10,7 @@ from utils import sort_vocab
 class InstructionEmbedder(nn.Module): 
     def __init__(self, embedder_name, intermediate_lang_dim, out_dim, output_nonlinearity): 
         super(InstructionEmbedder, self).__init__()
-        self.device = 'cpu'
+        self.__device__ = 'cpu'
         self.embedder_name = embedder_name
 
         self.intermediate_lang_dim = intermediate_lang_dim
@@ -30,7 +30,8 @@ class TransformerEmbedder(InstructionEmbedder):
         self.train_layers = train_layers
 
     def set_train_layers(self): 
-        tmp_train_layers = self.train_layers+self.SET_TRAIN_LAYER_LIST
+        if len(self.train_layers)>0: tmp_train_layers = self.train_layers+self.SET_TRAIN_LAYER_LIST
+        else: tmp_train_layers = ['proj_out']
         for n,p in self.named_parameters(): 
             if any([layer in n for layer in tmp_train_layers]):
                 p.requires_grad=True
@@ -40,7 +41,7 @@ class TransformerEmbedder(InstructionEmbedder):
     def forward_transformer(self, x): 
         tokens = self.tokenizer(x, return_tensors='pt', padding=True)
         for key, value in tokens.items():
-            tokens[key] = value.to(self.device)
+            tokens[key] = value.to(self.__device__)
 
         trans_out = self.transformer(**tokens).last_hidden_state
         return self.reducer(trans_out, dim=1)
@@ -73,7 +74,7 @@ class SBERT(TransformerEmbedder):
     def forward_transformer(self, x): 
         tokens = self.tokenizer(x)
         for key, value in tokens.items():
-            tokens[key] = value.to(self.device)
+            tokens[key] = value.to(self.__device__)
         sent_embedding = self.transformer(tokens)['sentence_embedding']
         return sent_embedding
 

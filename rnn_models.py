@@ -47,7 +47,7 @@ class BaseNet(nn.Module):
         return torch.full((self.num_layers, batch_size, self.hid_dim), value, device=self.__device__.type)
 
     def forward(self, task_info, x , t=120): 
-        x.to(self.__device__)
+        #x.to(self.__device__)
         h0 = self.__initHidden__(x.shape[0], 0.1)
         task_info_block = task_info.unsqueeze(1).repeat(1, t, 1)
         rnn_ins = torch.cat((task_info_block, x.type(torch.float32)), 2)
@@ -73,7 +73,7 @@ class SimpleNet(BaseNet):
     def __init__(self, hid_dim, num_layers, activ_func='relu', instruct_mode=None):
         super().__init__(81, hid_dim, num_layers, activ_func, instruct_mode)
         self.model_name = 'simpleNet'
-        self.to(self.device)
+        self.to(self.__device__)
 
     def to(self, cuda_device): 
         super().to(cuda_device)
@@ -100,7 +100,7 @@ class InstructNet(BaseNet):
     def to(self, cuda_device): 
         super().to(cuda_device)
         self.__device__ = cuda_device
-        self.langModel.device = cuda_device
+        self.langModel.__device__ = cuda_device
         
     def reset_weights(self):
         super().__weights_init__()

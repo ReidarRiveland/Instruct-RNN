@@ -1,4 +1,3 @@
-from torch.optim import optimizer
 from data import TaskDataSet
 import numpy as np
 
@@ -12,8 +11,6 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from utils import isCorrect
 
-from task import Task
-tuning_dirs = Task.TUNING_DIRS
 
 def masked_MSE_Loss(nn_out, nn_target, mask):
     """MSE loss (averaged over features then time) function with special weighting mask that prioritizes loss in response epoch 
@@ -79,23 +76,113 @@ def train(model, streamer, epochs, optimizer, scheduler):
 
 
 
-import torch
 import torch.nn as nn
 from rnn_models import InstructNet, SimpleNet
 from nlp_models import SBERT, BERT, GPT, BoW
+from task import Task
 
-lang_train_params = {'out_dim': 20, 'train_layers':['layer.11', 'proj_out']}
-lang_set_params = {'out_dim': 20, 'train_layers':['proj_out'], 'output_nonlinearity':nn.Identity()}
+ALL_MODEL_PARAMS = {
+    'SBERT NET LAYER 11': {'model': InstructNet, 
+                    'langModel': SBERT,
+                    'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
+                    'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25]},
+                    'epochs': 30
+                },
 
-lang_params_list = [lang_set_params, lang_train_params]
-bert = BERT(**lang_params_list[0])
+    # 'SBERT NET': {'model': InstructNet, 
+    #             'langModel': SBERT,
+    #             'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
+    #             'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
+    #             'epochs': 30
+    #             },
+    
+    'BERT NET LAYER 11': {'model': InstructNet, 
+                    'langModel': BERT,
+                    'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
+                    'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25], 'langLR': 1e-4},
+                    'epochs': 30
+                },
 
-model = InstructNet(SBERT(**lang_params_list[0]), 128, 1)
+    # 'BERT NET': {'model': InstructNet, 
+    #             'langModel': BERT,
+    #             'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
+    #             'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
+    #             'epochs': 30
+    #             },
 
-model.model_name+
+    'GPT NET LAYER 11': {'model': InstructNet, 
+                    'langModel': GPT,
+                    'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
+                    'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25], 'langLR': 1e-5},
+                    'epochs': 30
+                },
+
+    # 'GPT NET': {'model': InstructNet, 
+    #             'langModel': GPT,
+    #             'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
+    #             'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]}, 
+    #             'epochs': 30
+    #             },
+    
+    # 'BoW NET': {'model': InstructNet, 
+    #             'langModel': BoW,
+    #             'langModel_params': {'out_dim': None,}, 
+    #             'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
+    #             'epochs': 30
+    #             },
+
+    'SIMPLE NET': {'model': SimpleNet, 
+                'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25]},
+                'epochs': 30
+                }
+}
+
+single_holdouts = Task.TASK_LIST.copy()
+dual_holdouts = [['RT Go', 'Anti Go'], ['Anti MultiDM', 'DM'], ['COMP1', 'MultiCOMP2'], ['DMC', 'DNMS']]
+aligned_holdouts = [['Anti DM', 'Anti MultiDM'], ['COMP1', 'MultiCOMP1'], ['DMS', 'DNMS'],['Go', 'RT Go']]
+swap_holdouts = [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['RT Go', 'COMP1']]
 
 
-opt, sch = init_optimizer(model, 0.001, [5, 10, 15, 20])
-data = TaskDataSet()
-data.data_to_device(device)
-train(model, data, 30, opt, sch)
+
+# data = TaskDataSet(data_folder = 'training_data_COMPTEST', holdouts=['COMP2'])
+# data.data_to_device(device)
+
+# for model_string, params in ALL_MODEL_PARAMS.items():
+#     if params['model'] == InstructNet:
+#         model = params['model'](params['langModel'](**params['langModel_params']), 128, 1)
+#     else:
+#         model = params['model'](128, 1)
+#     opt, sch = init_optimizer(model, **params['opt_params'])
+
+#     train(model, data, 30, opt, sch)
+#     torch.save(model, '_ReLU128_14.6/COMPTEST'+model.model_name)
+
+
+seeds = 5
+
+for i in range(seeds):
+    seed = '_seed' + str(i)
+    for holdouts in single_holdouts: 
+        if len(holdouts)>0: 
+            holdout_file = '_'.join(holdouts)
+        holdout_file = holdout_file.replace(' ', '_')
+        data = TaskDataSet(holdouts=[holdouts])
+        data.data_to_device(device)
+        for model_string, params in ALL_MODEL_PARAMS.items():
+
+            print(model_string)
+
+            if params['model'] == InstructNet:
+                model = params['model'](params['langModel'](**params['langModel_params']), 128, 1)
+            else:
+                model = params['model'](128, 1)
+
+            opt, sch = init_optimizer(model, **params['opt_params'])
+            model.to(device)
+            model.model_name += seed
+
+            train(model, data, params['epochs'], opt, sch)
+
+            torch.save(model, '_ReLU128_14.6/single_holdouts/'+holdout_file+'/'+model.model_name+'.pt')
+            model.save_training_data(holdout_file, '_ReLU128_14.6/single_holdouts/', model.model_name)
+
