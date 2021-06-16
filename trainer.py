@@ -62,6 +62,7 @@ def train(model, streamer, epochs, optimizer, scheduler):
             torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
             optimizer.step()
 
+            #make this a float.16
             frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
             model._loss_data_dict[task_type].append(loss.item())
             model._correct_data_dict[task_type].append(frac_correct)
@@ -85,16 +86,16 @@ ALL_MODEL_PARAMS = {
     'SBERT NET LAYER 11': {'model': InstructNet, 
                     'langModel': SBERT,
                     'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
-                    'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25]},
+                    'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
                     'epochs': 30
                 },
 
-    # 'SBERT NET': {'model': InstructNet, 
-    #             'langModel': SBERT,
-    #             'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
-    #             'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-    #             'epochs': 30
-    #             },
+    'SBERT NET': {'model': InstructNet, 
+                'langModel': SBERT,
+                'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
+                'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
+                'epochs': 30
+                },
     
     'BERT NET LAYER 11': {'model': InstructNet, 
                     'langModel': BERT,
@@ -103,12 +104,12 @@ ALL_MODEL_PARAMS = {
                     'epochs': 30
                 },
 
-    # 'BERT NET': {'model': InstructNet, 
-    #             'langModel': BERT,
-    #             'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
-    #             'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-    #             'epochs': 30
-    #             },
+    'BERT NET': {'model': InstructNet, 
+                'langModel': BERT,
+                'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
+                'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
+                'epochs': 30
+                },
 
     'GPT NET LAYER 11': {'model': InstructNet, 
                     'langModel': GPT,
@@ -117,19 +118,19 @@ ALL_MODEL_PARAMS = {
                     'epochs': 30
                 },
 
-    # 'GPT NET': {'model': InstructNet, 
-    #             'langModel': GPT,
-    #             'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
-    #             'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]}, 
-    #             'epochs': 30
-    #             },
+    'GPT NET': {'model': InstructNet, 
+                'langModel': GPT,
+                'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
+                'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]}, 
+                'epochs': 30
+                },
     
-    # 'BoW NET': {'model': InstructNet, 
-    #             'langModel': BoW,
-    #             'langModel_params': {'out_dim': None,}, 
-    #             'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-    #             'epochs': 30
-    #             },
+    'BoW NET': {'model': InstructNet, 
+                'langModel': BoW,
+                'langModel_params': {'out_dim': None,}, 
+                'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
+                'epochs': 30
+                },
 
     'SIMPLE NET': {'model': SimpleNet, 
                 'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25]},
@@ -142,29 +143,13 @@ dual_holdouts = [['RT Go', 'Anti Go'], ['Anti MultiDM', 'DM'], ['COMP1', 'MultiC
 aligned_holdouts = [['Anti DM', 'Anti MultiDM'], ['COMP1', 'MultiCOMP1'], ['DMS', 'DNMS'],['Go', 'RT Go']]
 swap_holdouts = [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['RT Go', 'COMP1']]
 
-
-
-# data = TaskDataSet(data_folder = 'training_data_COMPTEST', holdouts=['COMP2'])
-# data.data_to_device(device)
-
-# for model_string, params in ALL_MODEL_PARAMS.items():
-#     if params['model'] == InstructNet:
-#         model = params['model'](params['langModel'](**params['langModel_params']), 128, 1)
-#     else:
-#         model = params['model'](128, 1)
-#     opt, sch = init_optimizer(model, **params['opt_params'])
-
-#     train(model, data, 30, opt, sch)
-#     torch.save(model, '_ReLU128_14.6/COMPTEST'+model.model_name)
-
-
 seeds = 5
 
-for i in range(seeds):
+for i in [1, 2, 3, 4]:
     seed = '_seed' + str(i)
     for holdouts in single_holdouts: 
-        if len(holdouts)>0: 
-            holdout_file = '_'.join(holdouts)
+        if isinstance(holdouts, list): holdout_file = '_'.join(holdouts)
+        else: holdout_file = holdouts
         holdout_file = holdout_file.replace(' ', '_')
         data = TaskDataSet(holdouts=[holdouts])
         data.data_to_device(device)
@@ -173,9 +158,9 @@ for i in range(seeds):
             print(model_string)
 
             if params['model'] == InstructNet:
-                model = params['model'](params['langModel'](**params['langModel_params']), 128, 1)
+                model = params['model'](params['langModel'](**params['langModel_params']), 128, 1, torch.relu)
             else:
-                model = params['model'](128, 1)
+                model = params['model'](128, 1, torch.relu)
 
             opt, sch = init_optimizer(model, **params['opt_params'])
             model.to(device)
@@ -183,6 +168,6 @@ for i in range(seeds):
 
             train(model, data, params['epochs'], opt, sch)
 
-            torch.save(model, '_ReLU128_14.6/single_holdouts/'+holdout_file+'/'+model.model_name+'.pt')
+            torch.save(model.state_dict(), '_ReLU128_14.6/single_holdouts/'+holdout_file+'/'+model.model_name+'.pt')
             model.save_training_data(holdout_file, '_ReLU128_14.6/single_holdouts/', model.model_name)
 

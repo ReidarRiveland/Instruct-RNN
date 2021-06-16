@@ -23,7 +23,6 @@ test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict2', 'rb'))
 swapped_task_list = ['Anti DM', 'COMP2', 'Anti Go', 'DMC', 'DM', 'Go', 'MultiDM', 'Anti MultiDM', 'COMP1',
                              'RT Go', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'Anti RT Go', 'DNMC']
 
-swaps= [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['COMP2', 'RT Go']]
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) 

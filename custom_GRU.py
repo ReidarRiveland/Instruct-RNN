@@ -46,7 +46,7 @@ class CustomGRUCell(nn.Module):
 
 class CustomGRU(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, activ_func = torch.tanh,
-                 use_bias=True, batch_first=False, dropout=0):
+                 use_bias=True, batch_first=False, dropout=0.0):
         super(CustomGRU, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size

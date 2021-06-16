@@ -1,3 +1,4 @@
+from custom_GRU import CustomGRU
 import numpy as np
 import torch
 from torch._C import device
@@ -8,7 +9,8 @@ from collections import defaultdict
 
 import pandas as pd
 import pickle
-from custom_GRU import CustomGRU
+#from custom_GRU import CustomGRU
+from jit_GRU import CustomGRU
 from utils import get_input_rule, get_instructions
 
 class BaseNet(nn.Module): 
@@ -83,7 +85,7 @@ class SimpleNet(BaseNet):
         self.__weights_init__()
 
     def get_task_info(self, batch_len, task_type): 
-        return get_input_rule(batch_len, task_type, self.instruct_mode).to(self.device)
+        return get_input_rule(batch_len, task_type, self.instruct_mode).to(self.__device__)
 
     def forward(self, task_rule, x):
         outs, rnn_hid = super().forward(task_rule, x)
