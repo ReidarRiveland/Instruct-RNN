@@ -49,7 +49,6 @@ class BaseNet(nn.Module):
         return torch.full((self.num_layers, batch_size, self.hid_dim), value, device=self.__device__.type)
 
     def forward(self, task_info, x , t=120): 
-        #x.to(self.__device__)
         h0 = self.__initHidden__(x.shape[0], 0.1)
         task_info_block = task_info.unsqueeze(1).repeat(1, t, 1)
         rnn_ins = torch.cat((task_info_block, x.type(torch.float32)), 2)
@@ -65,14 +64,13 @@ class BaseNet(nn.Module):
         return df_correct, df_loss
 
     def save_training_data(self, holdout_task,  foldername, name): 
-        df_correct, df_loss = self.get_training_df()
         holdout_task = holdout_task.replace(' ', '_')
-        pickle.dump(df_correct, open(foldername+'/'+holdout_task+'/'+name+'_training_correct', 'wb'))
-        pickle.dump(df_loss, open(foldername+'/'+holdout_task+'/'+name+'_training_loss', 'wb'))
+        pickle.dump(self._correct_data_dict, open(foldername+'/'+holdout_task+'/'+name+'_training_correct', 'wb'))
+        pickle.dump(self._loss_data_dict, open(foldername+'/'+holdout_task+'/'+name+'_training_loss', 'wb'))
 
 
 class SimpleNet(BaseNet):
-    def __init__(self, hid_dim, num_layers, activ_func='relu', instruct_mode=None):
+    def __init__(self, hid_dim, num_layers, activ_func=torch.relu, instruct_mode=None):
         super().__init__(81, hid_dim, num_layers, activ_func, instruct_mode)
         self.model_name = 'simpleNet'
         self.to(self.__device__)
@@ -92,12 +90,15 @@ class SimpleNet(BaseNet):
         return outs, rnn_hid
 
 class InstructNet(BaseNet): 
-    def __init__(self, langModel, hid_dim, num_layers, activ_func = 'relu', instruct_mode=None): 
-        super().__init__(langModel.out_dim+65, hid_dim, num_layers, activ_func, instruct_mode)
+    def __init__(self, langModel, hid_dim, num_layers, activ_func = torch.relu, instruct_mode=None): 
+        super().__init__(langModel.out_dim +65, hid_dim, num_layers, activ_func, instruct_mode)
         self.langModel = langModel
         self.model_name = self.langModel.embedder_name + 'Net' 
-        if len(self.langModel.train_layers) > 0: 
-            self.model_name += '_'.join(['_layer']+self.langModel.train_layers)
+        try:
+            if len(self.langModel.train_layers) > 0: 
+                self.model_name += '_'.join(['_layer']+self.langModel.train_layers)
+        except: 
+            pass
 
     def to(self, cuda_device): 
         super().to(cuda_device)

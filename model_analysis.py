@@ -12,12 +12,13 @@ def get_model_performance(model, num_batches):
     with torch.no_grad():
         perf_dict = dict.fromkeys(task_list)
         for task_type in task_list:
+            print(task_type)
             for _ in range(num_batches): 
                 mean_list = [] 
                 ins, targets, _, target_dirs, _ = construct_batch(task_type, batch_len)
                 task_info = model.get_task_info(batch_len, task_type)
-                out, _ = model(task_info, ins)
-                mean_list.append(np.mean(isCorrect(out, targets, target_dirs)))
+                out, _ = model(task_info, torch.Tensor(ins))
+                mean_list.append(np.mean(isCorrect(out, torch.Tensor(targets), target_dirs)))
             perf_dict[task_type] = np.mean(mean_list)
     return perf_dict 
 
@@ -63,3 +64,4 @@ def get_hid_var_resp(model, task_type, trials, num_repeats = 10, instruct_mode=N
             total_neuron_response[i, :, :, :] = hid
         mean_neural_response = np.mean(total_neuron_response, axis=0)
     return total_neuron_response, mean_neural_response
+

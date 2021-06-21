@@ -19,8 +19,8 @@ class InstructionEmbedder(nn.Module):
 
         try: 
             self.proj_out = nn.Sequential(nn.Linear(self.intermediate_lang_dim, self.out_dim), self.output_nonlinearity)
-        except: 
-            pass
+        except TypeError: 
+            self.proj_out = nn.Identity()
 
 class TransformerEmbedder(InstructionEmbedder): 
     SET_TRAIN_LAYER_LIST = ['proj_out', 'pooler', 'ln_f']
@@ -80,20 +80,20 @@ class SBERT(TransformerEmbedder):
 
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()
-    def __init__(self, out_dim = None, output_nonlinearity=nn.Identity()): 
+    def __init__(self, out_dim =  None, output_nonlinearity=nn.Identity()): 
         super().__init__('bow', len(self.VOCAB), out_dim, output_nonlinearity)
+        if out_dim == None: 
+            self.out_dim=len(self.VOCAB)
 
     def make_freq_tensor(self, instruct): 
-        out_vec = torch.zeros(len(self.vocab))
+        out_vec = torch.zeros(len(self.VOCAB))
         for word in instruct.split():
-            index = self.vocab.index(word)
+            index = self.VOCAB.index(word)
             out_vec[index] += 1
         return out_vec
 
     def forward(self, x): 
-        bow_out = torch.stack(tuple(map(self.make_freq_tensor, x))).to(self.device)
-        if self.out_dim is not None: 
-            bow_out = self.proj_out(bow_out)
+        bow_out = torch.stack(tuple(map(self.make_freq_tensor, x))).to(self.__device__)
         return bow_out
 
 
