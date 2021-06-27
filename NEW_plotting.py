@@ -4,6 +4,7 @@ task_list = Task.TASK_LIST
 from collections import defaultdict
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
+import pickle
 
 import matplotlib 
 import matplotlib.pyplot as plt
@@ -21,62 +22,97 @@ task_group_colors['Delay'] = { 'DMS':'firebrick', 'DNMS':'lightgreen', 'DMC':'do
 ALL_STYLE_DICT = {'simpleNet': ('blue', None), 'bowNet': ('orange', None), 'gptNet': ('red', '^'), 'gptNet_layer_11': ('red', '.'), 
                         'bertNet': ('green', '^'), 'bertNet_layer_11': ('green', '.'), 'sbertNet': ('purple', '^'), 'sbertNet_layer_11': ('purple', '.')}
 
-COLOR_DICT = {'Model1': 'blue', 'SIF':'brown', 'BoW': 'orange', 'GPT': 'red', 'BERT': 'green', 'S-Bert': 'purple', 'InferSent':'yellow', 'Transformer': 'pink'}
-MODEL_MARKER_DICT = {'SIF':None, 'BoW':None, 'shuffled':'+', 'cat': '^', 'train': '.', 'Transformer':'.'}
-MARKER_DICT = {'^': 'task categorization', '.': 'end-to-end', '+':'shuffled'}
-NAME_TO_PLOT_DICT = {'Model1': 'One-Hot Task Vec.','Model1shuffled': 'Shuffled One-Hot', 'SIF':'SIF', 'BoW': 'BoW', 'GPT_cat': 'GPT (task cat.)', 'GPT train': 'GPT (end-to-end)', 
-                        'BERT_cat': 'BERT (task cat.)', 'BERT train': 'BERT (end-to-end)', 'S-Bert_cat': 'S-BERT (task cat.)', 'S-Bert train': 'S-BERT (end-to-end)',  
-                        'S-Bert': 'S-BERT (raw)', 'InferSent train': 'InferSent (end-to-end)', 'InferSent_cat': 'InferSent (task cat.)', 'Transformer': 'Transformer (end-to-end)'}
-
-# import pandas as pd
-import pickle
-# task_file = 'Go'
-# train_data_type = 'correct'
-# model_string = 'simpleNet'
-# seed = '_seed2'
-# model_list = ALL_STYLE_DICT.keys()
-# for model in model_list: 
-#     df = pd.DataFrame(training_data.values()).T
-#     df.columns = training_data.keys()
-
 
 def plot_single_seed_training(foldername, holdout, model_list, train_data_type, seed, smoothing=0.1):
     seed = '_seed' + str(seed)
     task_file = holdout.replace(' ', '_')
-    fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(14, 10))
+    fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(19, 12))
     for model_name in model_list: 
-        training_data = pickle.load(open(foldername+task_file+'/'+model_name+seed+'_training_'+train_data_type+'dict', 'rb'))
+        try: 
+            training_data = pickle.load(open(foldername+task_file+'/'+model_name+seed+'_training_'+train_data_type, 'rb'))
+        except FileNotFoundError: 
+            print('No training data for '+ model_name + seed)
+            continue 
+        for i, ax in enumerate(axn.flat):
+            task_to_plot = task_list[i]
+            if task_to_plot == holdout: continue
+            ax.set_ylim(-0.05, 1.15)
+            smoothed_perf = gaussian_filter1d(training_data[task_to_plot], sigma=smoothing)
+            ax.plot(smoothed_perf, color = ALL_STYLE_DICT[model_name][0], marker=ALL_STYLE_DICT[model_name][1], alpha=1, markersize=10, markevery=250)
+            ax.set_title(task_to_plot)
+    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.55), title='Models', title_fontsize=12)
+    fig.suptitle('Training for '+holdout+' Holdout', size=16)
+    plt.show()
+
+plot_single_seed_training('_ReLU128_14.6/single_holdouts/', 'DMC', ALL_STYLE_DICT.keys(), 'correct', 2, smoothing = 5)
+
+
+model_list = list(ALL_STYLE_DICT.keys())[0:3] + list(ALL_STYLE_DICT.keys())[4:]
+model_list
+
+def plot_single_seed_holdout(foldername, model_list, train_data_type, seed, smoothing=0.1):
+    seed = '_seed' + str(seed)
+    fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(19, 12))
+    for model_name in model_list: 
         for i, ax in enumerate(axn.flat):
             ax.set_ylim(-0.05, 1.15)
             task_to_plot = task_list[i]
-            
-            if task_to_plot == holdout: continue
-            smoothed_perf = gaussian_filter1d(training_data[task_to_plot], sigma=smoothing)
+            task_file = task_to_plot.replace(' ', '_')
+            try:
+                training_data = pickle.load(open(foldername+task_file+'/'+model_name+seed+'_holdout_'+train_data_type, 'rb'))
+            except FileNotFoundError: 
+                print('No training data for '+ model_name + seed+' '+task_to_plot)
+                continue 
+            smoothed_perf = gaussian_filter1d(training_data, sigma=smoothing)
             ax.plot(smoothed_perf, color = ALL_STYLE_DICT[model_name][0], marker=ALL_STYLE_DICT[model_name][1], alpha=1, markersize=8, markevery=25)
             ax.set_title(task_to_plot)
-    # Patches, Markers = get_model_patches(model_list)
-    # _label_plot(fig, Patches, Markers, legend_loc=(1.2, 0.5))
+    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.55), title='Models', title_fontsize=12)
+    fig.suptitle('Performance on Heldout Tasks', size=16)
     plt.show()
-    
-plot_single_seed_training('_ReLU128_14.6/single_holdouts/', 'Go', ALL_STYLE_DICT.keys(), 'correct', 2, smoothing=1)
+
+def plot_avg_seed_holdout(foldername, model_list, train_data_type, seed, smoothing=0.1):
+    seed = '_seed' + str(seed)
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(14, 10))
+    axn.set_ylim(-0.05, 1.05)
+    for model_name in model_list: 
+        training_data = np.empty((len(task_list), 100))
+        for i, task in enumerate(task_list):
+            task_file = task.replace(' ', '_')
+            try:
+                training_data[i, :] = pickle.load(open(foldername+task_file+'/'+model_name+seed+'_holdout_'+train_data_type, 'rb'))
+            except FileNotFoundError: 
+                print('No training data for '+ model_name + seed+' '+task)
+                continue 
+        smoothed_perf = gaussian_filter1d(np.mean(training_data, axis=0), sigma=smoothing)
+        axn.plot(smoothed_perf, color = ALL_STYLE_DICT[model_name][0], marker=ALL_STYLE_DICT[model_name][1], alpha=1, markersize=8, markevery=20)
+    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.75, 0.25), title='Models', title_fontsize=12)
+    fig.suptitle('Avg. Performance on Heldout Tasks', size=16)
+    plt.yticks(np.arange(0, 1.1, 0.1))
+    plt.show()
+    return training_data
+
+plot_avg_seed_holdout('_ReLU128_14.6/single_holdouts/', model_list, 'correct', 2, smoothing = 0.01)
+plot_single_seed_holdout('_ReLU128_14.6/single_holdouts/', model_list, 'correct', 2, smoothing = 0.01)
 
 
 
-def task_cmap(array): 
-    all_task_dict = {}
-    for task_colors in task_group_colors.values(): 
-        all_task_dict.update(task_colors)
-    color_list = []
 
-    for index in array: 
-        color_list.append(all_task_dict[task_list[index]])
 
-    return color_list
 
-def plot_trained_performance(self, model_list):
+
+
+
+
+
+
+
+
+
+
+def plot_trained_performance(model_list):
     barWidth = 0.1
     for i, model in enumerate(model_list):  
-        perf_dict = self._get_performance(model, 5)
+        perf_dict = get_performance(model, 5)
         values = list(perf_dict.values())
         len_values = len(task_list)
         if i == 0:
@@ -138,26 +174,3 @@ def plot_model_response(model, task_type, trials = None, trial_num = 0, instruct
         plt.show()
 
 
-
-# import pickle
-# import itertools
-# all_model_list = ['bertNet_layer_11', 'bertNet', 'gptNet_layer_11', 'gptNet', 'getNet_layer_11', 'sbertNet', 'sbertNet_layer_11', 'bowNet', 'simpleNet']
-# seed = ['_seed0', '_seed1', '_seed2', '_seed3', '_seed4']
-
-# all_models = list(itertools.product(all_model_list, seed))
-
-# task = 'Anti RT Go'
-# holdout_task = task.replace(' ', '_')
-# model_string = 'gptNet_seed3' 
-# for data_type in ['_training_correct', '_training_loss']:
-#     try: 
-#         df = pickle.load(open('_ReLU128_14.6/single_holdouts/'+holdout_task+'/'+model_string + data_type, 'rb'))
-#         data_dict = dict.fromkeys(list(df.columns))
-#         for tasks in list(df.columns): 
-#             data_dict[tasks] = [x for x in df[tasks] if not np.isnan(x)]
-#         pickle.dump(data_dict, open('_ReLU128_14.6/single_holdouts/'+holdout_task+'/'+model_string + data_type+'dict', 'wb'))
-#     except: 
-#         pass
-
-# data_dict = pickle.load(open('_ReLU128_14.6/single_holdouts/MultiCOMP1/gptNet_layer_11_seed2_training_correctdict', 'rb'))
-# data_dict['Anti Go']

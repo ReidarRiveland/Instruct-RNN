@@ -9,7 +9,6 @@ from collections import defaultdict
 
 import pandas as pd
 import pickle
-#from custom_GRU import CustomGRU
 from jit_GRU import CustomGRU
 from utils import get_input_rule, get_instructions
 
@@ -63,10 +62,19 @@ class BaseNet(nn.Module):
         df_loss.columns = self._loss_data_dict.keys()
         return df_correct, df_loss
 
-    def save_training_data(self, holdout_task,  foldername, name): 
-        holdout_task = holdout_task.replace(' ', '_')
-        pickle.dump(self._correct_data_dict, open(foldername+'/'+holdout_task+'/'+name+'_training_correct', 'wb'))
-        pickle.dump(self._loss_data_dict, open(foldername+'/'+holdout_task+'/'+name+'_training_loss', 'wb'))
+    def save_training_data(self, foldername): 
+        pickle.dump(self._correct_data_dict, open(foldername+'/'+self.model_name+'_training_correct', 'wb'))
+        pickle.dump(self._loss_data_dict, open(foldername+'/'+self.model_name+'_training_loss', 'wb'))
+
+    def save_model(self, foldername): 
+        torch.save(self.state_dict(), foldername+'/'+self.model_name+'.pt')
+
+    def load_training_data(self, foldername): 
+        self._correct_data_dict = pickle.load(open(foldername+'/'+self.model_name+'_training_correct', 'rb'))
+        self._loss_data_dict = pickle.load(open(foldername+'/'+self.model_name+'_training_loss', 'rb'))
+
+    def load_model(self, foldername): 
+        self.load_state_dict(torch.load(foldername+'/'+self.model_name+'.pt'))
 
 
 class SimpleNet(BaseNet):
@@ -116,4 +124,6 @@ class InstructNet(BaseNet):
         instruct_embedded = self.langModel(instructions)
         outs, rnn_hid = super().forward(instruct_embedded, x)
         return outs, rnn_hid
-
+    
+    def load_model_weights(self, foldername): 
+        self.load_state_dict(torch.load(foldername+'/'+self.model_name+'.pt'))

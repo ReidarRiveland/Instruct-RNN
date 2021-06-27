@@ -147,40 +147,6 @@ def plot_single_seed_holdout(foldername, model_list,  seed, smoothing=0.1):
 
 
 
-foldername = '_ReLU128_19.5'
-modelSBERT_name = 'S-Bert train'
-modelBERT_name = 'BERT train'
-modelBOW_name = 'BoW'
-model1_name = 'Model1'
-
-# for task in task_list: 
-#     i = 0
-#     holdout_file = task.replace(' ', '_')
-#     task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'rb'))
-#     task_sorted_correct.keys()
-
-
-model_list= [modelBOW_name, model1_name, modelBERT_name, modelSBERT_name]
-
-plot_single_seed_holdout(foldername, model_list, 4, smoothing=0.0001)
-
-
-
-
-# name=''
-# for task in task_list: 
-#     for i in [0, 1, 2, 3, 4]: 
-#         print('seed ' + str(i))
-#         holdout_file = task.replace(' ', '_')
-#         task_sorted_correct = pickle.load(open(foldername+'/'+holdout_file+'/'+'_seed'+str(i)+name+'_training_correct_dict', 'rb'))
-#         task_sorted_correct.keys()
-#         plot_single_seed(foldername, task, model_list, i, '', smoothing=3)
-
-
-
-# plot_all_holdout_curves('_ReLU128_19.5', model_list, 750, name='', seeds = [0, 1, 2, 3, 4], num_trials=800, multitask=True)
-
-
 
 def plot_learning_curves(model_dict, tasks, foldername, comparison, dim, smoothing=1): 
     cog = CogModule(model_dict)

@@ -1,15 +1,22 @@
-from data import TaskDataSet
 import numpy as np
 
 import torch
+import torch.nn as nn
 import torch.optim as optim
+
+from rnn_models import InstructNet, SimpleNet
+from nlp_models import SBERT, BERT, GPT, BoW
+from task import Task
+from data import TaskDataSet
+from utils import isCorrect
+
+import itertools
+import pickle
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
-from utils import isCorrect
 
 
 def masked_MSE_Loss(nn_out, nn_target, mask):
@@ -41,7 +48,7 @@ def init_optimizer(model, lr, milestones, weight_decay=0.0, langLR=None):
     return optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5)
     
     
-def train(model, streamer, epochs, optimizer, scheduler): 
+def train_model(model, streamer, epochs, optimizer, scheduler): 
     model.to(device)
     batch_len = streamer.batch_len 
     for i in range(epochs):
@@ -75,97 +82,134 @@ def train(model, streamer, epochs, optimizer, scheduler):
         if scheduler is not None: 
             scheduler.step()    
 
+def test_model(model, holdouts_test, repeats=5, save=False): 
+        holdout_file = holdouts_test.replace(' ', '_')
+        for _ in range(repeats): 
+            model.load_state_dict(torch.load('_ReLU128_14.6/single_holdouts/'+holdout_file+'/'+model.model_name+'.pt'))
+            opt, _ = init_optimizer(model, 0.001, [])
+
+            data = TaskDataSet(batch_len=256, num_batches=100, task_ratio_dict={holdouts_test:1})
+            data.data_to_device(device)
+            train_model(model, data, 1, opt, None)
+        
+        correct_perf = np.mean(np.array(model._correct_data_dict[holdouts_test]).reshape(repeats, -1), axis=0)
+        loss_perf = np.mean(np.array(model._loss_data_dict[holdouts_test]).reshape(repeats, -1), axis=0)
+
+        if save: 
+            pickle.dump(correct_perf, open(foldername + '/' + model.model_name+'_holdout_correct', 'wb'))
+            pickle.dump(loss_perf, open(foldername + '/' + model.model_name+'_holdout_loss', 'wb'))
+
+        return correct_perf, loss_perf
+
+
+training_lists_dict={
+'single_holdouts' : Task.TASK_LIST.copy(),
+'dual_holdouts' : [['RT Go', 'Anti Go'], ['Anti MultiDM', 'DM'], ['COMP1', 'MultiCOMP2'], ['DMC', 'DNMS']],
+'aligned_holdouts' : [['Anti DM', 'Anti MultiDM'], ['COMP1', 'MultiCOMP1'], ['DMS', 'DNMS'],['Go', 'RT Go']],
+'swap_holdouts' : [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['RT Go', 'COMP1']]
+}
+
+ALL_MODEL_PARAMS = {
+    'sbertNet_layer_11': {'model': InstructNet, 
+                    'langModel': SBERT,
+                    'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
+                    'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
+                    'epochs': 30
+                },
+
+    'sbertNet': {'model': InstructNet, 
+                'langModel': SBERT,
+                'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
+                'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
+                'epochs': 30
+                },
+    
+    'bertNet_layer_11': {'model': InstructNet, 
+                    'langModel': BERT,
+                    'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
+                    'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25], 'langLR': 1e-4},
+                    'epochs': 30
+                },
+
+    'bertNet': {'model': InstructNet, 
+                'langModel': BERT,
+                'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
+                'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
+                'epochs': 30
+                },
+
+    # 'GPT NET LAYER 11': {'model': InstructNet, 
+    #                 'langModel': GPT,
+    #                 'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
+    #                 'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25], 'langLR': 1e-5},
+    #                 'epochs': 30
+    #             },
+
+    'gptNet': {'model': InstructNet, 
+                'langModel': GPT,
+                'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
+                'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]}, 
+                'epochs': 30
+                },
+    
+    'bowNet': {'model': InstructNet, 
+                'langModel': BoW,
+                'langModel_params': {'out_dim': None}, 
+                'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
+                'epochs': 30
+                },
+
+    'simpleNet': {'model': SimpleNet, 
+                'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25]},
+                'epochs': 30
+                }
+}
+
+def config_model_training(key, seed): 
+    params = ALL_MODEL_PARAMS[key]
+    if params['model'] is InstructNet:
+        model = params['model'](params['langModel'](**params['langModel_params']), 128, 1, torch.relu)
+    else:
+        model = params['model'](128, 1, torch.relu)
+    model.model_name += ('_seed' + str(seed))
+    opt, sch = init_optimizer(model, **params['opt_params'])
+    epochs = params['epochs']
+
+    return model, opt, sch, epochs
+
+
+###boost_train
+
+
+# for task in Task.TASK_LIST:
+#     holdout_file = task.replace(' ', '_')
+#     foldername= '_ReLU128_14.6/single_holdouts/'+holdout_file
+#     model, _, _, _, = config_model_training('bertNet_layer_11', 2)
+#     for n, p in model.langModel.named_parameters(): 
+#         if 'proj_out' in n: 
+#             p.requires_grad = True
+#         else: 
+#             p.requires_grad = False 
+#     for n, p in model.named_parameters(): 
+#         if p.requires_grad: print(n)
+#     correct_perf, loss_perf = test_model(model, task, save=False)
+#     pickle.dump(correct_perf, open(foldername + '/' + model.model_name+'frozen_holdout_correct', 'wb'))
+#     pickle.dump(loss_perf, open(foldername + '/' + model.model_name+'frozen_holdout_loss', 'wb'))
 
 
 if __name__ == "__main__":
 
-    import torch.nn as nn
-    from rnn_models import InstructNet, SimpleNet
-    from nlp_models import SBERT, BERT, GPT, BoW
-    from task import Task
-    import itertools
-    import pickle
-
-    ALL_MODEL_PARAMS = {
-        'SBERT NET LAYER 11': {'model': InstructNet, 
-                        'langModel': SBERT,
-                        'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
-                        'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-                        'epochs': 30
-                    },
-
-        'SBERT NET': {'model': InstructNet, 
-                    'langModel': SBERT,
-                    'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
-                    'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-                    'epochs': 30
-                    },
-        
-        'BERT NET LAYER 11': {'model': InstructNet, 
-                        'langModel': BERT,
-                        'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
-                        'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25], 'langLR': 1e-4},
-                        'epochs': 30
-                    },
-
-        'BERT NET': {'model': InstructNet, 
-                    'langModel': BERT,
-                    'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
-                    'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-                    'epochs': 30
-                    },
-
-        'GPT NET LAYER 11': {'model': InstructNet, 
-                        'langModel': GPT,
-                        'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
-                        'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25], 'langLR': 1e-5},
-                        'epochs': 30
-                    },
-
-        'GPT NET': {'model': InstructNet, 
-                    'langModel': GPT,
-                    'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
-                    'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]}, 
-                    'epochs': 30
-                    },
-        
-        'BoW NET': {'model': InstructNet, 
-                    'langModel': BoW,
-                    'langModel_params': {'out_dim': None}, 
-                    'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-                    'epochs': 30
-                    },
-
-        'SIMPLE NET': {'model': SimpleNet, 
-                    'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25]},
-                    'epochs': 30
-                    }
-    }
-
-    single_holdouts = Task.TASK_LIST.copy()
-    dual_holdouts = [['RT Go', 'Anti Go'], ['Anti MultiDM', 'DM'], ['COMP1', 'MultiCOMP2'], ['DMC', 'DNMS']]
-    aligned_holdouts = [['Anti DM', 'Anti MultiDM'], ['COMP1', 'MultiCOMP1'], ['DMS', 'DNMS'],['Go', 'RT Go']]
-    swap_holdouts = [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['RT Go', 'COMP1']]
-
-    seeds = [2, 3, 4]
-    to_train = list(itertools.product(seeds, single_holdouts, ALL_MODEL_PARAMS.keys()))
+    seeds = [0, 1, 2, 3, 4]
+    to_train = list(itertools.product(seeds, training_lists_dict['single_holdouts'], ALL_MODEL_PARAMS.keys()))
 
     logged_checkpoint = pickle.load(open('_ReLU128_14.6/single_holdouts/logged_train_checkpoint', 'rb'))
     last_holdouts = None
-
+    data = None
     for cur_train in to_train[to_train.index(logged_checkpoint):]:      
         #get the seed, holdout task, and model to train 
-        i, holdouts, model_params_key = cur_train
+        seed_num, holdouts, model_params_key = cur_train
 
         #checkpoint the model training 
-        pickle.dump(cur_train, open('_ReLU128_14.6/single_holdouts/logged_train_checkpoint', 'wb'))
-        
-        #if its a new training task, make the new data 
-        if holdouts == last_holdouts: 
-            pass 
-        else: 
-            data = TaskDataSet(holdouts=[holdouts])
-            data.data_to_device(device)
 
         #format save file name 
         if isinstance(holdouts, list): holdout_file = '_'.join(holdouts)
@@ -173,21 +217,31 @@ if __name__ == "__main__":
         holdout_file = holdout_file.replace(' ', '_')
 
         #build model from params 
-        params = ALL_MODEL_PARAMS[model_params_key]
-        if params['model'] is InstructNet:
-            model = params['model'](params['langModel'](**params['langModel_params']), 128, 1, torch.relu)
-        else:
-            model = params['model'](128, 1, torch.relu)
-        opt, sch = init_optimizer(model, **params['opt_params'])
-        model.model_name += ('_seed' + str(i))
-        model.to(device)
-        
-        #train 
-        train(model, data, params['epochs'], opt, sch)
 
-        #save
-        torch.save(model.state_dict(), '_ReLU128_14.6/single_holdouts/'+holdout_file+'/'+model.model_name+'.pt')
-        model.save_training_data(holdout_file, '_ReLU128_14.6/single_holdouts/', model.model_name)
+        try: 
+            pickle.load(open('_ReLU128_14.6/single_holdouts/'+holdout_file+'/'+model_params_key+'_seed'+str(seed_num)+'_training_loss', 'rb'))
 
-        #to check if you should make new data 
-        last_holdouts = holdouts
+            print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
+
+            last_holdouts = holdouts
+            continue
+        except FileNotFoundError:
+            print(cur_train)
+                    #if its a new training task, make the new data 
+            if holdouts == last_holdouts and data is not None: 
+                pass 
+            else: 
+                data = TaskDataSet(holdouts=[holdouts])
+                data.data_to_device(device)
+            model, opt, sch, epochs = config_model_training(model_params_key, seed_num)
+            model.to(device)
+            #train 
+            train_model(model, data, epochs, opt, sch)
+
+            #save
+            torch.save(model.state_dict(), '_ReLU128_14.6/single_holdouts/'+holdout_file+'/'+model.model_name+'.pt')
+            model.save_training_data(holdout_file, '_ReLU128_14.6/single_holdouts/', model.model_name)
+            pickle.dump(cur_train, open('_ReLU128_14.6/single_holdouts/logged_train_checkpoint', 'wb'))
+
+            #to check if you should make new data 
+            last_holdouts = holdouts

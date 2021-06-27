@@ -1,20 +1,12 @@
-from collections import defaultdict
-
-from matplotlib.lines import Line2D
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 import pickle
 
 import torch
-import torch.multiprocessing as mp
 import itertools
-
 
 from task import Task
 task_list = Task.TASK_LIST
 tuning_dirs = Task.TUNING_DIRS
-
 
 train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict2', 'rb'))
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict2', 'rb'))
@@ -22,7 +14,6 @@ test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict2', 'rb'))
 
 swapped_task_list = ['Anti DM', 'COMP2', 'Anti Go', 'DMC', 'DM', 'Go', 'MultiDM', 'Anti MultiDM', 'COMP1',
                              'RT Go', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'Anti RT Go', 'DNMC']
-
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) 
@@ -200,43 +191,3 @@ def get_input_rule(batch_size, task_type, instruct_mode, lang_dim = None):
         task_rule = one_hot_input_rule(batch_size, task_type)
     
     return torch.Tensor(task_rule)
-
-
-
-
-
-
-def get_model_patches(model_list): 
-    Patches = []
-    Markers = []
-    color_dict = COLOR_DICT.copy()
-    for model_name in model_list: 
-        architecture_type = list(COLOR_DICT.keys())[np.where([model_name.startswith(key) for key in COLOR_DICT.keys()])[0][0]]
-        try:
-            color = color_dict.pop(architecture_type)
-        except:
-            continue
-        if architecture_type == 'Model1': architecture_type = 'One-Hot Vec.'
-        patch = mpatches.Patch(color=color, label=architecture_type)
-        Patches.append(patch)
-
-    for model_name in model_list: 
-        print(strip_model_name(model_name))
-        if strip_model_name(model_name) in ['Model1', 'BoW', 'SIF', 'S-Bert']: 
-            continue
-        where_array = np.array([model_name.find(key) for key in MODEL_MARKER_DICT.keys()])
-        marker = MODEL_MARKER_DICT[list(MODEL_MARKER_DICT.keys())[np.where(where_array >= 0)[0][0]]]
-        if any([marker == m.get_marker() for m in Markers]): 
-            continue
-        mark = Line2D([0], [0], marker=marker, color='w', label=MARKER_DICT[marker], markerfacecolor='grey', markersize=10)
-        Markers.append(mark)
-
-    return Patches, Markers
-
-def _label_plot(fig, Patches, Markers, legend_loc = (0.9, 0.3)): 
-    arch_legend = plt.legend(handles=Patches, title = r"$\textbf{Language Module}$", bbox_to_anchor = legend_loc, loc = 'lower center')
-    ax = plt.gca().add_artist(arch_legend)
-    plt.legend(handles= Markers, title = r"$\textbf{Transformer Fine-Tuning}$", bbox_to_anchor = legend_loc, loc = 'upper center')
-    fig.text(0.5, 0.04, 'Training Examples', ha='center')
-    fig.text(0.04, 0.5, 'Fraction Correct', va='center', rotation='vertical')
-

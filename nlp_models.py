@@ -7,6 +7,8 @@ from transformers import BertModel, BertTokenizer
 
 from utils import sort_vocab
 
+import warnings
+
 class InstructionEmbedder(nn.Module): 
     def __init__(self, embedder_name, intermediate_lang_dim, out_dim, output_nonlinearity): 
         super(InstructionEmbedder, self).__init__()
@@ -29,9 +31,15 @@ class TransformerEmbedder(InstructionEmbedder):
         self.reducer = reducer
         self.train_layers = train_layers
 
-    def set_train_layers(self): 
-        if len(self.train_layers)>0: tmp_train_layers = self.train_layers+self.SET_TRAIN_LAYER_LIST
-        else: tmp_train_layers = ['proj_out']
+    def init_train_layers(self): 
+        if len(self.train_layers)>0: 
+            tmp_train_layers = self.train_layers+self.SET_TRAIN_LAYER_LIST
+            if not isinstance(self.output_nonlinearity, type(nn.ReLU())): 
+                warnings.warn('output nonlinearity set to something other than relu! Use caution when trying to load pretained models')
+        else: 
+            tmp_train_layers = ['proj_out']
+            if not isinstance(self.output_nonlinearity, type(nn.Identity())): 
+                warnings.warn('output nonlinearity set to something other than Identity! Use caution when trying to load pretained models')
         for n,p in self.named_parameters(): 
             if any([layer in n for layer in tmp_train_layers]):
                 p.requires_grad=True
@@ -54,7 +62,7 @@ class BERT(TransformerEmbedder):
         super().__init__('bert', out_dim, reducer, train_layers, output_nonlinearity)
         self.transformer = BertModel.from_pretrained('bert-base-uncased')
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        self.set_train_layers()
+        self.init_train_layers()
 
 class GPT(TransformerEmbedder): 
     def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
@@ -62,14 +70,14 @@ class GPT(TransformerEmbedder):
         self.transformer = GPT2Model.from_pretrained('gpt2')
         self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.set_train_layers()
+        self.init_train_layers()
 
 class SBERT(TransformerEmbedder): 
     def __init__(self, out_dim, reducer=None, train_layers = [], output_nonlinearity = nn.ReLU()): 
         super().__init__('sbert', out_dim, reducer, train_layers, output_nonlinearity)
         self.transformer = SentenceTransformer('bert-base-nli-mean-tokens')
         self.tokenizer = self.transformer.tokenize
-        self.set_train_layers()
+        self.init_train_layers()
 
     def forward_transformer(self, x): 
         tokens = self.tokenizer(x)
