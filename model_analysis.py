@@ -27,10 +27,6 @@ def get_model_performance(model, num_batches):
             perf_dict[task] = np.mean(mean_list)
     return perf_dict 
 
-#get_model_performance(model, 5)
-
-
-
 def get_instruct_reps(langModel, instruct_dict, depth='full'):
     langModel.eval()
     if depth=='transformer': 
@@ -98,26 +94,10 @@ def reduce_rep(reps, dim=2, reduction_method='PCA'):
 
 
 
-
 import matplotlib.pyplot as plt
-
-def task_cmap(array): 
-    all_task_dict = {}
-    for task_colors in task_group_colors.values(): 
-        all_task_dict.update(task_colors)
-    color_list = []
-
-    for index in array: 
-        color_list.append(all_task_dict[task_list[index]])
-
-    return color_list
-
 from collections import defaultdict
 import itertools
 import matplotlib.patches as mpatches
-
-
-task_group_colors = defaultdict(dict)
 
 task_colors = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT Go':'orange',
                         'DM':'Red', 'Anti DM':'Green', 'MultiDM':'Blue', 'Anti MultiDM':'Yellow', 
@@ -146,52 +126,61 @@ def plot_rep_reduced(reps_reduced, tasks_to_plot):
     plt.legend(handles=Patches, loc=7)
     plt.show()
 
+def plot_RDM(avg_reps, cmap=sns.color_palette("rocket_r", as_cmap=True)):
+    opp_task_list = Task.TASK_LIST.copy()
+    opp_task_list[1], opp_task_list[2] = opp_task_list[2], opp_task_list[1]
+
+    avg_reps[[1,2], :] = avg_reps[[2,1], :] 
+    sim_scores = 1-np.corrcoef(avg_reps)
+
+    map = sns.heatmap(sim_scores, yticklabels = opp_task_list, xticklabels= opp_task_list, 
+                        cmap=cmap, vmin=0, vmax=1)
+
+    for i in range(4):
+        plt.axhline(y = 4*i, xmin=i/4, xmax=(i+1)/4, color = 'k',linewidth = 3)
+        plt.axhline(y = 4*(i+1), xmin=i/4, xmax=(i+1)/4, color = 'k',linewidth = 3)  
+        plt.axvline(x = 4*i, ymin=1-i/4, ymax = 1-(i+1)/4, color = 'k',linewidth = 3)
+        plt.axvline(x = 4*(i+1), ymin=1-i/4, ymax = 1-(i+1)/4, color = 'k',linewidth = 3)
+
+    plt.show()
+
 
 from sklearn.metrics.pairwise import cosine_similarity
 import seaborn as sns
 
-from rnn_models import InstructNet
-from nlp_models import SBERT
+from rnn_models import InstructNet, SimpleNet
+from nlp_models import SBERT, BERT
 from data import TaskDataSet
-
-sim_scores = np.corrcoef(reps)
-model1_sim_scores = np.corrcoef(reps_model1)
-lang_rep_scores = np.corrcoef(lang_reps)
-
-opp_task_list = ['Go', 'Anti Go', 'RT Go',  'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']
+from utils import train_instruct_dict
 
 
-map = sns.heatmap(model1_sim_scores,yticklabels = task_list, xticklabels= task_list, vmin=0, vmax=1)
-map = sns.heatmap(sim_scores,yticklabels = task_list, xticklabels= task_list, vmin=0, vmax=1)
-map = sns.heatmap(lang_rep_scores,yticklabels = task_list, xticklabels= task_list, vmin=0, vmax=1, cmap='GnBu')
-
-for i in range(4):
-    plt.axhline(y = 4*i, xmin=i/4, xmax=(i+1)/4, color = 'k',linewidth = 3)
-    plt.axhline(y = 4*(i+1), xmin=i/4, xmax=(i+1)/4, color = 'k',linewidth = 3)  
-    plt.axvline(x = 4*i, ymin=1-i/4, ymax = 1-(i+1)/4, color = 'k',linewidth = 3)
-    plt.axvline(x = 4*(i+1), ymin=1-i/4, ymax = 1-(i+1)/4, color = 'k',linewidth = 3)
-
-plt.show()
-
-model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
+model = InstructNet(BERT(20, train_layers=['11']), 128, 1)
+#model = SimpleNet(128, 1)
 model.model_name+='_seed2'
 
-model.load_model_weights('_ReLU128_14.6/single_holdouts/DNMC')
+model.load_model('_ReLU128_14.6/single_holdouts/Go')
 model.to(torch.device(0))
 
+model.instruct_mode='validation'
 
-reps = get_task_reps(model)
+s_bert_model_perf 
+bert_model_perf = get_model_performance(model, 5)
+
+
+bert_model_perf
+
+s_bert_reps = get_task_reps(model)
+instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict)
+
+
+#reps = get_task_reps(model)
 reps_reduced, var_explained = reduce_rep(reps, reduction_method='PCA')
+
+plot_RDM(np.mean(instruct_reps, axis=1), cmap=sns.color_palette("rocket_r", as_cmap=True))
 
 
 # from utils import train_instruct_dict
 # instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict)
-
-
-plot_rep_reduced(reps_reduced, task_group_dict['Delay'])
-
-np.mean(reps, axis=1)
-
 
 # cmap = matplotlib.cm.get_cmap('tab20')
 # Patches = []
