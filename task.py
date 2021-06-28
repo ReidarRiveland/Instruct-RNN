@@ -443,4 +443,57 @@ def construct_batch(task_type, num):
         trial = Delay('DNMC', num)
     return (trial.inputs.astype(np.float32), trial.targets.astype(np.float32), trial.masks.astype(int), trial.target_dirs.astype(np.float32), Task.TASK_LIST.index(task_type))
 
+def make_test_trials(task_type, task_variable, mod, num_trials=100): 
+    assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
 
+    conditions_arr = np.empty((2, 2, 2, num_trials))
+    intervals = np.empty((num_trials, 5), dtype=tuple)
+    for i in range(num_trials): intervals[i, :] = ((0, 20), (20, 60), (60, 80), (80, 100), (100, 120))
+
+
+    if task_variable == 'direction': 
+        directions = np.linspace(0, 2*np.pi, num=num_trials)
+        strengths = np.array([1]* num_trials)
+        var_of_interest = directions
+
+    elif task_variable == 'strength': 
+        directions = np.array([np.pi] * num_trials)
+        strengths = np.linspace(0.3, 1.8, num=num_trials)
+        var_of_interest = strengths
+
+    elif task_variable == 'diff_strength': 
+        directions = np.array([[np.pi] * num_trials, [2*np.pi] * num_trials])
+        fixed_strengths = np.array([1]* num_trials)
+        diff_strength = np.linspace(-0.5, 0.5, num=num_trials)
+        strengths = np.array([fixed_strengths, fixed_strengths-diff_strength])
+        var_of_interest = diff_strength
+
+    elif task_variable == 'diff_direction': 
+        fixed_direction = np.array([np.pi] * num_trials)
+        diff_directions = np.linspace(np.pi/4, 2*np.pi-np.pi/4, num=num_trials)
+        directions = np.array([fixed_direction, fixed_direction-diff_directions])
+        strengths = np.array([[1] * num_trials, [1.2] * num_trials])
+        var_of_interest = diff_directions
+
+
+    if task_type in ['Go', 'Anti Go', 'RT Go', 'Anti RT Go']:
+        conditions_arr[mod, 0, 0, :] = directions
+        conditions_arr[mod, 0, 1, :] = strengths
+        conditions_arr[mod, 1, 0, :] = np.NaN
+        conditions_arr[((mod+1)%2), :, :, :] = np.NaN
+        trials = Go(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr)
+
+
+    if task_type in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']:
+        assert task_variable not in ['directions', 'strengths']
+        conditions_arr[mod, :, 0, : ] = directions
+        conditions_arr[mod, :, 1, : ] = strengths
+
+        if 'Multi' in task_type: 
+            conditions_arr[((mod+1)%2), :, :, :] = conditions_arr[mod, :, :, : ]
+        else: 
+            conditions_arr[((mod+1)%2), :, :, : ] = np.NaN
+
+        trials = DM(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr)
+
+    return trials, var_of_interest

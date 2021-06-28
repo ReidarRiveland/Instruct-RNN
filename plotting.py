@@ -346,59 +346,8 @@ def plot_hid_PCA_comparison(cogMod, task_group, ax_titles, reduction_method = 'P
     plt.legend(handles = Patches)
     plt.show()
 
-def make_test_trials(task_type, task_variable, mod, instruct_mode, num_trials=100): 
-    assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
-    intervals = np.empty((num_trials, 5), dtype=tuple)
-    if task_variable == 'direction': 
-        directions = np.linspace(0, 2*np.pi, num=num_trials)
-        strengths = [1]* num_trials
-        var_of_interest = directions
-    elif task_variable == 'strength': 
-        directions = np.array([np.pi+1] * num_trials)
-        strengths = np.linspace(0.3, 1.8, num=num_trials)
-        var_of_interest = strengths
-    elif task_variable == 'diff_strength': 
-        directions = np.array([np.pi] * num_trials)
-        strengths = [1]* num_trials
-        diff_strength = np.linspace(-0.5, 0.5, num=num_trials)
-        var_of_interest = diff_strength
-    elif task_variable == 'diff_direction': 
-        directions = np.array([np.pi] * num_trials)
-        diff_directions = np.linspace(0, np.pi, num=num_trials)
-        strengths = [0.5] * num_trials
-        var_of_interest = diff_directions
-    if task_type in ['Go', 'Anti Go', 'RT Go', 'Anti RT Go']:
-        stim_mod_arr = np.empty((2, num_trials), dtype=list)
-        for i in range(num_trials): 
-            intervals[i, :] = ((0, 20), (20, 60), (60, 80), (80, 100), (100, 120))
-            strength_dir = [(strengths[i], directions[i])]
-            stim_mod_arr[mod, i] = strength_dir
-            stim_mod_arr[((mod+1)%2), i] = None
-        trials = Go(task_type, num_trials, intervals=intervals, stim_mod_arr=stim_mod_arr, directions=directions)
-    if task_type in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']:
-        stim_mod_arr = np.empty((2, 2, num_trials), dtype=tuple)
-        for i in range(num_trials): 
-            intervals[i, :] = ((0, 20), (20, 60), (60, 80), (80, 100), (100, 120))
-            if task_variable == 'diff_direction': 
-                stim_mod_arr[0, mod, i] = [(1+(strengths[i]/2), np.pi)]
-                stim_mod_arr[1 ,mod, i] = [(1-(strengths[i]/2), np.pi+diff_directions[i])]
-            elif task_variable == 'diff_strength':
-                stim_mod_arr[0, mod, i] = [(strengths[i], directions[i])]
-                stim_mod_arr[1 ,mod, i] = [(strengths[i]+diff_strength[i], directions[i]+np.pi)]
-            else: 
-                stim_mod_arr[0, mod, i] = [(strengths[i], directions[i])]
-                stim_mod_arr[1 ,mod, i] = [(1, np.pi)]
 
-            if 'Multi' in task_type: 
-                stim_mod_arr[0, ((mod+1)%2), i] = stim_mod_arr[0, mod, i]
-                stim_mod_arr[1, ((mod+1)%2), i] = stim_mod_arr[1, mod, i]
-            else: 
-                stim_mod_arr[0, ((mod+1)%2), i] = None
-                stim_mod_arr[1, ((mod+1)%2), i] = None
 
-            stim_mod_arr.shape
-        trials = DM(task_type, num_trials, intervals=intervals, stim_mod_arr=stim_mod_arr, directions=directions)
-    return trials, var_of_interest
 
 def plot_hid_traj(cogMod, tasks, dim, instruct_mode = None): 
     models = list(cogMod.model_dict.keys())
@@ -571,6 +520,50 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, instruct_mode=N
     return trials
 
 
+
+
+def plot_model_response(model, task_type, trials = None, trial_num = 0, instruct = None):
+    model.eval()
+    with torch.no_grad(): 
+        if trials == None: 
+            task = construct_batch(task_type, 1)
+
+        tar = task.targets
+        ins = task.inputs
+
+        if instruct is not None: task_info = [instruct]
+        else: task_info = model.get_task_info(ins.shape[0], task_type)
+        
+        out, hid = model(task_info, ins)
+
+        correct = isCorrect(out, torch.Tensor(tar), task.target_dirs)[trial_num]
+        out = out.detach().cpu().numpy()[trial_num, :, :]
+        hid = hid.detach().cpu().numpy()[trial_num, :, :]
+
+        try: 
+            task_info_embedding = model.langModel(task_info).unsqueeze(1).repeat(1, ins.shape[1], 1)
+        except: 
+            task_info_embedding = task_info.unsqueeze(1).repeat(1, ins.shape[1], 1)
+
+        fix = ins[trial_num, :, 0:1]            
+        mod1 = ins[trial_num, :, 1:1+Task.STIM_DIM]
+        mod2 = ins[trial_num, :, 1+Task.STIM_DIM:1+(2*Task.STIM_DIM)]
+
+        to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, task_info_embedding.T, tar[trial_num, :, :].T, out.squeeze().T]
+        gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 2, 5, 5])
+        ylabels = ['fix.', 'mod. 1', 'mod. 2', 'Task Info', 'Target', 'Response']
+
+        fig, axn = plt.subplots(6,1, sharex = True, gridspec_kw=gs_kw)
+        cbar_ax = fig.add_axes([.91, .3, .03, .4])
+        for i, ax in enumerate(axn.flat):
+            sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1, cbar_ax=None if i else cbar_ax)
+            ax.set_ylabel(ylabels[i])
+            if i == 0: 
+                ax.set_title(task_type +' trial info; correct: ' + str(correct))
+            if i == 5: 
+                ax.set_xlabel('time')
+
+        plt.show()
 
 seed = '_seed'+str(0)
 model_dict = {}

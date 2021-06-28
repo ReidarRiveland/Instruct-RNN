@@ -82,10 +82,10 @@ def train_model(model, streamer, epochs, optimizer, scheduler):
         if scheduler is not None: 
             scheduler.step()    
 
-def test_model(model, holdouts_test, repeats=5, save=False): 
+def test_model(model, holdouts_test, foldername = '_ReLU128_14.6/single_holdouts', repeats=5, save=False): 
         holdout_file = holdouts_test.replace(' ', '_')
         for _ in range(repeats): 
-            model.load_state_dict(torch.load('_ReLU128_14.6/single_holdouts/'+holdout_file+'/'+model.model_name+'.pt'))
+            model.load_state_dict(torch.load(foldername +'/'+holdout_file+'/'+model.model_name+'.pt'))
             opt, _ = init_optimizer(model, 0.001, [])
 
             data = TaskDataSet(batch_len=256, num_batches=100, task_ratio_dict={holdouts_test:1})
@@ -96,8 +96,8 @@ def test_model(model, holdouts_test, repeats=5, save=False):
         loss_perf = np.mean(np.array(model._loss_data_dict[holdouts_test]).reshape(repeats, -1), axis=0)
 
         if save: 
-            pickle.dump(correct_perf, open(foldername + '/' + model.model_name+'_holdout_correct', 'wb'))
-            pickle.dump(loss_perf, open(foldername + '/' + model.model_name+'_holdout_loss', 'wb'))
+            pickle.dump(correct_perf, open(foldername +'/'+holdout_file+ '/' + model.model_name+'_holdout_correct', 'wb'))
+            pickle.dump(loss_perf, open(foldername +'/'+holdout_file + '/' + model.model_name+'_holdout_loss', 'wb'))
 
         return correct_perf, loss_perf
 

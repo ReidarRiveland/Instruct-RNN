@@ -35,13 +35,14 @@ def get_instruct_reps(langModel, instruct_dict, depth='full'):
     else: rep_dim = langModel.out_dim 
     instruct_reps = torch.empty(len(instruct_dict.keys()), len(list(instruct_dict.values())[0]), rep_dim)
     with torch.no_grad():      
-        for instructions in instruct_dict.values():
+        for i, instructions in enumerate(instruct_dict.values()):
             if depth == 'full': 
                 out_rep = langModel(list(instructions))
             elif depth == 'transformer': 
                 out_rep = langModel.forward_transformer(list(instructions))
-            instruct_reps[0, :, :] = out_rep
+            instruct_reps[i, :, :] = out_rep
     return instruct_reps.cpu().numpy().astype(np.float64)
+
 
 def get_task_reps(model, epoch='prep', num_trials =100):
     assert epoch in ['stim', 'prep'] or epoch.isnumeric(), "entered invalid epoch: %r" %epoch
@@ -94,117 +95,73 @@ def reduce_rep(reps, dim=2, reduction_method='PCA'):
 
 
 
-import matplotlib.pyplot as plt
-from collections import defaultdict
-import itertools
-import matplotlib.patches as mpatches
-
-task_colors = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT Go':'orange',
-                        'DM':'Red', 'Anti DM':'Green', 'MultiDM':'Blue', 'Anti MultiDM':'Yellow', 
-                        'COMP1':'sienna', 'COMP2':'seagreen', 'MultiCOMP1':'skyblue', 'MultiCOMP2':'gold',
-                        'DMS':'firebrick', 'DNMS':'lightgreen', 'DMC':'dodgerblue', 'DNMC':'darkorange'}
-
-task_group_dict = {'Go': ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'],
-                'DM': ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'], 
-                'COMP': ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'],
-                'Delay': ['DMS', 'DNMS', 'DMC', 'DNMC']}
-
-#tasks_to_plot = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2']
-
-
-def plot_rep_reduced(reps_reduced, tasks_to_plot): 
-    colors_to_plot = list(itertools.chain.from_iterable([[task_colors[task]]*reps_reduced.shape[1] for task in tasks_to_plot]))
-    task_indices = [Task.TASK_LIST.index(task) for task in tasks_to_plot]
-    reps_to_plot = reps_reduced[task_indices, ...]
-    flattened_reduced = reps_to_plot.reshape(-1, reps_to_plot.shape[-1])
-    fig, ax = plt.subplots(figsize=(12, 10))
-    ax.scatter(flattened_reduced[:, 0], flattened_reduced[:, 1], c = colors_to_plot, s=35)
-
-    plt.xlabel("PC 1", fontsize = 18)
-    plt.ylabel("PC 2", fontsize = 18)
-    Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in tasks_to_plot]
-    plt.legend(handles=Patches, loc=7)
-    plt.show()
-
-def plot_RDM(avg_reps, cmap=sns.color_palette("rocket_r", as_cmap=True)):
-    opp_task_list = Task.TASK_LIST.copy()
-    opp_task_list[1], opp_task_list[2] = opp_task_list[2], opp_task_list[1]
-
-    avg_reps[[1,2], :] = avg_reps[[2,1], :] 
-    sim_scores = 1-np.corrcoef(avg_reps)
-
-    map = sns.heatmap(sim_scores, yticklabels = opp_task_list, xticklabels= opp_task_list, 
-                        cmap=cmap, vmin=0, vmax=1)
-
-    for i in range(4):
-        plt.axhline(y = 4*i, xmin=i/4, xmax=(i+1)/4, color = 'k',linewidth = 3)
-        plt.axhline(y = 4*(i+1), xmin=i/4, xmax=(i+1)/4, color = 'k',linewidth = 3)  
-        plt.axvline(x = 4*i, ymin=1-i/4, ymax = 1-(i+1)/4, color = 'k',linewidth = 3)
-        plt.axvline(x = 4*(i+1), ymin=1-i/4, ymax = 1-(i+1)/4, color = 'k',linewidth = 3)
-
-    plt.show()
-
-
-from sklearn.metrics.pairwise import cosine_similarity
-import seaborn as sns
-
-from rnn_models import InstructNet, SimpleNet
-from nlp_models import SBERT, BERT
-from data import TaskDataSet
-from utils import train_instruct_dict
-
-
-model = InstructNet(BERT(20, train_layers=['11']), 128, 1)
-#model = SimpleNet(128, 1)
-model.model_name+='_seed2'
-
-model.load_model('_ReLU128_14.6/single_holdouts/Go')
-model.to(torch.device(0))
-
-model.instruct_mode='validation'
-
-s_bert_model_perf 
-bert_model_perf = get_model_performance(model, 5)
-
-
-bert_model_perf
-
-s_bert_reps = get_task_reps(model)
-instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict)
-
-
-#reps = get_task_reps(model)
-reps_reduced, var_explained = reduce_rep(reps, reduction_method='PCA')
-
-plot_RDM(np.mean(instruct_reps, axis=1), cmap=sns.color_palette("rocket_r", as_cmap=True))
-
-
-# from utils import train_instruct_dict
-# instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict)
-
-# cmap = matplotlib.cm.get_cmap('tab20')
-# Patches = []
-# if dim ==3: 
-#     fig = plt.figure()
-#     ax = fig.add_subplot(111, projection='3d')
-#     scatter = [to_plot[:, 0], to_plot[:, 1], to_plot[:,2], cmap(task_indices), cmap, marker_size]
-#     ax.scatter(to_plot[:, 0], to_plot[:, 1], to_plot[:,2], c = cmap(task_indices), cmap=cmap, s=marker_size)
-#     ax.set_xlabel('PC 1')
-#     ax.set_ylabel('PC 2')
-#     ax.set_zlabel('PC 3')
+if __name__ == "__main__":
 
 
 
-# for 
+    #tasks_to_plot = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2']
 
 
-# #plt.suptitle(r"$\textbf{PCA Embedding for Task Representation$", fontsize=18)
-# plt.title(Title)
-# digits = np.arange(len(tasks))
-# plt.tight_layout()
-# Patches = [mpatches.Patch(color=cmap(d), label=task_list[d]) for d in set(task_indices)]
-# scatter.append(Patches)
-# plt.legend(handles=Patches)
-# #plt.show()
-# return explained_variance, scatter
+    from sklearn.metrics.pairwise import cosine_similarity
+    import seaborn as sns
+
+    from rnn_models import InstructNet, SimpleNet
+    from nlp_models import SBERT, BERT
+    from data import TaskDataSet
+    from utils import train_instruct_dict
+
+
+    model = InstructNet(BERT(20, train_layers=['11']), 128, 1)
+    #model = SimpleNet(128, 1)
+    model.model_name+='_seed2'
+
+    model.load_model('_ReLU128_14.6/single_holdouts/Go')
+    model.to(torch.device(0))
+
+    model.instruct_mode='validation'
+
+    s_bert_model_perf 
+    bert_model_perf = get_model_performance(model, 5)
+
+
+    bert_model_perf
+
+    s_bert_reps = get_task_reps(model)
+    instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict)
+
+
+    #reps = get_task_reps(model)
+    reps_reduced, var_explained = reduce_rep(reps, reduction_method='PCA')
+
+    plot_RDM(np.mean(instruct_reps, axis=1), cmap=sns.color_palette("rocket_r", as_cmap=True))
+
+
+    # from utils import train_instruct_dict
+    # instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict)
+
+    # cmap = matplotlib.cm.get_cmap('tab20')
+    # Patches = []
+    # if dim ==3: 
+    #     fig = plt.figure()
+    #     ax = fig.add_subplot(111, projection='3d')
+    #     scatter = [to_plot[:, 0], to_plot[:, 1], to_plot[:,2], cmap(task_indices), cmap, marker_size]
+    #     ax.scatter(to_plot[:, 0], to_plot[:, 1], to_plot[:,2], c = cmap(task_indices), cmap=cmap, s=marker_size)
+    #     ax.set_xlabel('PC 1')
+    #     ax.set_ylabel('PC 2')
+    #     ax.set_zlabel('PC 3')
+
+
+
+    # for 
+
+
+    # #plt.suptitle(r"$\textbf{PCA Embedding for Task Representation$", fontsize=18)
+    # plt.title(Title)
+    # digits = np.arange(len(tasks))
+    # plt.tight_layout()
+    # Patches = [mpatches.Patch(color=cmap(d), label=task_list[d]) for d in set(task_indices)]
+    # scatter.append(Patches)
+    # plt.legend(handles=Patches)
+    # #plt.show()
+    # return explained_variance, scatter
 
