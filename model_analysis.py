@@ -4,6 +4,7 @@ from torch.nn.modules import transformer
 
 from task import Task
 from utils import isCorrect
+from data import TaskDataSet
 
 task_list = Task.TASK_LIST
 
