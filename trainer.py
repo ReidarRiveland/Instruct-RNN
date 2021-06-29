@@ -13,10 +13,12 @@ from utils import isCorrect
 import itertools
 import pickle
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["CUDA_VISIBLE_DEVICES"] = str(1)
+torch.cuda.is_available()
+device = torch.device(0)
 
 
 def masked_MSE_Loss(nn_out, nn_target, mask):
@@ -82,7 +84,7 @@ def train_model(model, streamer, epochs, optimizer, scheduler):
         if scheduler is not None: 
             scheduler.step()    
 
-def test_model(model, holdouts_test, foldername = '_ReLU128_14.6/single_holdouts', repeats=5, save=False): 
+def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_14.6/single_holdouts', save=False): 
         holdout_file = holdouts_test.replace(' ', '_')
         for _ in range(repeats): 
             model.load_state_dict(torch.load(foldername +'/'+holdout_file+'/'+model.model_name+'.pt'))
@@ -100,6 +102,52 @@ def test_model(model, holdouts_test, foldername = '_ReLU128_14.6/single_holdouts
             pickle.dump(loss_perf, open(foldername +'/'+holdout_file + '/' + model.model_name+'_holdout_loss', 'wb'))
 
         return correct_perf, loss_perf
+
+
+def train_context(model, holdouts_test, epochs, foldername = '_ReLU128_14.6/single_holdouts', save=False, context_dim = 20): 
+    holdout_file = holdouts_test.replace(' ', '_')
+    data_streamer =  TaskDataSet(batch_len=128, num_batches=250, task_ratio_dict={holdouts_test:1})
+    data_streamer.data_to_device(model.__device__)
+    model.load_model(foldername +'/'+holdout_file)
+    model.freeze_weights()
+
+    context = nn.Parameter(torch.empty(1, 1, context_dim))
+    torch.nn.init.normal_(context)
+    opt= optim.Adam([context], lr=0.01)
+    sch = optim.lr_scheduler.MultiStepLR(opt, milestones=[epochs-1], gamma=0.1)
+
+    for i in range(epochs): 
+        data_streamer.shuffle_stream_order()
+        for j, data in enumerate(data_streamer.stream_batch()): 
+            
+            ins, tar, mask, tar_dir, task_type = data
+            
+            opt.zero_grad()
+
+            context_block = context.repeat(128, 120, 1).to(device)
+            rnn_ins = torch.cat((context_block, ins.type(torch.float32)), 2)
+            h0 = model.__initHidden__(128, 0.1)
+            rnn_hid, _ = model.recurrent_units(rnn_ins, h0)
+            out = model.sensory_motor_outs(rnn_hid)
+
+            loss = masked_MSE_Loss(out, tar, mask) 
+            loss.backward()
+
+
+            opt.step()
+
+            frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
+            model._loss_data_dict[task_type].append(loss.item())
+            model._correct_data_dict[task_type].append(frac_correct)
+            if j%50 == 0:
+                print(task_type)
+                print(j, ':', model.model_name, ":", "{:.2e}".format(loss.item()))
+                print('Frac Correct ' + str(frac_correct) + '\n')
+        sch.step()
+
+    return context
+
+
 
 
 training_lists_dict={
@@ -202,10 +250,10 @@ if __name__ == "__main__":
     seeds = [0, 1, 2, 3, 4]
     to_train = list(itertools.product(seeds, training_lists_dict['single_holdouts'], ALL_MODEL_PARAMS.keys()))
 
-    logged_checkpoint = pickle.load(open('_ReLU128_14.6/single_holdouts/logged_train_checkpoint', 'rb'))
+    #logged_checkpoint = pickle.load(open('_ReLU128_14.6/single_holdouts/logged_train_checkpoint', 'rb'))
     last_holdouts = None
     data = None
-    for cur_train in to_train[to_train.index(logged_checkpoint):]:      
+    for cur_train in to_train:      
         #get the seed, holdout task, and model to train 
         seed_num, holdouts, model_params_key = cur_train
 

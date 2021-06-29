@@ -55,6 +55,10 @@ class BaseNet(nn.Module):
         out = self.sensory_motor_outs(rnn_hid)
         return out, rnn_hid
 
+    def freeze_weights(self): 
+        for p in self.parameters(): 
+            p.requires_grad=False
+
     def get_training_df(self): 
         df_correct = pd.DataFrame(self._correct_data_dict.values()).T
         df_correct.columns = self._correct_data_dict.keys()

@@ -3,6 +3,7 @@ import numpy as np
 from torch.nn.modules import transformer
 
 from task import Task
+from data import TaskDataSet
 from utils import isCorrect
 
 task_list = Task.TASK_LIST

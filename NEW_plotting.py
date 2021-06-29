@@ -1,3 +1,4 @@
+from model_analysis import get_model_performance
 from task import Task
 task_list = Task.TASK_LIST
 
@@ -9,6 +10,8 @@ import itertools
 import seaborn as sns
 import matplotlib.patches as mpatches
 from matplotlib import colors, cm 
+from matplotlib.lines import Line2D
+
 
 task_colors = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT Go':'orange',
                         'DM':'Red', 'Anti DM':'Green', 'MultiDM':'Blue', 'Anti MultiDM':'Yellow', 
@@ -95,25 +98,48 @@ def plot_avg_seed_holdout(foldername, model_list, train_data_type, seed, smoothi
 # plot_avg_seed_holdout('_ReLU128_14.6/single_holdouts/', model_list, 'correct', 2, smoothing = 0.01)
 # plot_single_seed_holdout('_ReLU128_14.6/single_holdouts/', model_list, 'correct', 2, smoothing = 0.01)
 
-def plot_trained_performance(perf_dict):
-    barWidth = 0.1
-    for i, model in enumerate(model_list):  
+from trainer import ALL_MODEL_PARAMS, config_model_training
+from model_analysis import get_model_performance
+all_model_perf_dict = {}
+for key in list(ALL_MODEL_PARAMS.keys())[:-1]: 
+    print(key)
+    model, _, _, _ = config_model_training(key, 2)
+    model.load_model('_ReLU128_14.6/single_holdouts/Go')
+    model.instruct_mode = 'validation'
+    perf_dict = get_model_performance(model, 3)
+    all_model_perf_dict[key] = perf_dict
+
+
+def plot_trained_performance(all_perf_dict):
+    barWidth = 0.15
+    for i, item in enumerate(all_perf_dict.items()):  
+        model_name, perf_dict = item
         values = list(perf_dict.values())
         len_values = len(task_list)
         if i == 0:
             r = np.arange(len_values)
         else:
             r = [x + barWidth for x in r]
-        plt.bar(r, values, width =barWidth, label = model_list[i])
+        if '_layer_11' in model_name: 
+            mark_size = 4
+        else: 
+            mark_size = 3
+        plt.plot(r, [1.05]*16, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
+        plt.bar(r, values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
 
     plt.ylim(0, 1.15)
     plt.title('Trained Performance')
     plt.xlabel('Task Type', fontweight='bold')
     plt.ylabel('Percentage Correct')
     r = np.arange(len_values)
-    plt.xticks([r + barWidth for r in range(len_values)], task_list)
-    plt.legend()
+    plt.xticks([r + barWidth+0.25 for r in range(len_values)], task_list)
+    plt.tight_layout()
+    Patches = [(Line2D([0], [0], linestyle='None', marker=MODEL_STYLE_DICT[model_name][1], color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
+                markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(all_model_perf_dict.keys())[:-1]]
+    Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['bowNet'][0], label='bowNet'))
+    plt.legend(handles=Patches)
     plt.show()
+
 
 def plot_rep_scatter(reps_reduced, tasks_to_plot): 
     colors_to_plot = list(itertools.chain.from_iterable([[task_colors[task]]*reps_reduced.shape[1] for task in tasks_to_plot]))
