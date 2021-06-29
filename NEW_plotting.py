@@ -1,6 +1,8 @@
-from model_analysis import get_model_performance
-from task import Task
+from model_analysis import get_hid_var_resp
+from task import Task, make_test_trials
 task_list = Task.TASK_LIST
+
+from model_analysis import get_hid_var_resp
 
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
@@ -11,6 +13,7 @@ import seaborn as sns
 import matplotlib.patches as mpatches
 from matplotlib import colors, cm 
 from matplotlib.lines import Line2D
+from matplotlib import rc
 
 
 task_colors = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT Go':'orange',
@@ -51,9 +54,6 @@ def plot_single_seed_training(foldername, holdout, model_list, train_data_type, 
 # plot_single_seed_training('_ReLU128_14.6/single_holdouts/', 'DMC', MODEL_STYLE_DICT.keys(), 'correct', 2, smoothing = 5)
 
 
-model_list = list(MODEL_STYLE_DICT.keys())[0:3] + list(MODEL_STYLE_DICT.keys())[4:]
-model_list
-
 def plot_single_seed_holdout(foldername, model_list, train_data_type, seed, smoothing=0.1):
     seed = '_seed' + str(seed)
     fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(19, 12))
@@ -75,6 +75,8 @@ def plot_single_seed_holdout(foldername, model_list, train_data_type, seed, smoo
     plt.show()
 
 def plot_avg_seed_holdout(foldername, model_list, train_data_type, seed, smoothing=0.1):
+    rc('font', weight='bold')
+
     seed = '_seed' + str(seed)
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(14, 10))
     axn.set_ylim(-0.05, 1.05)
@@ -91,6 +93,9 @@ def plot_avg_seed_holdout(foldername, model_list, train_data_type, seed, smoothi
         axn.plot(smoothed_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=1, markersize=8, markevery=20)
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.75, 0.25), title='Models', title_fontsize=12)
     fig.suptitle('Avg. Performance on Heldout Tasks', size=16)
+    axn.xaxis.set_tick_params(labelsize=20)
+    axn.yaxis.set_tick_params(labelsize=20)
+
     plt.yticks(np.arange(0, 1.1, 0.1))
     plt.show()
     return training_data
@@ -146,13 +151,13 @@ def plot_rep_scatter(reps_reduced, tasks_to_plot):
     task_indices = [Task.TASK_LIST.index(task) for task in tasks_to_plot]
     reps_to_plot = reps_reduced[task_indices, ...]
     flattened_reduced = reps_to_plot.reshape(-1, reps_to_plot.shape[-1])
-    fig, ax = plt.subplots(figsize=(12, 10))
+    fig, ax = plt.subplots(figsize=(6, 6))
     ax.scatter(flattened_reduced[:, 0], flattened_reduced[:, 1], c = colors_to_plot, s=35)
 
     plt.xlabel("PC 1", fontsize = 18)
     plt.ylabel("PC 2", fontsize = 18)
     Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in tasks_to_plot]
-    plt.legend(handles=Patches, loc=7)
+    plt.legend(handles=Patches)
     plt.show()
 
 def plot_RDM(avg_reps, cmap=sns.color_palette("rocket_r", as_cmap=True)):
@@ -161,9 +166,10 @@ def plot_RDM(avg_reps, cmap=sns.color_palette("rocket_r", as_cmap=True)):
 
     avg_reps[[1,2], :] = avg_reps[[2,1], :] 
     sim_scores = 1-np.corrcoef(avg_reps)
-
+    sns.set(font_scale=0.65)
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(9, 7))
     map = sns.heatmap(sim_scores, yticklabels = opp_task_list, xticklabels= opp_task_list, 
-                        cmap=cmap, vmin=0, vmax=1)
+                        cmap=cmap, vmin=0, vmax=1, ax=axn, annot_kws={"size": 8})
 
     for i in range(4):
         plt.axhline(y = 4*i, xmin=i/4, xmax=(i+1)/4, color = 'k',linewidth = 3)
@@ -172,8 +178,6 @@ def plot_RDM(avg_reps, cmap=sns.color_palette("rocket_r", as_cmap=True)):
         plt.axvline(x = 4*(i+1), ymin=1-i/4, ymax = 1-(i+1)/4, color = 'k',linewidth = 3)
 
     plt.show()
-
-
 
 
 def make_tuning_curve(model, tasks, task_variable, unit, mod, times): 
@@ -246,44 +250,23 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod):
     return trials
 
 
+model_list = list(MODEL_STYLE_DICT.keys())[0:3] + list(MODEL_STYLE_DICT.keys())[4:]
+model_list
+
+# from task import make_test_trials
+# from model_analysis import get_hid_var_resp
+
+# from rnn_models import InstructNet, SimpleNet
+# from nlp_models import SBERT, BERT
+# from data import TaskDataSet
+# from utils import train_instruct_dict
+# import torch
+# from model_analysis import get_instruct_reps, get_hid_var_resp, get_task_reps, reduce_rep
 
 
+# model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
+# model = SimpleNet(128, 1)
+# model.model_name+='_seed2'
 
-if __name__ == "__main__":
-
-
-    from task import make_test_trials
-    from model_analysis import get_hid_var_resp
-
-    from rnn_models import InstructNet, SimpleNet
-    from nlp_models import SBERT, BERT
-    from data import TaskDataSet
-    from utils import train_instruct_dict
-    import torch
-
-
-    model = InstructNet(BERT(20, train_layers=['11']), 128, 1)
-    #model = SimpleNet(128, 1)
-    model.model_name+='_seed2'
-
-    model.load_model('_ReLU128_14.6/single_holdouts/Anti_Go')
-    model.to(torch.device(0))
-
-    for task in task_group_dict['Go']:
-        plot_neural_resp(model, task, 'direction', 108, 1)
-
-    plot_neural_resp(model, 'Go', 'direction', 110, 0)
-    plot_neural_resp(model, 'Anti Go', 'direction', 110, 1)
-    plot_neural_resp(model, 'Anti RT Go', 'direction', 99, 1)
-
-
-
-
-    make_tuning_curve(model, task_group_dict['Go'], 'direction', 110, 1, [115]*4)
-
-    make_tuning_curve(model, ['Go', 'RT Go', 'Anti RT Go' ], 'direction', 110, 1, [115]*4)
-    make_tuning_curve(model, 'RT Go', 'direction', 112, 1, 60)
-
-    make_tuning_curve(model, ['Go'], 'direction', 108, 1, [30]*4)
-    make_tuning_curve(model, 'Anti Go', 'direction', 108, 1, 0)
-    make_tuning_curve(model, 'Anti RT Go', 'direction', 108, 1, 60)
+# model.load_model('_ReLU128_14.6/single_holdouts/Anti_DM')
+# model.to(torch.device(0))
