@@ -67,13 +67,13 @@ def get_task_reps(model, epoch='prep', num_trials =100):
     return task_reps.astype(np.float64)
 
 
-def get_hid_var_resp(model, task, trials, num_repeats = 10): 
+def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None): 
     model.eval()
     with torch.no_grad(): 
         num_trials = trials.inputs.shape[0]
         total_neuron_response = np.empty((num_repeats, num_trials, 120, 128))
         for i in range(num_repeats): 
-            task_info = model.get_task_info(num_trials, task)
+            if task_info is None: task_info = model.get_task_info(num_trials, task)
             _, hid = model(task_info, torch.Tensor(trials.inputs).to(model.__device__))
             hid = hid.cpu().numpy()
             total_neuron_response[i, :, :, :] = hid
