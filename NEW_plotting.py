@@ -1,3 +1,4 @@
+from numpy.core.fromnumeric import size
 from model_analysis import get_hid_var_resp
 from task import Task, make_test_trials
 task_list = Task.TASK_LIST
@@ -11,7 +12,7 @@ import matplotlib.pyplot as plt
 import itertools
 import seaborn as sns
 import matplotlib.patches as mpatches
-from matplotlib import colors, cm 
+from matplotlib import colors, cm, markers 
 from matplotlib.lines import Line2D
 from matplotlib import rc
 
@@ -103,18 +104,6 @@ def plot_avg_seed_holdout(foldername, model_list, train_data_type, seed, smoothi
 # plot_avg_seed_holdout('_ReLU128_14.6/single_holdouts/', model_list, 'correct', 2, smoothing = 0.01)
 # plot_single_seed_holdout('_ReLU128_14.6/single_holdouts/', model_list, 'correct', 2, smoothing = 0.01)
 
-from trainer import ALL_MODEL_PARAMS, config_model_training
-from model_analysis import get_model_performance
-all_model_perf_dict = {}
-for key in list(ALL_MODEL_PARAMS.keys())[:-1]: 
-    print(key)
-    model, _, _, _ = config_model_training(key, 2)
-    model.load_model('_ReLU128_14.6/single_holdouts/Go')
-    model.instruct_mode = 'validation'
-    perf_dict = get_model_performance(model, 3)
-    all_model_perf_dict[key] = perf_dict
-
-
 def plot_trained_performance(all_perf_dict):
     barWidth = 0.15
     for i, item in enumerate(all_perf_dict.items()):  
@@ -140,7 +129,7 @@ def plot_trained_performance(all_perf_dict):
     plt.xticks([r + barWidth+0.25 for r in range(len_values)], task_list)
     plt.tight_layout()
     Patches = [(Line2D([0], [0], linestyle='None', marker=MODEL_STYLE_DICT[model_name][1], color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
-                markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(all_model_perf_dict.keys())[:-1]]
+                markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(all_perf_dict.keys())[:-1]]
     Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['bowNet'][0], label='bowNet'))
     plt.legend(handles=Patches)
     plt.show()
@@ -253,20 +242,155 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod):
 model_list = list(MODEL_STYLE_DICT.keys())[0:3] + list(MODEL_STYLE_DICT.keys())[4:]
 model_list
 
-# from task import make_test_trials
-# from model_analysis import get_hid_var_resp
+from task import make_test_trials
+from model_analysis import get_hid_var_resp
 
-# from rnn_models import InstructNet, SimpleNet
-# from nlp_models import SBERT, BERT
-# from data import TaskDataSet
-# from utils import train_instruct_dict
-# import torch
-# from model_analysis import get_instruct_reps, get_hid_var_resp, get_task_reps, reduce_rep
+from rnn_models import InstructNet, SimpleNet
+from nlp_models import SBERT, BERT
+from data import TaskDataSet
+from utils import train_instruct_dict
+import torch
+from model_analysis import get_instruct_reps, get_hid_var_resp, get_task_reps, reduce_rep
+from utils import train_instruct_dict
+from mpl_toolkits.mplot3d import Axes3D
+
+model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
+#model = SimpleNet(128, 1)
+model.model_name+='_seed2'
+
+model.load_model('_ReLU128_14.6/single_holdouts/Anti_DM')
+#model.to(torch.device(0))
 
 
-# model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
-# model = SimpleNet(128, 1)
-# model.model_name+='_seed2'
+task_group_hid_traj = np.empty((4, 15, 120, 128))
+for i, task in enumerate(task_group_dict['Go']): 
+    if 'RT' in task: 
+        trials, vars = make_test_trials('RT Go', 'direction', 1, num_trials=1)
+    else: 
+        trials, vars = make_test_trials('Go', 'direction', 1, num_trials=1)
+    for j, instruct in enumerate(train_instruct_dict[task]): 
+        _, hid_mean = get_hid_var_resp(model, task, trials, num_repeats=5, task_info=[instruct])
+        task_group_hid_traj[i, j,  ...] = np.squeeze(hid_mean)
 
-# model.load_model('_ReLU128_14.6/single_holdouts/Anti_DM')
-# model.to(torch.device(0))
+
+task_group_hid_traj = np.empty((4, 15, 120, 128))
+
+for i, task in enumerate(task_group_dict['DM']): 
+    if 'Multi' in task: 
+        trials, vars = make_test_trials('MultiDM', 'diff_strength', 1, num_trials=1)
+    else: 
+        trials, vars = make_test_trials('DM', 'diff_strength', 1, num_trials=1)
+    for j, instruct in enumerate(train_instruct_dict[task]): 
+        _, hid_mean = get_hid_var_resp(model, task, trials, num_repeats=5, task_info=[instruct])
+        task_group_hid_traj[i, j,  ...] = np.squeeze(hid_mean)
+
+trials, vars = make_test_trials('MultiDM', 'diff_strength', 1, num_trials=1)
+trials, vars = make_test_trials('DM', 'diff_strength', 1, num_trials=1)
+
+trials.plot_trial(0)
+
+
+trial_epoch_size = 100
+
+task_group = 'DM'
+
+from sklearn.decomposition import PCA
+embedder = PCA(n_components=3)
+
+embedded = embedder.fit_transform(task_group_hid_traj.reshape(-1, 128)).reshape(4, 15, 120, 3)
+
+
+
+alphas = np.linspace(0.5, 1.0, num=120)
+
+fig = plt.figure(figsize=(8, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+
+for i in range(4):
+    for instruct_index in range(15): 
+        ax.scatter(embedded[i, instruct_index, :, 0], embedded[i, instruct_index, :, 1], embedded[i, instruct_index, :,2], color = task_colors[list(task_group_dict[task_group])[i]], s=10, alpha=alphas)
+        ax.scatter(embedded[i, instruct_index, 0, 0], embedded[i, instruct_index, 0, 1], embedded[i, instruct_index, 0,2],  s = trial_epoch_size, color='white', edgecolor= task_colors[list(task_group_dict[task_group])[i]], marker='*')
+        ax.scatter(embedded[i, instruct_index, 119, 0], embedded[i, instruct_index, 119, 1], embedded[i, instruct_index, 119,2],  s = trial_epoch_size, color='white', edgecolor= task_colors[list(task_group_dict[task_group])[i]], marker='o')
+
+        #if i%2 == 0: 
+        ax.scatter(embedded[i, instruct_index, 19, 0], embedded[i, instruct_index, 19, 1], embedded[i, instruct_index, 19,2], s=trial_epoch_size, color='white', edgecolor= task_colors[list(task_group_dict[task_group])[i]], marker = 'X')
+        ax.scatter(embedded[i, instruct_index, 99, 0], embedded[i, instruct_index, 99, 1], embedded[i, instruct_index, 99,2], s=trial_epoch_size, color='white', edgecolor= task_colors[list(task_group_dict[task_group])[i]], marker = 'P')
+        # else: 
+        #     ax.scatter(embedded[i, instruct_index, 99, 0], embedded[i, instruct_index, 99, 1], embedded[i, instruct_index, 99,2],  s=trial_epoch_size, color='white', edgecolor= task_colors[list(task_group_dict['Go'])[i]], marker = 'X')
+        #     ax.scatter(embedded[i, instruct_index, 99, 0], embedded[i, instruct_index, 99, 1], embedded[i, instruct_index, 99,2],  s=trial_epoch_size, color='white', edgecolor= task_colors[list(task_group_dict['Go'])[i]], marker = 'P')
+
+ax.set_xlabel('PC 1')
+ax.set_ylabel('PC 2')
+ax.set_zlabel('PC 3')
+ax.set_zlim(-6, 6)
+
+marker_list = [('*', 'Start'), ('X', 'Stim. Onset'), ('P', 'Resp.'), ('o', 'End')]
+marker_patches = [(Line2D([0], [0], linestyle='None', marker=marker[0], color='grey', label=marker[1], 
+                markerfacecolor='white', markersize=8)) for marker in marker_list]
+Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in task_group_dict['DM']]
+plt.legend(handles=Patches+marker_patches, fontsize = 'x-small')
+
+plt.show()
+
+
+
+
+
+
+
+
+from dPCA import dPCA
+
+
+
+trials, var_of_insterest = make_test_trials('DM', 'diff_strength', 0, num_trials=1)
+var_of_insterest
+hid_resp, mean_hid_resp = get_hid_var_resp(model, 'DM', trials, num_repeats=3)
+
+# # trial-average data
+# R = mean(trialR,0)
+
+# # center data
+# R -= mean(R.reshape((N,-1)),1)[:,None,None]
+
+reshape_mean_hid_resp = mean_hid_resp.T.swapaxes(-1, 1)
+reshape_hid_resp = hid_resp.swapaxes(1, 2).swapaxes(-1, 1)
+
+np.expand_dims(reshape_mean_hid_resp, -1).shape
+
+#reshape_mean_hid_resp -= np.mean(mean_hid_resp.reshape((128, -1)), 1)[:, None, None]
+
+dpca = dPCA.dPCA(labels='std',regularizer='auto')
+dpca.protect = ['t']
+
+Z = dpca.fit_transform(np.expand_dims(reshape_mean_hid_resp, -1), np.expand_dims(reshape_hid_resp, -1))
+
+
+time = np.arange(120)
+
+plt.figure(figsize=(16,7))
+plt.subplot(131)
+
+for s in range(6):
+    plt.plot(time,Z['st'][0,s])
+
+plt.title('1st mixing component')
+
+plt.subplot(132)
+
+for s in range(6):
+    plt.plot(time,Z['t'][0,s])
+
+plt.title('1st time component')
+    
+plt.subplot(133)
+for s in range(6):
+    plt.plot(time,Z['s'][0,s])
+
+plt.title('1st Decision Variable component')
+    
+
+plt.figlegend(['delta'+ str(num) for num in np.round(var_of_insterest, 2)], loc=5)
+
+plt.show()

@@ -104,19 +104,20 @@ def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_14.6/sing
         return correct_perf, loss_perf
 
 
-def train_context(model, holdouts_test, epochs, foldername = '_ReLU128_14.6/single_holdouts', save=False, context_dim = 20): 
-    holdout_file = holdouts_test.replace(' ', '_')
-    data_streamer =  TaskDataSet(batch_len=128, num_batches=250, task_ratio_dict={holdouts_test:1})
-    data_streamer.data_to_device(model.__device__)
+def train_context(model, data_streamer, epochs, holdout_load, foldername = '_ReLU128_14.6/single_holdouts', save=False, context_dim = 20): 
+    holdout_file = holdout_load.replace(' ', '_')
+    # data_streamer =  TaskDataSet(batch_len=128, num_batches=250, task_ratio_dict={holdouts_test:1})
+    # data_streamer.data_to_device(model.__device__)
     model.load_model(foldername +'/'+holdout_file)
     model.freeze_weights()
 
     context = nn.Parameter(torch.empty(1, 1, context_dim))
     torch.nn.init.normal_(context)
-    opt= optim.Adam([context], lr=0.01)
-    sch = optim.lr_scheduler.MultiStepLR(opt, milestones=[epochs-1], gamma=0.1)
+    opt= optim.Adam([context], lr=0.01, weight_decay=0.005)
+    sch = optim.lr_scheduler.MultiStepLR(opt, milestones=[epochs-1, epochs-2], gamma=0.2)
 
     for i in range(epochs): 
+        print('epoch', i)
         data_streamer.shuffle_stream_order()
         for j, data in enumerate(data_streamer.stream_batch()): 
             
@@ -144,10 +145,48 @@ def train_context(model, holdouts_test, epochs, foldername = '_ReLU128_14.6/sing
                 print(j, ':', model.model_name, ":", "{:.2e}".format(loss.item()))
                 print('Frac Correct ' + str(frac_correct) + '\n')
         sch.step()
+    
+    return context.detach().cpu().numpy()
 
-    return context
 
 
+from rnn_models import InstructNet, SimpleNet
+from nlp_models import SBERT, BERT
+from data import TaskDataSet
+from utils import train_instruct_dict
+from data import TaskDataSet
+
+model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
+#model = SimpleNet(128, 1)
+model.model_name+='_seed2'
+
+model.load_model('_ReLU128_14.6/single_holdouts/Go')
+model.to(torch.device(0))
+
+data_streamer = TaskDataSet(task_ratio_dict={'DM':1}, num_batches=500)
+data_streamer.data_to_device(device)
+
+from model_analysis import get_instruct_reps, get_task_reps, get_instruct_reps 
+from utils import train_instruct_dict
+
+reps = get_instruct_reps(model.langModel, train_instruct_dict)
+reps[4, ...]
+
+contexts = np.empty((50, 20))
+for i in range(50): 
+    contexts[i, :] = train_context(model, data_streamer, 3, 'Go')
+
+np.mean(reps[4, :, :], axis=0)
+np.mean(contexts, axis=0)
+
+avg_reps = np.mean(reps, axis=1)
+avg_reps[4] = np.mean(contexts, axis=0)
+
+from NEW_plotting import plot_rep_scatter
+
+np.expand_dims(avg_reps, axis=1)
+
+import seaborn as sns
 
 
 training_lists_dict={
@@ -243,7 +282,8 @@ def config_model_training(key, seed):
 #     correct_perf, loss_perf = test_model(model, task, save=False)
 #     pickle.dump(correct_perf, open(foldername + '/' + model.model_name+'frozen_holdout_correct', 'wb'))
 #     pickle.dump(loss_perf, open(foldername + '/' + model.model_name+'frozen_holdout_loss', 'wb'))
-
+# import pickle
+# pickle.dump((0, 'Anti DM', 'simpleNet'), open('_ReLU128_14.6/single_holdouts/logged_train_checkpoint', 'wb'))
 
 if __name__ == "__main__":
 
@@ -287,8 +327,8 @@ if __name__ == "__main__":
             train_model(model, data, epochs, opt, sch)
 
             #save
-            torch.save(model.state_dict(), '_ReLU128_14.6/single_holdouts/'+holdout_file+'/'+model.model_name+'.pt')
-            model.save_training_data(holdout_file, '_ReLU128_14.6/single_holdouts/', model.model_name)
+            model.save_model('_ReLU128_14.6/single_holdouts/'+holdout_file)
+            model.save_training_data('_ReLU128_14.6/single_holdouts/'+holdout_file)
             pickle.dump(cur_train, open('_ReLU128_14.6/single_holdouts/logged_train_checkpoint', 'wb'))
 
             #to check if you should make new data 
