@@ -144,7 +144,7 @@ def train_context(model, data_streamer, epochs, holdout_load, foldername = '_ReL
 
 
 training_lists_dict={
-'single_holdouts' : Task.TASK_LIST.copy() + 'Multitask',
+'single_holdouts' : Task.TASK_LIST.copy() + ['Multitask'],
 'dual_holdouts' : [['RT Go', 'Anti Go'], ['Anti MultiDM', 'DM'], ['COMP1', 'MultiCOMP2'], ['DMC', 'DNMS']],
 'aligned_holdouts' : [['Anti DM', 'Anti MultiDM'], ['COMP1', 'MultiCOMP1'], ['DMS', 'DNMS'],['Go', 'RT Go']],
 'swap_holdouts' : [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['RT Go', 'COMP1']]
@@ -197,12 +197,12 @@ ALL_MODEL_PARAMS = {
                 'langModel': BoW,
                 'langModel_params': {'out_dim': None}, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-                'epochs': 30
+                'epochs': 25
                 },
 
     'simpleNet': {'model': SimpleNet, 
                 'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25]},
-                'epochs': 30
+                'epochs': 25
                 }
 }
 
@@ -229,7 +229,7 @@ if __name__ == "__main__":
     data = None
     for cur_train in to_train:      
         #get the seed, holdout task, and model to train 
-        seed_num, holdouts, model_params_key = cur_train
+        seed_num, model_params_key, holdouts = cur_train
 
         #checkpoint the model training 
 
@@ -241,8 +241,7 @@ if __name__ == "__main__":
         #build model from params 
 
         try: 
-            pickle.load(open('_ReLU128_2.7/single_holdouts/'+holdout_file+'/'+model_params_key+'_seed'+str(seed_num)+'_training_loss', 'rb'))
-
+            pickle.load(open('_ReLU128_2.7/single_holdouts/'+holdout_file+'/'+model_params_key+'/seed'+str(seed_num)+'_training_loss', 'rb'))
             print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
 
             last_holdouts = holdouts
@@ -253,8 +252,8 @@ if __name__ == "__main__":
             if holdouts == last_holdouts and data is not None: 
                 pass 
             else: 
-                if holdouts == 'Multitask': data = TaskDataSet()
-                else: data = TaskDataSet(holdouts=[holdouts])
+                if holdouts == 'Multitask': data = TaskDataSet(data_folder= '_ReLU128_2.7/training_data')
+                else: data = TaskDataSet(data_folder= '_ReLU128_2.7/training_data', holdouts=[holdouts])
                 data.data_to_device(device)
 
             model, opt, sch, epochs = config_model_training(model_params_key, seed_num)

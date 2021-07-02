@@ -6,7 +6,7 @@ default_task_dict = dict.fromkeys(Task.TASK_LIST, 1/len(Task.TASK_LIST))
 
 
 class TaskDataSet(): 
-    def __init__(self, data_folder = 'training_data', batch_len=128, num_batches=500, task_ratio_dict = None, holdouts=[]): 
+    def __init__(self, data_folder, batch_len=128, num_batches=500, task_ratio_dict = None, holdouts=[]): 
         __len__ = num_batches
         self.batch_len = batch_len
         self.num_batches = num_batches
