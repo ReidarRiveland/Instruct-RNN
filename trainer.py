@@ -206,13 +206,14 @@ ALL_MODEL_PARAMS = {
                 }
 }
 
-def config_model_training(key, seed): 
+def config_model_training(key): 
     params = ALL_MODEL_PARAMS[key]
+
     if params['model'] is InstructNet:
         model = params['model'](params['langModel'](**params['langModel_params']), 128, 1, torch.relu)
     else:
         model = params['model'](128, 1, torch.relu)
-    model.model_name += ('_seed' + str(seed))
+
     opt, sch = init_optimizer(model, **params['opt_params'])
     epochs = params['epochs']
 
@@ -256,7 +257,8 @@ if __name__ == "__main__":
                 else: data = TaskDataSet(data_folder= '_ReLU128_2.7/training_data', holdouts=[holdouts])
                 data.data_to_device(device)
 
-            model, opt, sch, epochs = config_model_training(model_params_key, seed_num)
+            model, opt, sch, epochs = config_model_training(model_params_key)
+            model.seed_num_str = 'seed'+str(seed_num)
             model.to(device)
 
             #train 
