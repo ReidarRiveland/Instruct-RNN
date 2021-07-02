@@ -196,7 +196,6 @@ class Task():
                 ax.set_xlabel('time')
         plt.show()
 
-
 class Go(Task): 
     def __init__(self, task_type, num_trials, intervals=None, conditions_arr =None, sigma_in=0.05):
         super().__init__(num_trials, intervals, sigma_in)
@@ -471,6 +470,17 @@ def construct_batch(task_type, num):
         trial = Delay('DNMC', num)
     return (trial.inputs.astype(np.float32), trial.targets.astype(np.float32), trial.masks.astype(int), trial.target_dirs.astype(np.float32), Task.TASK_LIST.index(task_type))
 
+def build_training_data(foldername):
+    for task in Task.TASK_LIST: 
+        print(task)
+        task_file = task.replace(' ', '_')
+        input_data, target_data, masks_data, target_dirs, trial_indices = construct_batch(task, 8000)
+        np.save(foldername+'/training_data/' + task_file+'/input_data', input_data)
+        np.save(foldername+'/training_data/' + task_file+'/target_data', target_data)
+        np.save(foldername+'/training_data/' + task_file+'/masks_data', masks_data)
+        np.save(foldername+'/training_data/' + task_file+'/target_dirs', target_dirs)
+        np.save(foldername+'/training_data/' + task_file+'/type_indices', trial_indices)
+
 def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0.05): 
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
 
@@ -502,14 +512,12 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
         strengths = np.array([[1] * num_trials, [1.2] * num_trials])
         var_of_interest = diff_directions
 
-
     if task_type in Task.TASK_GROUP_DICT['Go']:
         conditions_arr[mod, 0, 0, :] = directions
         conditions_arr[mod, 0, 1, :] = strengths
         conditions_arr[mod, 1, 0, :] = np.NaN
         conditions_arr[((mod+1)%2), :, :, :] = np.NaN
         trials = Go(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr, sigma_in=sigma_in)
-
 
     if task_type in Task.TASK_GROUP_DICT['DM'] or task_type in Task.TASK_GROUP_DICT['COMP']:
         assert task_variable not in ['directions', 'strengths']
@@ -526,4 +534,5 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
         if 'COMP' in task_type: 
             trials = Comp(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr, sigma_in=sigma_in)
     return trials, var_of_interest
+
 
