@@ -2,12 +2,14 @@ import torch
 import numpy as np
 from torch.nn.modules import transformer
 
-from task import Task
+from task import Task, construct_batch, make_test_trials
 from data import TaskDataSet
-from utils import isCorrect
+from utils import isCorrect, train_instruct_dict
 from data import TaskDataSet
 
 task_list = Task.TASK_LIST
+task_group_dict = Task.TASK_GROUP_DICT
+
 
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -22,10 +24,11 @@ def get_model_performance(model, num_batches):
             print(task)
             mean_list = [] 
             for _ in range(num_batches): 
-                ins, targets, _, target_dirs, _ = next(TaskDataSet(num_batches=1, task_ratio_dict={task:1}).stream_batch())
+                #ins, targets, _, target_dirs, _ = next(TaskDataSet(num_batches=1, task_ratio_dict={task:1}).stream_batch())
+                ins, targets, _, target_dirs, _ = construct_batch(task, batch_len)
                 task_info = model.get_task_info(batch_len, task)
-                out, _ = model(task_info, ins.to(model.__device__))
-                mean_list.append(np.mean(isCorrect(out, targets, target_dirs)))
+                out, _ = model(task_info, torch.Tensor(ins).to(model.__device__))
+                mean_list.append(np.mean(isCorrect(out, torch.Tensor(targets), target_dirs)))
             perf_dict[task] = np.mean(mean_list)
     return perf_dict 
 
@@ -73,12 +76,26 @@ def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None):
         num_trials = trials.inputs.shape[0]
         total_neuron_response = np.empty((num_repeats, num_trials, 120, 128))
         for i in range(num_repeats): 
-            if task_info is None: task_info = model.get_task_info(num_trials, task)
+            if task_info is None or 'simpleNet' in model.model_name: task_info = model.get_task_info(num_trials, task)
             _, hid = model(task_info, torch.Tensor(trials.inputs).to(model.__device__))
             hid = hid.cpu().numpy()
             total_neuron_response[i, :, :, :] = hid
         mean_neural_response = np.mean(total_neuron_response, axis=0)
     return total_neuron_response, mean_neural_response
+
+
+def get_hid_var_group_resp(model, task_group, var_of_insterest, mod=0, num_trials=1, sigma_in = 0.05): 
+    if task_group == 'Go': assert var_of_insterest in ['direction', 'strength']
+    if task_group == 'DM': assert var_of_insterest in ['diff_direction', 'diff_strength']
+    task_group_hid_traj = np.empty((4, 15, num_trials, 120, 128))
+    for i, task in enumerate(task_group_dict[task_group]): 
+        trials, vars = make_test_trials(task, var_of_insterest, mod, num_trials=num_trials, sigma_in=sigma_in)
+        print(task)
+        for j, instruct in enumerate(train_instruct_dict[task]): 
+            print(instruct)
+            _, hid_mean = get_hid_var_resp(model, task, trials, num_repeats=3, task_info=[instruct]*num_trials)
+            task_group_hid_traj[i, j,  ...] = hid_mean
+    return task_group_hid_traj
 
 def reduce_rep(reps, dim=2, reduction_method='PCA'): 
     if reduction_method == 'PCA': 
@@ -95,75 +112,4 @@ def reduce_rep(reps, dim=2, reduction_method='PCA'):
 
     return embedded.reshape(16, reps.shape[1], dim), explained_variance
 
-
-
-if __name__ == "__main__":
-
-
-
-    #tasks_to_plot = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2']
-
-
-    from sklearn.metrics.pairwise import cosine_similarity
-    import seaborn as sns
-
-    from rnn_models import InstructNet, SimpleNet
-    from nlp_models import SBERT, BERT
-    from data import TaskDataSet
-    from utils import train_instruct_dict
-
-
-    model = InstructNet(BERT(20, train_layers=['11']), 128, 1)
-    #model = SimpleNet(128, 1)
-    model.model_name+='_seed2'
-
-    model.load_model('_ReLU128_14.6/single_holdouts/Go')
-    model.to(torch.device(0))
-
-    model.instruct_mode='validation'
-
-    s_bert_model_perf 
-    bert_model_perf = get_model_performance(model, 5)
-
-
-    bert_model_perf
-
-    s_bert_reps = get_task_reps(model)
-    instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict)
-
-
-    #reps = get_task_reps(model)
-    reps_reduced, var_explained = reduce_rep(reps, reduction_method='PCA')
-
-    plot_RDM(np.mean(instruct_reps, axis=1), cmap=sns.color_palette("rocket_r", as_cmap=True))
-
-
-    # from utils import train_instruct_dict
-    # instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict)
-
-    # cmap = matplotlib.cm.get_cmap('tab20')
-    # Patches = []
-    # if dim ==3: 
-    #     fig = plt.figure()
-    #     ax = fig.add_subplot(111, projection='3d')
-    #     scatter = [to_plot[:, 0], to_plot[:, 1], to_plot[:,2], cmap(task_indices), cmap, marker_size]
-    #     ax.scatter(to_plot[:, 0], to_plot[:, 1], to_plot[:,2], c = cmap(task_indices), cmap=cmap, s=marker_size)
-    #     ax.set_xlabel('PC 1')
-    #     ax.set_ylabel('PC 2')
-    #     ax.set_zlabel('PC 3')
-
-
-
-    # for 
-
-
-    # #plt.suptitle(r"$\textbf{PCA Embedding for Task Representation$", fontsize=18)
-    # plt.title(Title)
-    # digits = np.arange(len(tasks))
-    # plt.tight_layout()
-    # Patches = [mpatches.Patch(color=cmap(d), label=task_list[d]) for d in set(task_indices)]
-    # scatter.append(Patches)
-    # plt.legend(handles=Patches)
-    # #plt.show()
-    # return explained_variance, scatter
 

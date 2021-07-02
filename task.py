@@ -1,11 +1,13 @@
+from numpy.core.fromnumeric import argmax
+from numpy.lib.twodim_base import tri
 import numpy as np
 
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-def add_noise(array):
-    noise = np.sqrt(2/Task.DELTA_T)*(Task.SIGMA_IN) * np.random.normal(size=array.shape)
+def add_noise(array, sigma):
+    noise = np.sqrt(2/Task.DELTA_T)*(sigma) * np.random.normal(size=array.shape)
     return array+noise
 
 def _draw_ortho_dirs(): 
@@ -16,15 +18,19 @@ def _draw_ortho_dirs():
 class Task():
     TASK_LIST = ['Go', 'RT Go', 'Anti Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']
     SHUFFLED_TASK_LIST = ['MultiCOMP2', 'RT Go', 'COMP2', 'DNMS', 'Anti Go', 'COMP1', 'DNMC', 'Anti DM', 'MultiCOMP1', 'Anti MultiDM', 'MultiDM', 'DM', 'Anti RT Go', 'DMC', 'DMS', 'Go']
+    TASK_GROUP_DICT = {'Go': ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'],
+                'DM': ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'], 
+                'COMP': ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'],
+                'Delay': ['DMS', 'DNMS', 'DMC', 'DNMC']}
     STIM_DIM = 32
     TUNING_DIRS = [((2*np.pi*i)/32) for i in range(STIM_DIM)]
     TRIAL_LEN = int(120)
     INPUT_DIM = 1 + STIM_DIM*2
     OUTPUT_DIM = STIM_DIM + 1
-    SIGMA_IN = 0.05
     DELTA_T = 20
 
-    def __init__(self, num_trials, intervals): 
+    def __init__(self, num_trials, intervals, sigma_in): 
+        self.sigma_in = sigma_in
         self.num_trials = num_trials
         self.intervals = np.empty((num_trials, 5), dtype=tuple)
         self.null_stim = np.zeros((self.num_trials, self.STIM_DIM*2))
@@ -116,13 +122,13 @@ class Task():
             input_activity_vecs = np.array([np.concatenate((fix, self.null_stim), 1), np.concatenate((fix, stim1+stim2), 1), np.concatenate((fix, stim1+stim2), 1),  
                                 np.concatenate((fix, stim1+stim2), 1), np.concatenate((no_fix, self.null_stim), 1)])
         elif 'COMP' in task_type:
-            input_activity_vecs = np.array([np.concatenate((fix, self.null_stim), 1), np.concatenate((fix, stim1), 1), np.concatenate((fix, stim1+stim2), 1),  
+            input_activity_vecs = np.array([np.concatenate((fix, self.null_stim), 1), np.concatenate((fix, stim1), 1), np.concatenate((fix, self.null_stim), 1),  
                                 np.concatenate((fix, stim2), 1), np.concatenate((no_fix, self.null_stim), 1)])
         else: 
             input_activity_vecs = np.array([np.concatenate((fix, self.null_stim), 1), np.concatenate((fix, stim1), 1), np.concatenate((fix, self.null_stim), 1),  
                                 np.concatenate((fix, stim2), 1), np.concatenate((no_fix, self.null_stim), 1)])
         
-        return add_noise(self._expand_along_intervals(self.intervals, input_activity_vecs))
+        return add_noise(self._expand_along_intervals(self.intervals, input_activity_vecs), self.sigma_in)
         
     def _get_loss_mask(self) -> np.ndarray: 
         '''
@@ -192,8 +198,8 @@ class Task():
 
 
 class Go(Task): 
-    def __init__(self, task_type, num_trials, intervals=None, conditions_arr =None):
-        super().__init__(num_trials, intervals)
+    def __init__(self, task_type, num_trials, intervals=None, conditions_arr =None, sigma_in=0.05):
+        super().__init__(num_trials, intervals, sigma_in)
         assert task_type in ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'], "entered invalid task_type: %r" %task_type
         self.task_type = task_type
 
@@ -226,59 +232,82 @@ class Go(Task):
         self._plot_trial(trial_ins, trial_tars, self.task_type)
 
 class Comp(Task):
-    def __init__(self, task_type, num_trials, intervals=None): 
-        super().__init__(num_trials, intervals)
+    def __init__(self, task_type, num_trials, intervals=None, conditions_arr = None, sigma_in=0.05): 
+        super().__init__(num_trials, intervals, sigma_in)
         assert task_type in ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'], "entered invalid task type: %r" %task_type
         self.task_type = task_type
 
-        #mod, stim, dir_strengths, num_trials
-        self.conditions_arr = np.empty((2, 2, 2, num_trials))
-        self.target_dirs = np.empty(num_trials)
-        
-        if num_trials >1: 
-            requires_response_list = list(np.random.permutation([True]*int(num_trials/2) + [False] * int(num_trials/2)))
+        if conditions_arr is None: 
+            #mod, stim, dir_strengths, num_trials
+            self.conditions_arr = np.empty((2, 2, 2, num_trials))
+            self.target_dirs = np.empty(num_trials)
+            
+            if num_trials >1: 
+                requires_response_list = list(np.random.permutation([True]*int(num_trials/2) + [False] * int(num_trials/2)))
+            else: 
+                requires_response_list = [np.random.choice([True, False])]
+
+            for i in range(num_trials): 
+                directions = _draw_ortho_dirs()
+                requires_response = requires_response_list.pop()
+
+                if requires_response and 'COMP1' in self.task_type:
+                    self.target_dirs[i] = directions[0]
+                elif requires_response and 'COMP2' in self.task_type: 
+                    self.target_dirs[i] = directions[1]
+                else: 
+                    self.target_dirs[i] = None
+
+                
+                if 'Multi' in self.task_type: 
+                    base_strength = np.random.uniform(1.3, 1.5, size=2)
+                    redraw = True
+                    while redraw: 
+                        coh = np.random.choice([-0.15, -0.1, -0.05, 0.05, 0.1, 0.15], size=2, replace=False)
+                        if coh[0] != -1*coh[1]: 
+                            redraw = False
+                    
+                    tmp_strengths = np.array([base_strength + coh, base_strength - coh]).T
+                    positive_index = argmax(np.sum(tmp_strengths, axis=0))
+                    positive_strength = tmp_strengths[:, positive_index]
+                    negative_strength = tmp_strengths[:, (positive_index+1)%2]
+
+                else: 
+                    base_strength = np.random.uniform(1.3, 1.5)
+                    coh = np.random.choice([0.1, 0.15, 0.2])
+                    positive_strength = base_strength + coh
+                    negative_strength = base_strength - coh
+
+                if ('COMP1' in self.task_type and requires_response) or ('COMP2' in self.task_type and not requires_response): 
+                    strengths = np.array([positive_strength, negative_strength])
+                elif ('COMP2' in self.task_type and requires_response) or ('COMP1' in self.task_type and not requires_response): 
+                    strengths = np.array([negative_strength, positive_strength])
+                
+                if 'Multi' in self.task_type: 
+                    self.conditions_arr[:, :, 0, i] = np.array([directions, directions])
+                    self.conditions_arr[:, :, 1, i] = strengths.T
+
+                else: 
+                    mod = np.random.choice([0, 1])
+                    self.conditions_arr[mod, :, 0, i] = np.array([directions])
+                    self.conditions_arr[mod, :, 1, i] = strengths
+                    self.conditions_arr[((mod+1)%2), :, :, i] = np.NaN
         else: 
-            requires_response_list = [np.random.choice([True, False])]
+            self.conditions_arr = conditions_arr
 
-        for i in range(num_trials): 
-            directions = _draw_ortho_dirs()
-            requires_response = requires_response_list.pop()
-
-            if requires_response and 'COMP1' in self.task_type:
-                self.target_dirs[i] = directions[0]
-            elif requires_response and 'COMP2' in self.task_type: 
-                self.target_dirs[i] = directions[1]
-            else: 
-                self.target_dirs[i] = None
-
-            
             if 'Multi' in self.task_type: 
-                base_strength = np.random.uniform(1.3, 1.5, size=2)
-                coh = np.random.choice([0.05, 0.1, 0.15], size=2)
-
-                positive_strength = base_strength + coh
-                negative_strength = base_strength - coh
+                directions_stim1, strength_stim1 = self.conditions_arr[0, 0, 0, :], self.conditions_arr[0, 0, 1, :]
+                directions_stim2, strength_stim2 = self.conditions_arr[0, 1, 0, :],  self.conditions_arr[0, 1, 1, :]
             else: 
-                base_strength = np.random.uniform(1.3, 1.5)
-                coh = np.random.choice([0.1, 0.15, 0.2])
-                positive_strength = base_strength + coh
-                negative_strength = base_strength - coh
+                directions_stim1, strength_stim1 = np.nansum(self.conditions_arr[:, 0, 0, :], axis=0), np.nansum(self.conditions_arr[:, 0, 1, :], axis=0)
+                directions_stim2, strength_stim2 = np.nansum(self.conditions_arr[:, 1, 0, :], axis=0), np.nansum(self.conditions_arr[:, 1, 1, :], axis=0)
 
-            if ('COMP1' in self.task_type and requires_response) or ('COMP2' in self.task_type and not requires_response): 
-                strengths = np.array([positive_strength, negative_strength])
-            elif ('COMP2' in self.task_type and requires_response) or ('COMP1' in self.task_type and not requires_response): 
-                strengths = np.array([negative_strength, positive_strength])
-            
-            if 'Multi' in self.task_type: 
-                self.conditions_arr[:, :, 0, i] = np.array([directions, directions])
-                self.conditions_arr[:, :, 1, i] = strengths.T
+            stim1_greater = strength_stim1 > strength_stim2
+            if 'COMP1' in self.task_type: 
+                self.target_dirs = np.where(stim1_greater, directions_stim1, np.full(self.num_trials, np.nan))
+            if 'COMP2' in self.task_type: 
+                self.target_dirs = np.where(np.logical_not(stim1_greater), directions_stim2, np.full(self.num_trials, np.nan))
 
-            else: 
-                mod = np.random.choice([0, 1])
-                self.conditions_arr[mod, :, 0, i] = np.array([directions])
-                self.conditions_arr[mod, :, 1, i] = strengths
-                self.conditions_arr[((mod+1)%2), :, :, i] = np.NaN
-        
         self.inputs = self._get_trial_inputs(self.task_type, self.conditions_arr)
         self.targets = self._get_trial_targets(self.target_dirs)
         self.masks = self._get_loss_mask()
@@ -289,8 +318,8 @@ class Comp(Task):
         self._plot_trial(trial_ins, trial_tars, self.task_type)
 
 class Delay(Task): 
-    def __init__(self, task_type, num_trials, intervals=None): 
-        super().__init__(num_trials, intervals)
+    def __init__(self, task_type, num_trials, intervals=None, sigma_in=0.05): 
+        super().__init__(num_trials, intervals, sigma_in)
         assert task_type in ['DMS', 'DNMS', 'DMC', 'DNMC'], "entered invalid task_type: %r" %task_type
         self.task_type = task_type
         self.stim_mod_arr = np.empty((2, 2, num_trials), dtype=tuple)
@@ -340,8 +369,8 @@ class Delay(Task):
         self._plot_trial(trial_ins, trial_tars, self.task_type)
 
 class DM(Task): 
-    def __init__(self, task_type, num_trials, intervals=None, conditions_arr =None):
-        super().__init__(num_trials, intervals)
+    def __init__(self, task_type, num_trials, intervals=None, conditions_arr =None, sigma_in=0.05):
+        super().__init__(num_trials, intervals, sigma_in)
         assert task_type in ['DM', 'MultiDM', 'Anti DM', 'Anti MultiDM'], "entered invalid task_type: %r" %task_type
         self.task_type = task_type
         self.mods = np.empty(num_trials, dtype=tuple)
@@ -361,7 +390,7 @@ class DM(Task):
                     redraw = True
                     while redraw: 
                         coh = np.random.choice([-0.15, -0.1, -0.05, 0.05, 0.1, 0.15], size=2, replace=False)
-                        if abs(coh[0]) != abs(coh[1]): 
+                        if coh[0] != -1*coh[1]: 
                             redraw = False
                     
                     strengths = np.array([base_strength + coh, base_strength - coh]).T
@@ -378,8 +407,7 @@ class DM(Task):
                     self.conditions_arr[mod, :, 0, i] = np.array(directions)
                     self.conditions_arr[mod, :, 1, i] = strengths
                     self.conditions_arr[((mod+1)%2), :, :, i] = np.NaN
-
-                    
+     
         else:
             self.conditions_arr= conditions_arr
 
@@ -443,13 +471,12 @@ def construct_batch(task_type, num):
         trial = Delay('DNMC', num)
     return (trial.inputs.astype(np.float32), trial.targets.astype(np.float32), trial.masks.astype(int), trial.target_dirs.astype(np.float32), Task.TASK_LIST.index(task_type))
 
-def make_test_trials(task_type, task_variable, mod, num_trials=100): 
+def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0.05): 
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
 
     conditions_arr = np.empty((2, 2, 2, num_trials))
     intervals = np.empty((num_trials, 5), dtype=tuple)
     for i in range(num_trials): intervals[i, :] = ((0, 20), (20, 60), (60, 80), (80, 100), (100, 120))
-
 
     if task_variable == 'direction': 
         directions = np.linspace(0, 2*np.pi, num=num_trials)
@@ -476,15 +503,15 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100):
         var_of_interest = diff_directions
 
 
-    if task_type in ['Go', 'Anti Go', 'RT Go', 'Anti RT Go']:
+    if task_type in Task.TASK_GROUP_DICT['Go']:
         conditions_arr[mod, 0, 0, :] = directions
         conditions_arr[mod, 0, 1, :] = strengths
         conditions_arr[mod, 1, 0, :] = np.NaN
         conditions_arr[((mod+1)%2), :, :, :] = np.NaN
-        trials = Go(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr)
+        trials = Go(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr, sigma_in=sigma_in)
 
 
-    if task_type in ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']:
+    if task_type in Task.TASK_GROUP_DICT['DM'] or task_type in Task.TASK_GROUP_DICT['COMP']:
         assert task_variable not in ['directions', 'strengths']
         conditions_arr[mod, :, 0, : ] = directions
         conditions_arr[mod, :, 1, : ] = strengths
@@ -494,6 +521,9 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100):
         else: 
             conditions_arr[((mod+1)%2), :, :, : ] = np.NaN
 
-        trials = DM(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr)
-
+        if 'DM' in task_type: 
+            trials = DM(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr, sigma_in=sigma_in)
+        if 'COMP' in task_type: 
+            trials = Comp(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr, sigma_in=sigma_in)
     return trials, var_of_interest
+

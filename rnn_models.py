@@ -23,6 +23,7 @@ class BaseNet(nn.Module):
         self.activ_func = activ_func
         self._loss_data_dict = defaultdict(list)
         self._correct_data_dict = defaultdict(list)
+        self.seed_num_str = ''
 
         if self.activ_func is not 'elman': 
             self.recurrent_units = CustomGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
@@ -67,18 +68,18 @@ class BaseNet(nn.Module):
         return df_correct, df_loss
 
     def save_training_data(self, foldername): 
-        pickle.dump(self._correct_data_dict, open(foldername+'/'+self.model_name+'_training_correct', 'wb'))
-        pickle.dump(self._loss_data_dict, open(foldername+'/'+self.model_name+'_training_loss', 'wb'))
+        pickle.dump(self._correct_data_dict, open(foldername+'/'+self.model_name+'/'+self.seed_num_str+'_training_correct', 'wb'))
+        pickle.dump(self._loss_data_dict, open(foldername+'/'+self.model_name+'/'+self.seed_num_str+'_training_loss', 'wb'))
 
     def save_model(self, foldername): 
-        torch.save(self.state_dict(), foldername+'/'+self.model_name+'.pt')
+        torch.save(self.state_dict(), foldername+'/'+self.model_name+'/'+self.seed_num_str+'_'+self.model_name+'.pt')
 
     def load_training_data(self, foldername): 
-        self._correct_data_dict = pickle.load(open(foldername+'/'+self.model_name+'_training_correct', 'rb'))
-        self._loss_data_dict = pickle.load(open(foldername+'/'+self.model_name+'_training_loss', 'rb'))
+        self._correct_data_dict = pickle.load(open(foldername+'/'+self.model_name+'/'+self.seed_num_str+'_training_correct', 'rb'))
+        self._loss_data_dict = pickle.load(open(foldername+'/'+self.model_name+'/'+self.seed_num_str+'_training_loss', 'rb'))
 
     def load_model(self, foldername): 
-        self.load_state_dict(torch.load(foldername+'/'+self.model_name+'.pt'))
+        self.load_state_dict(torch.load(foldername+'/'+self.model_name+'/'+self.seed_num_str+'_'+self.model_name+'.pt'))
 
 
 class SimpleNet(BaseNet):

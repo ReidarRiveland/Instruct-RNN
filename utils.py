@@ -115,6 +115,11 @@ def get_instructions(batch_size, task_type, instruct_mode):
 
         return list(instructs)
 
+def two_line_instruct(instruct): 
+    split_instruct = instruct.split()
+    split_instruct.insert(int(np.ceil(len(split_instruct)/2)), '\n')
+    return ' '.join(split_instruct)
+
 
 def one_hot_input_rule(batch_size, task_type, shuffled=False): 
     if shuffled: index = Task.SHUFFLED_TASK_LIST.index(task_type) 

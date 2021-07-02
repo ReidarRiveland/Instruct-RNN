@@ -120,20 +120,14 @@ def train_context(model, data_streamer, epochs, holdout_load, foldername = '_ReL
         print('epoch', i)
         data_streamer.shuffle_stream_order()
         for j, data in enumerate(data_streamer.stream_batch()): 
-            
+
             ins, tar, mask, tar_dir, task_type = data
-            
+
             opt.zero_grad()
-
-            context_block = context.repeat(128, 120, 1).to(device)
-            rnn_ins = torch.cat((context_block, ins.type(torch.float32)), 2)
-            h0 = model.__initHidden__(128, 0.1)
-            rnn_hid, _ = model.recurrent_units(rnn_ins, h0)
-            out = model.sensory_motor_outs(rnn_hid)
-
+            batch_context = context.repeat(ins.shape[0], 1).to(device)
+            out, _ = super(type(model), model).forward(batch_context, ins)
             loss = masked_MSE_Loss(out, tar, mask) 
             loss.backward()
-
 
             opt.step()
 
@@ -149,48 +143,8 @@ def train_context(model, data_streamer, epochs, holdout_load, foldername = '_ReL
     return context.detach().cpu().numpy()
 
 
-
-from rnn_models import InstructNet, SimpleNet
-from nlp_models import SBERT, BERT
-from data import TaskDataSet
-from utils import train_instruct_dict
-from data import TaskDataSet
-
-model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
-#model = SimpleNet(128, 1)
-model.model_name+='_seed2'
-
-model.load_model('_ReLU128_14.6/single_holdouts/Go')
-model.to(torch.device(0))
-
-data_streamer = TaskDataSet(task_ratio_dict={'DM':1}, num_batches=500)
-data_streamer.data_to_device(device)
-
-from model_analysis import get_instruct_reps, get_task_reps, get_instruct_reps 
-from utils import train_instruct_dict
-
-reps = get_instruct_reps(model.langModel, train_instruct_dict)
-reps[4, ...]
-
-contexts = np.empty((50, 20))
-for i in range(50): 
-    contexts[i, :] = train_context(model, data_streamer, 3, 'Go')
-
-np.mean(reps[4, :, :], axis=0)
-np.mean(contexts, axis=0)
-
-avg_reps = np.mean(reps, axis=1)
-avg_reps[4] = np.mean(contexts, axis=0)
-
-from NEW_plotting import plot_rep_scatter
-
-np.expand_dims(avg_reps, axis=1)
-
-import seaborn as sns
-
-
 training_lists_dict={
-'single_holdouts' : Task.TASK_LIST.copy(),
+'single_holdouts' : Task.TASK_LIST.copy() + 'Multitask',
 'dual_holdouts' : [['RT Go', 'Anti Go'], ['Anti MultiDM', 'DM'], ['COMP1', 'MultiCOMP2'], ['DMC', 'DNMS']],
 'aligned_holdouts' : [['Anti DM', 'Anti MultiDM'], ['COMP1', 'MultiCOMP1'], ['DMS', 'DNMS'],['Go', 'RT Go']],
 'swap_holdouts' : [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['RT Go', 'COMP1']]
@@ -206,7 +160,7 @@ ALL_MODEL_PARAMS = {
 
     'sbertNet': {'model': InstructNet, 
                 'langModel': SBERT,
-                'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
+                'langModel_params': {'out_dim': 20, 'train_layers': []}, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
                 'epochs': 30
                 },
@@ -220,7 +174,7 @@ ALL_MODEL_PARAMS = {
 
     'bertNet': {'model': InstructNet, 
                 'langModel': BERT,
-                'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
+                'langModel_params': {'out_dim': 20, 'train_layers': []}, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
                 'epochs': 30
                 },
@@ -234,7 +188,7 @@ ALL_MODEL_PARAMS = {
 
     'gptNet': {'model': InstructNet, 
                 'langModel': GPT,
-                'langModel_params': {'out_dim': 20, 'train_layers': [], 'output_nonlinearity': nn.Identity()}, 
+                'langModel_params': {'out_dim': 20, 'train_layers': []}, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]}, 
                 'epochs': 30
                 },
@@ -265,32 +219,12 @@ def config_model_training(key, seed):
     return model, opt, sch, epochs
 
 
-###boost_train
-
-
-# for task in Task.TASK_LIST:
-#     holdout_file = task.replace(' ', '_')
-#     foldername= '_ReLU128_14.6/single_holdouts/'+holdout_file
-#     model, _, _, _, = config_model_training('bertNet_layer_11', 2)
-#     for n, p in model.langModel.named_parameters(): 
-#         if 'proj_out' in n: 
-#             p.requires_grad = True
-#         else: 
-#             p.requires_grad = False 
-#     for n, p in model.named_parameters(): 
-#         if p.requires_grad: print(n)
-#     correct_perf, loss_perf = test_model(model, task, save=False)
-#     pickle.dump(correct_perf, open(foldername + '/' + model.model_name+'frozen_holdout_correct', 'wb'))
-#     pickle.dump(loss_perf, open(foldername + '/' + model.model_name+'frozen_holdout_loss', 'wb'))
-# import pickle
-# pickle.dump((0, 'Anti DM', 'simpleNet'), open('_ReLU128_14.6/single_holdouts/logged_train_checkpoint', 'wb'))
-
 if __name__ == "__main__":
 
     seeds = [0, 1, 2, 3, 4]
-    to_train = list(itertools.product(seeds, training_lists_dict['single_holdouts'], ALL_MODEL_PARAMS.keys()))
+    to_train = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), training_lists_dict['single_holdouts']))
 
-    #logged_checkpoint = pickle.load(open('_ReLU128_14.6/single_holdouts/logged_train_checkpoint', 'rb'))
+    #logged_checkpoint = pickle.load(open('_ReLU128_2.7/single_holdouts/logged_train_checkpoint', 'rb'))
     last_holdouts = None
     data = None
     for cur_train in to_train:      
@@ -307,7 +241,7 @@ if __name__ == "__main__":
         #build model from params 
 
         try: 
-            pickle.load(open('_ReLU128_14.6/single_holdouts/'+holdout_file+'/'+model_params_key+'_seed'+str(seed_num)+'_training_loss', 'rb'))
+            pickle.load(open('_ReLU128_2.7/single_holdouts/'+holdout_file+'/'+model_params_key+'_seed'+str(seed_num)+'_training_loss', 'rb'))
 
             print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
 
@@ -319,17 +253,20 @@ if __name__ == "__main__":
             if holdouts == last_holdouts and data is not None: 
                 pass 
             else: 
-                data = TaskDataSet(holdouts=[holdouts])
+                if holdouts == 'Multitask': data = TaskDataSet()
+                else: data = TaskDataSet(holdouts=[holdouts])
                 data.data_to_device(device)
+
             model, opt, sch, epochs = config_model_training(model_params_key, seed_num)
             model.to(device)
+
             #train 
             train_model(model, data, epochs, opt, sch)
 
             #save
-            model.save_model('_ReLU128_14.6/single_holdouts/'+holdout_file)
-            model.save_training_data('_ReLU128_14.6/single_holdouts/'+holdout_file)
-            pickle.dump(cur_train, open('_ReLU128_14.6/single_holdouts/logged_train_checkpoint', 'wb'))
+            model.save_model('_ReLU128_2.7/single_holdouts/'+holdout_file)
+            model.save_training_data('_ReLU128_2.7/single_holdouts/'+holdout_file)
+            pickle.dump(cur_train, open('_ReLU128_2.7/single_holdouts/logged_train_checkpoint', 'wb'))
 
             #to check if you should make new data 
             last_holdouts = holdouts
