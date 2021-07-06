@@ -17,8 +17,11 @@ import pickle
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["CUDA_VISIBLE_DEVICES"] = str(1)
-torch.cuda.is_available()
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1' 
 device = torch.device(0)
+
+torch.cuda.get_device_name(device)
+
 
 
 def masked_MSE_Loss(nn_out, nn_target, mask):
@@ -144,7 +147,7 @@ def train_context(model, data_streamer, epochs, holdout_load, foldername = '_ReL
 
 
 training_lists_dict={
-'single_holdouts' : Task.TASK_LIST.copy() + ['Multitask'],
+'single_holdouts' :  Task.TASK_LIST.copy()+['Multitask'],
 'dual_holdouts' : [['RT Go', 'Anti Go'], ['Anti MultiDM', 'DM'], ['COMP1', 'MultiCOMP2'], ['DMC', 'DNMS']],
 'aligned_holdouts' : [['Anti DM', 'Anti MultiDM'], ['COMP1', 'MultiCOMP1'], ['DMS', 'DNMS'],['Go', 'RT Go']],
 'swap_holdouts' : [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['RT Go', 'COMP1']]
@@ -168,7 +171,7 @@ ALL_MODEL_PARAMS = {
     'bertNet_layer_11': {'model': InstructNet, 
                     'langModel': BERT,
                     'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
-                    'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25], 'langLR': 1e-4},
+                    'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25], 'langLR': 1e-4},
                     'epochs': 30
                 },
 
@@ -182,7 +185,7 @@ ALL_MODEL_PARAMS = {
     # 'GPT NET LAYER 11': {'model': InstructNet, 
     #                 'langModel': GPT,
     #                 'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
-    #                 'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25], 'langLR': 1e-5},
+    #                 'opt_params': {'lr':0.001, 'milestones':[15, 20, 22, 25], 'langLR': 1e-5},
     #                 'epochs': 30
     #             },
 
@@ -201,7 +204,7 @@ ALL_MODEL_PARAMS = {
                 },
 
     'simpleNet': {'model': SimpleNet, 
-                'opt_params': {'lr':0.001, 'milestones':[5, 10, 15, 20, 25]},
+                'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
                 'epochs': 25
                 }
 }
@@ -225,7 +228,6 @@ if __name__ == "__main__":
     seeds = [0, 1, 2, 3, 4]
     to_train = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), training_lists_dict['single_holdouts']))
 
-    #logged_checkpoint = pickle.load(open('_ReLU128_2.7/single_holdouts/logged_train_checkpoint', 'rb'))
     last_holdouts = None
     data = None
     for cur_train in to_train:      
@@ -242,7 +244,7 @@ if __name__ == "__main__":
         #build model from params 
 
         try: 
-            pickle.load(open('_ReLU128_2.7/single_holdouts/'+holdout_file+'/'+model_params_key+'/seed'+str(seed_num)+'_training_loss', 'rb'))
+            pickle.load(open('_ReLU128_5.7/single_holdouts/'+holdout_file+'/'+model_params_key+'/seed'+str(seed_num)+'_training_loss', 'rb'))
             print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
 
             last_holdouts = holdouts
@@ -253,21 +255,20 @@ if __name__ == "__main__":
             if holdouts == last_holdouts and data is not None: 
                 pass 
             else: 
-                if holdouts == 'Multitask': data = TaskDataSet(data_folder= '_ReLU128_2.7/training_data')
-                else: data = TaskDataSet(data_folder= '_ReLU128_2.7/training_data', holdouts=[holdouts])
+                if holdouts == 'Multitask': data = TaskDataSet(data_folder= '_ReLU128_5.7/training_data')
+                else: data = TaskDataSet(data_folder= '_ReLU128_5.7/training_data', holdouts=[holdouts])
                 data.data_to_device(device)
 
             model, opt, sch, epochs = config_model_training(model_params_key)
-            model.seed_num_str = 'seed'+str(seed_num)
+            model.set_seed(seed_num)
             model.to(device)
 
             #train 
             train_model(model, data, epochs, opt, sch)
 
             #save
-            model.save_model('_ReLU128_2.7/single_holdouts/'+holdout_file)
-            model.save_training_data('_ReLU128_2.7/single_holdouts/'+holdout_file)
-            pickle.dump(cur_train, open('_ReLU128_2.7/single_holdouts/logged_train_checkpoint', 'wb'))
+            model.save_model('_ReLU128_5.7/single_holdouts/'+holdout_file)
+            model.save_training_data('_ReLU128_5.7/single_holdouts/'+holdout_file)
 
             #to check if you should make new data 
             last_holdouts = holdouts

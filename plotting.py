@@ -26,7 +26,6 @@ from sklearn.decomposition import PCA
 import warnings
 
 
-
 task_colors = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT Go':'orange',
                         'DM':'Red', 'Anti DM':'Green', 'MultiDM':'Blue', 'Anti MultiDM':'Yellow', 
                         'COMP1':'sienna', 'COMP2':'seagreen', 'MultiCOMP1':'skyblue', 'MultiCOMP2':'gold',
@@ -37,14 +36,15 @@ MODEL_STYLE_DICT = {'simpleNet': ('blue', None), 'bowNet': ('orange', None), 'gp
 
 
 def plot_single_seed_training(foldername, holdout, model_list, train_data_type, seed, smoothing=0.1):
-    seed = '_seed' + str(seed)
+    seed = 'seed' + str(seed)
     task_file = holdout.replace(' ', '_')
     fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(19, 12))
     for model_name in model_list: 
         try: 
-            training_data = pickle.load(open(foldername+task_file+'/'+model_name+seed+'_training_'+train_data_type, 'rb'))
+            training_data = pickle.load(open(foldername+task_file+'/'+model_name+'/'+seed+'_training_'+train_data_type, 'rb'))
         except FileNotFoundError: 
             print('No training data for '+ model_name + seed)
+            print('\n'+ foldername+task_file+'/'+model_name+'/'+seed+'_training_'+train_data_type)
             continue 
         for i, ax in enumerate(axn.flat):
             task_to_plot = task_list[i]
@@ -57,7 +57,7 @@ def plot_single_seed_training(foldername, holdout, model_list, train_data_type, 
     fig.suptitle('Training for '+holdout+' Holdout', size=16)
     plt.show()
 
-# plot_single_seed_training('_ReLU128_14.6/single_holdouts/', 'DMC', MODEL_STYLE_DICT.keys(), 'correct', 2, smoothing = 5)
+plot_single_seed_training('_ReLU128_5.7/single_holdouts/', 'Go', ['sbertNet_layer_11'], 'correct', 0, smoothing = 0.01)
 
 
 def plot_single_seed_holdout(foldername, model_list, train_data_type, seed, smoothing=0.1):
@@ -189,9 +189,6 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None):
         txt = fig.text(.5, 25, "Instruction: \"" + str(task_info[plotting_index]) +"\"", ha='center', size=8, fontweight='bold')
         txt.set_transform(trans)
         plt.show()
-
-
-
 
 def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_args=[]): 
     colors_to_plot = list(itertools.chain.from_iterable([[task_colors[task]]*reps_reduced.shape[1] for task in tasks_to_plot]))
@@ -361,7 +358,7 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod):
     plt.show()
     return trials
 
-'''
+
 model_list = list(MODEL_STYLE_DICT.keys())[0:3] + list(MODEL_STYLE_DICT.keys())[4:]
 model_list
 
@@ -378,8 +375,9 @@ from utils import train_instruct_dict
 from mpl_toolkits.mplot3d import Axes3D
 
 model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
-model.model_name +='_seed2' 
-model.load_model('_ReLU128_14.6/single_holdouts/COMP2')
+model.set_seed(2) 
+
+model.load_model('_ReLU128_14.6/single_holdouts/Anti_DM')
 
 # model1 = SimpleNet(128, 1)
 # model1.model_name+='_seed2'
@@ -388,7 +386,7 @@ model.load_model('_ReLU128_14.6/single_holdouts/COMP2')
 #sbert_comp_hid_traj = get_hid_var_group_resp(model, 'COMP', 'diff_strength', num_trials=6)
 
 
-#sbert_dm_hid_traj = get_hid_var_group_resp(model, 'DM', 'diff_strength', num_trials=6, sigma_in=0.3)
+sbert_dm_hid_traj = get_hid_var_group_resp(model, 'DM', 'diff_strength', num_trials=1, sigma_in=0.1)
 #sbert_go_hid_traj = get_hid_var_group_resp(model, 'Go', 'direction', num_trials=6)
 
 
@@ -401,28 +399,18 @@ context_hids = np.empty((15, 1, 120, 128))
 for i in range(15): 
     trials, _  = make_test_trials('DM', 'diff_strength', 1, num_trials=1)
     with torch.no_grad():
-        context = torch.Tensor(context_dict['DM'][i]).repeat(trials.inputs.shape[0], 1)
-        rnn_hid, _ = super(type(model), model).forward(torch.Tensor(trials.inputs), context)
-        # context_block = context.repeat(1, 120, 1)
-        # rnn_ins = torch.cat((context_block, torch.Tensor(trials.inputs).type(torch.float32)), 2)
-        # h0 = model.__initHidden__(1, 0.1)
-        # rnn_hid, _ = model.recurrent_units(rnn_ins, h0)
-        # context_hids[i, ...] = rnn_hid.numpy()
+        context = torch.Tensor(context_dict['MultiDM'][i]).repeat(trials.inputs.shape[0], 1)
+        _, rnn_hid = super(type(model), model).forward(context, torch.Tensor(trials.inputs))
+        context_hids[i, ...] = rnn_hid.numpy()
 
-i = 0
-context = torch.Tensor(context_dict['DM'][i]).repeat(trials.inputs.shape[0], 1)
-rnn_hid, _ = super(type(model), model).forward(context, torch.Tensor(trials.inputs))
-rnn_hid.shape
-
-model
-
+context_hids.shape
 
 plot_hid_traj(sbert_comp_hid_traj, 'COMP', [0,1], [0], [0, 1], subtitle='sbertNet_layer_11, COMP2 Heldout', annotate_tuples=[(1, 0, 0), (1, 0, 1)])
 plot_hid_traj(sbert_comp_hid_traj, 'COMP', [0,1, 2, 3], [0], [0], subtitle='sbertNet_layer_11, COMP2 Heldout', annotate_tuples=[(1, 0, 0)])
 
 
 rnn_reps = get_task_reps(model)
-instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
+instruct_reps_full = get_instruct_reps(model.langModel, train_instruct_dict, depth='full')
 reduced_instruct_reps, var_explained = reduce_rep(instruct_reps)
 
 task_group_dict['COMP'].reverse()
@@ -444,7 +432,7 @@ plot_hid_traj(sbert_go_hid_traj, 'Go', [0], [0, 1, 2, 3], range(15), subtitle='s
 
 
 sbert_dm_contexts = np.concatenate((np.expand_dims(context_hids, axis=0), sbert_dm_hid_traj.copy()))
-plot_hid_traj(sbert_dm_contexts, 'DM', [0], [0, 1, 2, 3, 4], [0, 2], subtitle='sbertNet_layer_11, Anti Go Heldout; DM context', context_task = 'DM')
+plot_hid_traj(sbert_dm_contexts, 'DM', [0, 1, 2, 3, 4],[0], [0], subtitle='sbertNet_layer_11, Anti Go Heldout; DM context', context_task = 'Anti DM')
 
 
 trials, _ = make_test_trials('COMP2', 'diff_strength', 1, num_trials=1)
@@ -456,6 +444,17 @@ get_model_performance(model, 5)
 
 
 trials.target_dirs
+
+mean_instruct_rep = np.mean(instruct_reps_full[[4, 5, 6, 7],... ], axis=1)
+mean_instruct_rep.shape
+
+context_reps = np.mean(np.squeeze(np.array([[contexts] for contexts in context_dict.values()])), axis=1)
+context_reps.shape
+
+corr = np.nan_to_num(np.corrcoef(context_reps.astype(np.float128), mean_instruct_rep.astype(np.float128)))
+
+sns.heatmap(corr)
+plt.show()
 
 
 
@@ -515,4 +514,3 @@ plt.title('1st Decision Variable component')
 plt.figlegend(['delta'+ str(num) for num in np.round(var_of_insterest, 2)], loc=5)
 
 plt.show()
-'''

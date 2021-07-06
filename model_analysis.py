@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from torch._C import device
 from torch.nn.modules import transformer
 
 from task import Task, construct_batch, make_test_trials
@@ -20,7 +21,7 @@ def get_model_performance(model, num_batches):
     batch_len = 128
     with torch.no_grad():
         perf_dict = dict.fromkeys(task_list)
-        for task in task_list:
+        for task in ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2']:
             print(task)
             mean_list = [] 
             for _ in range(num_batches): 
@@ -31,6 +32,7 @@ def get_model_performance(model, num_batches):
                 mean_list.append(np.mean(isCorrect(out, torch.Tensor(targets), target_dirs)))
             perf_dict[task] = np.mean(mean_list)
     return perf_dict 
+
 
 def get_instruct_reps(langModel, instruct_dict, depth='full'):
     langModel.eval()

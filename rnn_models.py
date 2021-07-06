@@ -23,7 +23,7 @@ class BaseNet(nn.Module):
         self.activ_func = activ_func
         self._loss_data_dict = defaultdict(list)
         self._correct_data_dict = defaultdict(list)
-        self.seed_num_str = ''
+        self.__seed_num_str__ = ''
 
         if self.activ_func != 'elman': 
             self.recurrent_units = CustomGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
@@ -68,19 +68,21 @@ class BaseNet(nn.Module):
         return df_correct, df_loss
 
     def save_training_data(self, foldername): 
-        pickle.dump(self._correct_data_dict, open(foldername+'/'+self.model_name+'/'+self.seed_num_str+'_training_correct', 'wb'))
-        pickle.dump(self._loss_data_dict, open(foldername+'/'+self.model_name+'/'+self.seed_num_str+'_training_loss', 'wb'))
+        pickle.dump(self._correct_data_dict, open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_correct', 'wb'))
+        pickle.dump(self._loss_data_dict, open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_loss', 'wb'))
 
     def save_model(self, foldername): 
-        torch.save(self.state_dict(), foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.seed_num_str+'.pt')
+        torch.save(self.state_dict(), foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.__seed_num_str__+'.pt')
 
     def load_training_data(self, foldername): 
-        self._correct_data_dict = pickle.load(open(foldername+'/'+self.model_name+'/'+self.seed_num_str+'_training_correct', 'rb'))
-        self._loss_data_dict = pickle.load(open(foldername+'/'+self.model_name+'/'+self.seed_num_str+'_training_loss', 'rb'))
+        self._correct_data_dict = pickle.load(open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_correct', 'rb'))
+        self._loss_data_dict = pickle.load(open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_loss', 'rb'))
 
     def load_model(self, foldername): 
-        self.load_state_dict(torch.load(foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.seed_num_str+'.pt'))
+        self.load_state_dict(torch.load(foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.__seed_num_str__+'.pt'))
 
+    def set_seed(self, seed_num): 
+        self.__seed_num_str__ = 'seed'+str(seed_num)
 
 class SimpleNet(BaseNet):
     def __init__(self, hid_dim, num_layers, activ_func=torch.relu, instruct_mode=None):

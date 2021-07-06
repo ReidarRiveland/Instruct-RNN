@@ -122,7 +122,7 @@ class Task():
             input_activity_vecs = np.array([np.concatenate((fix, self.null_stim), 1), np.concatenate((fix, stim1+stim2), 1), np.concatenate((fix, stim1+stim2), 1),  
                                 np.concatenate((fix, stim1+stim2), 1), np.concatenate((no_fix, self.null_stim), 1)])
         elif 'COMP' in task_type:
-            input_activity_vecs = np.array([np.concatenate((fix, self.null_stim), 1), np.concatenate((fix, stim1), 1), np.concatenate((fix, self.null_stim), 1),  
+            input_activity_vecs = np.array([np.concatenate((fix, self.null_stim), 1), np.concatenate((fix, stim1), 1), np.concatenate((fix, stim1+stim2), 1),  
                                 np.concatenate((fix, stim2), 1), np.concatenate((no_fix, self.null_stim), 1)])
         else: 
             input_activity_vecs = np.array([np.concatenate((fix, self.null_stim), 1), np.concatenate((fix, stim1), 1), np.concatenate((fix, self.null_stim), 1),  
@@ -262,7 +262,7 @@ class Comp(Task):
                     base_strength = np.random.uniform(1.3, 1.5, size=2)
                     redraw = True
                     while redraw: 
-                        coh = np.random.choice([-0.15, -0.1, -0.05, 0.05, 0.1, 0.15], size=2, replace=False)
+                        coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
                         if coh[0] != -1*coh[1]: 
                             redraw = False
                     
@@ -388,7 +388,7 @@ class DM(Task):
 
                     redraw = True
                     while redraw: 
-                        coh = np.random.choice([-0.15, -0.1, -0.05, 0.05, 0.1, 0.15], size=2, replace=False)
+                        coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
                         if coh[0] != -1*coh[1]: 
                             redraw = False
                     
@@ -534,5 +534,6 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
         if 'COMP' in task_type: 
             trials = Comp(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr, sigma_in=sigma_in)
     return trials, var_of_interest
+
 
 

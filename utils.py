@@ -11,6 +11,7 @@ tuning_dirs = Task.TUNING_DIRS
 train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict2', 'rb'))
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict2', 'rb'))
 
+test_instruct_dict
 
 swapped_task_list = ['Anti DM', 'COMP2', 'Anti Go', 'DMC', 'DM', 'Go', 'MultiDM', 'Anti MultiDM', 'COMP1',
                              'RT Go', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'Anti RT Go', 'DNMC']
