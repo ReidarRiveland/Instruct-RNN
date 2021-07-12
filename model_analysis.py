@@ -33,7 +33,6 @@ def get_model_performance(model, num_batches):
             perf_dict[task] = np.mean(mean_list)
     return perf_dict 
 
-
 def get_instruct_reps(langModel, instruct_dict, depth='full'):
     langModel.eval()
     if depth=='transformer': 

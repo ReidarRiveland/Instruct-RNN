@@ -107,17 +107,15 @@ def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_14.6/sing
         return correct_perf, loss_perf
 
 
-def train_context(model, data_streamer, epochs, holdout_load, foldername = '_ReLU128_14.6/single_holdouts', save=False, context_dim = 20): 
-    holdout_file = holdout_load.replace(' ', '_')
-    # data_streamer =  TaskDataSet(batch_len=128, num_batches=250, task_ratio_dict={holdouts_test:1})
-    # data_streamer.data_to_device(model.__device__)
-    model.load_model(foldername +'/'+holdout_file)
+def train_context(model, data_streamer, epochs, model_load_file, context_dim = 768): 
+    model_load_file = model_load_file.replace(' ', '_')
+    model.load_model(model_load_file)
     model.freeze_weights()
 
-    context = nn.Parameter(torch.empty(1, 1, context_dim))
+    context = nn.Parameter(torch.empty(1, context_dim))
     torch.nn.init.normal_(context)
-    opt= optim.Adam([context], lr=0.01, weight_decay=0.005)
-    sch = optim.lr_scheduler.MultiStepLR(opt, milestones=[epochs-1, epochs-2], gamma=0.2)
+    opt= optim.Adam([context], lr=0.01, weight_decay=0.0)
+    sch = optim.lr_scheduler.MultiStepLR(opt, milestones=[epochs-1, epochs-2], gamma=0.5)
 
     for i in range(epochs): 
         print('epoch', i)
@@ -128,7 +126,8 @@ def train_context(model, data_streamer, epochs, holdout_load, foldername = '_ReL
 
             opt.zero_grad()
             batch_context = context.repeat(ins.shape[0], 1).to(device)
-            out, _ = super(type(model), model).forward(batch_context, ins)
+            proj = model.langModel.proj_out(batch_context)
+            out, _ = super(type(model), model).forward(proj, ins)
             loss = masked_MSE_Loss(out, tar, mask) 
             loss.backward()
 
@@ -142,8 +141,22 @@ def train_context(model, data_streamer, epochs, holdout_load, foldername = '_ReL
                 print(j, ':', model.model_name, ":", "{:.2e}".format(loss.item()))
                 print('Frac Correct ' + str(frac_correct) + '\n')
         sch.step()
-    
-    return context.detach().cpu().numpy()
+
+    return context.squeeze().detach().cpu().numpy()
+
+
+model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
+model.set_seed(0) 
+model.to(device)
+for task in ['RT Go', 'Anti Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']: 
+    contexts = np.empty((15, 768))
+    streamer = TaskDataSet('_ReLU128_5.7/training_data', num_batches = 200, task_ratio_dict={task:1})
+    streamer.data_to_device(device)
+    for j in range(15): 
+        contexts[j, :]=train_context(model, streamer, 2, model_load_file='_ReLU128_5.7/single_holdouts/Multitask')
+    pickle.dump(contexts, open('_ReLU128_5.7/single_holdouts/'+task.replace(' ', '_')+'/sbertNet_layer_11/context_vecs', 'wb'))
+    pickle.dump(np.array(model._correct_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task.replace(' ', '_')+'/sbertNet_layer_11/context_correct_data', 'wb'))
+    pickle.dump(np.array(model._loss_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task.replace(' ', '_')+'/sbertNet_layer_11/context_loss_data', 'wb'))
 
 
 training_lists_dict={

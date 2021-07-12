@@ -317,47 +317,63 @@ class Comp(Task):
         self._plot_trial(trial_ins, trial_tars, self.task_type)
 
 class Delay(Task): 
-    def __init__(self, task_type, num_trials, intervals=None, sigma_in=0.05): 
+    def __init__(self, task_type, num_trials, intervals=None, conditions_arr = None, sigma_in=0.05): 
         super().__init__(num_trials, intervals, sigma_in)
         assert task_type in ['DMS', 'DNMS', 'DMC', 'DNMC'], "entered invalid task_type: %r" %task_type
         self.task_type = task_type
-        self.stim_mod_arr = np.empty((2, 2, num_trials), dtype=tuple)
 
-        self.target_dirs = np.empty(num_trials)
+        if conditions_arr is None: 
+            #mod, stim, dir_strengths, num_trials
+            self.conditions_arr = np.empty((2, 2, 2, num_trials))   
+            self.target_dirs = np.empty(num_trials)
+     
 
-        #mod, stim, dir_strengths, num_trials
-        self.conditions_arr = np.empty((2, 2, 2, num_trials))        
+            if num_trials>1: 
+                match_trial_list = list(np.random.permutation([True]*int(num_trials/2) + [False] * int(num_trials/2)))
+            else: 
+                match_trial_list = [np.random.choice([True, False])]
 
-        if num_trials>1: 
-            match_trial_list = list(np.random.permutation([True]*int(num_trials/2) + [False] * int(num_trials/2)))
+            for i in range(num_trials): 
+                match_trial = match_trial_list.pop()
+
+                direction1 = np.random.uniform(0, 2*np.pi)
+                if direction1 < np.pi: 
+                    cat_range = (0, np.pi)
+                else: cat_range = (np.pi, 2*np.pi)
+                
+                if match_trial and task_type in ['DMS', 'DNMS']: direction2 = direction1
+                elif match_trial and task_type in ['DMC', 'DNMC']: direction2 = np.random.uniform(cat_range[0], cat_range[1])
+                elif not match_trial and task_type in ['DMC', 'DNMC']: direction2 = (np.random.uniform(cat_range[0]+(np.pi/3), cat_range[1]-(np.pi/3)) + np.pi)%(2*np.pi)
+                else: direction2 = (direction1 + np.random.uniform(np.pi/2, (2*np.pi - np.pi/2)))%(2*np.pi)
+                
+                mod = np.random.choice([0, 1])
+                self.conditions_arr[mod, :, 0, i] = np.array([direction1, direction2])
+                self.conditions_arr[mod, :, 1, i] = np.array([1, 1])
+                self.conditions_arr[((mod+1)%2), :, :, i] = np.NaN
+
+
+                if match_trial and task_type in ['DMS', 'DMC']:
+                    self.target_dirs[i] = direction1
+                elif not match_trial and task_type in ['DNMS', 'DNMC']:
+                    self.target_dirs[i] = direction2
+                else: self.target_dirs[i] = None
         else: 
-            match_trial_list = [np.random.choice([True, False])]
+            self.conditions_arr = conditions_arr
+            directions = np.nansum(self.conditions_arr[:, :, 0, :], axis=0)
+            diff_dirs = np.diff(directions, axis=0)
+            is_matching = diff_dirs % (2*np.pi) < 1e-3
+            is_category = abs(diff_dirs ) < np.pi/2
 
-        for i in range(num_trials): 
-            match_trial = match_trial_list.pop()
-
-            direction1 = np.random.uniform(0, 2*np.pi)
-            if direction1 < np.pi: 
-                cat_range = (0, np.pi)
-            else: cat_range = (np.pi, 2*np.pi)
-            
-            if match_trial and task_type in ['DMS', 'DNMS']: direction2 = direction1
-            elif match_trial and task_type in ['DMC', 'DNMC']: direction2 = np.random.uniform(cat_range[0], cat_range[1])
-            elif not match_trial and task_type in ['DMC', 'DNMC']: direction2 = (np.random.uniform(cat_range[0]+(np.pi/3), cat_range[1]-(np.pi/3)) + np.pi)%(2*np.pi)
-            else: direction2 = (direction1 + np.random.uniform(np.pi/2, (2*np.pi - np.pi/2)))%(2*np.pi)
-            
-            mod = np.random.choice([0, 1])
-            self.conditions_arr[mod, :, 0, i] = np.array([direction1, direction2])
-            self.conditions_arr[mod, :, 1, i] = np.array([1, 1])
-            self.conditions_arr[((mod+1)%2), :, :, i] = np.NaN
-
-
-            if match_trial and task_type in ['DMS', 'DMC']:
-                self.target_dirs[i] = direction1
-            elif not match_trial and task_type in ['DNMS', 'DNMC']:
-                self.target_dirs[i] = direction2
-            else: self.target_dirs[i] = None
-
+            if task_type == 'DMS': 
+                self.target_dirs = np.where(is_matching, directions[0, :], np.full(self.num_trials, np.nan))
+            if task_type == 'DNMS':                 
+                self.target_dirs = np.where(is_matching, np.full(self.num_trials, np.nan), directions[1, :])
+            if task_type == 'DMC':                 
+                self.target_dirs = np.where(is_category, directions[0, :], np.full(self.num_trials, np.nan))
+            if task_type == 'DNMC':                 
+                self.target_dirs = np.where(is_category, np.full(self.num_trials, np.nan), directions[1, :])
+            self.target_dirs = np.squeeze(self.target_dirs)
+    
         self.inputs = self._get_trial_inputs(self.task_type, self.conditions_arr)
         self.targets = self._get_trial_targets(self.target_dirs)
         self.masks = self._get_loss_mask()
@@ -506,10 +522,10 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
         var_of_interest = diff_strength
 
     elif task_variable == 'diff_direction': 
-        fixed_direction = np.array([np.pi] * num_trials)
-        diff_directions = np.linspace(np.pi/4, 2*np.pi-np.pi/4, num=num_trials)
-        directions = np.array([fixed_direction, fixed_direction-diff_directions])
-        strengths = np.array([[1] * num_trials, [1.2] * num_trials])
+        fixed_direction = np.array([np.pi/2] * num_trials)
+        diff_directions = np.linspace(0, np.pi, num=num_trials)
+        directions = np.array([fixed_direction, fixed_direction - diff_directions])
+        strengths = np.array([[1] * num_trials, [1] * num_trials])
         var_of_interest = diff_directions
 
     if task_type in Task.TASK_GROUP_DICT['Go']:
@@ -533,7 +549,12 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
             trials = DM(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr, sigma_in=sigma_in)
         if 'COMP' in task_type: 
             trials = Comp(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr, sigma_in=sigma_in)
+
+    if task_type in Task.TASK_GROUP_DICT['Delay']: 
+        conditions_arr[mod, :, 0, : ] = directions
+        conditions_arr[mod, :, 1, : ] = strengths
+        conditions_arr[((mod+1)%2), :, :, : ] = np.NaN
+        trials = Delay(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr, sigma_in=sigma_in)
+
     return trials, var_of_interest
-
-
 

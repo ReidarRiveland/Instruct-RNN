@@ -24,6 +24,7 @@ class BaseNet(nn.Module):
         self._loss_data_dict = defaultdict(list)
         self._correct_data_dict = defaultdict(list)
         self.__seed_num_str__ = ''
+        self.__hiddenInitValue__ = 0.1
 
         if self.activ_func != 'elman': 
             self.recurrent_units = CustomGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
@@ -45,11 +46,11 @@ class BaseNet(nn.Module):
             elif 'W_out' in n:
                 torch.nn.init.normal_(p, std = 0.4/np.sqrt(self.hid_dim))
 
-    def __initHidden__(self, batch_size, value):
-        return torch.full((self.num_layers, batch_size, self.hid_dim), value, device=self.__device__.type)
+    def __initHidden__(self, batch_size):
+        return torch.full((self.num_layers, batch_size, self.hid_dim), self.__hiddenInitValue__, device=self.__device__.type)
 
     def forward(self, task_info, x , t=120): 
-        h0 = self.__initHidden__(x.shape[0], 0.1)
+        h0 = self.__initHidden__(x.shape[0])
         task_info_block = task_info.unsqueeze(1).repeat(1, t, 1)
         rnn_ins = torch.cat((task_info_block, x.type(torch.float32)), 2)
         rnn_hid, _ = self.recurrent_units(rnn_ins, h0)
@@ -79,7 +80,7 @@ class BaseNet(nn.Module):
         self._loss_data_dict = pickle.load(open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_loss', 'rb'))
 
     def load_model(self, foldername): 
-        self.load_state_dict(torch.load(foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.__seed_num_str__+'.pt'))
+        self.load_state_dict(torch.load(foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.__seed_num_str__+'.pt', map_location='cpu'))
 
     def set_seed(self, seed_num): 
         self.__seed_num_str__ = 'seed'+str(seed_num)

@@ -57,7 +57,7 @@ def plot_single_seed_training(foldername, holdout, model_list, train_data_type, 
     fig.suptitle('Training for '+holdout+' Holdout', size=16)
     plt.show()
 
-plot_single_seed_training('_ReLU128_5.7/single_holdouts/', 'Go', ['sbertNet_layer_11'], 'correct', 0, smoothing = 0.01)
+#plot_single_seed_training('_ReLU128_5.7/single_holdouts/', 'Multitask', ['sbertNet_layer_11'], 'correct', 0, smoothing = 0.01)
 
 
 def plot_single_seed_holdout(foldername, model_list, train_data_type, seed, smoothing=0.1):
@@ -218,14 +218,16 @@ def plot_hid_traj(task_group_hid_traj, task_group, task_indices, trial_indices, 
         for task_index in task_indices:
             try: 
                 task = list(task_group_dict[task_group])[task_index]
-                context_marker = 'o'
+                linestyle = 'solid'
             except IndexError: 
                 task = context_task
-                context_marker = 'x'
+                linestyle = 'dashed'
 
             for instruct_index in instruct_indices: 
-                ax.scatter(embedded[task_index, instruct_index, :, 0], embedded[task_index, instruct_index, :, 1], embedded[task_index, instruct_index, :, 2], 
-                            color = task_colors[task], s=10, alpha=alphas[trial_index], marker=context_marker)
+                ax.quiver(embedded[task_index, instruct_index, 1:, 0], embedded[task_index, instruct_index, 1:, 1], embedded[task_index, instruct_index, 1:, 2], 
+                            np.diff(embedded[task_index, instruct_index, :, 0], axis=0), np.diff(embedded[task_index, instruct_index, :, 1], axis=0), np.diff(embedded[task_index, instruct_index, :, 2], axis=0),
+                            length = 0.35, color = task_colors[task], arrow_length_ratio=0.3,  pivot='middle', linewidth=1, linestyle = linestyle)
+
                 ax.scatter(embedded[task_index, instruct_index, 0, 0], embedded[task_index, instruct_index, 0, 1], embedded[task_index, instruct_index, 0, 2],  
                             s = 100, color='white', edgecolor= task_colors[task], marker='*')
                 ax.scatter(embedded[task_index, instruct_index, 119, 0], embedded[task_index, instruct_index, 119, 1], embedded[task_index, instruct_index, 119, 2],  
@@ -358,159 +360,3 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod):
     plt.show()
     return trials
 
-
-model_list = list(MODEL_STYLE_DICT.keys())[0:3] + list(MODEL_STYLE_DICT.keys())[4:]
-model_list
-
-from task import make_test_trials
-from model_analysis import get_hid_var_resp
-
-from rnn_models import InstructNet, SimpleNet
-from nlp_models import SBERT, BERT
-from data import TaskDataSet
-from utils import train_instruct_dict
-import torch
-from model_analysis import get_instruct_reps, get_hid_var_resp, get_task_reps, reduce_rep, get_hid_var_group_resp
-from utils import train_instruct_dict
-from mpl_toolkits.mplot3d import Axes3D
-
-model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
-model.set_seed(2) 
-
-model.load_model('_ReLU128_14.6/single_holdouts/Anti_DM')
-
-# model1 = SimpleNet(128, 1)
-# model1.model_name+='_seed2'
-# model1.load_model('_ReLU128_14.6/single_holdouts/Anti_Go')
-
-#sbert_comp_hid_traj = get_hid_var_group_resp(model, 'COMP', 'diff_strength', num_trials=6)
-
-
-sbert_dm_hid_traj = get_hid_var_group_resp(model, 'DM', 'diff_strength', num_trials=1, sigma_in=0.1)
-#sbert_go_hid_traj = get_hid_var_group_resp(model, 'Go', 'direction', num_trials=6)
-
-
-#model1_dm_hid_traj = get_hid_var_group_resp(model1, 'DM', 'diff_strength', num_trials=6)
-#model1_go_hid_traj = get_hid_var_group_resp(model1, 'Go', 'direction', num_trials=6)
-
-context_dict = pickle.load(open('dm_contexts', 'rb'))
-context_hids = np.empty((15, 1, 120, 128))
-
-for i in range(15): 
-    trials, _  = make_test_trials('DM', 'diff_strength', 1, num_trials=1)
-    with torch.no_grad():
-        context = torch.Tensor(context_dict['MultiDM'][i]).repeat(trials.inputs.shape[0], 1)
-        _, rnn_hid = super(type(model), model).forward(context, torch.Tensor(trials.inputs))
-        context_hids[i, ...] = rnn_hid.numpy()
-
-context_hids.shape
-
-plot_hid_traj(sbert_comp_hid_traj, 'COMP', [0,1], [0], [0, 1], subtitle='sbertNet_layer_11, COMP2 Heldout', annotate_tuples=[(1, 0, 0), (1, 0, 1)])
-plot_hid_traj(sbert_comp_hid_traj, 'COMP', [0,1, 2, 3], [0], [0], subtitle='sbertNet_layer_11, COMP2 Heldout', annotate_tuples=[(1, 0, 0)])
-
-
-rnn_reps = get_task_reps(model)
-instruct_reps_full = get_instruct_reps(model.langModel, train_instruct_dict, depth='full')
-reduced_instruct_reps, var_explained = reduce_rep(instruct_reps)
-
-task_group_dict['COMP'].reverse()
-task_group_dict['COMP']
-plot_rep_scatter(reduced_instruct_reps, ['COMP1', 'COMP2'], annotate_tuples=[(1, 0), (1, 1)], annotate_args=[(0, 80), (-300, -50)])
-
-
-
-len(train_instruct_dict['COMP2'][1].split())
-
-
-plot_hid_traj(sbert_dm_hid_traj, 'DM', [2], [0, 1, 2, 3], [0], subtitle='sbertNet_layer_11, Anti DM Heldout')
-plot_hid_traj(sbert_go_hid_traj, 'Go', [0], [0, 1, 2, 3], range(15), subtitle='sbertNet_layer_11, Anti Go Heldout')
-
-
-
-#plot_hid_traj(model1_dm_hid_traj, 'DM', [0], [0, 1, 2, 3], [0], subtitle='simpleNet, Anti DM Heldout')
-#plot_hid_traj(model1_go_hid_traj, 'Go', [0], [0, 1, 2, 3], [0], subtitle='simpleNet, Anti Go Heldout')
-
-
-sbert_dm_contexts = np.concatenate((np.expand_dims(context_hids, axis=0), sbert_dm_hid_traj.copy()))
-plot_hid_traj(sbert_dm_contexts, 'DM', [0, 1, 2, 3, 4],[0], [0], subtitle='sbertNet_layer_11, Anti Go Heldout; DM context', context_task = 'Anti DM')
-
-
-trials, _ = make_test_trials('COMP2', 'diff_strength', 1, num_trials=1)
-
-plot_model_response(model, 'MultiCOMP1')
-
-
-get_model_performance(model, 5)
-
-
-trials.target_dirs
-
-mean_instruct_rep = np.mean(instruct_reps_full[[4, 5, 6, 7],... ], axis=1)
-mean_instruct_rep.shape
-
-context_reps = np.mean(np.squeeze(np.array([[contexts] for contexts in context_dict.values()])), axis=1)
-context_reps.shape
-
-corr = np.nan_to_num(np.corrcoef(context_reps.astype(np.float128), mean_instruct_rep.astype(np.float128)))
-
-sns.heatmap(corr)
-plt.show()
-
-
-
-from dPCA import dPCA
-
-
-
-
-
-trials, var_of_insterest = make_test_trials('DM', 'diff_strength', 0, num_trials=1)
-var_of_insterest
-hid_resp, mean_hid_resp = get_hid_var_resp(model, 'DM', trials, num_repeats=3)
-
-# # trial-average data
-# R = mean(trialR,0)
-
-# # center data
-# R -= mean(R.reshape((N,-1)),1)[:,None,None]
-
-reshape_mean_hid_resp = mean_hid_resp.T.swapaxes(-1, 1)
-reshape_hid_resp = hid_resp.swapaxes(1, 2).swapaxes(-1, 1)
-
-np.expand_dims(reshape_mean_hid_resp, -1).shape
-
-#reshape_mean_hid_resp -= np.mean(mean_hid_resp.reshape((128, -1)), 1)[:, None, None]
-
-dpca = dPCA.dPCA(labels='std',regularizer='auto')
-dpca.protect = ['t']
-
-Z = dpca.fit_transform(np.expand_dims(reshape_mean_hid_resp, -1), np.expand_dims(reshape_hid_resp, -1))
-
-
-time = np.arange(120)
-
-plt.figure(figsize=(16,7))
-plt.subplot(131)
-
-for s in range(6):
-    plt.plot(time,Z['st'][0,s])
-
-plt.title('1st mixing component')
-
-plt.subplot(132)
-
-for s in range(6):
-    plt.plot(time,Z['t'][0,s])
-
-plt.title('1st time component')
-    
-plt.subplot(133)
-for s in range(6):
-    plt.plot(time,Z['s'][0,s])
-
-plt.title('1st Decision Variable component')
-    
-
-plt.figlegend(['delta'+ str(num) for num in np.round(var_of_insterest, 2)], loc=5)
-
-plt.show()
