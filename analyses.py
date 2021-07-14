@@ -2,7 +2,8 @@ from math import cos
 from warnings import simplefilter
 
 from pandas.core.indexing import convert_missing_indexer
-from task import make_test_trials
+from task import make_test_trials, Task
+
 from model_analysis import get_hid_var_resp
 from plotting import plot_hid_traj, plot_model_response, plot_rep_scatter, plot_neural_resp, MODEL_STYLE_DICT
 from rnn_models import InstructNet, SimpleNet
@@ -28,16 +29,17 @@ import matplotlib.transforms as mtrans
 import torch
 
 
-model_list = list(MODEL_STYLE_DICT.keys())[0:3] + list(MODEL_STYLE_DICT.keys())[4:]
-model_list
 
 
 model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
 model.set_seed(0) 
 
-model.load_model('_ReLU128_5.7/single_holdouts/DMS')
+model.load_model('_ReLU128_5.7/single_holdouts/Anti_DM')
 
-get_model_performance(model, 3)
+instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
+
+
+reduced_instruct_reps, var_explained = reduce_rep(instruct_reps)
 
 
 # model1 = SimpleNet(128, 1)
@@ -66,25 +68,49 @@ for j, task in enumerate(['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']):
             context_hids[j, i, ...] = rnn_hid.numpy()
 
 
-context_reps = np.empty((4, 15, 768))
-for j, task in enumerate(['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM']):
-    contexts = pickle.load(open('_ReLU128_14.6/single_holdouts/'+task.replace(' ', '_')+'/context_vecs', 'rb'))
-    context_reps[j, ...] = contexts
+context_reps = np.empty((16, 768))
+for i, task in enumerate(Task.TASK_LIST): 
+    contexts = pickle.load(open('_ReLU128_5.7/single_holdouts/'+task.replace(' ', '_')+'/sbertNet_layer_11/context_vecs', 'rb'))
+    contexts_perf = pickle.load(open('_ReLU128_5.7/single_holdouts/'+task.replace(' ', '_')+'/sbertNet_layer_11/context_correct_data', 'rb'))
+    context_reps[i, :] = np.mean(contexts[contexts_perf[:, -1] > 0.95], axis=0)
 
-context_reps
 
 
 
 from sklearn.metrics.pairwise import cosine_similarity
 
-cosine_similarity(context_reps)
+
 import seaborn as sns
-mean_instruct_reps = np.mean(instruct_reps[[4, 5, 6, 7], ...], axis=1)
-corr = np.corrcoef(np.mean(instruct_reps[[4, 5, 6, 7], ...], axis=1), context_reps[:, 1, :])
-cos_sim = cosine_similarity(np.mean(instruct_reps[[4, 5, 6, 7], ...], axis=1), np.mean(context_reps[:, 2:, :], axis=1))
+mean_instruct_reps = np.mean(instruct_reps, axis=1)
+mean_instruct_reps.shape
+
+opp_task_list = Task.TASK_LIST.copy()
+opp_task_list[1], opp_task_list[2] = opp_task_list[2], opp_task_list[1]
+
+mean_instruct_reps[[1,2], :] = mean_instruct_reps[[2,1], :] 
+context_reps[[1,2], :] = context_reps[[2,1], :] 
+
+corr = np.corrcoef(mean_instruct_reps, context_reps)
+cos_sim = cosine_similarity(mean_instruct_reps, context_reps)
 cos_sim.shape
 corr.shape
-sns.heatmap(cos_sim, xticklabels=['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'], yticklabels=['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'], cmap='magma_r')
+
+sns.heatmap(cos_sim, xticklabels=opp_task_list*2, yticklabels=opp_task_list*2, cmap='magma_r', vmin=-0.1, vmax=1)
+sns.heatmap(corr[:16, 16:], xticklabels=opp_task_list, yticklabels=opp_task_list, cmap='magma_r', vmin=-0.1, vmax=1)
+sns.heatmap(cos_sim, xticklabels=opp_task_list, yticklabels=opp_task_list, cmap='magma_r', vmin=-0.1, vmax=1)
+
+sns.heatmap(corr[:16, :16], xticklabels=opp_task_list, yticklabels=opp_task_list, cmap='magma_r', vmin=-0.2, vmax=1)
+
+
+
+for i in range(4):
+    plt.axhline(y = 4*i, xmin=i/4, xmax=(i+1)/4, color = 'k',linewidth = 3)
+    plt.axhline(y = 4*(i+1), xmin=i/4, xmax=(i+1)/4, color = 'k',linewidth = 3)  
+    plt.axvline(x = 4*i, ymin=1-i/4, ymax = 1-(i+1)/4, color = 'k',linewidth = 3)
+    plt.axvline(x = 4*(i+1), ymin=1-i/4, ymax = 1-(i+1)/4, color = 'k',linewidth = 3)
+
+
+
 plt.show()
 
 # plot_hid_traj(sbert_comp_hid_traj, 'COMP', [0,1], [4], [1], subtitle='sbertNet_layer_11, COMP2 Heldout', annotate_tuples=[(1, 0, 1)])
@@ -92,8 +118,7 @@ plt.show()
 
 
 # rnn_reps = get_task_reps(model)
-instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
-reduced_instruct_reps, var_explained = reduce_rep(instruct_reps)
+
 
 # task_group_dict['COMP'].reverse()
 # task_group_dict['COMP']
@@ -128,6 +153,18 @@ reduced_instruct_reps, var_explained = reduce_rep(instruct_reps)
 # sns.heatmap(corr)
 # plt.show()
 
+# model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
+# model.set_seed(0) 
+# model.to(device)
+# for task in ['DMS']: 
+#     contexts = np.empty((15, 768))
+#     streamer = TaskDataSet('_ReLU128_5.7/training_data', num_batches = 200, task_ratio_dict={task:1})
+#     streamer.data_to_device(device)
+#     for j in range(15): 
+#         contexts[j, :]=train_context(model, streamer, 2, model_load_file='_ReLU128_5.7/single_holdouts/Multitask')
+#     pickle.dump(contexts, open('_ReLU128_5.7/single_holdouts/'+task.replace(' ', '_')+'/sbertNet_layer_11/context_vecs', 'wb'))
+#     pickle.dump(np.array(model._correct_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task.replace(' ', '_')+'/sbertNet_layer_11/context_correct_data', 'wb'))
+#     pickle.dump(np.array(model._loss_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task.replace(' ', '_')+'/sbertNet_layer_11/context_loss_data', 'wb'))
 
 
 
@@ -153,13 +190,9 @@ plot_hid_traj(sbert_dm_contexts, 'DM', [0, 1, 2, 3, 4], [0], [0], subtitle='sber
 
 from dPCA import dPCA
 
-
-
-
-
-trials, var_of_insterest = make_test_trials('DM', 'diff_strength', 0, num_trials=1)
+trials, var_of_insterest = make_test_trials('Go', 'direction', 0, num_trials=6)
 var_of_insterest
-hid_resp, mean_hid_resp = get_hid_var_resp(model, 'DM', trials, num_repeats=3)
+hid_resp, mean_hid_resp = get_hid_var_resp(model, 'Anti Go', trials, num_repeats=10)
 
 # # trial-average data
 # R = mean(trialR,0)
@@ -170,14 +203,18 @@ hid_resp, mean_hid_resp = get_hid_var_resp(model, 'DM', trials, num_repeats=3)
 reshape_mean_hid_resp = mean_hid_resp.T.swapaxes(-1, 1)
 reshape_hid_resp = hid_resp.swapaxes(1, 2).swapaxes(-1, 1)
 
+reshape_hid_resp.shape
+
 np.expand_dims(reshape_mean_hid_resp, -1).shape
+np.expand_dims(reshape_hid_resp, -1).shape
 
-#reshape_mean_hid_resp -= np.mean(mean_hid_resp.reshape((128, -1)), 1)[:, None, None]
 
-dpca = dPCA.dPCA(labels='std',regularizer='auto')
+reshape_mean_hid_resp -= np.mean(mean_hid_resp.reshape((128, -1)), 1)[:, None, None]
+
+dpca = dPCA.dPCA(labels='st',regularizer='auto')
 dpca.protect = ['t']
 
-Z = dpca.fit_transform(np.expand_dims(reshape_mean_hid_resp, -1), np.expand_dims(reshape_hid_resp, -1))
+Z = dpca.fit_transform(reshape_mean_hid_resp, reshape_hid_resp)
 
 
 time = np.arange(120)

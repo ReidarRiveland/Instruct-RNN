@@ -8,7 +8,8 @@ from rnn_models import InstructNet, SimpleNet
 from nlp_models import SBERT, BERT, GPT, BoW
 from task import Task
 from data import TaskDataSet
-from utils import isCorrect
+from utils import isCorrect, train_instruct_dict
+from model_analysis import get_instruct_reps
 
 import itertools
 import pickle
@@ -87,13 +88,13 @@ def train_model(model, streamer, epochs, optimizer, scheduler):
         if scheduler is not None: 
             scheduler.step()    
 
-def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_14.6/single_holdouts', save=False): 
+def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_5.7/single_holdouts', save=False): 
         holdout_file = holdouts_test.replace(' ', '_')
         for _ in range(repeats): 
-            model.load_state_dict(torch.load(foldername +'/'+holdout_file+'/'+model.model_name+'.pt'))
+            model.load_model(foldername+'/'+holdout_file)
             opt, _ = init_optimizer(model, 0.001, [])
 
-            data = TaskDataSet(batch_len=256, num_batches=100, task_ratio_dict={holdouts_test:1})
+            data = TaskDataSet(data_folder = '_ReLU128_5.7/training_data', batch_len=256, num_batches=100, task_ratio_dict={holdouts_test:1})
             data.data_to_device(device)
             train_model(model, data, 1, opt, None)
         
@@ -101,19 +102,21 @@ def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_14.6/sing
         loss_perf = np.mean(np.array(model._loss_data_dict[holdouts_test]).reshape(repeats, -1), axis=0)
 
         if save: 
-            pickle.dump(correct_perf, open(foldername +'/'+holdout_file+ '/' + model.model_name+'_holdout_correct', 'wb'))
-            pickle.dump(loss_perf, open(foldername +'/'+holdout_file + '/' + model.model_name+'_holdout_loss', 'wb'))
+            pickle.dump(correct_perf, open(foldername +'/'+holdout_file + '/' + model.model_name+'/'+model.__seed_num_str__+'_holdout_correct', 'wb'))
+            pickle.dump(loss_perf, open(foldername +'/'+holdout_file + '/' + model.model_name+'/'+model.__seed_num_str__+'_holdout_loss', 'wb'))
 
         return correct_perf, loss_perf
 
-
-def train_context(model, data_streamer, epochs, model_load_file, context_dim = 768): 
+def train_context(model, data_streamer, epochs, model_load_file, init_context = None, context_dim = 768): 
     model_load_file = model_load_file.replace(' ', '_')
     model.load_model(model_load_file)
     model.freeze_weights()
+    
+    if init_context is None: 
+        init_context = np.zeros(size=context_dim)
 
-    context = nn.Parameter(torch.empty(1, context_dim))
-    torch.nn.init.normal_(context)
+    init_context += np.random.normal(size=context_dim)
+    context = nn.Parameter(torch.Tensor(init_context).unsqueeze(0))
     opt= optim.Adam([context], lr=0.01, weight_decay=0.0)
     sch = optim.lr_scheduler.MultiStepLR(opt, milestones=[epochs-1, epochs-2], gamma=0.5)
 
@@ -144,19 +147,28 @@ def train_context(model, data_streamer, epochs, model_load_file, context_dim = 7
 
     return context.squeeze().detach().cpu().numpy()
 
-
+init_avg = True
 model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
 model.set_seed(0) 
 model.to(device)
-for task in ['RT Go', 'Anti Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']: 
+for task in Task.TASK_LIST:     
+    task_file = task.replace(' ', '_')
     contexts = np.empty((15, 768))
     streamer = TaskDataSet('_ReLU128_5.7/training_data', num_batches = 200, task_ratio_dict={task:1})
     streamer.data_to_device(device)
+
+    if init_avg: 
+        instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
+        init_context = np.mean(np.mean(instruct_reps, axis = 0), axis=0)
+    else: 
+        init_context = np.zeros(768)
+
     for j in range(15): 
-        contexts[j, :]=train_context(model, streamer, 2, model_load_file='_ReLU128_5.7/single_holdouts/Multitask')
-    pickle.dump(contexts, open('_ReLU128_5.7/single_holdouts/'+task.replace(' ', '_')+'/sbertNet_layer_11/context_vecs', 'wb'))
-    pickle.dump(np.array(model._correct_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task.replace(' ', '_')+'/sbertNet_layer_11/context_correct_data', 'wb'))
-    pickle.dump(np.array(model._loss_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task.replace(' ', '_')+'/sbertNet_layer_11/context_loss_data', 'wb'))
+        contexts[j, :]=train_context(model, streamer, 2, init_context = init_context, model_load_file='_ReLU128_5.7/single_holdouts/'+task_file)
+    pickle.dump(contexts, open('_ReLU128_5.7/single_holdouts/'+task_file+'/sbertNet_layer_11/context_vecs', 'wb'))
+    pickle.dump(np.array(model._correct_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task_file+'/sbertNet_layer_11/context_holdout_correct_data', 'wb'))
+    pickle.dump(np.array(model._loss_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task_file+'/sbertNet_layer_11/context_holdout_loss_data', 'wb'))
+
 
 
 training_lists_dict={
@@ -234,6 +246,15 @@ def config_model_training(key):
     epochs = params['epochs']
 
     return model, opt, sch, epochs
+
+seeds = [0, 1]
+to_test = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), Task.TASK_LIST))
+for config in to_test: 
+    seed_num, model_params_key, holdouts = config
+    model, _, _, _ = config_model_training(model_params_key)
+    model.set_seed(seed_num)
+    model.to(device)
+    test_model(model, holdouts, save=True)
 
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
+import enum
+from matplotlib.pyplot import axis
 import torch
 import numpy as np
 from torch._C import device
@@ -34,6 +36,7 @@ def get_model_performance(model, num_batches):
     return perf_dict 
 
 def get_instruct_reps(langModel, instruct_dict, depth='full'):
+    assert depth in ['full', 'transformer']
     langModel.eval()
     if depth=='transformer': 
         assert hasattr(langModel, 'transformer'), 'language model must be transformer to evaluate a that depth'
@@ -84,7 +87,6 @@ def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None):
         mean_neural_response = np.mean(total_neuron_response, axis=0)
     return total_neuron_response, mean_neural_response
 
-
 def get_hid_var_group_resp(model, task_group, var_of_insterest, mod=0, num_trials=1, sigma_in = 0.05): 
     if task_group == 'Go': assert var_of_insterest in ['direction', 'strength']
     if task_group == 'DM': assert var_of_insterest in ['diff_direction', 'diff_strength']
@@ -112,5 +114,4 @@ def reduce_rep(reps, dim=2, reduction_method='PCA'):
         explained_variance = None
 
     return embedded.reshape(16, reps.shape[1], dim), explained_variance
-
 

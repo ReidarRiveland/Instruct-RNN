@@ -57,7 +57,37 @@ def plot_single_seed_training(foldername, holdout, model_list, train_data_type, 
     fig.suptitle('Training for '+holdout+' Holdout', size=16)
     plt.show()
 
-#plot_single_seed_training('_ReLU128_5.7/single_holdouts/', 'Multitask', ['sbertNet_layer_11'], 'correct', 0, smoothing = 0.01)
+plot_single_seed_training('_ReLU128_5.7/single_holdouts/', 'Multitask', ['sbertNet_layer_11'], 'correct', 0, smoothing = 0.01)
+
+
+def plot_single_context_training(foldername, model_list, train_data_type, seed, smoothing=0.1):
+    seed = 'seed' + str(seed)
+    fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(19, 12))
+    for model_name in model_list: 
+        for i, ax in enumerate(axn.flat):
+            task = task_list[i]
+            task_file = task.replace(' ', '_')
+            try: 
+                training_data = pickle.load(open(foldername+task_file+'/'+model_name+'/context_correct_data', 'rb'))
+            except FileNotFoundError: 
+                print('No training data for '+ model_name + seed)
+                print('\n'+ foldername+task_file+'/'+model_name+'/'+seed+'_training_'+train_data_type)
+                continue 
+            ax.set_ylim(-0.05, 1.15)
+            for j in range(16): 
+                if j == 15:
+                    smoothed_perf = gaussian_filter1d(np.mean(training_data, axis=0), sigma=smoothing)
+                    alpha = 1
+                else: 
+                    smoothed_perf = gaussian_filter1d(training_data[j, :], sigma=smoothing)
+                    alpha = 0.1
+                ax.plot(smoothed_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=alpha, markersize=10, markevery=250)
+            ax.set_title(task)
+    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.55), title='Models', title_fontsize=12)
+    fig.suptitle('Training for Semantic Contexts', size=16)
+    plt.show()
+
+plot_single_context_training('_ReLU128_5.7/single_holdouts/', ['sbertNet_layer_11'], 'correct', 0, smoothing = 0.01)
 
 
 def plot_single_seed_holdout(foldername, model_list, train_data_type, seed, smoothing=0.1):
@@ -79,6 +109,9 @@ def plot_single_seed_holdout(foldername, model_list, train_data_type, seed, smoo
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.55), title='Models', title_fontsize=12)
     fig.suptitle('Performance on Heldout Tasks', size=16)
     plt.show()
+
+plot_single_seed_holdout('_ReLU128_5.7/single_holdouts/', ['sbertNet_layer_11'], 'correct', 0, smoothing = 0.01)
+
 
 def plot_avg_seed_holdout(foldername, model_list, train_data_type, seed, smoothing=0.1):
     rc('font', weight='bold')
