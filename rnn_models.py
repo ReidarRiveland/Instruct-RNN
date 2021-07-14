@@ -23,7 +23,7 @@ class BaseNet(nn.Module):
         self.activ_func = activ_func
         self._loss_data_dict = defaultdict(list)
         self._correct_data_dict = defaultdict(list)
-        self.__seed_num_str__ = ''
+        self.__seed_num_str__ = None
         self.__hiddenInitValue__ = 0.1
 
         if self.activ_func != 'elman': 
