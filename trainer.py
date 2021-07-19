@@ -117,7 +117,7 @@ def train_context(model, data_streamer, epochs, model_load_file, init_context = 
 
     init_context += np.random.normal(size=context_dim)
     context = nn.Parameter(torch.Tensor(init_context).unsqueeze(0))
-    opt= optim.Adam([context], lr=0.01, weight_decay=0.0)
+    opt= optim.Adam([context], lr=0.01, weight_decay=0.00)
     sch = optim.lr_scheduler.MultiStepLR(opt, milestones=[epochs-1, epochs-2], gamma=0.5)
 
     for i in range(epochs): 
@@ -147,14 +147,14 @@ def train_context(model, data_streamer, epochs, model_load_file, init_context = 
 
     return context.squeeze().detach().cpu().numpy()
 
-init_avg = True
+init_avg = False
 model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
 model.set_seed(0) 
 model.to(device)
 for task in Task.TASK_LIST:     
     task_file = task.replace(' ', '_')
     contexts = np.empty((15, 768))
-    streamer = TaskDataSet('_ReLU128_5.7/training_data', num_batches = 200, task_ratio_dict={task:1})
+    streamer = TaskDataSet('_ReLU128_5.7/training_data', num_batches = 500, task_ratio_dict={task:1})
     streamer.data_to_device(device)
 
     if init_avg: 
@@ -164,7 +164,7 @@ for task in Task.TASK_LIST:
         init_context = np.zeros(768)
 
     for j in range(15): 
-        contexts[j, :]=train_context(model, streamer, 2, init_context = init_context, model_load_file='_ReLU128_5.7/single_holdouts/'+task_file)
+        contexts[j, :]=train_context(model, streamer, 3, init_context = init_context, model_load_file='_ReLU128_5.7/single_holdouts/'+task_file)
     pickle.dump(contexts, open('_ReLU128_5.7/single_holdouts/'+task_file+'/sbertNet_layer_11/context_vecs', 'wb'))
     pickle.dump(np.array(model._correct_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task_file+'/sbertNet_layer_11/context_holdout_correct_data', 'wb'))
     pickle.dump(np.array(model._loss_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task_file+'/sbertNet_layer_11/context_holdout_loss_data', 'wb'))
@@ -247,14 +247,14 @@ def config_model_training(key):
 
     return model, opt, sch, epochs
 
-seeds = [0, 1]
-to_test = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), Task.TASK_LIST))
-for config in to_test: 
-    seed_num, model_params_key, holdouts = config
-    model, _, _, _ = config_model_training(model_params_key)
-    model.set_seed(seed_num)
-    model.to(device)
-    test_model(model, holdouts, save=True)
+# seeds = [0, 1]
+# to_test = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), Task.TASK_LIST))
+# for config in to_test: 
+#     seed_num, model_params_key, holdouts = config
+#     model, _, _, _ = config_model_training(model_params_key)
+#     model.set_seed(seed_num)
+#     model.to(device)
+#     test_model(model, holdouts, save=True)
 
 
 if __name__ == "__main__":

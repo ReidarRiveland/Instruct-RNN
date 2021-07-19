@@ -57,7 +57,7 @@ def plot_single_seed_training(foldername, holdout, model_list, train_data_type, 
     fig.suptitle('Training for '+holdout+' Holdout', size=16)
     plt.show()
 
-plot_single_seed_training('_ReLU128_5.7/single_holdouts/', 'Multitask', ['sbertNet_layer_11'], 'correct', 0, smoothing = 0.01)
+#plot_single_seed_training('_ReLU128_5.7/single_holdouts/', 'Multitask', ['sbertNet_layer_11'], 'correct', 0, smoothing = 0.01)
 
 
 def plot_single_context_training(foldername, model_list, train_data_type, seed, smoothing=0.1):
@@ -68,7 +68,7 @@ def plot_single_context_training(foldername, model_list, train_data_type, seed, 
             task = task_list[i]
             task_file = task.replace(' ', '_')
             try: 
-                training_data = pickle.load(open(foldername+task_file+'/'+model_name+'/context_correct_data', 'rb'))
+                training_data = pickle.load(open(foldername+task_file+'/'+model_name+'/context_holdout_correct_data', 'rb'))
             except FileNotFoundError: 
                 print('No training data for '+ model_name + seed)
                 print('\n'+ foldername+task_file+'/'+model_name+'/'+seed+'_training_'+train_data_type)
@@ -87,7 +87,7 @@ def plot_single_context_training(foldername, model_list, train_data_type, seed, 
     fig.suptitle('Training for Semantic Contexts', size=16)
     plt.show()
 
-plot_single_context_training('_ReLU128_5.7/single_holdouts/', ['sbertNet_layer_11'], 'correct', 0, smoothing = 0.01)
+#plot_single_context_training('_ReLU128_5.7/single_holdouts/', ['sbertNet_layer_11'], 'correct', 0, smoothing = 0.01)
 
 
 def plot_single_seed_holdout(foldername, model_list, train_data_type, seed, smoothing=0.1):

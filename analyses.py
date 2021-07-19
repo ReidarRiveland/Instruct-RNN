@@ -34,7 +34,7 @@ import torch
 model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
 model.set_seed(0) 
 
-model.load_model('_ReLU128_5.7/single_holdouts/Anti_DM')
+model.load_model('_ReLU128_5.7/single_holdouts/Multitask')
 
 instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
 
