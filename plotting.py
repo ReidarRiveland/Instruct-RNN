@@ -91,7 +91,7 @@ def plot_single_context_training(foldername, model_list, train_data_type, seed, 
 
 
 def plot_single_seed_holdout(foldername, model_list, train_data_type, seed, smoothing=0.1):
-    seed = '_seed' + str(seed)
+    seed = 'seed' + str(seed)
     fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(19, 12))
     for model_name in model_list: 
         for i, ax in enumerate(axn.flat):
@@ -99,7 +99,7 @@ def plot_single_seed_holdout(foldername, model_list, train_data_type, seed, smoo
             task_to_plot = task_list[i]
             task_file = task_to_plot.replace(' ', '_')
             try:
-                training_data = pickle.load(open(foldername+task_file+'/'+model_name+seed+'_holdout_'+train_data_type, 'rb'))
+                training_data = pickle.load(open(foldername+task_file+'/'+model_name+'/'+seed+'_holdout_'+train_data_type, 'rb'))
             except FileNotFoundError: 
                 print('No training data for '+ model_name + seed+' '+task_to_plot)
                 continue 
@@ -110,13 +110,13 @@ def plot_single_seed_holdout(foldername, model_list, train_data_type, seed, smoo
     fig.suptitle('Performance on Heldout Tasks', size=16)
     plt.show()
 
-plot_single_seed_holdout('_ReLU128_5.7/single_holdouts/', ['sbertNet_layer_11'], 'correct', 0, smoothing = 0.01)
+#plot_single_seed_holdout('_ReLU128_5.7/single_holdouts/', ['sbertNet_layer_11'], 'correct', 2, smoothing = 0.01)
 
 
 def plot_avg_seed_holdout(foldername, model_list, train_data_type, seed, smoothing=0.1):
     rc('font', weight='bold')
 
-    seed = '_seed' + str(seed)
+    seed = 'seed' + str(seed)
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(14, 10))
     axn.set_ylim(-0.05, 1.05)
     for model_name in model_list: 
@@ -124,7 +124,7 @@ def plot_avg_seed_holdout(foldername, model_list, train_data_type, seed, smoothi
         for i, task in enumerate(task_list):
             task_file = task.replace(' ', '_')
             try:
-                training_data[i, :] = pickle.load(open(foldername+task_file+'/'+model_name+seed+'_holdout_'+train_data_type, 'rb'))
+                training_data[i, :] = pickle.load(open(foldername+task_file+'/'+model_name+'/'+seed+'_holdout_'+train_data_type, 'rb'))
             except FileNotFoundError: 
                 print('No training data for '+ model_name + seed+' '+task)
                 continue 
@@ -138,6 +138,9 @@ def plot_avg_seed_holdout(foldername, model_list, train_data_type, seed, smoothi
     plt.yticks(np.arange(0, 1.1, 0.1))
     plt.show()
     return training_data
+
+#plot_avg_seed_holdout('_ReLU128_5.7/single_holdouts/', ['sbertNet_layer_11', 'bertNet_layer_11'], 'correct', 2, smoothing = 0.01)
+
 
 def plot_trained_performance(all_perf_dict):
     barWidth = 0.15

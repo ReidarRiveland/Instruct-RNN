@@ -15,6 +15,12 @@ def _draw_ortho_dirs():
     dir2 = (dir1+np.pi+np.random.uniform(-np.pi*0.2, np.pi*0.2))%(2*np.pi)
     return (dir1, dir2)
 
+# def _draw_ortho_dirs(): 
+#     dir1 = np.random.uniform(0, 2*np.pi)
+#     dir2 = np.random.uniform(dir1+np.pi/4, (dir1-np.pi/4)+(2*np.pi))%(2*np.pi)
+#     return (dir1, dir2)
+
+
 class Task():
     TASK_LIST = ['Go', 'RT Go', 'Anti Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']
     SHUFFLED_TASK_LIST = ['MultiCOMP2', 'RT Go', 'COMP2', 'DNMS', 'Anti Go', 'COMP1', 'DNMC', 'Anti DM', 'MultiCOMP1', 'Anti MultiDM', 'MultiDM', 'DM', 'Anti RT Go', 'DMC', 'DMS', 'Go']

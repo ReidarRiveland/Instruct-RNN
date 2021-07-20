@@ -38,6 +38,14 @@ model.load_model('_ReLU128_5.7/single_holdouts/Multitask')
 
 instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
 
+import seaborn as sns
+opp_task_list = Task.TASK_LIST.copy()
+opp_task_list[1], opp_task_list[2] = opp_task_list[2], opp_task_list[1]
+instruct_reps[[1,2], ...] = instruct_reps[[2,1], ...] 
+corr = np.corrcoef(instruct_reps.reshape(-1, 768))
+sns.heatmap(corr, xticklabels='', yticklabels='', cmap=sns.color_palette("rocket_r", as_cmap=True), vmin=-0.2, vmax=1)
+plt.show()
+
 
 reduced_instruct_reps, var_explained = reduce_rep(instruct_reps)
 

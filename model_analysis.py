@@ -23,7 +23,7 @@ def get_model_performance(model, num_batches):
     batch_len = 128
     with torch.no_grad():
         perf_dict = dict.fromkeys(task_list)
-        for task in ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2']:
+        for task in Task.TASK_LIST:
             print(task)
             mean_list = [] 
             for _ in range(num_batches): 

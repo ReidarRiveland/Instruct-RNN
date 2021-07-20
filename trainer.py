@@ -13,7 +13,7 @@ from model_analysis import get_instruct_reps
 
 import itertools
 import pickle
-
+import sys
 
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -147,6 +147,7 @@ def train_context(model, data_streamer, epochs, model_load_file, init_context = 
 
     return context.squeeze().detach().cpu().numpy()
 
+'''
 init_avg = False
 model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
 model.set_seed(0) 
@@ -168,7 +169,7 @@ for task in Task.TASK_LIST:
     pickle.dump(contexts, open('_ReLU128_5.7/single_holdouts/'+task_file+'/sbertNet_layer_11/context_vecs', 'wb'))
     pickle.dump(np.array(model._correct_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task_file+'/sbertNet_layer_11/context_holdout_correct_data', 'wb'))
     pickle.dump(np.array(model._loss_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task_file+'/sbertNet_layer_11/context_holdout_loss_data', 'wb'))
-
+'''
 
 
 training_lists_dict={
@@ -247,62 +248,71 @@ def config_model_training(key):
 
     return model, opt, sch, epochs
 
-# seeds = [0, 1]
-# to_test = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), Task.TASK_LIST))
-# for config in to_test: 
-#     seed_num, model_params_key, holdouts = config
-#     model, _, _, _ = config_model_training(model_params_key)
-#     model.set_seed(seed_num)
-#     model.to(device)
-#     test_model(model, holdouts, save=True)
-
 
 if __name__ == "__main__":
+    train_or_test = sys.argv[0]
 
-    seeds = [0, 1, 2, 3, 4]
-    to_train = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), training_lists_dict['single_holdouts']))
+    if train_or_test == 'test': 
+        seeds = [0, 1, 2, 3, 4]
+        to_test = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), Task.TASK_LIST))
+        for config in to_test: 
+            seed_num, model_params_key, holdouts = config
+            try:
+                holdout_file = holdouts.replace(' ', '_')
+                pickle.load(open('_ReLU128_5.7/single_holdouts' +'/'+holdout_file + '/' + model_params_key+'/seed'+str(seed_num)+'_holdout_correct', 'rb'))
+                print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
+                continue
+            except FileNotFoundError: 
+                model, _, _, _ = config_model_training(model_params_key)
+                model.set_seed(seed_num)
+                model.to(device)
+                test_model(model, holdouts, save=True)
 
-    last_holdouts = None
-    data = None
-    for cur_train in to_train:      
-        #get the seed, holdout task, and model to train 
-        seed_num, model_params_key, holdouts = cur_train
+    if train_or_test == 'train': 
+        seeds = [0, 1, 2, 3, 4]
+        to_train = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), training_lists_dict['single_holdouts']))
 
-        #checkpoint the model training 
+        last_holdouts = None
+        data = None
+        for cur_train in to_train:      
+            #get the seed, holdout task, and model to train 
+            seed_num, model_params_key, holdouts = cur_train
 
-        #format save file name 
-        if isinstance(holdouts, list): holdout_file = '_'.join(holdouts)
-        else: holdout_file = holdouts
-        holdout_file = holdout_file.replace(' ', '_')
+            #checkpoint the model training 
 
-        #build model from params 
+            #format save file name 
+            if isinstance(holdouts, list): holdout_file = '_'.join(holdouts)
+            else: holdout_file = holdouts
+            holdout_file = holdout_file.replace(' ', '_')
 
-        try: 
-            pickle.load(open('_ReLU128_5.7/single_holdouts/'+holdout_file+'/'+model_params_key+'/seed'+str(seed_num)+'_training_loss', 'rb'))
-            print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
+            #build model from params 
 
-            last_holdouts = holdouts
-            continue
-        except FileNotFoundError:
-            print(cur_train)
-                    #if its a new training task, make the new data 
-            if holdouts == last_holdouts and data is not None: 
-                pass 
-            else: 
-                if holdouts == 'Multitask': data = TaskDataSet(data_folder= '_ReLU128_5.7/training_data')
-                else: data = TaskDataSet(data_folder= '_ReLU128_5.7/training_data', holdouts=[holdouts])
-                data.data_to_device(device)
+            try: 
+                pickle.load(open('_ReLU128_5.7/single_holdouts/'+holdout_file+'/'+model_params_key+'/seed'+str(seed_num)+'_training_loss', 'rb'))
+                print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
 
-            model, opt, sch, epochs = config_model_training(model_params_key)
-            model.set_seed(seed_num)
-            model.to(device)
+                last_holdouts = holdouts
+                continue
+            except FileNotFoundError:
+                print(cur_train)
+                        #if its a new training task, make the new data 
+                if holdouts == last_holdouts and data is not None: 
+                    pass 
+                else: 
+                    if holdouts == 'Multitask': data = TaskDataSet(data_folder= '_ReLU128_5.7/training_data')
+                    else: data = TaskDataSet(data_folder= '_ReLU128_5.7/training_data', holdouts=[holdouts])
+                    data.data_to_device(device)
 
-            #train 
-            train_model(model, data, epochs, opt, sch)
+                model, opt, sch, epochs = config_model_training(model_params_key)
+                model.set_seed(seed_num)
+                model.to(device)
 
-            #save
-            model.save_model('_ReLU128_5.7/single_holdouts/'+holdout_file)
-            model.save_training_data('_ReLU128_5.7/single_holdouts/'+holdout_file)
+                #train 
+                train_model(model, data, epochs, opt, sch)
 
-            #to check if you should make new data 
-            last_holdouts = holdouts
+                #save
+                model.save_model('_ReLU128_5.7/single_holdouts/'+holdout_file)
+                model.save_training_data('_ReLU128_5.7/single_holdouts/'+holdout_file)
+
+                #to check if you should make new data 
+                last_holdouts = holdouts
