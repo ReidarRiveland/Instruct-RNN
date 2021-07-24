@@ -180,12 +180,12 @@ training_lists_dict={
 }
 
 ALL_MODEL_PARAMS = {
-    'sbertNet_layer_11': {'model': InstructNet, 
-                    'langModel': SBERT,
-                    'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
-                    'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-                    'epochs': 30
-                },
+    # 'sbertNet_layer_11': {'model': InstructNet, 
+    #                 'langModel': SBERT,
+    #                 'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
+    #                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
+    #                 'epochs': 30
+    #             },
 
     'sbertNet': {'model': InstructNet, 
                 'langModel': SBERT,
@@ -194,12 +194,12 @@ ALL_MODEL_PARAMS = {
                 'epochs': 30
                 },
     
-    'bertNet_layer_11': {'model': InstructNet, 
-                    'langModel': BERT,
-                    'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
-                    'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25], 'langLR': 1e-4},
-                    'epochs': 30
-                },
+    # 'bertNet_layer_11': {'model': InstructNet, 
+    #                 'langModel': BERT,
+    #                 'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
+    #                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25], 'langLR': 1e-4},
+    #                 'epochs': 30
+    #             },
 
     'bertNet': {'model': InstructNet, 
                 'langModel': BERT,
@@ -288,7 +288,7 @@ if __name__ == "__main__":
             #build model from params 
 
             try: 
-                pickle.load(open('_ReLU128_5.7/single_holdouts/'+holdout_file+'/'+model_params_key+'/seed'+str(seed_num)+'_training_loss', 'rb'))
+                pickle.load(open('_ReLU128_24.7/single_holdouts/'+holdout_file+'/'+model_params_key+'/seed'+str(seed_num)+'_training_loss', 'rb'))
                 print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
 
                 last_holdouts = holdouts
@@ -299,8 +299,8 @@ if __name__ == "__main__":
                 if holdouts == last_holdouts and data is not None: 
                     pass 
                 else: 
-                    if holdouts == 'Multitask': data = TaskDataSet(data_folder= '_ReLU128_5.7/training_data')
-                    else: data = TaskDataSet(data_folder= '_ReLU128_5.7/training_data', holdouts=[holdouts])
+                    if holdouts == 'Multitask': data = TaskDataSet(data_folder= '_ReLU128_24.7/training_data')
+                    else: data = TaskDataSet(data_folder= '_ReLU128_24.7/training_data', holdouts=[holdouts])
                     data.data_to_device(device)
 
                 model, opt, sch, epochs = config_model_training(model_params_key)
@@ -311,8 +311,8 @@ if __name__ == "__main__":
                 train_model(model, data, epochs, opt, sch)
 
                 #save
-                model.save_model('_ReLU128_5.7/single_holdouts/'+holdout_file)
-                model.save_training_data('_ReLU128_5.7/single_holdouts/'+holdout_file)
+                model.save_model('_ReLU128_24.7/single_holdouts/'+holdout_file)
+                model.save_training_data('_ReLU128_24.7/single_holdouts/'+holdout_file)
 
                 #to check if you should make new data 
                 last_holdouts = holdouts

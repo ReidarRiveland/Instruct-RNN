@@ -10,15 +10,15 @@ def add_noise(array, sigma):
     noise = np.sqrt(2/Task.DELTA_T)*(sigma) * np.random.normal(size=array.shape)
     return array+noise
 
-def _draw_ortho_dirs(): 
-    dir1 = np.random.uniform(0, 2*np.pi)
-    dir2 = (dir1+np.pi+np.random.uniform(-np.pi*0.2, np.pi*0.2))%(2*np.pi)
-    return (dir1, dir2)
-
 # def _draw_ortho_dirs(): 
 #     dir1 = np.random.uniform(0, 2*np.pi)
-#     dir2 = np.random.uniform(dir1+np.pi/4, (dir1-np.pi/4)+(2*np.pi))%(2*np.pi)
+#     dir2 = (dir1+np.pi+np.random.uniform(-np.pi*0.2, np.pi*0.2))%(2*np.pi)
 #     return (dir1, dir2)
+
+def _draw_ortho_dirs(): 
+    dir1 = np.random.uniform(0, 2*np.pi)
+    dir2 = np.random.uniform(dir1+np.pi/3, (dir1-np.pi/3)+(2*np.pi))%(2*np.pi)
+    return (dir1, dir2)
 
 
 class Task():
@@ -350,7 +350,7 @@ class Delay(Task):
                 if match_trial and task_type in ['DMS', 'DNMS']: direction2 = direction1
                 elif match_trial and task_type in ['DMC', 'DNMC']: direction2 = np.random.uniform(cat_range[0], cat_range[1])
                 elif not match_trial and task_type in ['DMC', 'DNMC']: direction2 = (np.random.uniform(cat_range[0]+(np.pi/3), cat_range[1]-(np.pi/3)) + np.pi)%(2*np.pi)
-                else: direction2 = (direction1 + np.random.uniform(np.pi/2, (2*np.pi - np.pi/2)))%(2*np.pi)
+                else: direction2 = (direction1 + np.random.uniform(np.pi/3, (2*np.pi - np.pi/3)))%(2*np.pi)
                 
                 mod = np.random.choice([0, 1])
                 self.conditions_arr[mod, :, 0, i] = np.array([direction1, direction2])
@@ -564,3 +564,5 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
 
     return trials, var_of_interest
 
+
+build_training_data('_ReLU128_24.7')
