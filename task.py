@@ -565,4 +565,3 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
     return trials, var_of_interest
 
 
-build_training_data('_ReLU128_24.7')

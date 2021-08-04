@@ -15,12 +15,13 @@ import itertools
 import pickle
 import sys
 
-import os
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-os.environ["CUDA_VISIBLE_DEVICES"] = str(1)
-os.environ['CUDA_LAUNCH_BLOCKING'] = '1' 
+# import os
+# os.environ["TOKENIZERS_PARALLELISM"] = "false"
+# os.environ["CUDA_VISIBLE_DEVICES"] = str(1)
+# os.environ['CUDA_LAUNCH_BLOCKING'] = '1' 
 device = torch.device(0)
 
+torch.cuda.is_available()
 torch.cuda.get_device_name(device)
 
 
@@ -88,13 +89,13 @@ def train_model(model, streamer, epochs, optimizer, scheduler):
         if scheduler is not None: 
             scheduler.step()    
 
-def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_5.7/single_holdouts', save=False): 
+def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_24.7/single_holdouts', save=False): 
         holdout_file = holdouts_test.replace(' ', '_')
         for _ in range(repeats): 
             model.load_model(foldername+'/'+holdout_file)
             opt, _ = init_optimizer(model, 0.001, [])
 
-            data = TaskDataSet(data_folder = '_ReLU128_5.7/training_data', batch_len=256, num_batches=100, task_ratio_dict={holdouts_test:1})
+            data = TaskDataSet(data_folder = '_ReLU128_24.7/training_data', batch_len=256, num_batches=100, task_ratio_dict={holdouts_test:1})
             data.data_to_device(device)
             train_model(model, data, 1, opt, None)
         
@@ -180,32 +181,32 @@ training_lists_dict={
 }
 
 ALL_MODEL_PARAMS = {
-    # 'sbertNet_layer_11': {'model': InstructNet, 
-    #                 'langModel': SBERT,
-    #                 'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
-    #                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-    #                 'epochs': 30
-    #             },
+    'sbertNet_layer_11': {'model': InstructNet, 
+                    'langModel': SBERT,
+                    'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
+                    'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
+                    'epochs': 30
+                },
 
     'sbertNet': {'model': InstructNet, 
                 'langModel': SBERT,
                 'langModel_params': {'out_dim': 20, 'train_layers': []}, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-                'epochs': 30
+                'epochs': 35
                 },
     
-    # 'bertNet_layer_11': {'model': InstructNet, 
-    #                 'langModel': BERT,
-    #                 'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
-    #                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25], 'langLR': 1e-4},
-    #                 'epochs': 30
-    #             },
+    'bertNet_layer_11': {'model': InstructNet, 
+                    'langModel': BERT,
+                    'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
+                    'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25], 'langLR': 1e-4},
+                    'epochs': 30
+                },
 
     'bertNet': {'model': InstructNet, 
                 'langModel': BERT,
                 'langModel_params': {'out_dim': 20, 'train_layers': []}, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-                'epochs': 30
+                'epochs': 35
                 },
 
     # 'GPT NET LAYER 11': {'model': InstructNet, 
@@ -219,19 +220,19 @@ ALL_MODEL_PARAMS = {
                 'langModel': GPT,
                 'langModel_params': {'out_dim': 20, 'train_layers': []}, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]}, 
-                'epochs': 30
+                'epochs': 35
                 },
     
     'bowNet': {'model': InstructNet, 
                 'langModel': BoW,
                 'langModel_params': {'out_dim': None}, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-                'epochs': 25
+                'epochs': 30
                 },
 
     'simpleNet': {'model': SimpleNet, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-                'epochs': 25
+                'epochs': 30
                 }
 }
 
@@ -250,7 +251,7 @@ def config_model_training(key):
 
 
 if __name__ == "__main__":
-    train_or_test = sys.argv[0]
+    train_or_test = 'test'
 
     if train_or_test == 'test': 
         seeds = [0, 1, 2, 3, 4]
@@ -259,7 +260,7 @@ if __name__ == "__main__":
             seed_num, model_params_key, holdouts = config
             try:
                 holdout_file = holdouts.replace(' ', '_')
-                pickle.load(open('_ReLU128_5.7/single_holdouts' +'/'+holdout_file + '/' + model_params_key+'/seed'+str(seed_num)+'_holdout_correct', 'rb'))
+                pickle.load(open('_ReLU128_24.7/single_holdouts' +'/'+holdout_file + '/' + model_params_key+'/seed'+str(seed_num)+'_holdout_correct', 'rb'))
                 print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
                 continue
             except FileNotFoundError: 
