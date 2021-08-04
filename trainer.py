@@ -174,11 +174,12 @@ for task in Task.TASK_LIST:
 
 
 training_lists_dict={
-'single_holdouts' :  Task.TASK_LIST.copy()+['Multitask'],
+'single_holdouts' :  [[item] for item in Task.TASK_LIST.copy()+['Multitask']],
 'dual_holdouts' : [['RT Go', 'Anti Go'], ['Anti MultiDM', 'DM'], ['COMP1', 'MultiCOMP2'], ['DMC', 'DNMS']],
 'aligned_holdouts' : [['Anti DM', 'Anti MultiDM'], ['COMP1', 'MultiCOMP1'], ['DMS', 'DNMS'],['Go', 'RT Go']],
 'swap_holdouts' : [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['RT Go', 'COMP1']]
 }
+
 
 ALL_MODEL_PARAMS = {
     'sbertNet_layer_11': {'model': InstructNet, 
@@ -251,7 +252,7 @@ def config_model_training(key):
 
 
 if __name__ == "__main__":
-    train_or_test = 'test'
+    train_or_test = 'train'
 
     if train_or_test == 'test': 
         seeds = [0, 1, 2, 3, 4]
@@ -271,7 +272,8 @@ if __name__ == "__main__":
 
     if train_or_test == 'train': 
         seeds = [0, 1, 2, 3, 4]
-        to_train = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), training_lists_dict['single_holdouts']))
+        holdout_type = 'swap_holdouts'
+        to_train = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), training_lists_dict[holdout_type]))
 
         last_holdouts = None
         data = None
@@ -289,7 +291,7 @@ if __name__ == "__main__":
             #build model from params 
 
             try: 
-                pickle.load(open('_ReLU128_24.7/single_holdouts/'+holdout_file+'/'+model_params_key+'/seed'+str(seed_num)+'_training_loss', 'rb'))
+                pickle.load(open('_ReLU128_24.7/'+holdout_type+'/'+holdout_file+'/'+model_params_key+'/seed'+str(seed_num)+'_training_loss', 'rb'))
                 print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
 
                 last_holdouts = holdouts
@@ -301,7 +303,7 @@ if __name__ == "__main__":
                     pass 
                 else: 
                     if holdouts == 'Multitask': data = TaskDataSet(data_folder= '_ReLU128_24.7/training_data')
-                    else: data = TaskDataSet(data_folder= '_ReLU128_24.7/training_data', holdouts=[holdouts])
+                    else: data = TaskDataSet(data_folder= '_ReLU128_24.7/training_data', holdouts=holdouts)
                     data.data_to_device(device)
 
                 model, opt, sch, epochs = config_model_training(model_params_key)
