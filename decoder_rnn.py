@@ -16,17 +16,12 @@ import torch.nn as nn
 model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
 model.set_seed(0) 
 
-model.load_model('_ReLU128_5.7/single_holdouts/Multitask')
+model.load_model('_ReLU128_24.7/single_holdouts/Multitask')
 
 
 perf = get_model_performance(model, 3)
 
 plot_trained_performance({'sbertNet_layer_11': perf})
-
-instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
-instruct_array = np.array([instruct_set for instruct_set in train_instruct_dict.values()])
-instruct_reps.shape
-
 
 
 import os

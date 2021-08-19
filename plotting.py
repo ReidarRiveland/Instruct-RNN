@@ -57,7 +57,7 @@ def plot_single_seed_training(foldername, holdout, model_list, train_data_type, 
     fig.suptitle('Training for '+holdout+' Holdout', size=16)
     plt.show()
 
-#plot_single_seed_training('_ReLU128_5.7/single_holdouts/', 'Multitask', ['sbertNet_layer_11'], 'correct', 0, smoothing = 0.01)
+plot_single_seed_training('_ReLU128_24.7/single_holdouts/', 'Go', ['sbertNet'], 'correct', 0, smoothing = 0.01)
 
 
 def plot_single_context_training(foldername, model_list, train_data_type, seed, smoothing=0.1):
@@ -110,7 +110,7 @@ def plot_single_seed_holdout(foldername, model_list, train_data_type, seed, smoo
     fig.suptitle('Performance on Heldout Tasks', size=16)
     plt.show()
 
-#plot_single_seed_holdout('_ReLU128_5.7/single_holdouts/', ['sbertNet_layer_11'], 'correct', 2, smoothing = 0.01)
+plot_single_seed_holdout('_ReLU128_24.7/single_holdouts/', ['sbertNet'], 'correct', 2, smoothing = 0.01)
 
 
 def plot_avg_seed_holdout(foldername, model_list, train_data_type, seed, smoothing=0.1):
@@ -139,7 +139,7 @@ def plot_avg_seed_holdout(foldername, model_list, train_data_type, seed, smoothi
     plt.show()
     return training_data
 
-#plot_avg_seed_holdout('_ReLU128_5.7/single_holdouts/', ['sbertNet_layer_11', 'bertNet_layer_11'], 'correct', 2, smoothing = 0.01)
+plot_avg_seed_holdout('_ReLU128_24.7/single_holdouts/', ['sbertNet_layer_11', 'sbertNet'], 'correct', 4, smoothing = 0.01)
 
 
 def plot_trained_performance(all_perf_dict):
@@ -308,23 +308,26 @@ def plot_hid_traj(task_group_hid_traj, task_group, task_indices, trial_indices, 
     plt.tight_layout()
     plt.show()
 
-def plot_RDM(avg_reps, cmap=sns.color_palette("rocket_r", as_cmap=True)):
+def plot_RDM(lang_reps, cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', use_avg_reps = False):
+    lang_reps[[1,2], ...] = lang_reps[[2,1], ...] 
+
+    if use_avg_reps:
+        lang_reps = np.mean(lang_reps, axis=1)
+    lang_reps = lang_reps.reshape(-1, 768)
+
     opp_task_list = Task.TASK_LIST.copy()
     opp_task_list[1], opp_task_list[2] = opp_task_list[2], opp_task_list[1]
 
-    avg_reps[[1,2], :] = avg_reps[[2,1], :] 
-    sim_scores = 1-np.corrcoef(avg_reps)
-    sns.set(font_scale=0.65)
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(9, 7))
-    map = sns.heatmap(sim_scores, yticklabels = opp_task_list, xticklabels= opp_task_list, 
+    sim_scores = 1-np.corrcoef(lang_reps)
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(13, 10))
+
+    sns.heatmap(sim_scores, yticklabels = '', xticklabels= '',
                         cmap=cmap, vmin=0, vmax=1, ax=axn, annot_kws={"size": 8})
 
-    for i in range(4):
-        plt.axhline(y = 4*i, xmin=i/4, xmax=(i+1)/4, color = 'k',linewidth = 3)
-        plt.axhline(y = 4*(i+1), xmin=i/4, xmax=(i+1)/4, color = 'k',linewidth = 3)  
-        plt.axvline(x = 4*i, ymin=1-i/4, ymax = 1-(i+1)/4, color = 'k',linewidth = 3)
-        plt.axvline(x = 4*(i+1), ymin=1-i/4, ymax = 1-(i+1)/4, color = 'k',linewidth = 3)
-
+    for i, task in enumerate(opp_task_list):
+        plt.text(-2, 8+15*i, task, ha='right')
+        plt.text(7.5+15*i, 242, task, va='top', rotation='vertical')
+    plt.title(plot_title, fontweight='bold', fontsize=16)
     plt.show()
 
 def make_tuning_curve(model, tasks, task_variable, unit, mod, times): 
@@ -386,8 +389,6 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod):
     #     plt.vlines(20, -1.5, ylim+0.15, colors='k', linestyles='dashed')
     #     plt.vlines(60, -1.5, ylim+0.15, colors='k', linestyles='dashed')
     #     plt.xticks([20, 60, 100], labels=['Stim. 1 Onset', 'Stim. 2 Onset', 'Reponse'])
-
-
 
     axn.set_ylim(0, ylim+0.15)
     cbar = plt.colorbar(scalarMap, orientation='vertical', label = task_variable.replace('_', ' '), ticks = [0, 100])

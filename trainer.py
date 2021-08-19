@@ -1,3 +1,4 @@
+from matplotlib.pyplot import stem
 import numpy as np
 
 import torch
@@ -9,21 +10,16 @@ from nlp_models import SBERT, BERT, GPT, BoW
 from task import Task
 from data import TaskDataSet
 from utils import isCorrect, train_instruct_dict
-from model_analysis import get_instruct_reps
+from model_analysis import task_eval, get_instruct_reps
 
 import itertools
 import pickle
 import sys
 
-# import os
-# os.environ["TOKENIZERS_PARALLELISM"] = "false"
-# os.environ["CUDA_VISIBLE_DEVICES"] = str(1)
-# os.environ['CUDA_LAUNCH_BLOCKING'] = '1' 
 device = torch.device(0)
 
 torch.cuda.is_available()
 torch.cuda.get_device_name(device)
-
 
 
 def masked_MSE_Loss(nn_out, nn_target, mask):
@@ -55,7 +51,7 @@ def init_optimizer(model, lr, milestones, weight_decay=0.0, langLR=None):
     return optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5)
     
     
-def train_model(model, streamer, epochs, optimizer, scheduler): 
+def train_model(model, streamer, epochs, optimizer, scheduler, print_eval=False): 
     model.to(device)
     batch_len = streamer.batch_len 
     for i in range(epochs):
@@ -84,6 +80,11 @@ def train_model(model, streamer, epochs, optimizer, scheduler):
                 print(task_type)
                 print(j, ':', model.model_name, ":", "{:.2e}".format(loss.item()))
                 print('Frac Correct ' + str(frac_correct) + '\n')
+            if j%100 == 0: 
+                if print_eval:
+                    for holdout in streamer.holdouts: 
+                        frac_correct = task_eval(model, holdout, 128)
+                        print(holdout + ' holdout performance: '+str(frac_correct) + '\n')
 
 
         if scheduler is not None: 
@@ -108,7 +109,7 @@ def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_24.7/sing
 
         return correct_perf, loss_perf
 
-def train_context(model, data_streamer, epochs, model_load_file, init_context = None, context_dim = 768): 
+def _train_context(model, data_streamer, epochs, model_load_file, init_context = None, context_dim = 768): 
     model_load_file = model_load_file.replace(' ', '_')
     model.load_model(model_load_file)
     model.freeze_weights()
@@ -148,29 +149,24 @@ def train_context(model, data_streamer, epochs, model_load_file, init_context = 
 
     return context.squeeze().detach().cpu().numpy()
 
-'''
-init_avg = False
-model = InstructNet(SBERT(20, train_layers=['11']), 128, 1)
-model.set_seed(0) 
-model.to(device)
-for task in Task.TASK_LIST:     
-    task_file = task.replace(' ', '_')
-    contexts = np.empty((15, 768))
-    streamer = TaskDataSet('_ReLU128_5.7/training_data', num_batches = 500, task_ratio_dict={task:1})
-    streamer.data_to_device(device)
+def get_model_contexts(model, num_contexts, filename, init_avg=False):
+    for task in Task.TASK_LIST:     
+        task_file = task.replace(' ', '_')
+        contexts = np.empty((num_contexts, 768))
+        streamer = TaskDataSet('_ReLU128_5.7/training_data', num_batches = 500, task_ratio_dict={task:1})
+        streamer.data_to_device(device)
 
-    if init_avg: 
-        instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
-        init_context = np.mean(np.mean(instruct_reps, axis = 0), axis=0)
-    else: 
-        init_context = np.zeros(768)
+        if init_avg: 
+            instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
+            init_context = np.mean(np.mean(instruct_reps, axis = 0), axis=0)
+        else: 
+            init_context = np.zeros(768)
 
-    for j in range(15): 
-        contexts[j, :]=train_context(model, streamer, 3, init_context = init_context, model_load_file='_ReLU128_5.7/single_holdouts/'+task_file)
-    pickle.dump(contexts, open('_ReLU128_5.7/single_holdouts/'+task_file+'/sbertNet_layer_11/context_vecs', 'wb'))
-    pickle.dump(np.array(model._correct_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task_file+'/sbertNet_layer_11/context_holdout_correct_data', 'wb'))
-    pickle.dump(np.array(model._loss_data_dict[task]).reshape(15, -1), open('_ReLU128_5.7/single_holdouts/'+task_file+'/sbertNet_layer_11/context_holdout_loss_data', 'wb'))
-'''
+        for j in range(num_contexts): 
+            contexts[j, :]=_train_context(model, streamer, 3, init_context = init_context, model_load_file=filename+'/'+task_file)
+        pickle.dump(contexts, open(filename+'/'+task_file+'/' + model.model_name+'/context_vecs', 'wb'))
+        pickle.dump(np.array(model._correct_data_dict[task]).reshape(num_contexts, -1), open(filename+'/'+task_file+'/' + model.model_name+'/context_holdout_correct_data', 'wb'))
+        pickle.dump(np.array(model._loss_data_dict[task]).reshape(num_contexts, -1), open(filename+'/'+task_file+'/' + model.model_name+'/context_holdout_loss_data', 'wb'))
 
 
 training_lists_dict={
@@ -237,6 +233,7 @@ ALL_MODEL_PARAMS = {
                 }
 }
 
+
 def config_model_training(key): 
     params = ALL_MODEL_PARAMS[key]
 
@@ -251,8 +248,9 @@ def config_model_training(key):
     return model, opt, sch, epochs
 
 
+
 if __name__ == "__main__":
-    train_or_test = 'train'
+    train_or_test = 'fine_tune'
 
     if train_or_test == 'test': 
         seeds = [0, 1, 2, 3, 4]
@@ -270,6 +268,39 @@ if __name__ == "__main__":
                 model.to(device)
                 test_model(model, holdouts, save=True)
 
+    if train_or_test == 'fine_tune': 
+        seeds = [0, 1, 2, 3, 4]
+        holdout_type = 'single_holdouts'
+
+        to_test = list(itertools.product(seeds, ['sbertNet'],  training_lists_dict[holdout_type]))
+        for config in to_test: 
+            seed_num, model_params_key, holdouts = config
+
+            if len(holdouts) > 1: holdout_file = '_'.join(holdouts)
+            else: holdout_file = holdouts[0]
+            holdout_file = holdout_file.replace(' ', '_')
+
+            try:
+                pickle.load(open('_ReLU128_24.7/single_holdouts' +'/'+holdout_file + '/' + model_params_key+'_tuned'+'/seed'+str(seed_num)+'_holdout_correct', 'rb'))
+                print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
+                continue
+            except FileNotFoundError: 
+                model, _, _, _ = config_model_training(model_params_key)
+                opt, sch = init_optimizer(model, 1e-4, [8, 10], langLR= 2*1e-5)
+                model.set_seed(seed_num)
+                model.load_model('_ReLU128_24.7/single_holdouts/'+holdout_file)
+                model.langModel.train_layers=['11', '10', '9']
+                model.langModel.init_train_layers()
+                model.model_name = model.model_name+'_tuned'
+                streamer = TaskDataSet('_ReLU128_24.7/training_data', holdouts=holdouts)
+                streamer.data_to_device(device)
+                model.to(device)
+                train_model(model, streamer, 12, opt, sch, print_eval=True)
+
+                model.save_model('_ReLU128_24.7/'+holdout_type+'/'+holdout_file)
+                model.save_training_data('_ReLU128_24.7'+holdout_type+'/'+holdout_file)
+
+
     if train_or_test == 'train': 
         seeds = [0, 1, 2, 3, 4]
         holdout_type = 'swap_holdouts'
@@ -284,8 +315,8 @@ if __name__ == "__main__":
             #checkpoint the model training 
 
             #format save file name 
-            if isinstance(holdouts, list): holdout_file = '_'.join(holdouts)
-            else: holdout_file = holdouts
+            if len(holdouts) > 1: holdout_file = '_'.join(holdouts)
+            else: holdout_file = holdouts[0]
             holdout_file = holdout_file.replace(' ', '_')
 
             #build model from params 
@@ -314,8 +345,8 @@ if __name__ == "__main__":
                 train_model(model, data, epochs, opt, sch)
 
                 #save
-                model.save_model('_ReLU128_24.7/single_holdouts/'+holdout_file)
-                model.save_training_data('_ReLU128_24.7/single_holdouts/'+holdout_file)
+                model.save_model('_ReLU128_24.7/'+holdout_type+'/'+holdout_file)
+                model.save_training_data('_ReLU128_24.7'+holdout_type+'/'+holdout_file)
 
                 #to check if you should make new data 
                 last_holdouts = holdouts

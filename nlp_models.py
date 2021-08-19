@@ -36,12 +36,8 @@ class TransformerEmbedder(InstructionEmbedder):
     def init_train_layers(self): 
         if len(self.train_layers)>0: 
             tmp_train_layers = self.train_layers+self.SET_TRAIN_LAYER_LIST
-            if not isinstance(self.output_nonlinearity, type(nn.ReLU())): 
-                warnings.warn('output nonlinearity set to something other than relu! Use caution when trying to load pretained models')
         else: 
             tmp_train_layers = ['proj_out']
-            if not isinstance(self.output_nonlinearity, type(nn.Identity())): 
-                warnings.warn('output nonlinearity set to something other than Identity! Use caution when trying to load pretained models')
         for n,p in self.named_parameters(): 
             if any([layer in n for layer in tmp_train_layers]):
                 p.requires_grad=True

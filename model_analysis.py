@@ -17,21 +17,22 @@ task_group_dict = Task.TASK_GROUP_DICT
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
+def task_eval(model, task, batch_size): 
+    ins, targets, _, target_dirs, _ = construct_batch(task, batch_size)
+    task_info = model.get_task_info(batch_size, task)
+    out, _ = model(task_info, torch.Tensor(ins).to(model.__device__))
+    return np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
 def get_model_performance(model, num_batches): 
     model.eval()
-    batch_len = 128
     with torch.no_grad():
         perf_dict = dict.fromkeys(task_list)
         for task in Task.TASK_LIST:
             print(task)
             mean_list = [] 
             for _ in range(num_batches): 
-                #ins, targets, _, target_dirs, _ = next(TaskDataSet(num_batches=1, task_ratio_dict={task:1}).stream_batch())
-                ins, targets, _, target_dirs, _ = construct_batch(task, batch_len)
-                task_info = model.get_task_info(batch_len, task)
-                out, _ = model(task_info, torch.Tensor(ins).to(model.__device__))
-                mean_list.append(np.mean(isCorrect(out, torch.Tensor(targets), target_dirs)))
+                frac_correct = task_eval(model, task, 128)
+                mean_list.append(frac_correct)
             perf_dict[task] = np.mean(mean_list)
     return perf_dict 
 
