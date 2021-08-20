@@ -32,7 +32,7 @@ task_colors = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT G
                         'DMS':'firebrick', 'DNMS':'lightgreen', 'DMC':'dodgerblue', 'DNMC':'darkorange'}
 
 MODEL_STYLE_DICT = {'simpleNet': ('blue', None), 'bowNet': ('orange', None), 'gptNet': ('red', '^'), 'gptNet_layer_11': ('red', '.'), 
-                        'bertNet': ('green', '^'), 'bertNet_layer_11': ('green', '.'), 'sbertNet': ('purple', '^'), 'sbertNet_layer_11': ('purple', '.')}
+                    'bertNet': ('green', '^'), 'bertNet_layer_11': ('green', '.'), 'sbertNet': ('purple', '^'), 'sbertNet_tuned': ('purple', 'v'), 'sbertNet_layer_11': ('purple', '.')}
 
 
 def plot_single_seed_training(foldername, holdout, model_list, train_data_type, seed, smoothing=0.1):
@@ -110,7 +110,7 @@ def plot_single_seed_holdout(foldername, model_list, train_data_type, seed, smoo
     fig.suptitle('Performance on Heldout Tasks', size=16)
     plt.show()
 
-plot_single_seed_holdout('_ReLU128_24.7/single_holdouts/', ['sbertNet'], 'correct', 2, smoothing = 0.01)
+plot_single_seed_holdout('_ReLU128_24.7/single_holdouts/', ['sbertNet_layer_11', 'sbertNet_tuned', 'simpleNet'], 'correct', 0, smoothing = 0.01)
 
 
 def plot_avg_seed_holdout(foldername, model_list, train_data_type, seed, smoothing=0.1):
@@ -139,7 +139,34 @@ def plot_avg_seed_holdout(foldername, model_list, train_data_type, seed, smoothi
     plt.show()
     return training_data
 
-plot_avg_seed_holdout('_ReLU128_24.7/single_holdouts/', ['sbertNet_layer_11', 'sbertNet'], 'correct', 4, smoothing = 0.01)
+plot_avg_seed_holdout('_ReLU128_24.7/single_holdouts/', ['sbertNet_layer_11', 'sbertNet_tuned', 'simpleNet'], 'correct', 0, smoothing = 0.01)
+
+def plot_avg_across_seeds(foldername, model_list, train_data_type, smoothing=0.1):
+    rc('font', weight='bold')
+    training_data = np.empty((5, len(task_list), 100))
+
+    for seed_num in range(5):
+        seed = 'seed' + str(seed_num)
+        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(14, 10))
+        axn.set_ylim(-0.05, 1.05)
+        for model_name in model_list: 
+            for i, task in enumerate(task_list):
+                task_file = task.replace(' ', '_')
+                try:
+                    training_data[seed_num, i, :] = pickle.load(open(foldername+task_file+'/'+model_name+'/'+seed+'_holdout_'+train_data_type, 'rb'))
+                except FileNotFoundError: 
+                    print('No training data for '+ model_name + seed+' '+task)
+                    continue 
+            smoothed_perf = gaussian_filter1d(np.mean(training_data, axis=0), sigma=smoothing)
+            axn.plot(smoothed_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=1, markersize=8, markevery=20)
+    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.75, 0.25), title='Models', title_fontsize=12)
+    fig.suptitle('Avg. Performance on Heldout Tasks', size=16)
+    axn.xaxis.set_tick_params(labelsize=20)
+    axn.yaxis.set_tick_params(labelsize=20)
+
+    plt.yticks(np.arange(0, 1.1, 0.1))
+    plt.show()
+    return training_data
 
 
 def plot_trained_performance(all_perf_dict):

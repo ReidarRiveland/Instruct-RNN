@@ -1,3 +1,4 @@
+from plotting import plot_RDM
 from matplotlib.pyplot import stem
 import numpy as np
 
@@ -254,17 +255,18 @@ if __name__ == "__main__":
 
     if train_or_test == 'test': 
         seeds = [0, 1, 2, 3, 4]
-        to_test = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), Task.TASK_LIST))
+        to_test = list(itertools.product(seeds, ['sbertNet'], Task.TASK_LIST))
         for config in to_test: 
             seed_num, model_params_key, holdouts = config
             try:
                 holdout_file = holdouts.replace(' ', '_')
-                pickle.load(open('_ReLU128_24.7/single_holdouts' +'/'+holdout_file + '/' + model_params_key+'/seed'+str(seed_num)+'_holdout_correct', 'rb'))
+                pickle.load(open('_ReLU128_24.7/single_holdouts' +'/'+holdout_file + '/' + model_params_key+'_tuned/seed'+str(seed_num)+'_holdout_correct', 'rb'))
                 print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
                 continue
             except FileNotFoundError: 
                 model, _, _, _ = config_model_training(model_params_key)
                 model.set_seed(seed_num)
+                model.model_name += '_tuned'
                 model.to(device)
                 test_model(model, holdouts, save=True)
 
@@ -292,13 +294,14 @@ if __name__ == "__main__":
                 model.langModel.train_layers=['11', '10', '9']
                 model.langModel.init_train_layers()
                 model.model_name = model.model_name+'_tuned'
-                streamer = TaskDataSet('_ReLU128_24.7/training_data', holdouts=holdouts)
-                streamer.data_to_device(device)
+                if holdouts == ['Multitask']: data = TaskDataSet(data_folder= '_ReLU128_24.7/training_data')
+                else: data = TaskDataSet(data_folder= '_ReLU128_24.7/training_data', holdouts=holdouts)
+                data.data_to_device(device)
                 model.to(device)
-                train_model(model, streamer, 12, opt, sch, print_eval=True)
+                train_model(model, data, 12, opt, sch, print_eval=True)
 
                 model.save_model('_ReLU128_24.7/'+holdout_type+'/'+holdout_file)
-                model.save_training_data('_ReLU128_24.7'+holdout_type+'/'+holdout_file)
+                model.save_training_data('_ReLU128_24.7/'+holdout_type+'/'+holdout_file)
 
 
     if train_or_test == 'train': 
