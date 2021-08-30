@@ -45,7 +45,8 @@ def get_instruct_reps(langModel, instruct_dict, depth='full'):
     else: rep_dim = langModel.out_dim 
     instruct_reps = torch.empty(len(instruct_dict.keys()), len(list(instruct_dict.values())[0]), rep_dim)
     with torch.no_grad():      
-        for i, instructions in enumerate(instruct_dict.values()):
+        for i, task in enumerate(Task.opp_task_list):
+            instructions = instruct_dict[task]
             if depth == 'full': 
                 out_rep = langModel(list(instructions))
             elif depth == 'transformer': 
@@ -59,18 +60,18 @@ def get_task_reps(model, epoch='prep', num_trials =100):
     model.eval()
     with torch.no_grad(): 
         task_reps = np.empty((len(task_list), 100, model.hid_dim))
-        for i, task in enumerate(task_list): 
-            ins, targets, _, _, _ =  next(TaskDataSet(num_batches=1, batch_len=num_trials, task_ratio_dict={task:1}).stream_batch())
+        for i, task in enumerate(Task.opp_task_list): 
+            ins, targets, _, _, _ =  construct_batch(task, num_trials)
 
             task_info = model.get_task_info(num_trials, task)
-            _, hid = model(task_info, ins.to(model.__device__))
+            _, hid = model(task_info, torch.Tensor(ins).to(model.__device__))
 
             hid = hid.cpu().numpy()
 
             for j in range(num_trials): 
                 if epoch.isnumeric(): epoch_index = int(epoch)
-                if epoch == 'stim': epoch_index = np.where(targets.numpy()[j, :, 0] == 0.85)[0][-1]
-                if epoch == 'prep': epoch_index = np.where(ins.numpy()[j, :, 1:]>0.25)[0][0]-1
+                if epoch == 'stim': epoch_index = np.where(targets[j, :, 0] == 0.85)[0][-1]
+                if epoch == 'prep': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]-1
                 task_reps[i, j, :] = hid[j, epoch_index, :]
     return task_reps.astype(np.float64)
 
@@ -116,3 +117,24 @@ def reduce_rep(reps, dim=2, reduction_method='PCA'):
 
     return embedded.reshape(16, reps.shape[1], dim), explained_variance
 
+def get_sim_scores(model, holdout_file, rep_type, model_file='_ReLU128_5.7/single_holdouts'): 
+    if rep_type == 'lang': 
+        rep_dim = 768
+        number_reps=15
+    
+    if rep_type == 'task': 
+        rep_dim = 128
+        number_reps=100
+    
+    all_sim_scores = np.empty((5, 16*number_reps, 16*number_reps), dtype=np.float64)
+    for i in range(5): 
+        model.set_seed(i) 
+        model.load_model(model_file+'/'+holdout_file)
+        if rep_type == 'task': 
+            reps = get_task_reps(model)
+        if rep_type == 'lang': 
+            reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
+        sim_scores = 1-np.corrcoef(reps.reshape(-1, rep_dim))
+        all_sim_scores[i, :, :] = sim_scores
+
+    return all_sim_scores

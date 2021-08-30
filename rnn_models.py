@@ -12,6 +12,7 @@ import pickle
 from jit_GRU import CustomGRU
 from utils import get_input_rule, get_instructions
 
+
 class BaseNet(nn.Module): 
     def __init__(self, in_dim, hid_dim, num_layers, activ_func, instruct_mode):
         super(BaseNet, self).__init__()
@@ -86,14 +87,21 @@ class BaseNet(nn.Module):
         self.__seed_num_str__ = 'seed'+str(seed_num)
 
 class SimpleNet(BaseNet):
-    def __init__(self, hid_dim, num_layers, activ_func=torch.relu, instruct_mode=None):
-        super().__init__(81, hid_dim, num_layers, activ_func, instruct_mode)
+    def __init__(self, hid_dim, num_layers, activ_func=torch.relu, instruct_mode=None, use_ortho_rules=False):
         self.model_name = 'simpleNet'
+        if use_ortho_rules:
+            super().__init__(85, hid_dim, num_layers, activ_func, instruct_mode)
+            ortho_rules = pickle.load(open('ortho_rule_vecs', 'rb'))
+            self.rule_transform = torch.Tensor(ortho_rules)
+        else:
+            super().__init__(81, hid_dim, num_layers, activ_func, instruct_mode)
+            self.rule_transform = torch.diag(torch.ones(16))
         self.to(self.__device__)
 
     def to(self, cuda_device): 
         super().to(cuda_device)
         self.__device__ = cuda_device
+        self.rule_transform = self.rule_transform.to(cuda_device)
 
     def reset_weights(self): 
         self.__weights_init__()
@@ -102,6 +110,7 @@ class SimpleNet(BaseNet):
         return get_input_rule(batch_len, task_type, self.instruct_mode).to(self.__device__)
 
     def forward(self, task_rule, x):
+        task_rule = torch.matmul(task_rule, self.rule_transform)
         outs, rnn_hid = super().forward(task_rule, x)
         return outs, rnn_hid
 
@@ -135,3 +144,4 @@ class InstructNet(BaseNet):
     
     def load_model_weights(self, foldername): 
         self.load_state_dict(torch.load(foldername+'/'+self.model_name+'.pt'))
+

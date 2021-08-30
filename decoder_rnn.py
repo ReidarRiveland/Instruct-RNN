@@ -6,31 +6,17 @@ from plotting import plot_trained_performance
 import numpy as np
 import torch.optim as optim
 from utils import sort_vocab
+from task import Task
 
 from matplotlib.pyplot import get
 from numpy.lib import utils
 import torch
 import torch.nn as nn
 
-
-model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-model.set_seed(0) 
-
-model.load_model('_ReLU128_24.7/single_holdouts/Multitask')
+device = torch.device(0)
 
 
-perf = get_model_performance(model, 3)
-
-plot_trained_performance({'sbertNet_layer_11': perf})
-
-
-import os
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-os.environ["CUDA_VISIBLE_DEVICES"] = str(1)
-os.environ['CUDA_LAUNCH_BLOCKING'] = '1' 
-device = torch.device(1)
-
-torch.cuda.get_device_name(device)
+instruct_array = np.array([train_instruct_dict[task] for task in Task.opp_task_list]).squeeze()
 
 class Vocab:
     SOS_token = 0
@@ -85,7 +71,7 @@ class DecoderRNN(nn.Module):
         return torch.zeros(1, 1, self.hidden_size)
 
 
-def get_instruct_embedding_pair(task_index, instruct_index): 
+def get_instruct_embedding_pair(instruct_reps, task_index, instruct_index): 
     rep = instruct_reps[task_index, instruct_index, :]
     instruct = instruct_array[task_index, instruct_index]
     return instruct, rep
@@ -95,10 +81,11 @@ from task import Task
 criterion = nn.NLLLoss()
 decoder = DecoderRNN(768, vocab.n_words)
 decoder_optimizer = optim.SGD(decoder.parameters(), lr=0.005, weight_decay=0.001)
-sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.9, last_epoch=-1, verbose=False)
+sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.8, last_epoch=-1, verbose=False)
 decoder.to(device)
 
 def train_decoder(decoder, opt, sch, epochs, init_teacher_forcing_ratio, task_loss_ratio=0.1): 
+    instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
     teacher_forcing_ratio = init_teacher_forcing_ratio
     loss_list = []
     teacher_loss_list = []
@@ -109,14 +96,14 @@ def train_decoder(decoder, opt, sch, epochs, init_teacher_forcing_ratio, task_lo
             task_loss=0
             task_index = np.random.randint(0, 16)
             instruct_index = np.random.randint(0, 15)
-            target_instruct, rep = get_instruct_embedding_pair(task_index, instruct_index)            
+            target_instruct, rep = get_instruct_embedding_pair(instruct_reps, task_index, instruct_index)            
             target_tensor = torch.LongTensor(vocab.tokenize_sentence(target_instruct)).to(device)
 
             decoder_hidden = torch.Tensor(rep).view(1, 1, -1).to(device)
             decoder_input = torch.tensor([[vocab.SOS_token]]).to(device)
             target_length = target_tensor.shape[0]
 
-            decoder_optimizer.zero_grad()
+            opt.zero_grad()
 
             use_teacher_forcing = True if np.random.random() < teacher_forcing_ratio else False
 
@@ -167,16 +154,16 @@ def train_decoder(decoder, opt, sch, epochs, init_teacher_forcing_ratio, task_lo
 
     return loss_list, teacher_loss_list
 
-loss_list, teacher_loss_list = train_decoder(decoder, decoder_optimizer, sch, 15, 1.0)
-torch.save(decoder.state_dict(), '_ReLU128_5.7/single_holdouts/Multitask/sbertNet/seed0_decoder')
+
+
+decoder.load_state_dict(torch.load('_ReLU128_5.7/single_holdouts/Multitask/sbertNet_tuned/seed1_decoder'))
 
 import matplotlib.pyplot as plt
+import seaborn as sns
 import pickle
-
 
 plt.plot(loss_list)
 plt.show()
-
 
 def decode_sentence(decoder, hidden_rep): 
     decoder_hidden = torch.Tensor(hidden_rep).view(1, 1, -1)
@@ -205,41 +192,52 @@ def load_context_reps():
     return mean_context_reps, context_reps_dict
 
 def get_decoder_confusion_matrix(decoder, instruct_reps): 
-    opp_task_list = Task.TASK_LIST.copy()
-    opp_task_list[1], opp_task_list[2] = opp_task_list[2], opp_task_list[1]
     confusion_matrix = np.zeros((16, 16))
-    instruct_reps[[1,2], ...] = instruct_reps[[2,1], ...] 
-    for task_index, task in enumerate(opp_task_list): 
+    for task_index, task in enumerate(Task.opp_task_list): 
         for j in range(15): 
             rep = instruct_reps[task_index, j, :]
             predicted, _ = decode_sentence(decoder, rep)
-            confusion_matrix[task_index, opp_task_list.index(predicted)] += 1
-    sns.heatmap(confusion_mat, xticklabels=opp_task_list, yticklabels=opp_task_list, annot=True, cmap='Blues')
+            confusion_matrix[task_index, Task.opp_task_list.index(predicted)] += 1
+    fig, ax = plt.subplots(figsize=(6, 4))
+    res = sns.heatmap(confusion_matrix, xticklabels=Task.opp_task_list, yticklabels=Task.opp_task_list, annot=True, cmap='Blues', ax=ax)
+    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 6)
+    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 6)
+
     plt.show()
     return confusion_matrix
 
 
-confusion_mat = get_decoder_confusion_matrix(decoder, instruct_reps)
+model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+model.model_name += '_tuned'
+model.set_seed(1) 
+model.load_model('_ReLU128_5.7/single_holdouts/Multitask')
 
-import seaborn as sns
+instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
+
+confusion_mat = get_decoder_confusion_matrix(decoder.to('cpu'), instruct_reps)
 
 
-
-for task_index, task in enumerate(Task.TASK_LIST): 
-    target_instruct, rep = get_instruct_embedding_pair(task_index, 1)            
+for task_index, task in enumerate(Task.opp_task_list): 
+    target_instruct, rep = get_instruct_embedding_pair(instruct_reps, task_index, 0)            
     #rep = context_reps[task_index, :]            
     print('Target Task: '+ task + ' Target Instruction: '+target_instruct)
     print(str(decode_sentence(decoder, rep)) + '\n')
 
+context_vecs = pickle.load(open('_ReLU128_5.7/single_holdouts/Multitask/sbertNet_tuned/context_vecs', 'rb'))
+
+context_dict = {}
+for i, task in enumerate(Task.TASK_LIST): 
+    context_dict[task] = context_vecs[i, ...]
+
 
 context_confusion_matrix = np.zeros((16, 16))
-for task_index, task in enumerate(opp_task_list): 
-    for j in range(context_reps_dict[task].shape[0]): 
-        rep = context_reps_dict[task][j, :]
+for task_index, task in enumerate(Task.opp_task_list): 
+    for j in range(context_dict[task].shape[0]): 
+        rep = context_dict[task][j, :]
         predicted, _ = decode_sentence(decoder, rep)
-        context_confusion_matrix[task_index, opp_task_list.index(predicted)] += 1
+        context_confusion_matrix[task_index, Task.opp_task_list.index(predicted)] += 1
 
-sns.heatmap(context_confusion_matrix, xticklabels=opp_task_list, yticklabels=opp_task_list, annot=True, cmap='Blues')
+sns.heatmap(context_confusion_matrix, xticklabels=Task.opp_task_list, yticklabels=Task.opp_task_list, annot=True, cmap='Blues')
 plt.show()
 
 from task import construct_batch
@@ -258,7 +256,7 @@ with torch.no_grad():
             ins, targets, _, target_dirs, _ = construct_batch(task, batch_len)
 
 
-            # instruct_indices = np.random.randint(0, 15, size=128)
+            instruct_indices = np.random.randint(0, 15, size=128)
             # reps = instruct_reps[j, instruct_indices, :]
             reps = instruct_reps[j, instruct_indices, :]
             task_info = []
@@ -273,3 +271,16 @@ with torch.no_grad():
 
 
 plot_trained_performance({'sbertNet_layer_11': perf_dict})
+
+
+if '__name__' = '__main__': 
+    for i in range(1):
+        model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+        model.model_name += '_tuned'
+        model.set_seed(i) 
+
+
+        model.load_model('_ReLU128_5.7/single_holdouts/Multitask')
+        loss_list, teacher_loss_list = train_decoder(decoder, decoder_optimizer, sch, 15, 1.0)
+        torch.save(decoder.state_dict(), '_ReLU128_5.7/single_holdouts/Multitask/sbertNet_tuned/seed'+str(i)+'_decoder')
+
