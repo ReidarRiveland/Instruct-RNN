@@ -16,7 +16,7 @@ import torch.nn as nn
 device = torch.device(0)
 
 
-instruct_array = np.array([train_instruct_dict[task] for task in Task.opp_task_list]).squeeze()
+instruct_array = np.array([train_instruct_dict[task] for task in Task.TASK_LIST]).squeeze()
 
 class Vocab:
     SOS_token = 0
@@ -193,13 +193,13 @@ def load_context_reps():
 
 def get_decoder_confusion_matrix(decoder, instruct_reps): 
     confusion_matrix = np.zeros((16, 16))
-    for task_index, task in enumerate(Task.opp_task_list): 
+    for task_index, task in enumerate(Task.TASK_LIST): 
         for j in range(15): 
             rep = instruct_reps[task_index, j, :]
             predicted, _ = decode_sentence(decoder, rep)
-            confusion_matrix[task_index, Task.opp_task_list.index(predicted)] += 1
+            confusion_matrix[task_index, Task.TASK_LIST.index(predicted)] += 1
     fig, ax = plt.subplots(figsize=(6, 4))
-    res = sns.heatmap(confusion_matrix, xticklabels=Task.opp_task_list, yticklabels=Task.opp_task_list, annot=True, cmap='Blues', ax=ax)
+    res = sns.heatmap(confusion_matrix, xticklabels=Task.TASK_LIST, yticklabels=Task.TASK_LIST, annot=True, cmap='Blues', ax=ax)
     res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 6)
     res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 6)
 
@@ -213,7 +213,6 @@ model.set_seed(1)
 model.load_model('_ReLU128_5.7/single_holdouts/Multitask')
 
 instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
-
 confusion_mat = get_decoder_confusion_matrix(decoder.to('cpu'), instruct_reps)
 
 
@@ -223,7 +222,7 @@ for task_index, task in enumerate(Task.opp_task_list):
     print('Target Task: '+ task + ' Target Instruction: '+target_instruct)
     print(str(decode_sentence(decoder, rep)) + '\n')
 
-context_vecs = pickle.load(open('_ReLU128_5.7/single_holdouts/Multitask/sbertNet_tuned/context_vecs', 'rb'))
+context_vecs = pickle.load(open('_ReLU128_5.7/single_holdouts/Multitask/sbertNet_tuned/seed1_context_vecs', 'rb'))
 
 context_dict = {}
 for i, task in enumerate(Task.TASK_LIST): 
@@ -237,15 +236,25 @@ for task_index, task in enumerate(Task.opp_task_list):
         predicted, _ = decode_sentence(decoder, rep)
         context_confusion_matrix[task_index, Task.opp_task_list.index(predicted)] += 1
 
-sns.heatmap(context_confusion_matrix, xticklabels=Task.opp_task_list, yticklabels=Task.opp_task_list, annot=True, cmap='Blues')
+fig, ax = plt.subplots(figsize=(6, 4))
+res = sns.heatmap(context_confusion_matrix, xticklabels=Task.opp_task_list, yticklabels=Task.opp_task_list, annot=True, cmap='Blues', ax=ax)
+res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 6)
+res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 6)
 plt.show()
 
 from task import construct_batch
 from utils import isCorrect
 
+
+model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+model1.model_name += '_tuned'
+model1.set_seed(0) 
+model1.load_model('_ReLU128_5.7/single_holdouts/Multitask')
+
+
 num_repeats = 3
 
-model.eval()
+model1.eval()
 batch_len = 128
 with torch.no_grad():
     perf_dict = dict.fromkeys(Task.TASK_LIST)
@@ -265,12 +274,12 @@ with torch.no_grad():
                 task_info.append(instruct)
 
 
-            out, _ = model(task_info, torch.Tensor(ins).to(model.__device__))
+            out, _ = model1(task_info, torch.Tensor(ins).to(model.__device__))
             mean_list.append(np.mean(isCorrect(out, torch.Tensor(targets), target_dirs)))
         perf_dict[task] = np.mean(mean_list)
 
 
-plot_trained_performance({'sbertNet_layer_11': perf_dict})
+plot_trained_performance({'sbertNet_tuned': perf_dict})
 
 
 if '__name__' = '__main__': 

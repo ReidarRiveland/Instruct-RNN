@@ -45,7 +45,7 @@ def get_instruct_reps(langModel, instruct_dict, depth='full'):
     else: rep_dim = langModel.out_dim 
     instruct_reps = torch.empty(len(instruct_dict.keys()), len(list(instruct_dict.values())[0]), rep_dim)
     with torch.no_grad():      
-        for i, task in enumerate(Task.opp_task_list):
+        for i, task in enumerate(Task.TASK_LIST):
             instructions = instruct_dict[task]
             if depth == 'full': 
                 out_rep = langModel(list(instructions))
@@ -60,7 +60,7 @@ def get_task_reps(model, epoch='prep', num_trials =100):
     model.eval()
     with torch.no_grad(): 
         task_reps = np.empty((len(task_list), 100, model.hid_dim))
-        for i, task in enumerate(Task.opp_task_list): 
+        for i, task in enumerate(Task.TASK_LIST): 
             ins, targets, _, _, _ =  construct_batch(task, num_trials)
 
             task_info = model.get_task_info(num_trials, task)
@@ -74,7 +74,6 @@ def get_task_reps(model, epoch='prep', num_trials =100):
                 if epoch == 'prep': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]-1
                 task_reps[i, j, :] = hid[j, epoch_index, :]
     return task_reps.astype(np.float64)
-
 
 def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None): 
     model.eval()

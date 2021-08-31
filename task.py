@@ -22,10 +22,10 @@ def _draw_ortho_dirs():
 
 
 class Task():
-    TASK_LIST = ['Go', 'RT Go', 'Anti Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']
+    TASK_LIST = ['Go', 'Anti Go', 'RT Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']
     SHUFFLED_TASK_LIST = ['MultiCOMP2', 'RT Go', 'COMP2', 'DNMS', 'Anti Go', 'COMP1', 'DNMC', 'Anti DM', 'MultiCOMP1', 'Anti MultiDM', 'MultiDM', 'DM', 'Anti RT Go', 'DMC', 'DMS', 'Go']
     opp_task_list = TASK_LIST.copy()
-    opp_task_list[1], opp_task_list[2] = opp_task_list[2], opp_task_list[1]
+    #opp_task_list[1], opp_task_list[2] = opp_task_list[2], opp_task_list[1]
     TASK_GROUP_DICT = {'Go': ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'],
                 'DM': ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'], 
                 'COMP': ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'],
@@ -533,7 +533,7 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
         fixed_direction = np.array([np.pi/2] * num_trials)
         diff_directions = np.linspace(0, np.pi, num=num_trials)
         directions = np.array([fixed_direction, fixed_direction - diff_directions])
-        strengths = np.array([[1] * num_trials, [1] * num_trials])
+        strengths = np.array([[1.5] * num_trials, [1.5] * num_trials])
         var_of_interest = diff_directions
 
     if task_type in Task.TASK_GROUP_DICT['Go']:

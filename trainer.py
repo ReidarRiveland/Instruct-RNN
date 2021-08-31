@@ -279,32 +279,32 @@ if __name__ == "__main__":
             get_model_contexts(model, 5, model_file)
 
     if train_mode == 'test': 
-        holdout_type = 'single_holdouts'
+        holdout_type = 'swap_holdouts'
         seeds = [0, 1, 2, 3, 4]
-        to_test = list(itertools.product(seeds, ['bertNet', 'gptNet'], Task.TASK_LIST))
+        to_test = list(itertools.product(seeds, ['bertNet', 'gptNet'], training_lists_dict['swap_holdouts']))
 
         for config in to_test: 
             print(config)
             seed_num, model_params_key, holdouts = config
-            # try:
-            #     holdout_file = holdouts.replace(' ', '_')
-            #     pickle.load(open(model_file+'/single_holdouts' +'/'+holdout_file + '/' + model_params_key+'_tuned/seed'+str(seed_num)+'_holdout_correct', 'rb'))
-            #     #pickle.load(open(model_file+'/single_holdouts' +'/'+holdout_file + '/' + model_params_key+'/seed'+str(seed_num)+'_holdout_correct', 'rb'))
-            #     print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
-            #     continue
-            # except FileNotFoundError: 
-            model, _, _, _ = config_model_training(model_params_key)
-            model.set_seed(seed_num)
-            model.model_name += '_tuned'
-            model.to(device)
-            test_model(model, holdouts, foldername= model_file, holdout_type = holdout_type, save=True)
+            try:
+                holdout_file = holdouts.replace(' ', '_')
+                pickle.load(open(model_file+'/single_holdouts' +'/'+holdout_file + '/' + model_params_key+'_tuned/seed'+str(seed_num)+'_holdout_correct', 'rb'))
+                #pickle.load(open(model_file+'/single_holdouts' +'/'+holdout_file + '/' + model_params_key+'/seed'+str(seed_num)+'_holdout_correct', 'rb'))
+                print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
+                continue
+            except FileNotFoundError: 
+                model, _, _, _ = config_model_training(model_params_key)
+                model.set_seed(seed_num)
+                model.model_name += '_tuned'
+                model.to(device)
+                test_model(model, holdouts, foldername= model_file, holdout_type = holdout_type, save=True)
 
     if train_mode == 'fine_tune': 
-        holdout_type = 'single_holdouts'
+        holdout_type = 'swap_holdouts'
 
         seeds = [0, 1, 2, 3, 4]
 
-        to_tune = list(itertools.product(['bertNet', 'gptNet'], seeds, training_lists_dict['single_holdouts']))
+        to_tune = list(itertools.product(['sbertNet', 'bertNet', 'gptNet'], seeds, training_lists_dict['swap_holdouts']))
         for config in to_tune: 
             model_params_key, seed_num, holdouts = config
 
@@ -321,7 +321,7 @@ if __name__ == "__main__":
                 model, _, _, _ = config_model_training(model_params_key)
                 opt, sch = init_optimizer(model, 5*1e-4, [], langLR= 5*1e-5)
                 model.set_seed(seed_num)
-                model.load_model(model_file+'/single_holdouts/'+holdout_file)
+                model.load_model(model_file+'/'+holdout_type+'/'+holdout_file)
                 model.langModel.train_layers=['11', '10', '9']
                 model.langModel.init_train_layers()
                 model.model_name = model.model_name+'_tuned'
