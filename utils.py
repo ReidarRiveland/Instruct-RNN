@@ -1,5 +1,7 @@
+from functools import reduce
 import numpy as np
 import pickle
+from numpy.linalg import norm
 
 import torch
 import itertools
@@ -12,9 +14,8 @@ train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict2', 'rb'
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict2', 'rb'))
 
 test_instruct_dict
-
-swapped_task_list = ['Anti DM', 'COMP2', 'Anti Go', 'DMC', 'DM', 'Go', 'MultiDM', 'Anti MultiDM', 'COMP1',
-                             'RT Go', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'Anti RT Go', 'DNMC']
+TASK_LIST = ['Go', 'Anti Go', 'RT Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']
+swapped_task_list = ['Anti DM', 'MultiCOMP1', 'DNMC', 'DMC', 'MultiCOMP2', 'Go', 'DNMS', 'COMP1', 'Anti MultiDM', 'DMS', 'Anti Go', 'DM', 'COMP2', 'MultiDM', 'Anti RT Go', 'RT Go']
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) 
@@ -101,9 +102,9 @@ def sort_vocab():
     return sorted_vocab
 
 def get_instructions(batch_size, task_type, instruct_mode):
-        assert instruct_mode in [None, 'instruct_swap', 'shuffled', 'validation']
+        assert instruct_mode in ['', 'swap', 'shuffled', 'validation']
 
-        if instruct_mode == 'instruct_swap': 
+        if instruct_mode == 'swap': 
             instruct_dict = dict(zip(swapped_task_list, train_instruct_dict.values()))
         elif instruct_mode == 'validation': 
             instruct_dict = test_instruct_dict
@@ -179,9 +180,8 @@ def swap_input_rule(batch_size, task_type):
     'Anti RT Go' <--> 'DMC'
     'RT Go' <--> 'COMP2'
     """
-    assert task_type in ['Go', 'Anti DM', 'Anti RT Go', 'DMC', 'RT Go', 'COMP2']
-    swapped_index = swapped_task_list.index(task_type)
-    swapped_one_hot = one_hot_input_rule(batch_size, task_list[swapped_index])
+    index = Task.TASK_LIST.index(task_type)
+    swapped_one_hot = one_hot_input_rule(batch_size, swapped_task_list[index])
     return swapped_one_hot
 
 def get_input_rule(batch_size, task_type, instruct_mode, lang_dim = None): 
@@ -197,3 +197,18 @@ def get_input_rule(batch_size, task_type, instruct_mode, lang_dim = None):
         task_rule = one_hot_input_rule(batch_size, task_type)
     
     return torch.Tensor(task_rule)
+
+def calc_parallel_score(reduced_reps, swapped_reduced_reps=None): 
+    scores = np.zeros((len(Task.TASK_GROUP_DICT.values())))
+    centroid_reps = np.mean(reduced_reps, axis=1)
+    for i, task_group in enumerate(Task.TASK_GROUP_DICT.values()):
+        task = task_group[0]
+        task_rule = get_input_rule(1, task, instruct_mode=None).numpy().squeeze()
+        comp_task_rule = comp_input_rule(1, task).squeeze()
+        if swapped_reduced_reps is not None: 
+            swapped_centroids = np.mean(swapped_reduced_reps, axis=1)
+            diff = np.linalg.norm(np.matmul(task_rule, swapped_centroids)-np.matmul(comp_task_rule, centroid_reps))/np.linalg.norm(np.matmul(comp_task_rule, centroid_reps))
+        else:
+            diff = np.linalg.norm(np.matmul(task_rule, centroid_reps)-np.matmul(comp_task_rule, centroid_reps))
+        scores[i] = diff
+    return scores

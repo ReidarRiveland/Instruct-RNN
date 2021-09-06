@@ -87,7 +87,7 @@ class BaseNet(nn.Module):
         self.__seed_num_str__ = 'seed'+str(seed_num)
 
 class SimpleNet(BaseNet):
-    def __init__(self, hid_dim, num_layers, activ_func=torch.relu, instruct_mode=None, use_ortho_rules=False):
+    def __init__(self, hid_dim, num_layers, activ_func=torch.relu, instruct_mode='', use_ortho_rules=False):
         self.model_name = 'simpleNet'
         if use_ortho_rules:
             super().__init__(85, hid_dim, num_layers, activ_func, instruct_mode)
@@ -115,7 +115,7 @@ class SimpleNet(BaseNet):
         return outs, rnn_hid
 
 class InstructNet(BaseNet): 
-    def __init__(self, langModel, hid_dim, num_layers, activ_func = torch.relu, instruct_mode=None): 
+    def __init__(self, langModel, hid_dim, num_layers, activ_func = torch.relu, instruct_mode=''): 
         super().__init__(langModel.out_dim +65, hid_dim, num_layers, activ_func, instruct_mode)
         self.langModel = langModel
         self.model_name = self.langModel.embedder_name + 'Net' 

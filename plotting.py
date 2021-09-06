@@ -1,9 +1,9 @@
 import matplotlib
-from numpy.core.fromnumeric import size
+from numpy.core.fromnumeric import ndim, size
 from numpy.core.numeric import indices
 from scipy.ndimage.measurements import label
 from torch.nn.modules.container import T
-from model_analysis import get_hid_var_group_resp, get_hid_var_resp, get_model_performance
+from model_analysis import get_hid_var_group_resp, get_hid_var_resp, get_model_performance, get_instruct_reps
 from task import Comp, Task, make_test_trials, construct_batch
 task_list = Task.TASK_LIST
 task_group_dict = Task.TASK_GROUP_DICT
@@ -22,6 +22,8 @@ from matplotlib import colors, cm, markers, use
 from matplotlib.lines import Line2D
 from matplotlib import rc
 import matplotlib.transforms as mtrans
+import matplotlib
+from dPCA import dPCA
 import torch
 
 from sklearn.decomposition import PCA
@@ -146,9 +148,6 @@ def plot_single_holdout_task(foldername, holdout, model_list, seeds, smoothing=0
         plt.savefig('figs/'+save_file)
     plt.show()
 
-
-
-
 def plot_context_training(foldername, model_list, train_data_type, seed, smoothing=0.1, save_file=None):
     seed = 'seed' + str(seed)
     fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(19, 12))
@@ -212,8 +211,7 @@ def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seed
             axn.set_ylim(-0.05, 1.05)
             axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
             axn.set_xlabel('Training Exmaples', size=8, fontweight='bold')
-            fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.7, 0.48), title='Models', title_fontsize = 'small', fontsize='x-small')
-            fig.suptitle('Avg. Performance on Heldout Tasks', size=14)
+
             axn.xaxis.set_tick_params(labelsize=10)
             axn.yaxis.set_tick_params(labelsize=10)
             axn.set_yticks(np.linspace(0, 1, 11))
@@ -229,17 +227,16 @@ def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seed
                                         avg_performance[k, :]-std_performance[k, :], color = MODEL_STYLE_DICT[model_name][0], alpha= 0.1)
 
                 ax.plot(smoothed_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=1, markersize=8, markevery=20)
-            fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.55), title='Models', title_fontsize='12')
-            fig.suptitle('Performance on Heldout Tasks', size=16)
+
+        model_data_dict[model_name] = training_data
+
+    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.7, 0.48), title='Models', title_fontsize = 'small', fontsize='x-small')
+    fig.suptitle('Avg. Performance on Heldout Tasks', size=14)
         
-        model_data_dict[model_name] = avg_performance
     if save_file is not None: 
         plt.savefig('figs/'+save_file)
     plt.show()
     return model_data_dict
-
-model_data_dict = plot_holdout_curves('_ReLU128_5.7/single_holdouts/', all_models, 'correct', 'avg_holdout', range(5), smoothing = 0.01, save_file='bioArXiv_Figs/all_holdout_curves.svg')
-
 
 def plot_k_shot_learning(model_data_dict, save_file=None): 
     barWidth = 0.1
@@ -276,8 +273,6 @@ def plot_k_shot_learning(model_data_dict, save_file=None):
     if save_file is not None: 
         plt.savefig('figs/'+save_file)
     plt.show()
-
-
 
 def plot_trained_performance(all_perf_dict, save_file=None):
     barWidth = 0.15
@@ -334,7 +329,8 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
         hid = hid.detach().cpu().numpy()[plotting_index, :, :]
 
         try: 
-            task_info_embedding = model.langModel(task_info).unsqueeze(1).repeat(1, ins.shape[1], 1)
+            task_info_embedding = torch.Tensor(get_instruct_reps(model.langModel, {trials.task_type: task_info}, depth='transformer')).swapaxes(0, 1)
+            task_info_embedding = task_info_embedding.repeat(1, ins.shape[1], 1)
         except: 
             task_info_embedding = torch.matmul(task_info, model.rule_transform).unsqueeze(1).repeat(1, ins.shape[1], 1)
 
@@ -342,11 +338,11 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
         mod1 = ins[plotting_index, :, 1:1+Task.STIM_DIM]
         mod2 = ins[plotting_index, :, 1+Task.STIM_DIM:1+(2*Task.STIM_DIM)]
 
-        to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, task_info_embedding[plotting_index, :, :].T, tar[plotting_index, :, :].T, out.squeeze().T]
+        to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, task_info_embedding[plotting_index, 0:119, :].T, tar[plotting_index, :, :].T, out.squeeze().T]
         gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 2, 5, 5])
         ylabels = ['fix.', 'mod. 1', 'mod. 2', 'Task Info', 'Target', 'Response']
 
-        fig, axn = plt.subplots(6,1, sharex = True, gridspec_kw=gs_kw, figsize=(8,6))
+        fig, axn = plt.subplots(6,1, sharex = True, gridspec_kw=gs_kw, figsize=(4,3))
         cbar_ax = fig.add_axes([.91, .3, .03, .4])
         for i, ax in enumerate(axn.flat):
             sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1.3, cbar_ax=None if i else cbar_ax)
@@ -359,27 +355,22 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
                 ax.set_xticklabels(np.arange(0, 120, 5), fontsize=16)
 
                 ax.tick_params(axis='x', labelsize= 6)
-        
-        
 
-        # if hasattr(model, 'langModel'):
-        #     trans = mtrans.blended_transform_factory(fig.transFigure,
-        #                                         mtrans.IdentityTransform())
-        #     txt = fig.text(.5, 25, "Instruction: \"" + str(task_info[plotting_index]) +"\"", ha='center', size=4, fontweight='bold')
-        #     txt.set_transform(trans)
         if save_file is not None: 
             plt.savefig('figs/'+save_file)
         plt.show()
 
-
-
-def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_args=[], save_file=None): 
+def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_args=[], swapped_tasks= [], save_file=None): 
     colors_to_plot = list(itertools.chain.from_iterable([[task_colors[task]]*reps_reduced.shape[1] for task in tasks_to_plot]))
     task_indices = [Task.TASK_LIST.index(task) for task in tasks_to_plot]
+
     reps_to_plot = reps_reduced[task_indices, ...]
     flattened_reduced = reps_to_plot.reshape(-1, reps_to_plot.shape[-1])
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.scatter(flattened_reduced[:, 0], flattened_reduced[:, 1], c = colors_to_plot, s=35)
+    ax.scatter(np.mean(reps_to_plot, axis=1)[:, 0], np.mean(reps_to_plot, axis=1)[:, 1], c = [task_colors[task] for task in tasks_to_plot], s=35, marker='X', edgecolors='white')
+    if len(swapped_tasks)>0: 
+        ax.scatter(reps_reduced[-1, :, 0], reps_reduced[-1, :, 1], c = [task_colors[swapped_tasks[0]]]*reps_reduced.shape[1], marker='x')
     for i, indices in enumerate(annotate_tuples): 
         task_index, instruct_index = indices 
         plt.annotate(str(1+instruct_index)+'. '+two_line_instruct(train_instruct_dict[tasks_to_plot[task_index]][instruct_index]), xy=(flattened_reduced[int(instruct_index+(task_index*15)), 0], flattened_reduced[int(instruct_index+(task_index*15)), 1]), 
@@ -394,7 +385,6 @@ def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_a
         plt.savefig('figs/'+save_file)
 
     plt.show()
-
 
 def plot_hid_traj(task_group_hid_traj, task_group, task_indices, trial_indices, instruct_indices, subtitle='', annotate_tuples = [], context_task=None, save_file=None): 
     alphas = np.linspace(0.8, 0.2, num=task_group_hid_traj.shape[2])
@@ -463,12 +453,15 @@ def plot_hid_traj(task_group_hid_traj, task_group, task_indices, trial_indices, 
         plt.savefig('figs/'+save_file)
     plt.show()
 
-def plot_dpca(model, tasks, task_variable):
-    Z_dict = {}
-    for task_type in tasks: 
-        trials, var_of_insterest = make_test_trials(task_type, task_variable, 0, num_trials=6)
 
-        hid_resp, mean_hid_resp = get_hid_var_resp(model, task_type, trials)
+
+def plot_dPCA(model, tasks):
+    trials, var_of_insterest = make_test_trials('Anti DM', 'diff_strength', 0, num_trials=6)
+    model.instruct_mode = 'swap'
+
+    Z_dict = {}
+    for task in tasks:
+        hid_resp, mean_hid_resp = get_hid_var_resp(model, task, trials)
 
         reshape_mean_hid_resp = mean_hid_resp.T.swapaxes(-1, 1)
         reshape_hid_resp = hid_resp.swapaxes(1, 2).swapaxes(-1, 1)
@@ -477,70 +470,37 @@ def plot_dpca(model, tasks, task_variable):
         dpca.protect = ['t']
 
         Z = dpca.fit_transform(reshape_mean_hid_resp, reshape_hid_resp)
-        Z_dict[task_type] = Z
-    return Z_dict
+        Z_dict[task] = Z
 
-trials, var_of_insterest = make_test_trials('DM', 'diff_strength', 0, num_trials=6)
 
-time = np.arange(120)
-plt.figure(figsize=(16,7))
+    time = np.arange(120)
+    plt.figure(figsize=(16,7))
 
-import matplotlib
 
-for i, Z in enumerate(Z_dict.values()): 
     linestyle_list = ['-', '--']
     cmap = plt.cm.seismic
     norm = matplotlib.colors.Normalize(vmin=0, vmax=5)
-    plt.subplot(131)
-    for s in range(6):
-        plt.plot(time,Z['st'][0,s], linestyle=linestyle_list[i], c=cmap(norm(s)))
-    plt.title('1st mixing component')
 
-    plt.subplot(132)
-    for s in range(6):
-        plt.plot(time,Z['t'][0,s], linestyle=linestyle_list[i], c=cmap(norm(s)))
-    plt.title('1st time component')
+    for i, Z in enumerate(Z_dict.values()):
+        plt.subplot(131)
+        for s in range(6):
+            plt.plot(time,Z['st'][1,s], linestyle=linestyle_list[i], c=cmap(norm(s)))
+        plt.title('1st mixing component')
 
-    plt.subplot(133)
-    for s in range(6):
-        plt.plot(time,Z['s'][0,s], linestyle=linestyle_list[i], c=cmap(norm(s)))
-    plt.title('1st Decision Variable component')
+        plt.subplot(132)
+        for s in range(6):
+            plt.plot(time,Z['t'][0,s], linestyle=linestyle_list[i], c=cmap(norm(s)))
+        plt.title('1st time component')
 
-plt.figlegend(['delta '+ str(num) for num in np.round(var_of_insterest, 2)], loc=5)
+        plt.subplot(133)
+        for s in range(6):
+            plt.plot(time,Z['s'][0,s], linestyle=linestyle_list[i], c=cmap(norm(s)))
+        plt.title('1st Decision Variable component')
 
-plt.show()
+    plt.figlegend(['delta '+ str(num) for num in np.round(var_of_insterest, 2)], loc=5)
 
-S=6
+    plt.show()
 
-Z = Z_dict['Anti DM']
-
-plt.figure(figsize=(16,7))
-plt.subplot(131)
-
-for s in range(S):
-    plt.plot(time,Z['t'][0,s])
-
-plt.title('1st time component')
-    
-plt.subplot(132)
-
-for s in range(S):
-    plt.plot(time,Z['s'][0,s])
-    
-plt.title('1st stimulus component')
-    
-plt.subplot(133)
-
-for s in range(S):
-    plt.plot(time,Z['st'][0,s])
-    
-plt.title('1st mixing component')
-plt.show()
-
-
-Z_dict = plot_dpca(model, ['DM', 'Anti DM'], 'diff_strength')
-
-Z_dict['DM']['s'][0]
 
 def plot_RDM(sim_scores, rep_type, input_reps=None, cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', use_avg_reps = False, save_file=None):
     if rep_type == 'lang': 
@@ -574,9 +534,7 @@ def plot_RDM(sim_scores, rep_type, input_reps=None, cmap=sns.color_palette("rock
 
     plt.show()
     
-
-
-def make_tuning_curve(model, tasks, task_variable, unit, mod, times, save_file=None): 
+def plot_tuning_curve(model, tasks, task_variable, unit, mod, times, swapped_task = None, save_file=None): 
     if task_variable == 'direction': 
         labels = ["0", "$2\pi$"]
         plt.xticks([0, np.pi, 2*np.pi], labels=['0', '$\pi$', '$2\pi$'])
@@ -594,8 +552,19 @@ def make_tuning_curve(model, tasks, task_variable, unit, mod, times, save_file=N
         neural_resp = hid_mean[:, time, unit]
         plt.plot(var_of_interest, neural_resp, color=task_colors[task])
         y_max = max(y_max, neural_resp.max())
+
+    if swapped_task is not None: 
+        time = times[i]
+        trials, var_of_interest = make_test_trials(swapped_task, task_variable, mod)
+        model.instruct_mode = 'swap'
+        _, hid_mean = get_hid_var_resp(model, swapped_task, trials)
+        neural_resp = hid_mean[:, time, unit]
+        plt.plot(var_of_interest, neural_resp, color=task_colors[swapped_task], linestyle='--')
+        y_max = max(y_max, neural_resp.max())
+        model.instruct_mode = None
+
     plt.title('Tuning curve for Unit' + str(unit) + ' at time ' +str(time))
-    plt.ylim(0, y_max+0.15)
+    plt.ylim(-0.05, y_max+0.15)
     plt.xlabel(task_variable.replace('_', ' '))
     Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in tasks]
     plt.legend(handles=Patches)
@@ -647,11 +616,13 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, save_file=None)
     plt.show()
     return trials
 
+
+
 if __name__ == "__main__":
     from nlp_models import SBERT
     from rnn_models import InstructNet, SimpleNet
     from utils import train_instruct_dict
-    from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_sim_scores, get_hid_var_group_resp
+    from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_sim_scores, get_hid_var_group_resp, get_total_para_score
     import numpy as np
     import torch.optim as optim
     from utils import sort_vocab, train_instruct_dict
@@ -661,13 +632,13 @@ if __name__ == "__main__":
     #fig 2
     plot_single_task_training('_ReLU128_5.7/single_holdouts/', 'Multitask', 'DM', ['sbertNet', 'bertNet', 'gptNet', 'simpleNet'], range(5))
     #plot_single_seed_training('_ReLU128_5.7/single_holdouts/', 'DMS', ['sbertNet', 'sbertNet_layer_11', 'simpleNet'], 'correct', 4)
-    model_data_dict = plot_holdout_curves('_ReLU128_5.7/single_holdouts/', all_models, 'correct', 'avg_holdout', range(5), smoothing = 0.01)
-    model_data_dict
+    model_data_dict = plot_holdout_curves('_ReLU128_5.7/single_holdouts/', ['sbertNet_tuned', 'simpleNet'], 'correct', 'task_holdout', range(5), smoothing = 0.01)
+    model_data_dict['sbertNet_tuned'].shape
 
 
     ###fig3###
 
-    plot_single_holdout_task('_ReLU128_5.7/single_holdouts/', 'Anti Go', ['sbertNet_tuned', 'simpleNet'], range(5), save_file='bioArXiv_Figs/Anti_Go_holdout_curves.svg')
+    plot_single_holdout_task('_ReLU128_5.7/single_holdouts/', 'Anti Go', ['sbertNet_tuned', 'gptNet_tuned', 'bertNet_tuned', 'simpleNet'], [0])
 
 
 
@@ -679,11 +650,15 @@ if __name__ == "__main__":
     model1.set_seed(1)
     model1.load_model('_ReLU128_5.7/single_holdouts/Multitask')
     
-    #task scatter
-    reduced_reps1 = reduce_rep(get_task_reps(model1))
-    plot_rep_scatter(reduced_reps1[0], ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'])
+    scores1 = get_total_para_score(model1, 'Multitask', 'task')
+    scores1
     
-    , save_file='bioArXiv_Figs/simpleNet_Multitask_PCA.svg')
+
+    #task scatter
+    reduced_reps1 = reduce_rep(get_task_reps(model1))[0]
+
+    plot_rep_scatter(reduced_reps1, Task.TASK_GROUP_DICT['Go'])
+    
 
     #task RDM
     all_sim_scores1 = get_sim_scores(model1, 'Multitask', 'task')
@@ -696,39 +671,35 @@ if __name__ == "__main__":
     
     #task scatter
     reduced_reps1 = reduce_rep(get_task_reps(model1))
-    plot_rep_scatter(reduced_reps1[0], ['Go', 'RT Go', 'Anti Go', 'Anti RT Go']), save_file='bioArXiv_Figs/simpleNet_Anti_Go_PCA.svg')
-
+    plot_rep_scatter(reduced_reps1[0], ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'])
     #task RDM
     all_sim_scores1 = get_sim_scores(model1, 'Anti_Go', 'task')
     plot_RDM(np.mean(all_sim_scores1, axis=0), 'task')
 
     
 
-
     #sbertNet_tuned
     model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
     model.model_name += '_tuned'
-
-
+    
     #multitask
     model.set_seed(1)
-    model.load_model('_ReLU128_5.7/single_holdouts/Multitask')
+    model.load_model('_ReLU128_5.7/single_holdouts/Anti_Go')
+
 
     #task scatter
-    reduced_reps = reduce_rep(get_task_reps(model))
-    plot_rep_scatter(reduced_reps[0], ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'])
-    , save_file='bioArXiv_Figs/sbert_tuned_Multitask_PCA.svg')
+    reduced_reps = reduce_rep(get_task_reps(model, epoch='prep'))
+    plot_rep_scatter(reduced_reps[0], Task.TASK_GROUP_DICT['COMP'])
+
 
     #task RDM
     all_sim_scores = get_sim_scores(model, 'Anti_Go', 'task')
     plot_RDM(np.mean(all_sim_scores, axis=0), 'task')
     
-    , save_file='bioArXiv_Figs/sbert_tuned_Multitask_RDM.svg')
-
     #lang scatter
     lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
     lang_rep_reduced, _ = reduce_rep(lang_reps)
-    plot_rep_scatter(lang_rep_reduced, ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'], save_file='bioArXiv_Figs/sbert_tuned_lang_Multitask_PCA.svg')
+    plot_rep_scatter(lang_rep_reduced, Task.TASK_GROUP_DICT['DM'])
 
     #task RDM
     all_sim_scores = get_sim_scores(model, 'Multitask', 'task')
@@ -737,7 +708,6 @@ if __name__ == "__main__":
     #lang RDM
     all_sim_scores = get_sim_scores(model, 'Anti_Go', 'lang')
     plot_RDM(np.mean(all_sim_scores, axis=0), 'lang')
-    , save_file='bioArXiv_Figs/sbert_tuned_lang_Multitask_RDM.svg')
 
 
     #Anti Go 
@@ -819,25 +789,53 @@ if __name__ == "__main__":
     model.model_name += '_tuned'
 
     model.set_seed(0)
-    model.load_model('_ReLU128_5.7/single_holdouts/Anti_DM')
+    model.load_model('_ReLU128_5.7/single_holdouts/DMS')
 
-    hid_reps = get_hid_var_group_resp(model, 'DM', 'diff_strength')
-    plot_hid_traj(hid_reps, 'DM', [0, 1, 2, 3], [0], [0])
+    lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
+    lang_rep_reduced, _ = reduce_rep(lang_reps)
+    plot_rep_scatter(lang_rep_reduced, Task.TASK_GROUP_DICT['Delay'])
+
+    hid_reps = get_hid_var_group_resp(model, 'Delay', 'diff_direction', num_trials=10)
+    plot_hid_traj(hid_reps, 'Delay', [0, 1, 2, 3], [0, 9], [0])
 
     #simpleNet
     model1 = SimpleNet(128, 1, use_ortho_rules=True)
 
     #multitask
     model1.set_seed(1)
-    model1.load_model('_ReLU128_5.7/single_holdouts/Anti_DM')
+    model1.load_model('_ReLU128_5.7/swap_holdouts/Go_Anti_DM')
 
-    hid_reps1 = get_hid_var_group_resp(model1, 'DM', 'diff_strength')
-    plot_hid_traj(hid_reps1, 'DM', [0, 1, 2, 3], [0], [1])
+    hid_reps1 = get_hid_var_group_resp(model1, 'Go', 'direction')
+    plot_hid_traj(hid_reps1, 'Go', [0, 1, 2, 3], [0], [0])
 
 
-    from dPCA import dPCA
 
-    plot_dpca(model, 'DM', 'diff_strength')
-    plot_dpca(model, 'Anti DM', 'diff_strength')
+    ###Figure 5 
+    model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+    model.model_name += '_tuned'
 
-    plot_dpca(model1, ['DM', 'Anti DM'], 'diff_strength')
+    model.set_seed(0)
+    model.load_model('_ReLU128_5.7/single_holdouts/Anti_DM')
+    plot_neural_resp(model, 'Go', 'direction', 90, 1)
+    plot_neural_resp(model, 'Anti Go', 'direction', 90, 1)
+    trials, var_of_insterest = make_test_trials('Go', 'direction', 0, num_trials=6)
+    model.instruct_mode = 'swap'
+    plot_model_response(model1, trials)
+    plot_tuning_curve(model, Task.TASK_GROUP_DICT['Go'], 'direction', 90, 1, [115, 115, 115, 115], swapped_task='Anti Go')
+
+
+    model.set_seed(0)
+    model.load_model('_ReLU128_5.7/single_holdouts/Anti_DM')
+
+    unit = 110
+    task_group = 'DM'
+    task_var = 'diff_strength'
+    plot_neural_resp(model, Task.TASK_GROUP_DICT[task_group][0], task_var, unit, 1)
+    plot_neural_resp(model, Task.TASK_GROUP_DICT[task_group][1], task_var, unit, 1)
+    plot_neural_resp(model, Task.TASK_GROUP_DICT[task_group][2], task_var, unit, 1)
+    plot_neural_resp(model, Task.TASK_GROUP_DICT[task_group][3], task_var, unit, 1)
+
+    plot_tuning_curve(model, Task.TASK_GROUP_DICT[task_group], task_var, unit, 1, [115]*4, swapped_task=None)
+
+    model.instruct_mode
+

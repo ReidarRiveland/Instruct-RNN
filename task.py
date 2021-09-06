@@ -26,7 +26,7 @@ class Task():
     SHUFFLED_TASK_LIST = ['MultiCOMP2', 'RT Go', 'COMP2', 'DNMS', 'Anti Go', 'COMP1', 'DNMC', 'Anti DM', 'MultiCOMP1', 'Anti MultiDM', 'MultiDM', 'DM', 'Anti RT Go', 'DMC', 'DMS', 'Go']
     opp_task_list = TASK_LIST.copy()
     #opp_task_list[1], opp_task_list[2] = opp_task_list[2], opp_task_list[1]
-    TASK_GROUP_DICT = {'Go': ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'],
+    TASK_GROUP_DICT = {'Go': ['Go', 'Anti Go', 'RT Go', 'Anti RT Go'],
                 'DM': ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'], 
                 'COMP': ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'],
                 'Delay': ['DMS', 'DNMS', 'DMC', 'DNMC']}

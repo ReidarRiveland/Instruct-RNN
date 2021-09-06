@@ -5,9 +5,10 @@ import numpy as np
 from torch._C import device
 from torch.nn.modules import transformer
 
+
 from task import Task, construct_batch, make_test_trials
 from data import TaskDataSet
-from utils import isCorrect, train_instruct_dict
+from utils import isCorrect, train_instruct_dict, calc_parallel_score
 from data import TaskDataSet
 
 task_list = Task.TASK_LIST
@@ -36,7 +37,7 @@ def get_model_performance(model, num_batches):
             perf_dict[task] = np.mean(mean_list)
     return perf_dict 
 
-def get_instruct_reps(langModel, instruct_dict, depth='full'):
+def get_instruct_reps(langModel, instruct_dict, depth='full', swapped_tasks = []):
     assert depth in ['full', 'transformer']
     langModel.eval()
     if depth=='transformer': 
@@ -45,7 +46,7 @@ def get_instruct_reps(langModel, instruct_dict, depth='full'):
     else: rep_dim = langModel.out_dim 
     instruct_reps = torch.empty(len(instruct_dict.keys()), len(list(instruct_dict.values())[0]), rep_dim)
     with torch.no_grad():      
-        for i, task in enumerate(Task.TASK_LIST):
+        for i, task in enumerate(instruct_dict.keys()):
             instructions = instruct_dict[task]
             if depth == 'full': 
                 out_rep = langModel(list(instructions))
@@ -55,12 +56,14 @@ def get_instruct_reps(langModel, instruct_dict, depth='full'):
     return instruct_reps.cpu().numpy().astype(np.float64)
 
 
-def get_task_reps(model, epoch='prep', num_trials =100):
+def get_task_reps(model, epoch='prep', num_trials =100, swapped_tasks = []):
     assert epoch in ['stim', 'prep'] or epoch.isnumeric(), "entered invalid epoch: %r" %epoch
     model.eval()
     with torch.no_grad(): 
-        task_reps = np.empty((len(task_list), 100, model.hid_dim))
-        for i, task in enumerate(Task.TASK_LIST): 
+        task_reps = np.empty((len(task_list)+len(swapped_tasks), 100, model.hid_dim))
+        for i, task in enumerate(Task.TASK_LIST+swapped_tasks): 
+            if i >= len(Task.TASK_LIST): 
+                model.instruct_mode = 'swap'
             ins, targets, _, _, _ =  construct_batch(task, num_trials)
 
             task_info = model.get_task_info(num_trials, task)
@@ -73,6 +76,8 @@ def get_task_reps(model, epoch='prep', num_trials =100):
                 if epoch == 'stim': epoch_index = np.where(targets[j, :, 0] == 0.85)[0][-1]
                 if epoch == 'prep': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]-1
                 task_reps[i, j, :] = hid[j, epoch_index, :]
+            
+            model.instruct_mode = None
     return task_reps.astype(np.float64)
 
 def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None): 
@@ -107,14 +112,14 @@ def reduce_rep(reps, dim=2, reduction_method='PCA'):
     elif reduction_method == 'tSNE': 
         embedder = TSNE(n_components=2)
 
-    embedded = embedder.fit_transform(reps.reshape(16*reps.shape[1], -1))
+    embedded = embedder.fit_transform(reps.reshape(reps.shape[0]*reps.shape[1], -1))
 
     if reduction_method == 'PCA': 
         explained_variance = embedder.explained_variance_ratio_
     else: 
         explained_variance = None
 
-    return embedded.reshape(16, reps.shape[1], dim), explained_variance
+    return embedded.reshape(reps.shape[0], reps.shape[1], dim), explained_variance
 
 def get_sim_scores(model, holdout_file, rep_type, model_file='_ReLU128_5.7/single_holdouts'): 
     if rep_type == 'lang': 
@@ -137,3 +142,38 @@ def get_sim_scores(model, holdout_file, rep_type, model_file='_ReLU128_5.7/singl
         all_sim_scores[i, :, :] = sim_scores
 
     return all_sim_scores
+
+def get_parallelogram_score(model, holdout_file, rep_type, model_file='_ReLU128_5.7/single_holdouts', use_swaps=False): 
+    scores = np.empty((5, len(Task.TASK_GROUP_DICT)))
+    for i in range(5): 
+        model.set_seed(i) 
+        model.load_model(model_file+'/'+holdout_file)
+        if rep_type == 'task': 
+            get_reps = get_task_reps
+            args = {'model': model}
+        if rep_type == 'lang': 
+            get_reps = get_instruct_reps
+            args = {'langModel': model.langModel, 'instruct_dict': train_instruct_dict, 'depth':'transformer'}
+        if use_swaps: 
+            reps = get_reps(**args)
+            reps_reduced = reduce_rep(reps)[0]
+            model.instruct_mode = 'swap'
+            swapped_reps = get_reps(**args)
+            swapped_reduced = reduce_rep(swapped_reps)[0]
+            scores[i, :] = calc_parallel_score(reps_reduced, swapped_reduced_reps=swapped_reduced)
+        else: 
+            reps = get_reps(**args)
+            reps = reduce_rep(reps, dim=5)[0]
+            scores[i, :] = calc_parallel_score(reps)
+    return scores
+
+
+def get_all_holdout_para_scores(model): 
+    all_para_scores = np.empty((16, 5, 4))
+    for i, task in enumerate(Task.TASK_LIST): 
+        print(task)
+        task_file = task.replace(' ', '_')
+        scores = get_parallelogram_score(model, task_file, 'task')
+        print(scores)
+        all_para_scores[i, ...] = scores
+    return all_para_scores

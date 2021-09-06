@@ -95,23 +95,25 @@ def train_model(model, streamer, epochs, optimizer, scheduler, print_eval=False)
             scheduler.step()    
 
 def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_5.7', holdout_type = 'single_holdouts', save=False): 
-        holdout_file = holdouts_test.replace(' ', '_')
-        for _ in range(repeats): 
-            model.load_model(foldername+'/'+holdout_type+'/'+holdout_file)
-            opt, _ = init_optimizer(model, 0.001, [])
+    if len(holdouts) > 1: holdout_file = '_'.join(holdouts)
+    else: holdout_file = holdouts[0]
+    holdout_file = holdout_file.replace(' ', '_')
+    for _ in range(repeats): 
+        model.load_model(foldername+'/'+holdout_type+'/'+holdout_file)
+        opt, _ = init_optimizer(model, 0.001, [])
 
-            data = TaskDataSet(data_folder = foldername+'/training_data', batch_len=256, num_batches=100, task_ratio_dict={holdouts_test:1})
-            data.data_to_device(device)
-            train_model(model, data, 1, opt, None)
-        
-        correct_perf = np.mean(np.array(model._correct_data_dict[holdouts_test]).reshape(repeats, -1), axis=0)
-        loss_perf = np.mean(np.array(model._loss_data_dict[holdouts_test]).reshape(repeats, -1), axis=0)
+        data = TaskDataSet(data_folder = foldername+'/training_data', batch_len=256, num_batches=100, task_ratio_dict={holdout:1})
+        data.data_to_device(device)
+        train_model(model, data, 1, opt, None)
+    
+    correct_perf = np.mean(np.array(model._correct_data_dict[holdouts_test]).reshape(repeats, -1), axis=0)
+    loss_perf = np.mean(np.array(model._loss_data_dict[holdouts_test]).reshape(repeats, -1), axis=0)
 
-        if save: 
-            pickle.dump(correct_perf, open(foldername + '/' + holdout_type +'/'+holdout_file + '/' + model.model_name+'/'+model.__seed_num_str__+'_holdout_correct', 'wb'))
-            pickle.dump(loss_perf, open(foldername + '/' + holdout_type +'/'+holdout_file + '/' + model.model_name+'/'+model.__seed_num_str__+'_holdout_loss', 'wb'))
+    if save: 
+        pickle.dump(correct_perf, open(foldername + '/' + holdout_type +'/'+holdout_file + '/' + model.model_name+'/'+model.instruct_mode+holdout.replace(' ', '_')+'_'+model.__seed_num_str__+'_holdout_correct', 'wb'))
+        pickle.dump(loss_perf, open(foldername + '/' + holdout_type +'/'+holdout_file + '/' + model.model_name+'/'+model.instruct_mode+holdout.replace(' ', '_')+'_'+model.__seed_num_str__+'_holdout_loss', 'wb'))
 
-        return correct_perf, loss_perf
+    return correct_perf, loss_perf
 
 def _train_context(model, data_streamer, epochs, init_context = None, context_dim = 768): 
     model.freeze_weights()
@@ -182,13 +184,14 @@ training_lists_dict={
 'single_holdouts' :  [[item] for item in Task.TASK_LIST.copy()+['Multitask']],
 'dual_holdouts' : [['RT Go', 'Anti Go'], ['Anti MultiDM', 'DM'], ['COMP1', 'MultiCOMP2'], ['DMC', 'DNMS']],
 'aligned_holdouts' : [['Anti DM', 'Anti MultiDM'], ['COMP1', 'MultiCOMP1'], ['DMS', 'DNMS'],['Go', 'RT Go']],
-'swap_holdouts' : [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['RT Go', 'COMP1']]
+'swap_holdouts' : [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['RT Go', 'DNMC'], ['DM', 'MultiCOMP2'], ['MultiDM', 'DNMS'], ['Anti MultiDM', 'COMP1'], ['COMP2', 'DMS'], ['Anti Go', 'MultiCOMP1']]
 }
 
 
 ALL_MODEL_PARAMS = {
-    'sbertNet_layer_11': {'model': InstructNet, 
+    'sbertNet_tuned': {'model': InstructNet, 
                     'langModel': SBERT,
+                    'model_name': 'sbertNet_tuned',
                     'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
                     'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
                     'epochs': 35
@@ -196,13 +199,15 @@ ALL_MODEL_PARAMS = {
 
     'sbertNet': {'model': InstructNet, 
                 'langModel': SBERT,
+                'model_name': 'sbertNet',
                 'langModel_params': {'out_dim': 20, 'train_layers': []}, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-                'epochs': 35
+                'epochs': 30
                 },
     
-    'bertNet_layer_11': {'model': InstructNet, 
+    'bertNet_tuned': {'model': InstructNet, 
                     'langModel': BERT,
+                    'model_name': 'bertNet_tuned',
                     'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
                     'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25], 'langLR': 1e-4},
                     'epochs': 35
@@ -210,33 +215,38 @@ ALL_MODEL_PARAMS = {
 
     'bertNet': {'model': InstructNet, 
                 'langModel': BERT,
+                'model_name': 'bertNet',
                 'langModel_params': {'out_dim': 20, 'train_layers': []}, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
-                'epochs': 35
+                'epochs': 30
                 },
 
-    # 'GPT NET LAYER 11': {'model': InstructNet, 
-    #                 'langModel': GPT,
-    #                 'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
-    #                 'opt_params': {'lr':0.001, 'milestones':[15, 20, 22, 25], 'langLR': 1e-5},
-    #                 'epochs': 30
-    #             },
+    'gptNet_tuned': {'model': InstructNet, 
+                    'langModel': GPT,
+                    'model_name': 'gptNet_tuned',
+                    'langModel_params': {'out_dim': 20, 'train_layers': ['11']},
+                    'opt_params': {'lr':0.001, 'milestones':[15, 20, 22, 25], 'langLR': 1e-5},
+                    'epochs': 30
+                },
 
     'gptNet': {'model': InstructNet, 
                 'langModel': GPT,
+                'model_name': 'gptNet',
                 'langModel_params': {'out_dim': 20, 'train_layers': []}, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]}, 
-                'epochs': 35
+                'epochs': 30
                 },
     
     'bowNet': {'model': InstructNet, 
                 'langModel': BoW,
+                'model_name': 'bowNet',
                 'langModel_params': {'out_dim': None}, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
                 'epochs': 30
                 },
 
     'simpleNet': {'model': SimpleNet, 
+                'model_name': 'simpleNet',
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
                 'epochs': 30
                 }
@@ -251,6 +261,8 @@ def config_model_training(key):
         model = params['model'](params['langModel'](**params['langModel_params']), 128, 1, torch.relu)
     else:
         model = params['model'](128, 1, torch.relu, use_ortho_rules=True)
+
+    model.model_name = params['model_name']
 
     opt, sch = init_optimizer(model, **params['opt_params'])
     epochs = params['epochs']
@@ -281,23 +293,26 @@ if __name__ == "__main__":
     if train_mode == 'test': 
         holdout_type = 'swap_holdouts'
         seeds = [0, 1, 2, 3, 4]
-        to_test = list(itertools.product(seeds, ['bertNet', 'gptNet'], training_lists_dict['swap_holdouts']))
+        to_test = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), training_lists_dict['swap_holdouts']))
 
         for config in to_test: 
             print(config)
             seed_num, model_params_key, holdouts = config
-            try:
-                holdout_file = holdouts.replace(' ', '_')
-                pickle.load(open(model_file+'/single_holdouts' +'/'+holdout_file + '/' + model_params_key+'_tuned/seed'+str(seed_num)+'_holdout_correct', 'rb'))
-                #pickle.load(open(model_file+'/single_holdouts' +'/'+holdout_file + '/' + model_params_key+'/seed'+str(seed_num)+'_holdout_correct', 'rb'))
-                print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
-                continue
-            except FileNotFoundError: 
-                model, _, _, _ = config_model_training(model_params_key)
-                model.set_seed(seed_num)
-                model.model_name += '_tuned'
-                model.to(device)
-                test_model(model, holdouts, foldername= model_file, holdout_type = holdout_type, save=True)
+            for holdout in holdouts: 
+                try:
+                    if len(holdouts) > 1: holdout_file = '_'.join(holdouts)
+                    else: holdout_file = holdouts[0]
+                    holdout_file = holdout_file.replace(' ', '_')
+                    pickle.load(open(model_file+'/'+holdout_type +'/'+holdout_file + '/' + model_params_key+'/'+holdout.replace(' ', '_')+'_seed'+str(seed_num)+'_holdout_correct', 'rb'))
+                    print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
+                    continue
+                except FileNotFoundError: 
+                    model, _, _, _ = config_model_training(model_params_key)
+                    model.set_seed(seed_num)
+                    model.instruct_mode = 'swap'
+                    model.model_name 
+                    model.to(device)
+                    test_model(model, holdouts, foldername= model_file, holdout_type = holdout_type, save=True)
 
     if train_mode == 'fine_tune': 
         holdout_type = 'swap_holdouts'
@@ -311,9 +326,10 @@ if __name__ == "__main__":
             if len(holdouts) > 1: holdout_file = '_'.join(holdouts)
             else: holdout_file = holdouts[0]
             holdout_file = holdout_file.replace(' ', '_')
+            print(holdout_file)
 
             try:
-                pickle.load(open(model_file+'/single_holdouts' +'/'+holdout_file + '/' + model_params_key+'_tuned'+'/seed'+str(seed_num)+'_training_correct', 'rb'))
+                pickle.load(open(model_file+'/'+holdout_type +'/'+holdout_file + '/' + model_params_key+'_tuned'+'/seed'+str(seed_num)+'_training_correct', 'rb'))
                 print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
                 continue
             except FileNotFoundError: 

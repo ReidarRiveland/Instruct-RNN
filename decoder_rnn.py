@@ -162,8 +162,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pickle
 
-plt.plot(loss_list)
-plt.show()
 
 def decode_sentence(decoder, hidden_rep): 
     decoder_hidden = torch.Tensor(hidden_rep).view(1, 1, -1)
@@ -282,7 +280,7 @@ with torch.no_grad():
 plot_trained_performance({'sbertNet_tuned': perf_dict})
 
 
-if '__name__' = '__main__': 
+if '__name__' == '__main__': 
     for i in range(1):
         model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
         model.model_name += '_tuned'
