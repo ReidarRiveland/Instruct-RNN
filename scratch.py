@@ -52,90 +52,78 @@ model1.set_seed(1)
 model1.load_model('_ReLU128_5.7/single_holdouts/Multitask')
 reduced_reps1 = reduce_rep(get_task_reps(model1))[0]
 
-
-
-def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_args=[], swapped_tasks= [], save_file=None): 
-    colors_to_plot = list(itertools.chain.from_iterable([[task_colors[task]]*reps_reduced.shape[1] for task in tasks_to_plot]))
-    task_indices = [Task.TASK_LIST.index(task) for task in tasks_to_plot]
-
-    reps_to_plot = reps_reduced[task_indices, ...]
-    flattened_reduced = reps_to_plot.reshape(-1, reps_to_plot.shape[-1])
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.scatter(flattened_reduced[:, 0], flattened_reduced[:, 1], c = colors_to_plot, s=35)
-    ax.scatter(np.mean(reps_to_plot, axis=1)[:, 0], np.mean(reps_to_plot, axis=1)[:, 1], c = [task_colors[task] for task in tasks_to_plot], s=35, marker='X', edgecolors='white')
-    
-    centroid_reps = np.mean(reps_reduced, axis=1)
-    comp_task_rule = comp_input_rule(1, tasks_to_plot[0]).squeeze()
-    parallel_point = np.matmul(comp_task_rule, centroid_reps)
-    task_rule = get_input_rule(1, tasks_to_plot[0], instruct_mode=None).numpy().squeeze()
-    identical_point = np.matmul(task_rule, centroid_reps)
-    plt.scatter(parallel_point[0], parallel_point[1], color='black', s=50)
-    plt.scatter(identical_point[0], identical_point[1], color='black', s=50, marker='^')
-
-
-    if len(swapped_tasks)>0: 
-        ax.scatter(reps_reduced[-1, :, 0], reps_reduced[-1, :, 1], c = [task_colors[swapped_tasks[0]]]*reps_reduced.shape[1], marker='x')
-    for i, indices in enumerate(annotate_tuples): 
-        task_index, instruct_index = indices 
-        plt.annotate(str(1+instruct_index)+'. '+two_line_instruct(train_instruct_dict[tasks_to_plot[task_index]][instruct_index]), xy=(flattened_reduced[int(instruct_index+(task_index*15)), 0], flattened_reduced[int(instruct_index+(task_index*15)), 1]), 
-                    xytext=annotate_args[i], size = 8, arrowprops=dict(arrowstyle='->'), textcoords = 'offset points')
-
-    plt.xlabel("PC 1", fontsize = 12)
-    plt.ylabel("PC 2", fontsize = 12)
-    Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in tasks_to_plot]
-    plt.legend(handles=Patches, fontsize='medium')
-
-    if save_file is not None: 
-        plt.savefig('figs/'+save_file)
-
-    plt.show()
-
-plot_rep_scatter(reduced_reps, Task.TASK_GROUP_DICT['Delay'])
-
-
-
-
 scores = get_total_para_score(model, 'RT_Go', 'task')
 np.mean(scores, axis=0)
 
-def get_all_holdout_para_scores(model): 
-    all_para_scores = np.empty((16, 5, 4))
-    for i, task in enumerate(Task.TASK_LIST): 
-        print(task)
-        task_file = task.replace(' ', '_')
-        scores = get_total_para_score(model, task_file, 'task')
-        print(scores)
-        all_para_scores[i, ...] = scores
-    return all_para_scores
+from model_analysis import g get_all_parallelogram_scores
 
-from model_analysis import get_all_holdout_para_scores
-
-sbertNet_all_scores = get_all_holdout_para_scores(model)
-simpleNet_all_scores = get_all_holdout_para_scores(model1)
+sbertNet_all_scores, sbertNet_holdout_scores = get_all_holdout_para_scores(model)
+simpleNet_all_scores, simpleNet_holdout_scores = get_all_holdout_para_scores(model1)
 
 simpleNet_zero_shots = model_data_dict['simpleNet'][:, :, 0]
 zero_shots = model_data_dict['sbertNet_tuned'][:, :, 0]
 
 
-def get_holdout_para_scores(all_scores):
-    holdout_scores = np.empty((5, 16))
-    for i in range(16): 
-        j=int(np.floor(i/4))
-        holdout_scores[:, i]=all_scores[i, :, j]
-    return holdout_scores
-
-sbertNet_holdout_scores = get_holdout_para_scores(sbertNet_all_scores)
-simpleNet_holdout_scores = get_holdout_para_scores(simpleNet_all_scores)
 
 from sklearn import preprocessing
-normed_scores =preprocessing.normalize(np.concatenate((sbertNet_holdout_scores.flatten(), simpleNet_holdout_scores.flatten())).reshape(1, -1))
+#normed_scores =preprocessing.normalize(np.concatenate((sbertNet_holdout_scores.flatten(), simpleNet_holdout_scores.flatten())).reshape(1, -1))
+normed_scores =np.concatenate((sbertNet_holdout_scores.flatten(), simpleNet_holdout_scores.flatten()))
 all_zero_shots = np.concatenate((zero_shots.flatten(),  simpleNet_zero_shots.flatten()))
 
+from task import Task
+
+para_dict = {'sbertNet_tuned': dict(zip(Task.TASK_LIST, np.mean(sbertNet_holdout_scores, axis=0))), 'simpleNet' : dict(zip(Task.TASK_LIST, np.mean(simpleNet_holdout_scores, axis=0)))}
+
+from plotting import MODEL_STYLE_DICT, task_list, Line2D, mpatches
+
+def plot_para_scores(all_perf_dict, save_file=None):
+    barWidth = 0.15
+    for i, item in enumerate(all_perf_dict.items()):  
+        model_name, perf_dict = item
+        values = list(perf_dict.values())
+        len_values = len(holdout_types)
+        if i == 0:
+            r = np.arange(len_values)
+        else:
+            r = [x + barWidth for x in r]
+        if '_layer_11' in model_name: 
+            mark_size = 4
+        else: 
+            mark_size = 3
+        plt.plot(r, [1.05]*2, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
+        plt.bar(r, values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
+    plt.ylim(0, 6)
+    plt.title('Trained Performance')
+    plt.xlabel('Task Type', fontweight='bold')
+    plt.ylabel('Percentage Correct')
+    r = np.arange(len_values)
+    plt.xticks([r + barWidth for r in range(len_values)], holdout_types)
+    plt.tight_layout()
+    Patches = [(Line2D([0], [0], linestyle='None', marker=MODEL_STYLE_DICT[model_name][1], color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
+                markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(all_perf_dict.keys())[:-1]]
+    #Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['bowNet'][0], label='bowNet'))
+    Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['simpleNet'][0], label='simpleNet'))
+
+    plt.legend(handles=Patches)
+    if save_file is not None: 
+        plt.savefig('figs/'+save_file)
+    plt.show()
+
+sbertNet_all_scores.shape
+simpleNet_all_scores.shape
+holdout_types = ['Holdouts', 'All Tasks']
+np.mean(sbertNet_holdout_scores)
+np.mean(simpleNet_holdout_scores, axis=(0,1))
+dict(zip(holdout_types, [np.mean(sbertNet_holdout_scores), np.mean(sbertNet_all_scores)]))
+para_dict = {'sbertNet_tuned': dict(zip(holdout_types, [np.mean(sbertNet_holdout_scores), np.mean(sbertNet_all_scores)])), 
+                'simpleNet' : dict(zip(holdout_types, [np.mean(simpleNet_holdout_scores), np.mean(simpleNet_all_scores)]))}
+para_dict
+
+plot_para_scores(para_dict)
 
 
 np.corrcoef(np.concatenate((sbertNet_holdout_scores.flatten(), simpleNet_holdout_scores.flatten())), 
             np.concatenate((zero_shots.flatten(),  simpleNet_zero_shots.flatten())))
-
 
 
 np.corrcoef(normed_scores, 
@@ -152,29 +140,11 @@ from plotting import task_colors
 
 task_colors
 import itertools
-tasks_and_seeds = list(itertools.chain.from_iterable([[color]*5 for color in task_colors.values()]))
+
 tasks_and_seeds*2
 
 normed_scores.shape
 zero_shots.shape
-
-m,b = np.polyfit(normed_scores.squeeze(), all_zero_shots.squeeze(), 1) 
-
-coef = np.polyfit(normed_scores.squeeze(), all_zero_shots.squeeze(), 1) 
-poly1d_fn = np.poly1d(coef) 
-
-x = np.arange(0, 0.25,0.001)
-
-plt.plot(x, poly1d_fn(x), '--k')
-
-plt.scatter(normed_scores, 
-            all_zero_shots,
-            c = ['purple']*16*5+['blue']*16*5, edgecolors=tasks_and_seeds*2)
-r_score = np.round(np.corrcoef(normed_scores, all_zero_shots)[0, 1], 3)
-plt.ylim(-0.05, 1.05)
-plt.text(0.20, 0.95, str('r = '+str(r_score)))
-
-plt.show()
 
 import pickle
 pickle.dump(sbertNet_all_scores, open('_ReLU128_5.7/sbert_tuned_para_scores', 'wb'))

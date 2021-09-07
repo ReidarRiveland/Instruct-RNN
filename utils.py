@@ -17,6 +17,23 @@ test_instruct_dict
 TASK_LIST = ['Go', 'Anti Go', 'RT Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']
 swapped_task_list = ['Anti DM', 'MultiCOMP1', 'DNMC', 'DMC', 'MultiCOMP2', 'Go', 'DNMS', 'COMP1', 'Anti MultiDM', 'DMS', 'Anti Go', 'DM', 'COMP2', 'MultiDM', 'Anti RT Go', 'RT Go']
 
+task_swaps_map = {'Go': 'Go_Anti_DM', 
+                'Anti Go': 'Anti_Go_MultiCOMP1', 
+                'RT Go': 'RT_Go_DNMC', 
+                'Anti RT Go': 'Anti_RT_Go_DMC',
+                'DM': 'DM_MultiCOMP2',
+                'Anti DM': 'Go_Anti_DM',
+                'MultiDM': 'MultiDM_DNMS',
+                'Anti MultiDM': 'Anti_MultiDM_COMP1',
+                'COMP1': 'Anti_MultiDM_COMP1', 
+                'COMP2': 'COMP2_DMS',
+                'MultiCOMP1': 'Anti_Go_MultiCOMP1',
+                'MultiCOMP2': 'DM_MultiCOMP2',
+                'DMS': 'COMP2_DMS', 
+                'DNMS': 'MultiDM_DNMS', 
+                'DMC': 'Anti_RT_Go_DMC', 
+                'DNMC': 'RT_Go_DNMC'}
+
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) 
 

@@ -167,8 +167,7 @@ def get_parallelogram_score(model, holdout_file, rep_type, model_file='_ReLU128_
             scores[i, :] = calc_parallel_score(reps)
     return scores
 
-
-def get_all_holdout_para_scores(model): 
+def get_all_parallelogram_scores(model): 
     all_para_scores = np.empty((16, 5, 4))
     for i, task in enumerate(Task.TASK_LIST): 
         print(task)
@@ -176,4 +175,10 @@ def get_all_holdout_para_scores(model):
         scores = get_parallelogram_score(model, task_file, 'task')
         print(scores)
         all_para_scores[i, ...] = scores
-    return all_para_scores
+
+    holdout_scores = np.empty((5, 16))
+    for j in range(16): 
+        k=int(np.floor(i/4))
+        holdout_scores[:, i]=all_para_scores[j, :, k]
+    return all_para_scores, holdout_scores
+

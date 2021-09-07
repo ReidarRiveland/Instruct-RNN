@@ -9,7 +9,7 @@ task_list = Task.TASK_LIST
 task_group_dict = Task.TASK_GROUP_DICT
 
 from model_analysis import get_hid_var_resp
-from utils import isCorrect, train_instruct_dict, test_instruct_dict, two_line_instruct
+from utils import isCorrect, train_instruct_dict, test_instruct_dict, two_line_instruct, task_swaps_map, comp_input_rule, get_input_rule
 
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
@@ -35,7 +35,12 @@ plt.rcParams['savefig.dpi'] = 300
 from matplotlib import rc
 plt.rcParams["font.family"] = "serif"
 
-
+training_lists_dict={
+'single_holdouts' :  [[item] for item in Task.TASK_LIST.copy()+['Multitask']],
+'dual_holdouts' : [['RT Go', 'Anti Go'], ['Anti MultiDM', 'DM'], ['COMP1', 'MultiCOMP2'], ['DMC', 'DNMS']],
+'aligned_holdouts' : [['Anti DM', 'Anti MultiDM'], ['COMP1', 'MultiCOMP1'], ['DMS', 'DNMS'],['Go', 'RT Go']],
+'swap_holdouts' : [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['RT Go', 'DNMC'], ['DM', 'MultiCOMP2'], ['MultiDM', 'DNMS'], ['Anti MultiDM', 'COMP1'], ['COMP2', 'DMS'], ['Anti Go', 'MultiCOMP1']]
+}
 
 task_colors = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT Go':'orange',
                         'DM':'Red', 'Anti DM':'Green', 'MultiDM':'Blue', 'Anti MultiDM':'Yellow', 
@@ -177,13 +182,11 @@ def plot_context_training(foldername, model_list, train_data_type, seed, smoothi
         plt.savefig('figs/'+save_file)
     plt.show()
 
-def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seeds, smoothing=0.1, save_file=None):
+def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seeds, instruction_mode='', smoothing=0.1, save_file=None):
     #rc('font', weight='bold')
     if plot_type == 'avg_holdout': fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
     if plot_type == 'task_holdout': fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(19, 12))
-
     model_data_dict = {}
-
     for model_name in model_list: 
         training_data = np.empty((len(seeds), len(Task.TASK_LIST), 100))
 
@@ -191,12 +194,20 @@ def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seed
             seed_name = 'seed' + str(seed_num)
 
             for j, task in enumerate(task_list):
-                task_file = task.replace(' ', '_')
+                holdout_file = task.replace(' ', '_')
+
+                if instruction_mode =='swap': 
+                    task_file = task_swaps_map[task]
+                    holdout_file += '_'
+                else: 
+                    task_file = holdout_file
+                    holdout_file = ''
 
                 try:
-                    training_data[i, j, :] = pickle.load(open(foldername+task_file+'/'+model_name+'/'+seed_name+'_holdout_'+train_data_type, 'rb'))
+                    training_data[i, j, :] = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+holdout_file+seed_name+'_holdout_'+train_data_type, 'rb'))
                 except FileNotFoundError: 
                     print('No training data for '+ model_name + ' '+seed_name+' '+task)
+                    print(foldername+'/'+task_file+'/'+model_name+'/'+holdout_file+seed_name+'_holdout_'+train_data_type)
                     continue 
 
         if plot_type == 'avg_holdout': 
@@ -237,6 +248,9 @@ def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seed
         plt.savefig('figs/'+save_file)
     plt.show()
     return model_data_dict
+
+# model_data_dict = plot_holdout_curves('_ReLU128_5.7/swap_holdouts', ['sbertNet_tuned'], 'correct', 'task_holdout', [0], instruction_mode='swap', smoothing = 0.01)
+# np.mean(model_data_dict['bertNet_tuned'], axis=(0,1))
 
 def plot_k_shot_learning(model_data_dict, save_file=None): 
     barWidth = 0.1
@@ -369,6 +383,16 @@ def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_a
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.scatter(flattened_reduced[:, 0], flattened_reduced[:, 1], c = colors_to_plot, s=35)
     ax.scatter(np.mean(reps_to_plot, axis=1)[:, 0], np.mean(reps_to_plot, axis=1)[:, 1], c = [task_colors[task] for task in tasks_to_plot], s=35, marker='X', edgecolors='white')
+    
+    centroid_reps = np.mean(reps_reduced, axis=1)
+    comp_task_rule = comp_input_rule(1, tasks_to_plot[0]).squeeze()
+    parallel_point = np.matmul(comp_task_rule, centroid_reps)
+    task_rule = get_input_rule(1, tasks_to_plot[0], instruct_mode=None).numpy().squeeze()
+    identical_point = np.matmul(task_rule, centroid_reps)
+    plt.scatter(parallel_point[0], parallel_point[1], color='black', s=50)
+    plt.scatter(identical_point[0], identical_point[1], color='black', s=50, marker='^')
+
+
     if len(swapped_tasks)>0: 
         ax.scatter(reps_reduced[-1, :, 0], reps_reduced[-1, :, 1], c = [task_colors[swapped_tasks[0]]]*reps_reduced.shape[1], marker='x')
     for i, indices in enumerate(annotate_tuples): 
@@ -383,6 +407,24 @@ def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_a
 
     if save_file is not None: 
         plt.savefig('figs/'+save_file)
+
+    plt.show()
+
+def plot_parallelogram_corr(scores, performance): 
+    tasks_and_seeds = list(itertools.chain.from_iterable([[color]*5 for color in task_colors.values()]))
+    coef = np.polyfit(scores.squeeze(), performance.squeeze(), 1) 
+    poly1d_fn = np.poly1d(coef) 
+
+    x = np.arange(0, 12,0.01)
+
+    plt.plot(x, poly1d_fn(x), '--k')
+
+    plt.scatter(scores, 
+                performance,
+                c = ['purple']*16*5+['blue']*16*5, edgecolors=tasks_and_seeds*2)
+    r_score = np.round(np.corrcoef(scores, performance)[0, 1], 3)
+    plt.ylim(-0.05, 1.05)
+    plt.text(10, 0.95, str('r = '+str(r_score)))
 
     plt.show()
 
