@@ -182,64 +182,66 @@ def plot_context_training(foldername, model_list, train_data_type, seed, smoothi
         plt.savefig('figs/'+save_file)
     plt.show()
 
-def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seeds, instruction_mode='', smoothing=0.1, save_file=None):
+def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seeds, smoothing=0.1, save_file=None):
     #rc('font', weight='bold')
+    instruction_mode = 'swap'
     if plot_type == 'avg_holdout': fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
-    if plot_type == 'task_holdout': fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(19, 12))
+    if plot_type == 'task_holdout': fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(10, 8))
     model_data_dict = {}
-    for model_name in model_list: 
-        training_data = np.empty((len(seeds), len(Task.TASK_LIST), 100))
+    for k, mode in enumerate(['swap', '']):
+        for model_name in model_list: 
+            training_data = np.empty((len(seeds), len(Task.TASK_LIST), 100))
 
-        for i, seed_num in enumerate(seeds):
-            seed_name = 'seed' + str(seed_num)
+            for i, seed_num in enumerate(seeds):
+                seed_name = 'seed' + str(seed_num)
 
-            for j, task in enumerate(task_list):
-                holdout_file = task.replace(' ', '_')
+                for j, task in enumerate(task_list):
+                    holdout_file = task.replace(' ', '_')
 
-                if instruction_mode =='swap': 
-                    task_file = task_swaps_map[task]
-                    holdout_file += '_'
-                else: 
-                    task_file = holdout_file
-                    holdout_file = ''
+                    if instruction_mode =='swap': 
+                        task_file = task_swaps_map[task]
+                        holdout_file += '_'
+                    else: 
+                        task_file = holdout_file
+                        holdout_file = ''
 
-                try:
-                    training_data[i, j, :] = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+holdout_file+seed_name+'_holdout_'+train_data_type, 'rb'))
-                except FileNotFoundError: 
-                    print('No training data for '+ model_name + ' '+seed_name+' '+task)
-                    print(foldername+'/'+task_file+'/'+model_name+'/'+holdout_file+seed_name+'_holdout_'+train_data_type)
-                    continue 
+                    try:
+                        training_data[i, j, :] = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+mode+holdout_file+seed_name+'_holdout_'+train_data_type, 'rb'))
+                    except FileNotFoundError: 
+                        print('No training data for '+ model_name + ' '+seed_name+' '+task)
+                        print(foldername+'/'+task_file+'/'+model_name+'/'+holdout_file+seed_name+'_holdout_'+train_data_type)
+                        continue 
 
-        if plot_type == 'avg_holdout': 
-            avg_performance = np.mean(training_data, axis = (0, 1))
-            std_performance = np.std(np.mean(training_data, axis = 1), 0)
-            smoothed_perf = gaussian_filter1d(avg_performance, sigma=smoothing)
+            if plot_type == 'avg_holdout': 
+                avg_performance = np.mean(training_data, axis = (0, 1))
+                std_performance = np.std(np.mean(training_data, axis = 1), 0)
+                smoothed_perf = gaussian_filter1d(avg_performance, sigma=smoothing)
+                if mode == '':
+                    axn.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), avg_performance+std_performance]), axis=0), 
+                                                avg_performance-std_performance, color = MODEL_STYLE_DICT[model_name][0], alpha= 0.1)
+                axn.plot(smoothed_perf, linewidth = 0.8, linestyle = ['--', '-'][k], color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=1, markersize=4, markevery=10)
 
-            axn.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), avg_performance+std_performance]), axis=0), 
-                                        avg_performance-std_performance, color = MODEL_STYLE_DICT[model_name][0], alpha= 0.1)
-            axn.plot(smoothed_perf, linewidth = 0.8, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=1, markersize=4, markevery=10)
+                axn.set_ylim(-0.05, 1.05)
+                axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+                axn.set_xlabel('Training Exmaples', size=8, fontweight='bold')
 
-            axn.set_ylim(-0.05, 1.05)
-            axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
-            axn.set_xlabel('Training Exmaples', size=8, fontweight='bold')
+                axn.xaxis.set_tick_params(labelsize=10)
+                axn.yaxis.set_tick_params(labelsize=10)
+                axn.set_yticks(np.linspace(0, 1, 11))
 
-            axn.xaxis.set_tick_params(labelsize=10)
-            axn.yaxis.set_tick_params(labelsize=10)
-            axn.set_yticks(np.linspace(0, 1, 11))
+            if plot_type == 'task_holdout':
+                avg_performance = np.mean(training_data, axis = 0)
+                std_performance = np.std(training_data, axis = 0)
+                for k, ax in enumerate(axn.flat):
+                    ax.set_ylim(-0.05, 1.15)
+                    ax.set_title(task_list[k], size=8)
+                    smoothed_perf = gaussian_filter1d(avg_performance[k, :], sigma=smoothing)
+                    ax.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), avg_performance[k, :]+std_performance[k, :]]), axis=0), 
+                                            avg_performance[k, :]-std_performance[k, :], color = MODEL_STYLE_DICT[model_name][0], alpha= 0.1)
 
-        if plot_type == 'task_holdout':
-            avg_performance = np.mean(training_data, axis = 0)
-            std_performance = np.std(training_data, axis = 0)
-            for k, ax in enumerate(axn.flat):
-                ax.set_ylim(-0.05, 1.15)
-                ax.set_title(task_list[k])
-                smoothed_perf = gaussian_filter1d(avg_performance[k, :], sigma=smoothing)
-                ax.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), avg_performance[k, :]+std_performance[k, :]]), axis=0), 
-                                        avg_performance[k, :]-std_performance[k, :], color = MODEL_STYLE_DICT[model_name][0], alpha= 0.1)
+                    ax.plot(smoothed_perf, linewidth=0.8, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=1, markersize=4, markevery=10)
 
-                ax.plot(smoothed_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=1, markersize=8, markevery=20)
-
-        model_data_dict[model_name] = training_data
+            model_data_dict[model_name] = training_data
 
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.7, 0.48), title='Models', title_fontsize = 'small', fontsize='x-small')
     fig.suptitle('Avg. Performance on Heldout Tasks', size=14)
@@ -249,8 +251,79 @@ def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seed
     plt.show()
     return model_data_dict
 
-# model_data_dict = plot_holdout_curves('_ReLU128_5.7/swap_holdouts', ['sbertNet_tuned'], 'correct', 'task_holdout', [0], instruction_mode='swap', smoothing = 0.01)
-# np.mean(model_data_dict['bertNet_tuned'], axis=(0,1))
+
+def plot_holdout_curves_split_axes(foldername, model_list, train_data_type, seeds, smoothing=0.1):
+    #rc('font', weight='bold')
+    instruction_mode = 'swap'
+    inset1_lims = (0, 10)
+    inset2_lims = (80, 100)
+    gs_kw = dict(width_ratios=[inset1_lims[1]-inset1_lims[0],inset2_lims[1]-inset2_lims[0]], height_ratios=[1])
+    fig,(ax,ax2) = plt.subplots(1,2,sharey=True, facecolor='w',  gridspec_kw=gs_kw, figsize =(6, 4))
+
+    model_data_dict = {}
+    for k, mode in enumerate(['', 'swap']):
+        for model_name in model_list: 
+            training_data = np.empty((len(seeds), len(Task.TASK_LIST), 100))
+
+            for i, seed_num in enumerate(seeds):
+                seed_name = 'seed' + str(seed_num)
+
+                for j, task in enumerate(task_list):
+                    holdout_file = task.replace(' ', '_')
+
+                    if instruction_mode =='swap': 
+                        task_file = task_swaps_map[task]
+                        holdout_file += '_'
+                    else: 
+                        task_file = holdout_file
+                        holdout_file = ''
+
+                    try:
+                        training_data[i, j, :] = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+mode+holdout_file+seed_name+'_holdout_'+train_data_type, 'rb'))
+                    except FileNotFoundError: 
+                        print('No training data for '+ model_name + ' '+seed_name+' '+task)
+                        print(foldername+'/'+task_file+'/'+model_name+'/'+holdout_file+seed_name+'_holdout_'+train_data_type)
+                        continue 
+
+            avg_performance = np.mean(training_data, axis = (0, 1))
+            std_performance = np.std(np.mean(training_data, axis = 1), 0)
+            smoothed_perf = gaussian_filter1d(avg_performance, sigma=smoothing)
+            if mode == '':
+                ax.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), avg_performance+std_performance]), axis=0), 
+                                            avg_performance-std_performance, color = MODEL_STYLE_DICT[model_name][0], alpha= 0.1)
+                ax.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), avg_performance+std_performance]), axis=0), 
+                                            avg_performance-std_performance, color = MODEL_STYLE_DICT[model_name][0], alpha= 0.1)
+            ax.plot(smoothed_perf, linewidth = 0.8, linestyle = ['-', '--'][k], color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=1, markersize=4, markevery=3)
+            ax2.plot(smoothed_perf, linewidth = 0.8, linestyle = ['-', '--'][k], color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=1, markersize=4, markevery=3)
+            model_data_dict[model_name] = training_data
+
+        
+    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.7, 0.48), title='Models', title_fontsize = 'small', fontsize='x-small')
+
+    ax.set_xlim(inset1_lims)
+    ax2.set_xlim(inset2_lims)
+
+    ax2.yaxis.set_visible(False)
+
+    # hide the spines between ax and ax2
+    ax.spines['right'].set_visible(False)
+    ax2.spines['left'].set_visible(False)
+
+    ax.set_ylim(-0.05, 1.05)
+
+    ax.xaxis.set_tick_params(labelsize=10)
+    ax.yaxis.set_tick_params(labelsize=10)            
+    ax.set_yticks(np.linspace(0, 1, 11))
+
+
+    fig.suptitle('Avg. Performance on Heldout Tasks', size=14)
+    plt.show()
+
+    return model_data_dict
+
+
+#model_data_dict = plot_holdout_curves_split_axes('_ReLU128_5.7/swap_holdouts/', all_models, 'correct', range(5), smoothing = 0.01)
+
 
 def plot_k_shot_learning(model_data_dict, save_file=None): 
     barWidth = 0.1
@@ -259,7 +332,7 @@ def plot_k_shot_learning(model_data_dict, save_file=None):
 
     for i, item in enumerate(model_data_dict.items()):  
         model_name, avg_perf = item
-        values = list(avg_perf[ks])
+        values = list(np.mean(avg_perf, axis=(0,1))[ks])
         len_values = len(ks)
         if i == 0:
             r = np.arange(len_values)
@@ -288,6 +361,9 @@ def plot_k_shot_learning(model_data_dict, save_file=None):
         plt.savefig('figs/'+save_file)
     plt.show()
 
+
+
+
 def plot_trained_performance(all_perf_dict, save_file=None):
     barWidth = 0.15
     for i, item in enumerate(all_perf_dict.items()):  
@@ -296,15 +372,7 @@ def plot_trained_performance(all_perf_dict, save_file=None):
         len_values = len(task_list)
         if i == 0:
             r = np.arange(len_values)
-        else:
-            r = [x + barWidth for x in r]
-        if '_layer_11' in model_name: 
-            mark_size = 4
-        else: 
-            mark_size = 3
-        plt.plot(r, [1.05]*16, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
-        plt.bar(r, values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
-
+        else: gridspec_kw=gs_kw, 
     plt.ylim(0, 1.15)
     plt.title('Trained Performance')
     plt.xlabel('Task Type', fontweight='bold')
@@ -381,20 +449,10 @@ def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_a
     reps_to_plot = reps_reduced[task_indices, ...]
     flattened_reduced = reps_to_plot.reshape(-1, reps_to_plot.shape[-1])
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.scatter(flattened_reduced[:, 0], flattened_reduced[:, 1], c = colors_to_plot, s=35)
-    ax.scatter(np.mean(reps_to_plot, axis=1)[:, 0], np.mean(reps_to_plot, axis=1)[:, 1], c = [task_colors[task] for task in tasks_to_plot], s=35, marker='X', edgecolors='white')
-    
-    centroid_reps = np.mean(reps_reduced, axis=1)
-    comp_task_rule = comp_input_rule(1, tasks_to_plot[0]).squeeze()
-    parallel_point = np.matmul(comp_task_rule, centroid_reps)
-    task_rule = get_input_rule(1, tasks_to_plot[0], instruct_mode=None).numpy().squeeze()
-    identical_point = np.matmul(task_rule, centroid_reps)
-    plt.scatter(parallel_point[0], parallel_point[1], color='black', s=50)
-    plt.scatter(identical_point[0], identical_point[1], color='black', s=50, marker='^')
+    ax.scatter(flattened_reduced[:, 0], flattened_reduced[:, 1], c = colors_to_plot, s=25)
+    ax.scatter(np.mean(reps_to_plot, axis=1)[:, 0], np.mean(reps_to_plot, axis=1)[:, 1], c = [task_colors[task] for task in tasks_to_plot], s=10, marker='D', edgecolors='white')
 
 
-    if len(swapped_tasks)>0: 
-        ax.scatter(reps_reduced[-1, :, 0], reps_reduced[-1, :, 1], c = [task_colors[swapped_tasks[0]]]*reps_reduced.shape[1], marker='x')
     for i, indices in enumerate(annotate_tuples): 
         task_index, instruct_index = indices 
         plt.annotate(str(1+instruct_index)+'. '+two_line_instruct(train_instruct_dict[tasks_to_plot[task_index]][instruct_index]), xy=(flattened_reduced[int(instruct_index+(task_index*15)), 0], flattened_reduced[int(instruct_index+(task_index*15)), 1]), 
@@ -403,12 +461,20 @@ def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_a
     plt.xlabel("PC 1", fontsize = 12)
     plt.ylabel("PC 2", fontsize = 12)
     Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in tasks_to_plot]
+
+    if len(swapped_tasks)>0: 
+        ax.scatter(reps_reduced[-1, :, 0], reps_reduced[-1, :, 1], color='white', marker='o', edgecolors=[task_colors[swapped_tasks[0]]]*reps_reduced.shape[1], s=25)
+        ax.scatter(np.mean(reps_reduced[-1, :, 0]), np.mean(reps_reduced[-1, :, 1]), c = task_colors[swapped_tasks[0]], s=10, marker='D', edgecolors='white')
+        Patches.append((Line2D([0], [0], linestyle='None', marker='o', color=task_colors[swapped_tasks[0]], label='Instruction Swap', 
+                markerfacecolor='white', markersize=8)))
+
     plt.legend(handles=Patches, fontsize='medium')
 
     if save_file is not None: 
         plt.savefig('figs/'+save_file)
 
     plt.show()
+
 
 def plot_parallelogram_corr(scores, performance): 
     tasks_and_seeds = list(itertools.chain.from_iterable([[color]*5 for color in task_colors.values()]))
@@ -497,12 +563,15 @@ def plot_hid_traj(task_group_hid_traj, task_group, task_indices, trial_indices, 
 
 
 
-def plot_dPCA(model, tasks):
+def plot_dPCA(model, tasks, swapped_tasks=[]):
     trials, var_of_insterest = make_test_trials('Anti DM', 'diff_strength', 0, num_trials=6)
-    model.instruct_mode = 'swap'
 
     Z_dict = {}
     for task in tasks:
+        if task in swapped_tasks:
+            model.instruct_mode = 'swap'
+
+        print(task, model.instruct_mode)
         hid_resp, mean_hid_resp = get_hid_var_resp(model, task, trials)
 
         reshape_mean_hid_resp = mean_hid_resp.T.swapaxes(-1, 1)
@@ -513,7 +582,7 @@ def plot_dPCA(model, tasks):
 
         Z = dpca.fit_transform(reshape_mean_hid_resp, reshape_hid_resp)
         Z_dict[task] = Z
-
+        model.instruct_mode = ''
 
     time = np.arange(120)
     plt.figure(figsize=(16,7))
@@ -603,7 +672,7 @@ def plot_tuning_curve(model, tasks, task_variable, unit, mod, times, swapped_tas
         neural_resp = hid_mean[:, time, unit]
         plt.plot(var_of_interest, neural_resp, color=task_colors[swapped_task], linestyle='--')
         y_max = max(y_max, neural_resp.max())
-        model.instruct_mode = None
+        model.instruct_mode = ''
 
     plt.title('Tuning curve for Unit' + str(unit) + ' at time ' +str(time))
     plt.ylim(-0.05, y_max+0.15)
@@ -664,37 +733,42 @@ if __name__ == "__main__":
     from nlp_models import SBERT
     from rnn_models import InstructNet, SimpleNet
     from utils import train_instruct_dict
-    from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_sim_scores, get_hid_var_group_resp, get_total_para_score
+    from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_sim_scores, get_hid_var_group_resp, get_all_parallelogram_scores
     import numpy as np
-    import torch.optim as optim
-    from utils import sort_vocab, train_instruct_dict
+    from utils import train_instruct_dict, task_swaps_map
     from task import DM
 
 
     #fig 2
-    plot_single_task_training('_ReLU128_5.7/single_holdouts/', 'Multitask', 'DM', ['sbertNet', 'bertNet', 'gptNet', 'simpleNet'], range(5))
+    #plot_single_task_training('_ReLU128_5.7/single_holdouts/', 'Multitask', 'DM', ['sbertNet', 'bertNet', 'gptNet', 'simpleNet'], range(5))
     #plot_single_seed_training('_ReLU128_5.7/single_holdouts/', 'DMS', ['sbertNet', 'sbertNet_layer_11', 'simpleNet'], 'correct', 4)
-    model_data_dict = plot_holdout_curves('_ReLU128_5.7/single_holdouts/', ['sbertNet_tuned', 'simpleNet'], 'correct', 'task_holdout', range(5), smoothing = 0.01)
-    model_data_dict['sbertNet_tuned'].shape
+    model_data_dict = plot_holdout_curves('_ReLU128_5.7/swap_holdouts/', all_models, 'correct', 'avg_holdout', range(5), smoothing = 0.01)
+    model_data_dict = plot_holdout_curves('_ReLU128_5.7/swap_holdouts/', ['simpleNet'], 'correct', 'avg_holdout', range(5), instruction_mode = 'swap', smoothing = 0.01)
 
+
+
+
+    np.mean(model_data_dict['sbertNet_tuned'], axis=(0,1))
+    zero_shot = model_data_dict['sbertNet_tuned'][0, :, 0]
+    model_data_dict['sbertNet_tuned'].shape
+    
 
     ###fig3###
-
-    plot_single_holdout_task('_ReLU128_5.7/single_holdouts/', 'Anti Go', ['sbertNet_tuned', 'gptNet_tuned', 'bertNet_tuned', 'simpleNet'], [0])
 
 
 
     #SimpleNet
     model1 = SimpleNet(128, 1, use_ortho_rules=True)
-
-
+    
+    swapped = 'Anti DM'
     #multitask
     model1.set_seed(1)
-    model1.load_model('_ReLU128_5.7/single_holdouts/Multitask')
-    
-    scores1 = get_total_para_score(model1, 'Multitask', 'task')
-    scores1
-    
+    task_file = task_swaps_map[swapped]
+    model1.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
+    #task scatter
+    reduced_reps1 = reduce_rep(get_task_reps(model1, epoch='prep', swapped_tasks=[swapped]))
+    plot_rep_scatter(reduced_reps1[0], Task.TASK_GROUP_DICT['Go'], swapped_tasks=[swapped])
+
 
     #task scatter
     reduced_reps1 = reduce_rep(get_task_reps(model1))[0]
@@ -707,41 +781,33 @@ if __name__ == "__main__":
     plot_RDM(np.mean(all_sim_scores1, axis=0), 'task')
 
 
-    #anti Go
-    model1.set_seed(1)
-    model1.load_model('_ReLU128_5.7/single_holdouts/Anti_Go')
-    
-    #task scatter
-    reduced_reps1 = reduce_rep(get_task_reps(model1))
-    plot_rep_scatter(reduced_reps1[0], ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'])
-    #task RDM
-    all_sim_scores1 = get_sim_scores(model1, 'Anti_Go', 'task')
-    plot_RDM(np.mean(all_sim_scores1, axis=0), 'task')
-
-    
-
-    #sbertNet_tuned
     model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
     model.model_name += '_tuned'
-    
+    swapped = 'Anti Go'
     #multitask
     model.set_seed(1)
-    model.load_model('_ReLU128_5.7/single_holdouts/Anti_Go')
-
-
+    task_file = task_swaps_map[swapped]
+    task_file
+    model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
     #task scatter
-    reduced_reps = reduce_rep(get_task_reps(model, epoch='prep'))
-    plot_rep_scatter(reduced_reps[0], Task.TASK_GROUP_DICT['COMP'])
+    reps, _ = get_task_reps(model, epoch='stim_start', stim_start_buffer=1, swapped_tasks=[swapped])
+    reduced_reps = reduce_rep(reps)
+    plot_rep_scatter(reduced_reps[0], Task.TASK_GROUP_DICT['Go'], swapped_tasks=[swapped])
 
 
-    #task RDM
-    all_sim_scores = get_sim_scores(model, 'Anti_Go', 'task')
-    plot_RDM(np.mean(all_sim_scores, axis=0), 'task')
+    'Anti DM' in ['Anti DM']
+
+    plot_dPCA(model1, ['DM', 'Anti DM'], swapped_tasks=[])
+
+
     
+
     #lang scatter
+    lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer', swapped_tasks=[swapped])
     lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
     lang_rep_reduced, _ = reduce_rep(lang_reps)
-    plot_rep_scatter(lang_rep_reduced, Task.TASK_GROUP_DICT['DM'])
+    lang_rep_reduced.shape
+    plot_rep_scatter(lang_rep_reduced, Task.TASK_GROUP_DICT['Go'], swapped_tasks=[swapped])
 
     #task RDM
     all_sim_scores = get_sim_scores(model, 'Multitask', 'task')
@@ -752,118 +818,22 @@ if __name__ == "__main__":
     plot_RDM(np.mean(all_sim_scores, axis=0), 'lang')
 
 
-    #Anti Go 
-    model.set_seed(0)
-    model.load_model('_ReLU128_5.7/single_holdouts/Anti_Go')
 
-    #task scatter
-    reduced_reps = reduce_rep(get_task_reps(model))
-    plot_rep_scatter(reduced_reps[0], ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'], save_file='bioArXiv_Figs/sbert_tuned_Anti_Go_PCA.svg')
-
-    #task RDM
-    all_sim_scores = get_sim_scores(model, 'Anti_Go', 'task')
-    plot_RDM(np.mean(all_sim_scores, axis=0), 'task', save_file='bioArXiv_Figs/sbert_tuned_Anti_Go_RDM.svg')
-
-    #lang scatter
-    lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
-    lang_rep_reduced, _ = reduce_rep(lang_reps)
-    plot_rep_scatter(lang_rep_reduced, ['Go', 'RT Go', 'Anti Go', 'Anti RT Go'], save_file='bioArXiv_Figs/sbert_tuned_lang_Anti_Go_PCA.svg')
-
-    #lang RDM
-    all_sim_scores = get_sim_scores(model, 'Multitask', 'lang')
-    plot_RDM(np.mean(all_sim_scores, axis=0), 'lang', save_file='bioArXiv_Figs/sbert_tuned_lang_Anti_Go_RDM.svg')
-
-
-
-    trials = construct_batch('DM', 100)
-    plot_model_response(model, DM('DM', 10))
-
-    all_sim_scores = get_sim_scores(model, 'Anti_Go', 'task')
-    #pickle.dump(np.mean(all_sim_scores, axis=0), open('_ReLU128_5.7/single_holdouts/sbert11_Anti_Go_RDM', 'wb'))
-
-
-    np.mean(all_sim_scores, axis=0).reshape()
-
-
-    plot_RDM(np.mean(all_sim_scores, axis=0), 'task')
-
-
-    #lang_reps
-    model.set_seed(2)
-    model.load_model('_ReLU128_5.7/single_holdouts/Anti_Go')
-
-    lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
-    lang_rep_reduced, _ = reduce_rep(lang_reps)
-    lang_reduced = np.expand_dims(np.mean(lang_rep_reduced, axis=1), axis=1)
-    lang_reduced.shape
-    plot_rep_scatter(lang_reduced, Task.TASK_LIST, save_file='bioArXiv_Figs/all_tasks')
-    plot_RDM(lang_reps, rep_type = 'lang')
-
-
-    #Representation Dist.
-    model1_multi_sims = pickle.load(open('_ReLU128_5.7/single_holdouts/simpleNet_Multitask_RDM', 'rb'))
-    plot_RDM(None, 'task', similarity_scores= model1_multi_sims)
-
-    model1_antigo_sims = pickle.load(open('_ReLU128_5.7/single_holdouts/simpleNet_Anti_Go_RDM', 'rb'))
-    plot_RDM(None, 'task', similarity_scores= model1_antigo_sims)
-
-    sbert11_multi_sims = pickle.load(open('_ReLU128_5.7/single_holdouts/sbert11_Multitask_RDM', 'rb'))
-    plot_RDM(None, 'task', similarity_scores= sbert11_multi_sims)
-
-    sbert11_antigo_sims = pickle.load(open('_ReLU128_5.7/single_holdouts/sbert11_Anti_Go_RDM', 'rb'))
-    plot_RDM(None, 'task', similarity_scores= sbert11_antigo_sims)
-
-    
-    abs(np.linalg.norm(model1_multi_sims) - np.linalg.norm(model1_antigo_sims))
-    abs(np.linalg.norm(sbert11_multi_sims) - np.linalg.norm(sbert11_antigo_sims))
-
-    abs(np.linalg.norm(model1_multi_sims, ord=np.inf) - np.linalg.norm(model1_antigo_sims, ord = np.inf))
-    abs(np.linalg.norm(sbert11_multi_sims, np.inf) - np.linalg.norm(sbert11_antigo_sims, np.inf))
-
-    abs(np.linalg.norm(model1_multi_sims, 'nuc') - np.linalg.norm(model1_antigo_sims, 'nuc'))
-    abs(np.linalg.norm(sbert11_multi_sims, 'nuc') - np.linalg.norm(sbert11_antigo_sims, 'nuc'))
-
-    ###Figure 4
-
-
-    #sbertNet_tuned
     model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
     model.model_name += '_tuned'
-
-    model.set_seed(0)
-    model.load_model('_ReLU128_5.7/single_holdouts/DMS')
-
-    lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
-    lang_rep_reduced, _ = reduce_rep(lang_reps)
-    plot_rep_scatter(lang_rep_reduced, Task.TASK_GROUP_DICT['Delay'])
-
-    hid_reps = get_hid_var_group_resp(model, 'Delay', 'diff_direction', num_trials=10)
-    plot_hid_traj(hid_reps, 'Delay', [0, 1, 2, 3], [0, 9], [0])
-
-    #simpleNet
-    model1 = SimpleNet(128, 1, use_ortho_rules=True)
-
+    swapped = 'Anti Go'
     #multitask
-    model1.set_seed(1)
-    model1.load_model('_ReLU128_5.7/swap_holdouts/Go_Anti_DM')
+    model.set_seed(1)
+    task_file = task_swaps_map[swapped]
+    task_file
+    model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
+    model.instruct_mode=''
 
-    hid_reps1 = get_hid_var_group_resp(model1, 'Go', 'direction')
-    plot_hid_traj(hid_reps1, 'Go', [0, 1, 2, 3], [0], [0])
-
-
-
-    ###Figure 5 
-    model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-    model.model_name += '_tuned'
-
-    model.set_seed(0)
-    model.load_model('_ReLU128_5.7/single_holdouts/Anti_DM')
-    plot_neural_resp(model, 'Go', 'direction', 90, 1)
-    plot_neural_resp(model, 'Anti Go', 'direction', 90, 1)
+    unit = 100
+    plot_neural_resp(model, 'Go', 'direction', unit, 1)
+    plot_neural_resp(model, 'Anti Go', 'direction', unit, 1)
     trials, var_of_insterest = make_test_trials('Go', 'direction', 0, num_trials=6)
-    model.instruct_mode = 'swap'
-    plot_model_response(model1, trials)
-    plot_tuning_curve(model, Task.TASK_GROUP_DICT['Go'], 'direction', 90, 1, [115, 115, 115, 115], swapped_task='Anti Go')
+    plot_tuning_curve(model, Task.TASK_GROUP_DICT['Go'], 'direction', unit, 1, [115, 115, 115, 115], swapped_task='Anti Go')
 
 
     model.set_seed(0)

@@ -54,8 +54,11 @@ def init_optimizer(model, lr, milestones, weight_decay=0.0, langLR=None):
     return optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5)
     
     
-def train_model(model, streamer, epochs, optimizer, scheduler, print_eval=False): 
+def train_model(model, streamer, epochs, optimizer, scheduler, print_eval=False, testing=False): 
     model.to(device)
+    model.train()
+    if testing and isinstance(model, InstructNet): 
+        model.langModel.eval()
     batch_len = streamer.batch_len 
     for i in range(epochs):
         print('epoch', i)
@@ -100,11 +103,11 @@ def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_5.7', hol
     for holdout in holdouts_test: 
         for _ in range(repeats): 
             model.load_model(foldername+'/'+holdout_type+'/'+holdout_file)
-            opt, _ = init_optimizer(model, 0.001, [])
+            opt, _ = init_optimizer(model, 0.0007, [])
 
             data = TaskDataSet(data_folder = foldername+'/training_data', batch_len=256, num_batches=100, task_ratio_dict={holdout:1})
             data.data_to_device(device)
-            train_model(model, data, 1, opt, None)
+            train_model(model, data, 1, opt, None, testing=True)
         
         correct_perf = np.mean(np.array(model._correct_data_dict[holdout]).reshape(repeats, -1), axis=0)
         loss_perf = np.mean(np.array(model._loss_data_dict[holdout]).reshape(repeats, -1), axis=0)
@@ -270,7 +273,6 @@ def config_model_training(key):
 
     return model, opt, sch, epochs
 
-
 if __name__ == "__main__":
     model_file = '_ReLU128_5.7'
 
@@ -293,35 +295,44 @@ if __name__ == "__main__":
 
     if train_mode == 'test': 
         holdout_type = 'swap_holdouts'
-        instruct_mode = ''
+        instruct_mode = 'swap'
         seeds = [0, 1, 2, 3, 4]
         to_test = list(itertools.product(ALL_MODEL_PARAMS.keys(), seeds, training_lists_dict['swap_holdouts']))
+
 
         for config in to_test: 
             print(config)
             model_params_key, seed_num, holdouts = config
-            # try:
-            #     if len(holdouts) > 1: holdout_file = '_'.join(holdouts)
-            #     else: holdout_file = holdouts[0]
-            #     holdout_file = holdout_file.replace(' ', '_')
-            #     pickle.load(open(model_file+'/'+holdout_type +'/'+holdout_file + '/' + model_params_key+'/'+instruct_mode+holdout.replace(' ', '_')+'_seed'+str(seed_num)+'_holdout_correct', 'rb'))
-            #     print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout)
-            #     continue
-            # except FileNotFoundError: 
-            model, _, _, _ = config_model_training(model_params_key)
-            model.set_seed(seed_num)
-            model.instruct_mode = instruct_mode
-            model.model_name 
-            model.to(device)
-            test_model(model, holdouts, foldername= model_file, holdout_type = holdout_type, save=True)
-            
-
+            for holdout in holdouts:
+                try:
+                    if len(holdouts) > 1: holdout_file = '_'.join(holdouts)
+                    else: holdout_file = holdouts[0]
+                    holdout_file = holdout_file.replace(' ', '_')
+                    pickle.load(open(model_file+'/'+holdout_type +'/'+holdout_file + '/' + model_params_key+'/'+instruct_mode+holdout.replace(' ', '_')+'_seed'+str(seed_num)+'_holdout_correct', 'rb'))
+                    print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout)
+                    continue
+                except FileNotFoundError: 
+                    model, _, _, _ = config_model_training(model_params_key)
+                    model.set_seed(seed_num)
+                    model.instruct_mode = instruct_mode
+                    model.model_name 
+                    model.to(device)
+                    test_model(model, holdouts, foldername= model_file, holdout_type = holdout_type, save=True)
+                    
     if train_mode == 'fine_tune': 
         holdout_type = 'swap_holdouts'
 
         seeds = [0, 1, 2, 3, 4]
 
-        to_tune = list(itertools.product(['gptNet'], seeds, training_lists_dict['swap_holdouts']))
+        #to_tune = list(itertools.product(['gptNet'], seeds, training_lists_dict['swap_holdouts']))
+
+        to_tune = [('sbertNet', 0, ['DM', 'MultiCOMP2']), 
+                    ('sbertNet', 1, ['RT Go', 'DNMC']), 
+                    ('sbertNet', 3, ['Anti Go', 'MultiCOMP1']), 
+                    ('sbertNet', 4, ['Anti Go', 'MultiCOMP1']), 
+                    ('sbertNet', 4, ['COMP2', 'DMS'])
+        ]
+
         for config in to_tune: 
             model_params_key, seed_num, holdouts = config
 
@@ -330,26 +341,26 @@ if __name__ == "__main__":
             holdout_file = holdout_file.replace(' ', '_')
             print(holdout_file)
 
-            # try:
-            #     pickle.load(open(model_file+'/'+holdout_type +'/'+holdout_file + '/' + model_params_key+'_tuned'+'/seed'+str(seed_num)+'_training_correct', 'rb'))
-            #     print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
-            #     continue
-            # except FileNotFoundError: 
-            print(config)
-            model, _, _, _ = config_model_training(model_params_key)
-            opt, sch = init_optimizer(model, 1e-4, [], langLR= 1e-5)
-            model.set_seed(seed_num)
-            model.load_model(model_file+'/'+holdout_type+'/'+holdout_file)
-            model.langModel.train_layers=['11', '10', '9']
-            model.langModel.init_train_layers()
-            model.model_name = model.model_name+'_tuned'
-            if holdouts == ['Multitask']: data = TaskDataSet(data_folder= model_file+'/training_data')
-            else: data = TaskDataSet(data_folder= model_file+'/training_data', holdouts=holdouts)
-            data.data_to_device(device)
-            model.to(device)
-            train_model(model, data, 3, opt, sch)
+            try:
+                pickle.load(open(model_file+'/'+holdout_type +'/'+holdout_file + '/' + model_params_key+'_tuned'+'/seed'+str(seed_num)+'_training_correct', 'rb'))
+                print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
+                continue
+            except FileNotFoundError: 
+                print(config)
+                model, _, _, _ = config_model_training(model_params_key)
+                opt, sch = init_optimizer(model, 5*1e-4, [], langLR= 5*1e-5)
+                model.set_seed(seed_num)
+                model.load_model(model_file+'/'+holdout_type+'/'+holdout_file)
+                model.langModel.train_layers=['11', '10', '9']
+                model.langModel.init_train_layers()
+                model.model_name = model.model_name+'_tuned'
+                if holdouts == ['Multitask']: data = TaskDataSet(data_folder= model_file+'/training_data')
+                else: data = TaskDataSet(data_folder= model_file+'/training_data', holdouts=holdouts)
+                data.data_to_device(device)
+                model.to(device)
+                train_model(model, data, 5, opt, sch)
 
-            model.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
+                model.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
             model.save_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
 
     if train_mode == 'train': 

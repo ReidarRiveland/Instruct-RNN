@@ -8,14 +8,12 @@ import itertools
 
 from task import Task
 task_list = Task.TASK_LIST
+swapped_task_list = Task.SWAPPED_TASK_LIST
 tuning_dirs = Task.TUNING_DIRS
 
 train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict2', 'rb'))
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict2', 'rb'))
 
-test_instruct_dict
-TASK_LIST = ['Go', 'Anti Go', 'RT Go', 'Anti RT Go', 'DM', 'Anti DM', 'MultiDM', 'Anti MultiDM', 'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'DMS', 'DNMS', 'DMC', 'DNMC']
-swapped_task_list = ['Anti DM', 'MultiCOMP1', 'DNMC', 'DMC', 'MultiCOMP2', 'Go', 'DNMS', 'COMP1', 'Anti MultiDM', 'DMS', 'Anti Go', 'DM', 'COMP2', 'MultiDM', 'Anti RT Go', 'RT Go']
 
 task_swaps_map = {'Go': 'Go_Anti_DM', 
                 'Anti Go': 'Anti_Go_MultiCOMP1', 
@@ -215,17 +213,3 @@ def get_input_rule(batch_size, task_type, instruct_mode, lang_dim = None):
     
     return torch.Tensor(task_rule)
 
-def calc_parallel_score(reduced_reps, swapped_reduced_reps=None): 
-    scores = np.zeros((len(Task.TASK_GROUP_DICT.values())))
-    centroid_reps = np.mean(reduced_reps, axis=1)
-    for i, task_group in enumerate(Task.TASK_GROUP_DICT.values()):
-        task = task_group[0]
-        task_rule = get_input_rule(1, task, instruct_mode=None).numpy().squeeze()
-        comp_task_rule = comp_input_rule(1, task).squeeze()
-        if swapped_reduced_reps is not None: 
-            swapped_centroids = np.mean(swapped_reduced_reps, axis=1)
-            diff = np.linalg.norm(np.matmul(task_rule, swapped_centroids)-np.matmul(comp_task_rule, centroid_reps))/np.linalg.norm(np.matmul(comp_task_rule, centroid_reps))
-        else:
-            diff = np.linalg.norm(np.matmul(task_rule, centroid_reps)-np.matmul(comp_task_rule, centroid_reps))
-        scores[i] = diff
-    return scores
