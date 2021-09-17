@@ -56,7 +56,6 @@ def get_instruct_reps(langModel, instruct_dict, depth='full', swapped_tasks = []
                 instructions = instruct_dict[task]    
 
             print(task)
-            print(instructions)
 
             if depth == 'full': 
                 out_rep = langModel(list(instructions))
@@ -100,7 +99,6 @@ def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None):
         total_neuron_response = np.empty((num_repeats, num_trials, 120, 128))
         for i in range(num_repeats): 
             if task_info is None or 'simpleNet' in model.model_name: task_info = model.get_task_info(num_trials, task)
-            print(task_info)
             _, hid = model(task_info, torch.Tensor(trials.inputs).to(model.__device__))
             hid = hid.cpu().numpy()
             total_neuron_response[i, :, :, :] = hid
@@ -116,7 +114,6 @@ def get_hid_var_group_resp(model, task_group, var_of_insterest, swapped_tasks = 
         if i>=4: task_instructs = Task.SWAPPED_TASK_LIST[task_list.index(task)]
         else: task_instructs = task
         for j, instruct in enumerate(train_instruct_dict[task_instructs]): 
-            print(instruct)
             _, hid_mean = get_hid_var_resp(model, task, trials, num_repeats=3, task_info=[instruct]*num_trials)
             task_group_hid_traj[i, j,  ...] = hid_mean
     return task_group_hid_traj
@@ -150,7 +147,7 @@ def get_sim_scores(model, holdout_file, rep_type, model_file='_ReLU128_5.7/singl
         model.set_seed(i) 
         model.load_model(model_file+'/'+holdout_file)
         if rep_type == 'task': 
-            reps = get_task_reps(model)
+            reps, _ = get_task_reps(model)
         if rep_type == 'lang': 
             reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
         sim_scores = 1-np.corrcoef(reps.reshape(-1, rep_dim))

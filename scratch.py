@@ -43,13 +43,15 @@ from task import Task
 
 
 #sbertNet_layer_11
-# model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-# model.model_name += '_tuned'
+model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
 
-# model.set_seed(0)
-# swapped = 'Anti Go'
-# task_file = task_swaps_map[swapped]
-# model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
+
+model.model_name += '_tuned'
+
+model.set_seed(0)
+swapped = 'Anti Go'
+task_file = task_swaps_map[swapped]
+model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
 #lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
 # reps, perf_array = get_task_reps(model, num_trials=200, epoch='stim_start', swapped_tasks=[swapped])
 
@@ -123,9 +125,11 @@ def get_all_CCGP(model, task_rep_type, swap=False):
                 swap_str = ''
 
             if task_rep_type == 'task': 
-                reps, perf_array = get_task_reps(model, num_trials=256, epoch=epoch, stim_start_buffer=0, swapped_tasks=swapped_list)
+                reps, perf_array = get_task_reps(model, num_trials=128, epoch=epoch, stim_start_buffer=0, swapped_tasks=swapped_list)
             if task_rep_type == 'lang': 
-                reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer', swapped_tasks=swapped_list)
+                if model.langModel.embedder_name == 'bow': depth = 'full'
+                else: depth = 'transformer'
+                reps = get_instruct_reps(model.langModel, train_instruct_dict, depth=depth, swapped_tasks=swapped_list)
                 perf_array = np.zeros((16, 15))
             
             if swap:
@@ -137,29 +141,31 @@ def get_all_CCGP(model, task_rep_type, swap=False):
             all_dice[i, j, ...] = dice_scores
             holdout_CCGP[i, j] = decoding_score[j, :]
             holdout_dice[i, j] = dice_scores[j, :]
-    np.savez('_ReLU128_5.7/' + epoch + '_' + model.model_name + swap_str +'_CCGP_scores', all_CCGP=all_CCGP, all_dice = all_dice, holdout_CCGP= holdout_CCGP, holdout_dice= holdout_dice)
+    np.savez('_ReLU128_5.7/CCGP_measures/' +task_rep_type+'_'+ epoch + '_' + model.model_name + swap_str +'_CCGP_scores', all_CCGP=all_CCGP, all_dice = all_dice, holdout_CCGP= holdout_CCGP, holdout_dice= holdout_dice)
     return all_CCGP, all_dice, holdout_CCGP, holdout_dice
 
 
-from trainer import ALL_MODEL_PARAMS, config_model_training
-import torch
+# from trainer import ALL_MODEL_PARAMS, config_model_training
+# import torch
 
-for swap_mode in [False]: 
-    for model_params in ALL_MODEL_PARAMS.keys(): 
-        model, _, _, _ = config_model_training(model_params)
-        model.to(torch.device(0))
-        print(model.model_name)
-        get_all_CCGP(model, 'task', swap=swap_mode)
-
+# for swap_mode in [False, True]: 
+#     for model_params in ['bowNet']: 
+#         model, _, _, _ = config_model_training(model_params)
+#         model.to(torch.device(0))
+#         print(model.model_name)
+#         get_all_CCGP(model, 'lang', swap=swap_mode)
 
 
 from plotting import MODEL_STYLE_DICT, task_list, Line2D, mpatches, all_models, plt
 
-def plot_CCGP_scores(model_list, rep_type_file_str = '', save_file=None):
+
+def plot_CCGP_scores(model_list, data_dict_list, rep_type_file_str = '', save_file=None):
     keys_list = ['all_CCGP', 'holdout_CCGP']
     barWidth = 0.08
     Patches = []
     for i, model_name in enumerate(model_list):
+        perf_values = list(np.mean(data_dict_list[0][model_name], axis=(0,1)))[0]
+        print(perf_values)
         if '_tuned' in model_name: marker_shape = MODEL_STYLE_DICT[model_name][1]
         else: marker_shape='s'
         Patches.append(Line2D([0], [0], linestyle='None', marker=marker_shape, color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
@@ -190,169 +196,92 @@ def plot_CCGP_scores(model_list, rep_type_file_str = '', save_file=None):
                         spread_values[k, :] = np.mean(np.nan_to_num(CCGP_score[key]), axis=(1,2))
 
                     markers, caps, bars = plt.errorbar(r[k], values[k], yerr = np.std(spread_values[k, :]), elinewidth = 0.5, capsize=1.0, marker=marker_shape, linestyle="", mfc = [None, 'white'][j], alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
+                if k == 1: 
+                    plt.bar(r, perf_values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white', alpha=0.2)
+
+
             [bar.set_alpha(0.2) for bar in bars]
 
-    plt.ylim(0, 1.05)
-    plt.title('CCGP Performance')
+    plt.hlines(0.5, 0, r[-1], linestyles='--', color='black')
+    plt.ylim(0.25, 1.05)
+    plt.title('CCGP Measures')
+    plt.ylabel('Percentage Correct')
+    r = np.arange(len_values)
+    plt.xticks([r + barWidth +0.15 for r in range(len_values)], ['all CCGP', 'holdout CCGP'])
+    #plt.yticks(np.linspace(0.4, 1, 6), size=8)
+
+    plt.tight_layout()
+
+    plt.legend(handles=Patches, fontsize=6, markerscale=0.5)
+    if save_file is not None: 
+        plt.savefig('figs/'+save_file)
+    plt.show()
+
+
+
+np.mean(data_dict_list[0]['sbertNet_tuned'], axis=(0,1))
+
+all_models
+
+plot_CCGP_scores(all_models, data_dict_list, rep_type_file_str='stim_start_')
+
+plot_CCGP_scores(['sbertNet_tuned', 'sbertNet', 'bertNet_tuned', 'bertNet', 'gptNet_tuned', 'gptNet', 'bowNet'], 'lang_')
+
+rep_type_file_str = 'stim_start_'
+model_name = 'simpleNet'
+swap_mode = ''
+CCGP_score = np.load(open('_ReLU128_5.7/CCGP_measures/'+rep_type_file_str+model_name+swap_mode+'_CCGP_scores.npz', 'rb'))
+
+np.mean(CCGP_score['holdout_CCGP'][:, 1, :])
+
+
+def plot_task_CCGP_scores(model_list, score_type,  rep_type_file_str = ''):
+    barWidth = 1/len(model_list)
+    Patches = []
+    for i, model_name in enumerate(model_list):
+        if '_tuned' in model_name: marker_shape = MODEL_STYLE_DICT[model_name][1]
+        else: marker_shape='s'
+        Patches.append(Line2D([0], [0], linestyle='None', marker=marker_shape, color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
+                markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8))
+        len_values = len(task_list)
+        if i == 0:
+            r = np.arange(len_values)
+        else:
+            r = [x + barWidth for x in r]
+
+        if '_tuned' in model_name: 
+            mark_size = 4
+        else: 
+            mark_size = 3
+        for j, swap_mode in enumerate(['', '_swap']):
+            CCGP_score = np.load(open('_ReLU128_5.7/CCGP_measures/'+rep_type_file_str+model_name+swap_mode+'_CCGP_scores.npz', 'rb'))
+
+            values = np.mean(CCGP_score[score_type], axis=(0,1, -1)).flatten()
+            std_values = np.std(np.mean(CCGP_score[score_type], axis=(1, -1)), axis=0).flatten()
+            markers, caps, bars = plt.errorbar(r, values, yerr = std_values, elinewidth = 0.5, capsize=1.0, marker=marker_shape, linestyle="", mfc = [None, 'white'][j], alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
+            [bar.set_alpha(0.2) for bar in bars]
+
+    for r in range(len_values)[::2]:
+        plt.axvspan(r-barWidth/2, r+(barWidth*len(model_list))-barWidth/2, facecolor='0.2', alpha=0.1)
+
+    plt.ylim(-0.05, 1.05)
+    plt.title('Trained Performance')
+    plt.xlabel('Task Type', fontweight='bold')
+    plt.title('Trained Performance')
     plt.xlabel('Task Type', fontweight='bold')
     plt.ylabel('Percentage Correct')
     r = np.arange(len_values)
-    plt.xticks([r + barWidth +0.15 for r in range(len_values)], keys_list)
+    plt.xticks([r + barWidth*len(model_list)/2 for r in range(len_values)], task_list, size=5)
+    #plt.xticks([r + barWidth for r in range(len_values)], list(itertools.chain.from_iterable([tasks*2 for tasks in Task.TASK_GROUP_DICT.values()])), size=5)
     plt.yticks(np.linspace(0, 1, 11), size=8)
 
     plt.tight_layout()
 
-    plt.legend(handles=Patches, fontsize=6, markerscale=0.5)
-    if save_file is not None: 
-        plt.savefig('figs/'+save_file)
     plt.show()
-
-
-plot_CCGP_scores(all_models, 'stim_start')
-
-
-
-
-
-
-# def plot_task_CCGP_scores(model_list, score_type,  rep_type_file_str = ''):
-#     barWidth = 1/len(model_list)
-#     Patches = []
-#     for i, model_name in enumerate(model_list):
-#         if '_tuned' in model_name: marker_shape = MODEL_STYLE_DICT[model_name][1]
-#         else: marker_shape='s'
-#         Patches.append(Line2D([0], [0], linestyle='None', marker=marker_shape, color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
-#                 markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8))
-#         len_values = len(task_list)
-#         if i == 0:
-#             r = np.arange(len_values)
-#         else:
-#             r = [x + barWidth for x in r]
-
-#         if '_tuned' in model_name: 
-#             mark_size = 4
-#         else: 
-#             mark_size = 3
-#         for j, swap_mode in enumerate(['', '_swap']):
-#             CCGP_score = np.load(open('_ReLU128_5.7/CCGP_measures/'+rep_type_file_str+model_name+swap_mode+'_CCGP_scores.npz', 'rb'))
-# if 
-#             else:
-#                 values = np.mean(CCGP_score[score_type], axis=(0,1, -1)).flatten()
-#                 std_values = np.std(np.mean(CCGP_score[score_type], axis=(1, -1)), axis=0).flatten()
-#             markers, caps, bars = plt.errorbar(r, values, yerr = std_values, elinewidth = 0.5, capsize=1.0, marker=m
-
-from plotting import MODEL_STYLE_DICT, task_list, Line2D, mpatches, all_models, plt
-
-def plot_CCGP_scores(model_list, rep_type_file_str = '', save_file=None):
-    keys_list = ['all_CCGP', 'holdout_CCGP']
-    barWidth = 0.08
-    Patches = []
-    for i, model_name in enumerate(model_list):
-        if '_tuned' in model_name: marker_shape = MODEL_STYLE_DICT[model_name][1]
-        else: marker_shape='s'
-        Patches.append(Line2D([0], [0], linestyle='None', marker=marker_shape, color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
-                markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8))
-        len_values = len(keys_list)
-        if i == 0:
-            r = np.arange(len_values)
-        else:
-            r = [x + barWidth for x in r]
-        if '_tuned' in model_name: 
-            mark_size = 4
-        else: 
-            mark_size = 3
-    
-        for j, swap_mode in enumerate(['', '_swap']):
-            values = np.empty((2,))
-            spread_values = np.empty((len_values, 5))
-
-            CCGP_score = np.load(open('_ReLU128_5.7/CCGP_measures/'+rep_type_file_str+model_name+swap_mode+'_CCGP_scores.npz', 'rb'))
-            for k, key in enumerate(keys_list):  
-                if k == 0 and swap_mode == '_swap': 
-                    continue
-                else:
-                    values[k] = np.mean(np.nan_to_num(CCGP_score[key]))
-                    if len(CCGP_score[key].shape)>3:
-                        spread_values[k, :] = np.mean(np.nan_to_num(CCGP_score[key]), axis=(1,2,3))
-                    else: 
-                        spread_values[k, :] = np.mean(np.nan_to_num(CCGP_score[key]), axis=(1,2))
-
-                    markers, caps, bars = plt.errorbar(r[k], values[k], yerr = np.std(spread_values[k, :]), elinewidth = 0.5, capsize=1.0, marker=marker_shape, linestyle="", mfc = [None, 'white'][j], alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
-            [bar.set_alpha(0.2) for bar in bars]
-
-    plt.ylim(0, 1.05)
-    plt.title('CCGP Performance')
-    plt.ylabel('Percentage Correct')
-    r = np.arange(len_values)
-    plt.xticks([r + barWidth +0.15 for r in range(len_values)], keys_list)
-    plt.yticks(np.linspace(0, 1, 11), size=8)
-
-    plt.tight_layout()
-
-    plt.legend(handles=Patches, fontsize=6, markerscale=0.5)
-    if save_file is not None: 
-        plt.savefig('figs/'+save_file)
-    plt.show()
-
-
-plot_CCGP_scores(all_models, '')
-
-plot_CCGP_scores(['sbertNet_tuned', 'sbertNet'], '')
-
-
-
-
-
-
-
-# def plot_task_CCGP_scores(model_list, score_type,  rep_type_file_str = ''):
-#     barWidth = 1/len(model_list)
-#     Patches = []
-#     for i, model_name in enumerate(model_list):
-#         if '_tuned' in model_name: marker_shape = MODEL_STYLE_DICT[model_name][1]
-#         else: marker_shape='s'
-#         Patches.append(Line2D([0], [0], linestyle='None', marker=marker_shape, color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
-#                 markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8))
-#         len_values = len(task_list)
-#         if i == 0:
-#             r = np.arange(len_values)
-#         else:
-#             r = [x + barWidth for x in r]
-
-#         if '_tuned' in model_name: 
-#             mark_size = 4
-#         else: 
-#             mark_size = 3
-#         for j, swap_mode in enumerate(['', '_swap']):
-#             CCGP_score = np.load(open('_ReLU128_5.7/CCGP_measures/'+rep_type_file_str+model_name+swap_mode+'_CCGP_scores.npz', 'rb'))
-# if 
-#             else:
-#                 values = np.mean(CCGP_score[score_type], axis=(0,1, -1)).flatten()
-#                 std_values = np.std(np.mean(CCGP_score[score_type], axis=(1, -1)), axis=0).flatten()
-#             markers, caps, bars = plt.errorbar(r, values, yerr = std_values, elinewidth = 0.5, capsize=1.0, marker=marker_shape, linestyle="", mfc = [None, 'white'][j], alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
-#             [bar.set_alpha(0.2) for bar in bars]
-
-#     for r in range(len_values)[::2]:
-#         plt.axvspan(r-barWidth/2, r+(barWidth*len(model_list))-barWidth/2, facecolor='0.2', alpha=0.1)
-
-#     plt.ylim(-0.05, 1.05)
-#     plt.title('Trained Performance')
-#     plt.xlabel('Task Type', fontweight='bold')
-#     plt.title('Trained Performance')
-#     plt.xlabel('Task Type', fontweight='bold')
-#     plt.ylabel('Percentage Correct')
-#     r = np.arange(len_values)
-#     plt.xticks([r + barWidth*len(model_list)/2 for r in range(len_values)], task_list, size=5)
-#     #plt.xticks([r + barWidth for r in range(len_values)], list(itertools.chain.from_iterable([tasks*2 for tasks in Task.TASK_GROUP_DICT.values()])), size=5)
-#     plt.yticks(np.linspace(0, 1, 11), size=8)
-
-#     plt.tight_layout()
-
-#     plt.show()
 
 
 plot_CCGP_scores(all_models, rep_type_file_str='')
-plot_task_CCGP_scores(all_models, 'all_CCGP', rep_type_file_str='prep')
+plot_task_CCGP_scores(all_models[:-1], 'all_CCGP', rep_type_file_str='lang_')
 plot_task_CCGP_scores(all_models, 'holdout_CCGP', rep_type_file_str='prep')
 
 

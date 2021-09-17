@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from sentence_transformers import SentenceTransformer
 from transformers import GPT2Model, GPT2Tokenizer
-from transformers import BertModel, BertTokenizer
+from transformers import BertModel, BertTokenizer, BertConfig
 
 from utils import sort_vocab
 
@@ -49,8 +49,8 @@ class TransformerEmbedder(InstructionEmbedder):
         for key, value in tokens.items():
             tokens[key] = value.to(self.__device__)
 
-        trans_out = self.transformer(**tokens).last_hidden_state
-        return self.reducer(trans_out, dim=1)
+        trans_out = self.transformer(**tokens)
+        return self.reducer(trans_out.last_hidden_state, dim=1), trans_out[2]
 
     def forward(self, x): 
         return self.output_nonlinearity(self.proj_out(self.forward_transformer(x)))
@@ -58,7 +58,7 @@ class TransformerEmbedder(InstructionEmbedder):
 class BERT(TransformerEmbedder):
     def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
         super().__init__('bert', out_dim, reducer, train_layers, output_nonlinearity)
-        self.transformer = BertModel.from_pretrained('bert-base-uncased')
+        self.transformer = BertModel.from_pretrained('bert-base-uncased', output_hidden_states=True)
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.init_train_layers()
 
@@ -101,3 +101,15 @@ class BoW(InstructionEmbedder):
     def forward(self, x): 
         bow_out = torch.stack(tuple(map(self.make_freq_tensor, x))).to(self.__device__)
         return bow_out
+
+
+# from utils import train_instruct_dict
+
+# langModel = BERT(20)
+
+# outputs = langModel.forward_transformer(list(train_instruct_dict['Go'])[0])
+# list(train_instruct_dict['Go'])[0]
+
+
+
+# torch.Tensor(outputs[1][2][0]
