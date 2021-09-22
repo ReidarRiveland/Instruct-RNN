@@ -515,7 +515,7 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
         var_of_interest = strengths
 
     elif task_variable == 'diff_strength': 
-        directions = np.array([[np.pi] * num_trials, [2*np.pi] * num_trials])
+        directions = np.array([[np.pi/2] * num_trials, [3*np.pi/2] * num_trials])
         fixed_strengths = np.array([1]* num_trials)
         diff_strength = np.linspace(-0.5, 0.5, num=num_trials)
         strengths = np.array([fixed_strengths, fixed_strengths-diff_strength])

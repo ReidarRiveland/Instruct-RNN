@@ -1,9 +1,15 @@
 import enum
 from matplotlib.pyplot import axis
+import scipy
 import torch
 import numpy as np
 from torch._C import device
 from torch.nn.modules import transformer
+from utils import task_swaps_map
+
+from sklearn import svm, metrics
+from sklearn.metrics.pairwise import cosine_similarity
+from scipy.spatial.distance import dice
 
 
 from task import Task, construct_batch, make_test_trials
@@ -14,7 +20,6 @@ from data import TaskDataSet
 task_list = Task.TASK_LIST
 swapped_task_list = Task.SWAPPED_TASK_LIST
 task_group_dict = Task.TASK_GROUP_DICT
-
 
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -40,27 +45,24 @@ def get_model_performance(model, num_batches):
 
 
 def get_instruct_reps(langModel, instruct_dict, depth='full', swapped_tasks = []):
-    assert depth in ['full', 'transformer']
     langModel.eval()
-    if depth=='transformer': 
+    if depth.isnumeric(): 
         assert hasattr(langModel, 'transformer'), 'language model must be transformer to evaluate a that depth'
         rep_dim = 768
     else: rep_dim = langModel.out_dim 
     instruct_reps = torch.empty(len(instruct_dict.keys())+len(swapped_tasks), len(list(instruct_dict.values())[0]), rep_dim)
     with torch.no_grad():      
-        for i, task in enumerate(task_list+swapped_tasks):
+        for i, task in enumerate(list(instruct_dict.keys())+swapped_tasks):
 
             if i >= len(instruct_dict.keys()): 
                 instructions = instruct_dict[swapped_task_list[task_list.index(task)]]
             else: 
                 instructions = instruct_dict[task]    
 
-            print(task)
-
             if depth == 'full': 
                 out_rep = langModel(list(instructions))
-            elif depth == 'transformer': 
-                out_rep = langModel.forward_transformer(list(instructions))
+            elif depth.isnumeric(): 
+                out_rep = torch.mean(langModel.forward_transformer(list(instructions))[1][int(depth)], dim=1)
             instruct_reps[i, :, :] = out_rep
     return instruct_reps.cpu().numpy().astype(np.float64)
 
@@ -133,9 +135,10 @@ def reduce_rep(reps, dim=2, reduction_method='PCA'):
 
     return embedded.reshape(reps.shape[0], reps.shape[1], dim), explained_variance
 
-def get_sim_scores(model, holdout_file, rep_type, model_file='_ReLU128_5.7/single_holdouts'): 
+def get_sim_scores(model, holdout_file, rep_type, depth='12', model_file='_ReLU128_5.7/single_holdouts', use_cos_sim=False): 
     if rep_type == 'lang': 
-        rep_dim = 768
+        if depth =='full': rep_dim = 20
+        else:rep_dim = 768
         number_reps=15
     
     if rep_type == 'task': 
@@ -149,8 +152,84 @@ def get_sim_scores(model, holdout_file, rep_type, model_file='_ReLU128_5.7/singl
         if rep_type == 'task': 
             reps, _ = get_task_reps(model)
         if rep_type == 'lang': 
-            reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
-        sim_scores = 1-np.corrcoef(reps.reshape(-1, rep_dim))
+            reps = get_instruct_reps(model.langModel, train_instruct_dict, depth=depth)
+        if use_cos_sim:
+            sim_scores = cosine_similarity(reps.reshape(-1, rep_dim))
+        else: 
+            sim_scores = 1-np.corrcoef(reps.reshape(-1, rep_dim))
         all_sim_scores[i, :, :] = sim_scores
 
     return all_sim_scores
+
+def get_CCGP(reps, performance_array): 
+    num_trials = reps.shape[1]
+    dim = reps.shape[-1]
+    all_decoding_score = np.zeros((16, 2))
+    all_dice_score = np.zeros((16, 2))
+    dichotomies = np.array([[[0, 1], [2, 3]], [[0,2], [1, 3]]])
+    for i in range(4): 
+        conditions=dichotomies+(4*i)
+        for j in [0, 1]: 
+            for k in [0, 1]: 
+
+                print('\n')
+                print('train condition ' +str(conditions[j][k]))
+                test_condition = conditions[j][(k+1)%2]
+                print('test condition' + str(test_condition))
+                print('\n')
+
+                classifier = svm.LinearSVC(max_iter=5000)
+                classifier.classes_=[-1, 1]
+                classifier.fit(reps[conditions[j][k], ...].reshape(-1, dim), np.array([0]*num_trials+[1]*num_trials))
+                for index in [0, 1]: 
+                    print('Task :' + str(test_condition[index]))
+                    decoding_corrects = np.array([index]*num_trials) == classifier.predict(reps[test_condition[index], ...].reshape(-1, dim))
+                    decoding_score = np.mean(decoding_corrects)
+                    jaccard_score = 1 - dice(performance_array[test_condition[index], ...].flatten(), decoding_corrects)
+                    print('J-Score :' +str(jaccard_score))
+                    all_decoding_score[test_condition[index], j] = decoding_score
+                    all_dice_score[test_condition[index], j] = jaccard_score
+            
+
+    return all_decoding_score, all_dice_score
+
+
+def get_all_CCGP(model, task_rep_type, swap=False): 
+    all_CCGP = np.empty((5, 16, 16, 2))
+    all_dice = np.empty((5, 16, 16, 2))
+    holdout_CCGP = np.empty((5, 16, 2))
+    holdout_dice = np.empty((5, 16, 2))
+    epoch = 'stim_start'
+    for i in range(5):
+        model.set_seed(i)
+        for j, task in enumerate(task_list):
+            print('\n') 
+            print(task) 
+            task_file = task_swaps_map[task]
+            model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
+            if swap: 
+                swapped_list = [task]
+                swap_str = '_swap'
+            else: 
+                swapped_list = []
+                swap_str = ''
+
+            if task_rep_type == 'task': 
+                reps, perf_array = get_task_reps(model, num_trials=128, epoch=epoch, stim_start_buffer=0, swapped_tasks=swapped_list)
+            if task_rep_type == 'lang': 
+                if model.langModel.embedder_name == 'bow': depth = 'full'
+                else: depth = 'transformer'
+                reps = get_instruct_reps(model.langModel, train_instruct_dict, depth=depth, swapped_tasks=swapped_list)
+                perf_array = np.zeros((16, 15))
+            
+            if swap:
+                reps[task_list.index(task), ...] = reps[-1, ...]
+                perf_array[task_list.index(task), ...] = perf_array[-1]
+
+            decoding_score, dice_scores = get_CCGP(reps, perf_array)
+            all_CCGP[i, j, ...] = decoding_score
+            all_dice[i, j, ...] = dice_scores
+            holdout_CCGP[i, j] = decoding_score[j, :]
+            holdout_dice[i, j] = dice_scores[j, :]
+    np.savez('_ReLU128_5.7/CCGP_measures/' +task_rep_type+'_'+ epoch + '_' + model.model_name + swap_str +'_CCGP_scores', all_CCGP=all_CCGP, all_dice = all_dice, holdout_CCGP= holdout_CCGP, holdout_dice= holdout_dice)
+    return all_CCGP, all_dice, holdout_CCGP, holdout_dice

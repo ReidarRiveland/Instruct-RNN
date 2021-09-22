@@ -1,11 +1,12 @@
+from typing import OrderedDict
 from matplotlib.pyplot import get
 from numpy.lib import utils
 import torch
 import torch.nn as nn
 
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, models
 from transformers import GPT2Model, GPT2Tokenizer
-from transformers import BertModel, BertTokenizer, BertConfig
+from transformers import BertModel, BertTokenizer
 
 from utils import sort_vocab
 
@@ -53,11 +54,11 @@ class TransformerEmbedder(InstructionEmbedder):
         return self.reducer(trans_out.last_hidden_state, dim=1), trans_out[2]
 
     def forward(self, x): 
-        return self.output_nonlinearity(self.proj_out(self.forward_transformer(x)))
+        return self.output_nonlinearity(self.proj_out(self.forward_transformer(x)[0]))
 
 class BERT(TransformerEmbedder):
-    def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
-        super().__init__('bert', out_dim, reducer, train_layers, output_nonlinearity)
+    def __init__(self, embedder_name, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
+        super().__init__(embedder_name, out_dim, reducer, train_layers, output_nonlinearity)
         self.transformer = BertModel.from_pretrained('bert-base-uncased', output_hidden_states=True)
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.init_train_layers()
@@ -73,16 +74,17 @@ class GPT(TransformerEmbedder):
 class SBERT(TransformerEmbedder): 
     def __init__(self, out_dim, reducer=None, train_layers = [], output_nonlinearity = nn.ReLU()): 
         super().__init__('sbert', out_dim, reducer, train_layers, output_nonlinearity)
-        self.transformer = SentenceTransformer('bert-base-nli-mean-tokens')
-        self.tokenizer = self.transformer.tokenize
+        self.transformer = models.Transformer('bert-base-uncased', model_args={'output_hidden_states':True})
+        self.transformer.tokenizer=nn.Identity()
+        self.tokenizer = SentenceTransformer('bert-base-nli-mean-tokens').tokenize
         self.init_train_layers()
 
     def forward_transformer(self, x): 
         tokens = self.tokenizer(x)
         for key, value in tokens.items():
             tokens[key] = value.to(self.__device__)
-        sent_embedding = self.transformer(tokens)['sentence_embedding']
-        return sent_embedding
+        output_dict = self.transformer(tokens)
+        return self.reducer(output_dict['token_embeddings'], dim=1), output_dict['all_layer_embeddings'] 
 
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()
@@ -102,14 +104,3 @@ class BoW(InstructionEmbedder):
         bow_out = torch.stack(tuple(map(self.make_freq_tensor, x))).to(self.__device__)
         return bow_out
 
-
-# from utils import train_instruct_dict
-
-# langModel = BERT(20)
-
-# outputs = langModel.forward_transformer(list(train_instruct_dict['Go'])[0])
-# list(train_instruct_dict['Go'])[0]
-
-
-
-# torch.Tensor(outputs[1][2][0]

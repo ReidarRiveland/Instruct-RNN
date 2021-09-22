@@ -12,6 +12,7 @@ swapped_task_list = Task.SWAPPED_TASK_LIST
 tuning_dirs = Task.TUNING_DIRS
 
 train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict2', 'rb'))
+
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict2', 'rb'))
 
 

@@ -81,7 +81,13 @@ class BaseNet(nn.Module):
         self._loss_data_dict = pickle.load(open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_loss', 'rb'))
 
     def load_model(self, foldername): 
-        self.load_state_dict(torch.load(foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.__seed_num_str__+'.pt', map_location='cpu'), strict=False)
+        if 'sbertNet' in self.model_name:
+            sbert_state_dict = torch.load(foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.__seed_num_str__+'.pt', map_location='cpu')
+            for key in list(sbert_state_dict.keys()):
+                sbert_state_dict[key.replace('transformer.0.auto_model.', 'transformer.')] = sbert_state_dict.pop(key)
+            self.load_state_dict(sbert_state_dict)
+        else: 
+            self.load_state_dict(torch.load(foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.__seed_num_str__+'.pt', map_location='cpu'))
 
     def set_seed(self, seed_num): 
         self.__seed_num_str__ = 'seed'+str(seed_num)
