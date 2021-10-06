@@ -119,15 +119,15 @@ def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_5.7', hol
 
     return correct_perf, loss_perf
 
-def _train_context(model, data_streamer, epochs, init_context = None, context_dim = 768): 
+def _train_context(model, data_streamer, epochs, init_context = None): 
     model.freeze_weights()
-    
+    context_dim = model.langModel.intermediate_lang_dim
     if init_context is None: 
         init_context = np.zeros(size=context_dim)
 
     init_context += np.random.normal(size=context_dim)
     context = nn.Parameter(torch.Tensor(init_context).unsqueeze(0))
-    opt= optim.Adam([context], lr=0.01, weight_decay=0.00)
+    opt= optim.Adam([context], lr=0.005, weight_decay=0.01)
     sch = optim.lr_scheduler.MultiStepLR(opt, milestones=[epochs-3, epochs-2, epochs-1], gamma=0.5)
 
     for i in range(epochs): 
@@ -159,10 +159,10 @@ def _train_context(model, data_streamer, epochs, init_context = None, context_di
 
 
 def get_model_contexts(model, num_contexts, filename, init_avg=False):
-    all_contexts = np.empty((16, num_contexts, 768))
-    model.load_model('_ReLU128_5.7/single_holdouts/Multitask')
-    for i, task in enumerate(Task.TASK_LIST):     
-        contexts = np.empty((num_contexts, 768))
+    all_contexts = np.empty((16, num_contexts, model.langModel.intermediate_lang_dim))
+    model.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
+    for i, task in enumerate(Task.TASK_LIST[::-1]):     
+        contexts = np.empty((num_contexts, model.langModel.intermediate_lang_dim))
         streamer = TaskDataSet(filename+'/training_data', num_batches = 500, task_ratio_dict={task:1})
         streamer.data_to_device(device)
 
@@ -170,18 +170,18 @@ def get_model_contexts(model, num_contexts, filename, init_avg=False):
             instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='transformer')
             init_context = np.mean(np.mean(instruct_reps, axis = 0), axis=0)
         else: 
-            init_context = np.zeros(768)
+            init_context = np.zeros(model.langModel.intermediate_lang_dim)
 
         for j in range(num_contexts): 
-            contexts[j, :]=_train_context(model, streamer, 5, init_context = init_context)
+            contexts[j, :]=_train_context(model, streamer, 3, init_context = init_context)
 
         all_contexts[i, ...] = contexts
         model._correct_data_dict[task] = np.array(model._correct_data_dict[task]).reshape(num_contexts, -1)
         model._loss_data_dict[task] = np.array(model._correct_data_dict[task]).reshape(num_contexts, -1)
 
-    pickle.dump(all_contexts, open(filename+'/single_holdouts/Multitask/' + model.model_name+'/'+model.__seed_num_str__+'_context_vecs', 'wb'))
-    pickle.dump(model._correct_data_dict, open(filename+'/single_holdouts/Multitask/' + model.model_name+'/'+model.__seed_num_str__+'_context_holdout_correct_data', 'wb'))
-    pickle.dump(model._loss_data_dict, open(filename+'/single_holdouts/Multitask/' + model.model_name+'/'+model.__seed_num_str__+'_context_holdout_loss_data', 'wb'))
+    pickle.dump(all_contexts, open(filename+'/swap_holdouts/Multitask/' + model.model_name+'/'+model.__seed_num_str__+'_context_vecs', 'wb'))
+    pickle.dump(model._correct_data_dict, open(filename+'/swap_holdouts/Multitask/' + model.model_name+'/'+model.__seed_num_str__+'_context_holdout_correct_data', 'wb'))
+    pickle.dump(model._loss_data_dict, open(filename+'/swap_holdouts/Multitask/' + model.model_name+'/'+model.__seed_num_str__+'_context_holdout_loss_data', 'wb'))
 
 
 training_lists_dict={
@@ -194,7 +194,7 @@ training_lists_dict={
 
 ALL_MODEL_PARAMS = {
     'sbertNet_tuned': {'model': InstructNet, 
-                    'langModel': SBERT,
+                    'langModel': BERT,
                     'model_name': 'sbertNet_tuned',
                     'langModel_params': {'out_dim': 20, 'train_layers': []},
                     'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
@@ -202,7 +202,7 @@ ALL_MODEL_PARAMS = {
                 },
 
     'sbertNet': {'model': InstructNet, 
-                'langModel': SBERT,
+                'langModel': BERT,
                 'model_name': 'sbertNet',
                 'langModel_params': {'out_dim': 20, 'train_layers': []}, 
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
@@ -249,6 +249,16 @@ ALL_MODEL_PARAMS = {
                 'epochs': 30
                 },
 
+                    
+    'bow20Net': {'model': InstructNet, 
+                'langModel': BoW,
+                'model_name': 'bow20Net',
+                'langModel_params': {'out_dim': 20, 'output_nonlinearity': nn.ReLU()}, 
+                'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
+                'epochs': 30
+                },
+
+
     'simpleNet': {'model': SimpleNet, 
                 'model_name': 'simpleNet',
                 'opt_params': {'lr':0.001, 'milestones':[10, 15, 20, 25]},
@@ -277,27 +287,35 @@ if __name__ == "__main__":
     model_file = '_ReLU128_5.7'
 
     train_mode = str(sys.argv[1])
+    #train_mode = 'train'
+    
     print('Mode: ' + train_mode + '\n')
 
     if train_mode == 'train_contexts': 
         seeds = [1, 0, 2, 3, 4]
-        to_train = list(itertools.product(seeds, ['sbertNet'], ['Multitask']))
+        to_train = list(itertools.product(seeds, ['bowNet', 'gptNet', 'gptNet_tuned', 'bertNet', 'bertNet_tuned', 'sbertNet'], ['Multitask']))
 
         for config in to_train: 
             print(config)
             seed_num, model_params_key, holdouts = config 
             model, _, _, _ = config_model_training(model_params_key)
-            model.model_name += '_tuned'
+
+            x = torch.randn(128, 120, 65)
+            model.langModel(['go in the displayed direction']*128).shape
+
+            model(['go in the displayed direction']*128, x)[0].shape
+
+
             model.set_seed(seed_num)
             model.to(device)
 
-            get_model_contexts(model, 5, model_file)
+            get_model_contexts(model, 30, model_file)
 
     if train_mode == 'test': 
         holdout_type = 'swap_holdouts'
-        instruct_mode = 'swap'
+        instruct_mode = ''
         seeds = [0, 1, 2, 3, 4]
-        to_test = list(itertools.product(ALL_MODEL_PARAMS.keys(), seeds, training_lists_dict['swap_holdouts']))
+        to_test = list(itertools.product(['bow20Net'], seeds, training_lists_dict['swap_holdouts']))
 
 
         for config in to_test: 
@@ -324,14 +342,8 @@ if __name__ == "__main__":
 
         seeds = [0, 1, 2, 3, 4]
 
-        #to_tune = list(itertools.product(['gptNet'], seeds, training_lists_dict['swap_holdouts']))
+        to_tune = list(itertools.product(['gptNet'], seeds, training_lists_dict['swap_holdouts']))
 
-        to_tune = [('sbertNet', 0, ['DM', 'MultiCOMP2']), 
-                    ('sbertNet', 1, ['RT Go', 'DNMC']), 
-                    ('sbertNet', 3, ['Anti Go', 'MultiCOMP1']), 
-                    ('sbertNet', 4, ['Anti Go', 'MultiCOMP1']), 
-                    ('sbertNet', 4, ['COMP2', 'DMS'])
-        ]
 
         for config in to_tune: 
             model_params_key, seed_num, holdouts = config
@@ -367,7 +379,7 @@ if __name__ == "__main__":
         holdout_type = 'swap_holdouts'
 
         seeds = [0, 1, 2, 3, 4]
-        to_train = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), training_lists_dict[holdout_type]))
+        to_train = list(itertools.product(seeds, ['bow20Net'], training_lists_dict[holdout_type]))
         print(to_train)
 
         last_holdouts = None
@@ -404,6 +416,9 @@ if __name__ == "__main__":
                 model, opt, sch, epochs = config_model_training(model_params_key)
                 model.set_seed(seed_num)
                 model.to(device)
+                print(model.model_name)
+                print(model.langModel.out_dim)
+
 
                 #train 
                 train_model(model, data, epochs, opt, sch)

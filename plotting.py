@@ -47,7 +47,7 @@ task_colors = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT G
                         'COMP1':'sienna', 'COMP2':'seagreen', 'MultiCOMP1':'skyblue', 'MultiCOMP2':'gold',
                         'DMS':'firebrick', 'DNMS':'lightgreen', 'DMC':'dodgerblue', 'DNMC':'darkorange'}
 
-MODEL_STYLE_DICT = {'simpleNet': ('blue', None), 'bowNet': ('orange', None), 'gptNet': ('red', None), 'gptNet_tuned': ('red', 'v'), 'bertNet_tuned': ('green', 'v'),
+MODEL_STYLE_DICT = {'simpleNet': ('blue', None), 'bow20Net': ('yellow', None), 'bowNet': ('orange', None), 'gptNet': ('red', None), 'gptNet_tuned': ('red', 'v'), 'bertNet_tuned': ('green', 'v'),
                     'bertNet': ('green', None), 'bertNet_layer_11': ('green', '.'), 'sbertNet': ('purple', None), 'sbertNet_tuned': ('purple', 'v'), 'sbertNet_layer_11': ('purple', '.')}
 
 all_models = ['sbertNet_tuned', 'sbertNet', 'bertNet_tuned', 'bertNet', 'gptNet_tuned', 'gptNet', 'bowNet', 'simpleNet']
@@ -153,27 +153,24 @@ def plot_single_holdout_task(foldername, holdout, model_list, seeds, smoothing=0
         plt.savefig('figs/'+save_file)
     plt.show()
 
-def plot_context_training(foldername, model_list, train_data_type, seed, smoothing=0.1, save_file=None):
+def plot_context_training(foldername, model_list, seed, smoothing=0.1, save_file=None):
     seed = 'seed' + str(seed)
+    #seed=''
     fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(19, 12))
     for model_name in model_list: 
         for i, ax in enumerate(axn.flat):
-            task = task_list[i]
+            task = 'Multitask'
             task_file = task.replace(' ', '_')
             try: 
-                training_data = pickle.load(open(foldername+task_file+'/'+model_name+'/context_holdout_correct_data', 'rb'))
+                training_data = pickle.load(open(foldername+task_file+'/'+model_name+'/'+seed+'_context_holdout_correct_data', 'rb'))
             except FileNotFoundError: 
                 print('No training data for '+ model_name + seed)
-                print('\n'+ foldername+task_file+'/'+model_name+'/'+seed+'_training_'+train_data_type)
+                print('\n'+ foldername+task_file+'/'+model_name+'/'+seed+'_context_holdout_correct_data')
                 continue 
             ax.set_ylim(-0.05, 1.15)
-            for j in range(16): 
-                if j == 15:
-                    smoothed_perf = gaussian_filter1d(np.mean(training_data, axis=0), sigma=smoothing)
-                    alpha = 1
-                else: 
-                    smoothed_perf = gaussian_filter1d(training_data[j, :], sigma=smoothing)
-                    alpha = 0.1
+            for j in range(15): 
+                smoothed_perf = gaussian_filter1d(training_data[task_list[i]][j, :], sigma=smoothing)
+                alpha = 0.1
                 ax.plot(smoothed_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=alpha, markersize=10, markevery=250)
             ax.set_title(task)
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.55), title='Models', title_fontsize=12)
@@ -182,14 +179,17 @@ def plot_context_training(foldername, model_list, train_data_type, seed, smoothi
         plt.savefig('figs/'+save_file)
     plt.show()
 
+#model_data_dict = plot_context_training('_ReLU128_5.7/swap_holdouts/', ['sbertNet_tuned'],  0, smoothing = 0.01)
+
+
 def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seeds, smoothing=0.1, save_file=None):
     #rc('font', weight='bold')
     instruction_mode = 'swap'
     if plot_type == 'avg_holdout': fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
     if plot_type == 'task_holdout': fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(8, 8))
     model_data_dict = {}
-    #for k, mode in enumerate(['swap', '']):
-    for k, mode in enumerate(['']):
+    for style_index, mode in enumerate(['swap', '']):
+    #for k, mode in enumerate(['']):
         for model_name in model_list: 
             training_data = np.empty((len(seeds), len(Task.TASK_LIST), 100))
             #training_data = np.empty((len(seeds), 4, 100))
@@ -197,7 +197,7 @@ def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seed
             for i, seed_num in enumerate(seeds):
                 seed_name = 'seed' + str(seed_num)
 
-                for j, task in enumerate(['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2']):
+                for j, task in enumerate(task_list):
                     holdout_file = task.replace(' ', '_')
 
                     if instruction_mode =='swap': 
@@ -221,7 +221,7 @@ def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seed
                 if mode == '':
                     axn.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), avg_performance+std_performance]), axis=0), 
                                                 avg_performance-std_performance, color = MODEL_STYLE_DICT[model_name][0], alpha= 0.1)
-                axn.plot(smoothed_perf, linewidth = 0.8, linestyle = ['--', '-'][k], color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=1, markersize=4, markevery=10)
+                axn.plot(smoothed_perf, linewidth = 0.8, linestyle = ['--', '-'][style_index], color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=1, markersize=4, markevery=10)
 
                 axn.set_ylim(-0.05, 1.05)
                 axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
@@ -241,7 +241,7 @@ def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seed
                     ax.fill_between(np.linspace(0, 100, 100), np.min(np.array([np.ones(100), avg_performance[k, :]+std_performance[k, :]]), axis=0), 
                                             avg_performance[k, :]-std_performance[k, :], color = MODEL_STYLE_DICT[model_name][0], alpha= 0.1)
 
-                    ax.plot(smoothed_perf, linewidth=0.6, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=1, markersize=2, markevery=10)
+                    ax.plot(smoothed_perf, linewidth=0.6, linestyle = ['--', '-'][style_index], color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], alpha=1, markersize=2, markevery=10)
 
             model_data_dict[model_name] = training_data
 
@@ -252,6 +252,8 @@ def plot_holdout_curves(foldername, model_list, train_data_type, plot_type, seed
         plt.savefig('figs/'+save_file)
     plt.show()
     return model_data_dict
+
+model_data_dict = plot_holdout_curves('_ReLU128_5.7/swap_holdouts/', ['bow20Net', 'bowNet', 'sbertNet_tuned'], 'correct', 'task_holdout', range(5), smoothing = 0.01)
 
 
 def plot_tuned_vs_standard(model_data_dict): 
@@ -814,5 +816,5 @@ if __name__ == "__main__":
     #fig 2
     #plot_single_task_training('_ReLU128_5.7/single_holdouts/', 'Multitask', 'DM', ['sbertNet', 'bertNet', 'gptNet', 'simpleNet'], range(5))
     #plot_single_seed_training('_ReLU128_5.7/single_holdouts/', 'DMS', ['sbertNet', 'sbertNet_layer_11', 'simpleNet'], 'correct', 4)
-    model_data_dict = plot_holdout_curves('_ReLU128_5.7/swap_holdouts/', ['sbertNet_tuned', 'sbertNet'], 'correct', 'task_holdout', range(5), smoothing = 0.01)
+    model_data_dict = plot_holdout_curves('_ReLU128_5.7/swap_holdouts/', ['bow20Net', 'bowNet', 'sbertNet_tuned'], 'correct', 'task_holdout', range(5), smoothing = 0.01)
 

@@ -52,7 +52,9 @@ class BaseNet(nn.Module):
 
     def forward(self, task_info, x , t=120): 
         h0 = self.__initHidden__(x.shape[0])
+        #task_info_block = torch.rand(task_info.shape[0], t, task_info.shape[1])*0.05
         task_info_block = task_info.unsqueeze(1).repeat(1, t, 1)
+
         rnn_ins = torch.cat((task_info_block, x.type(torch.float32)), 2)
         rnn_hid, _ = self.recurrent_units(rnn_ins, h0)
         out = self.sensory_motor_outs(rnn_hid)
@@ -125,11 +127,6 @@ class InstructNet(BaseNet):
         super().__init__(langModel.out_dim +65, hid_dim, num_layers, activ_func, instruct_mode)
         self.langModel = langModel
         self.model_name = self.langModel.embedder_name + 'Net' 
-        try:
-            if len(self.langModel.train_layers) > 0: 
-                self.model_name += '_'.join(['_layer']+self.langModel.train_layers)
-        except: 
-            pass
 
     def to(self, cuda_device): 
         super().to(cuda_device)
@@ -150,4 +147,5 @@ class InstructNet(BaseNet):
     
     def load_model_weights(self, foldername): 
         self.load_state_dict(torch.load(foldername+'/'+self.model_name+'.pt'))
+
 

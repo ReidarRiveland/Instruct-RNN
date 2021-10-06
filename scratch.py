@@ -11,7 +11,7 @@ import torch
 
 from task import Task, make_test_trials
 
-model = InstructNet(BERT('bert', 20, train_layers=[], reducer=torch.mean), 128, 1)
+model = InstructNet(SBERT(20, train_layers=[], reducer=torch.mean), 128, 1)
 
 
 model.model_name += '_tuned'
@@ -24,7 +24,14 @@ model.set_seed(2)
 task_file = task_swaps_map[swapped]
 model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
 
-model.load_model('_ReLU128_5.7/single_holdouts/Multitask')
+
+
+model.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
+
+perf = get_model_performance(model, 3)
+perf
+
+perf
 
 
 # reps, _ = get_task_reps(model, epoch='stim_start', stim_start_buffer=0, swapped_tasks=[swapped])
@@ -45,9 +52,13 @@ lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='full'
 lang_rep_reduced, _ = reduce_rep(lang_reps)
 plot_rep_scatter(lang_rep_reduced, Task.TASK_GROUP_DICT['COMP'], annotate_tuples=[(1,5), (1, 1)], annotate_args=[(-100, 30), (-300, -50)])
 
-trials, var_of_insterest = make_test_trials('COMP2', 'diff_strength', 0, num_trials=1)
 
+trials, var_of_insterest = make_test_trials('COMP2', 'diff_strength', 0, num_trials=1)
 plot_model_response(model, trials, instructions=[train_instruct_dict['COMP2'][5]])
+
+
+
+
 
 task_grou_trajs = get_hid_var_group_resp(model, 'COMP', 'diff_strength', swapped_tasks=['COMP1'])
 
