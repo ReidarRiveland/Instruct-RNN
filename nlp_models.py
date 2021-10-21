@@ -10,7 +10,6 @@ from transformers import BertModel, BertTokenizer
 
 from utils import sort_vocab
 
-import warnings
 
 class InstructionEmbedder(nn.Module): 
     def __init__(self, intermediate_lang_dim, out_dim, output_nonlinearity): 
@@ -67,12 +66,20 @@ class SBERT(BERT):
     def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
         super().__init__(out_dim, reducer, train_layers, output_nonlinearity)
         self.embedder_name = 'sbert'
+        self.transformer.load_state_dict(self._convert_state_dict_format('sbert_raw.pt'))
+
+    def _convert_state_dict_format(self, state_dict_file): 
+        print('converting state dict keys to BERT format')
+        sbert_state_dict = torch.load(state_dict_file, map_location='cpu')
+        for key in list(sbert_state_dict.keys()):
+            sbert_state_dict[key.replace('0.auto_model.', '')] = sbert_state_dict.pop(key)
+        return sbert_state_dict
 
 class GPT(TransformerEmbedder): 
     def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
         super().__init__(out_dim,  reducer,  train_layers, output_nonlinearity)
         self.embedder_name = 'gpt'
-        self.transformer = GPT2Model.from_pretrained('gpt2')
+        self.transformer = GPT2Model.from_pretrained('gpt2', output_hidden_states=True)
         self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.init_train_layers()
@@ -80,13 +87,12 @@ class GPT(TransformerEmbedder):
 
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()
-    def __init__(self, out_dim =  None, output_nonlinearity=nn.Identity()): 
+    def __init__(self, out_dim =  20, output_nonlinearity=nn.ReLU()): 
         super().__init__(len(self.VOCAB), out_dim, output_nonlinearity)
         if out_dim == None: 
-            self.embedder_name = 'bow'
             self.out_dim=len(self.VOCAB)
-        else: 
-            self.embedder_name = 'bow20'
+        
+        self.embedder_name = 'bow'
 
     def make_freq_tensor(self, instruct): 
         out_vec = torch.zeros(len(self.VOCAB))
@@ -99,6 +105,3 @@ class BoW(InstructionEmbedder):
         freq_tensor = torch.stack(tuple(map(self.make_freq_tensor, x))).to(self.__device__)
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
-
-
-

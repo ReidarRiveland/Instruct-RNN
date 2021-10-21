@@ -64,13 +64,6 @@ class BaseNet(nn.Module):
         for p in self.parameters(): 
             p.requires_grad=False
 
-    def get_training_df(self): 
-        df_correct = pd.DataFrame(self._correct_data_dict.values()).T
-        df_correct.columns = self._correct_data_dict.keys()
-        df_loss = pd.DataFrame(self._loss_data_dict.values()).T
-        df_loss.columns = self._loss_data_dict.keys()
-        return df_correct, df_loss
-
     def save_training_data(self, foldername): 
         pickle.dump(self._correct_data_dict, open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_correct', 'wb'))
         pickle.dump(self._loss_data_dict, open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_loss', 'wb'))
@@ -83,19 +76,17 @@ class BaseNet(nn.Module):
         self._loss_data_dict = pickle.load(open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_loss', 'rb'))
 
     def load_model(self, foldername): 
-        if 'sbertNet' in self.model_name:
-            sbert_state_dict = torch.load(foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.__seed_num_str__+'.pt', map_location='cpu')
-            for key in list(sbert_state_dict.keys()):
-                sbert_state_dict[key.replace('transformer.0.auto_model.', 'transformer.')] = sbert_state_dict.pop(key)
-            self.load_state_dict(sbert_state_dict)
-        else: 
-            self.load_state_dict(torch.load(foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.__seed_num_str__+'.pt', map_location='cpu'))
-
+        f_name = foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.__seed_num_str__+'.pt'
+        try: 
+            self.load_state_dict(torch.load(f_name, map_location='cpu'))
+        except RuntimeError:
+            self.load_state_dict(self.langModel._convert_state_dict_format(f_name))
+            
     def set_seed(self, seed_num): 
         self.__seed_num_str__ = 'seed'+str(seed_num)
 
 class SimpleNet(BaseNet):
-    def __init__(self, hid_dim, num_layers, activ_func=torch.relu, instruct_mode='', use_ortho_rules=False):
+    def __init__(self, hid_dim, num_layers, activ_func=torch.relu, instruct_mode='', use_ortho_rules=True):
         self.model_name = 'simpleNet'
         if use_ortho_rules:
             super().__init__(85, hid_dim, num_layers, activ_func, instruct_mode)
@@ -144,8 +135,3 @@ class InstructNet(BaseNet):
         instruct_embedded = self.langModel(instructions)
         outs, rnn_hid = super().forward(instruct_embedded, x)
         return outs, rnn_hid
-    
-    def load_model_weights(self, foldername): 
-        self.load_state_dict(torch.load(foldername+'/'+self.model_name+'.pt'))
-
-

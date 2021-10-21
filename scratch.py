@@ -1,37 +1,99 @@
+from collections import defaultdict
 from re import I
+from matplotlib.cbook import flatten
+
+from matplotlib.pyplot import axis
+from numpy.core.fromnumeric import size
+from numpy.lib.function_base import append
 from nlp_models import SBERT, BERT
 from rnn_models import InstructNet, SimpleNet
 from utils import train_instruct_dict
-from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_sim_scores, get_hid_var_group_resp, get_hid_var_resp
+from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_layer_sim_scores, get_hid_var_group_resp, get_hid_var_resp, get_all_CCGP
 import numpy as np
 from utils import train_instruct_dict, task_swaps_map
 from task import DM
-from plotting import plot_RDM, plot_rep_scatter, plot_CCGP_scores, plot_model_response, plot_hid_traj, plot_holdout_curves, plot_dPCA, plot_neural_resp, plot_tuning_curve
+from plotting import plot_RDM, plot_rep_scatter, plot_CCGP_scores, plot_model_response, plot_hid_traj_quiver, plot_dPCA, plot_neural_resp, plot_trained_performance, plot_tuning_curve
 import torch
 
 from task import Task, make_test_trials
 
+
+from trainer import config_model_training
+
+
+for model_name in ['sbertNet_tuned', 'sbertNet', 'bertNet_tuned','bertNet', 'gptNet_tuned', 'gptNet']:
+    print(model_name)
+    model, _, _, _ = config_model_training(model_name)
+    get_all_CCGP(model, 'task')
+
+
+
+instructs = ['jelly']*100
+instructs_reps = np.empty((100, 20))
+
+
+for i, j in zip(instructs, instructs_reps): 
+    print(i)
+    print(j.shape)
+
+import pickle
+from sklearn.manifold import TSNE
+data_X =[]
+for model_name in ['sbertNet_tuned', 'sbertNet', 'bertNet_tuned','bertNet', 'gptNet_tuned', 'gptNet']:
+    all_sims = pickle.load(open('_ReLU128_5.7/swap_holdouts/Multitask/'+model_name+'/all_RDM_scores', 'rb'))
+    for rdm in list(all_sims.values())[:-3]: 
+        data_X.append(rdm.flatten())
+
+all_sims = pickle.load(open('_ReLU128_5.7/swap_holdouts/Multitask/sbertNet_tuned/all_RDM_scores', 'rb'))
+
+for i, sim in enumerate(all_sims.values()): 
+    if i<13:rep_type = 'lang'
+    else: rep_type ='task'
+    plot_RDM(np.mean(sim, axis=0), rep_type)
+
+
+
+len(data_X)
+
+X = np.array(data_X, dtype=np.float32)
+X
+
+X_embedded = TSNE(n_components=2, learning_rate=10).fit_transform(data_X)
+
+from plotting import plt
+colors = ['purple']*24+['green']*24+['red']*24
+plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=colors)
+plt.show()
+
+import pickle
+all_sims = pickle.load(open('_ReLU128_5.7/swap_holdouts/Multitask/val_performance', 'rb'))
+
+from plotting import plot_trained_performance
+
+plot_trained_performance(all_sims)
+
+
+#PLot validation instructions
+
 model = InstructNet(SBERT(20, train_layers=[], reducer=torch.mean), 128, 1)
 
+model1 = SimpleNet(128, 1, use_ortho_rules=True)
 
 model.model_name += '_tuned'
 
 
 swapped = 'COMP2'
 
-model.set_seed(2)
+model.set_seed(1)
 
 task_file = task_swaps_map[swapped]
 model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
 
 
-
+task_file
 model.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
 
-perf = get_model_performance(model, 3)
-perf
 
-perf
 
 
 # reps, _ = get_task_reps(model, epoch='stim_start', stim_start_buffer=0, swapped_tasks=[swapped])
@@ -39,18 +101,14 @@ perf
 # plot_rep_scatter(reduced_reps[0], Task.TASK_GROUP_DICT['COMP'])
 
 
-
-all_sim_scores = get_sim_scores(model, 'Multitask', 'lang', depth='12', use_cos_sim=True)
-plot_RDM(np.mean(all_sim_scores, axis=0), 'lang', cmap='Blues')
-
-
 i=12
 
 instruct_index = 6
 
 lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='full')
+
 lang_rep_reduced, _ = reduce_rep(lang_reps)
-plot_rep_scatter(lang_rep_reduced, Task.TASK_GROUP_DICT['COMP'], annotate_tuples=[(1,5), (1, 1)], annotate_args=[(-100, 30), (-300, -50)])
+plot_rep_scatter(lang_rep_reduced, Task.TASK_GROUP_DICT['DM'], annotate_tuples=[(1,5), (1, 1)], annotate_args=[(-100, 30), (-300, -50)])
 
 
 trials, var_of_insterest = make_test_trials('COMP2', 'diff_strength', 0, num_trials=1)
@@ -58,38 +116,6 @@ plot_model_response(model, trials, instructions=[train_instruct_dict['COMP2'][5]
 
 
 
-
-
-task_grou_trajs = get_hid_var_group_resp(model, 'COMP', 'diff_strength', swapped_tasks=['COMP1'])
-
-plot_hid_traj(task_grou_trajs, 'COMP', [0, 1, 2, 3], [0], [1, 5], context_task=1, annotate_tuples=[(1,5), (1, 1)])
-
-
-
-
-for i in range(9, 13): 
-    print(i)
-    sim_scores = get_sim_scores(model, 'Multitask', rep_type='lang', depth=str(i))
-    plot_RDM(np.mean(sim_scores, axis=0), 'lang')
-
-
-    model_data_dict['sbertNet_tuned'][0, 4]
-    model_data_dict = plot_holdout_curves('_ReLU128_5.7/swap_holdouts/', ['simpleNet'], 'correct', 'avg_holdout', range(5), instruction_mode = 'swap', smoothing = 0.01)
-
-    for name, perf in model_data_dict.items():
-        try:
-            print(name, str(list(np.mean(perf, axis=(0,1))>0.99).index(True)))
-        except: 
-            print(name, str(-1))
-
-
-
-    np.mean(model_data_dict['sbertNet_tuned'], axis=(0,1))
-    zero_shot = model_data_dict['sbertNet_tuned'][0, :, 0]
-    model_data_dict['sbertNet_tuned'].shape
-    
-
-    ###fig3###
 
 
 
@@ -114,28 +140,26 @@ plot_rep_scatter(reduced_reps1, Task.TASK_GROUP_DICT['Go'])
 
 
 #task RDM
-all_sim_scores1 = get_sim_scores(model1, 'Multitask', 'task')
+all_sim_scores1 = get_layer_sim_scores(model1, 'Multitask', 'task')
 plot_RDM(np.mean(all_sim_scores1, axis=0), 'task')
 
 
 model = InstructNet(SBERT(20, train_layers=[], reducer=torch.mean), 128, 1)
 model.model_name += '_tuned'
-swapped = 'Anti Go'
+swapped = 'DMC'
 #multitask
-model.set_seed(1)
+model.set_seed(4)
 task_file = task_swaps_map[swapped]
 task_file
 model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
 
-len(model.langModel.state_dict().keys())
 
 #task scatter
 reps, _ = get_task_reps(model, epoch='stim_start', stim_start_buffer=0, swapped_tasks=[swapped])
 reduced_reps = reduce_rep(reps)
-plot_rep_scatter(reduced_reps[0], Task.TASK_GROUP_DICT['Go'], swapped_tasks=[swapped])
+plot_rep_scatter(reduced_reps[0], Task.TASK_GROUP_DICT['Delay'], swapped_tasks=[swapped])
 
-all_sim_scores = get_sim_scores(model, 'Anti_Go', 'task')
-plot_RDM(np.mean(all_sim_scores, axis=0), 'task')
+
 
 
 
@@ -143,8 +167,8 @@ plot_RDM(np.mean(all_sim_scores, axis=0), 'task')
 
 plot_dPCA(model1, ['DM', 'Anti DM'], swapped_tasks=[])
 
-task_grou_trajs = get_hid_var_group_resp(model, 'DM', 'diff_strength', swapped_tasks=['Anti DM'])
-plot_hid_traj(task_grou_trajs, 'DM', [0, 1, 2, 3,4], [0], [1], context_task='Anti DM')
+task_grou_trajs = get_hid_var_group_resp(model1, 'DM', 'diff_strength', swapped_tasks=['Anti DM'])
+plot_hid_traj_quiver(task_grou_trajs, 'DM', [0, 1, 2, 3,4], [0], [1], context_task='Anti DM')
 
 
 #lang scatter
@@ -154,41 +178,9 @@ lang_rep_reduced, _ = reduce_rep(lang_reps)
 lang_rep_reduced.shape
 plot_rep_scatter(lang_rep_reduced, Task.TASK_GROUP_DICT['COMP'], swapped_tasks=[swapped])
 
-#task RDM
-swapped = 'DNMS'
-#multitask
-model.set_seed(0)
-task_file = task_swaps_map[swapped]
-task_file
-model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
-model.instruct_mode=''
-
-unit = 124
-var_of_insterest = 'diff_direction'
-trials = plot_neural_resp(model, 'C', var_of_insterest, unit, 1)
-trials.plot_trial(0)
-plot_neural_resp(model, 'DNMS', var_of_insterest, unit, 1)
-trials, var_of_insterest = make_test_trials('Go', 'direction', 0, num_trials=6)
-plot_tuning_curve(model, Task.TASK_GROUP_DICT['Delay'], var_of_insterest, unit, 1, [115]*4, swapped_task=swapped)
-
-model.set_seed(0)
-model.load_model('_ReLU128_5.7/single_holdouts/Anti_DM')
-
-unit = 110
-task_group = 'DM'
-task_var = 'diff_strength'
-plot_neural_resp(model, Task.TASK_GROUP_DICT[task_group][0], task_var, unit, 1)
-plot_neural_resp(model, Task.TASK_GROUP_DICT[task_group][1], task_var, unit, 1)
-plot_neural_resp(model, Task.TASK_GROUP_DICT[task_group][2], task_var, unit, 1)
-plot_neural_resp(model, Task.TASK_GROUP_DICT[task_group][3], task_var, unit, 1)
-
-plot_tuning_curve(model, Task.TASK_GROUP_DICT[task_group], task_var, unit, 1, [115]*4, swapped_task=None)
-
-model.instruct_mode
-
 
 #lang RDM
-all_sim_scores = get_sim_scores(model, 'Anti_Go', 'lang')
+all_sim_scores = get_layer_sim_scores(model, 'Anti_Go', 'lang')
 plot_RDM(np.mean(all_sim_scores, axis=0), 'lang')
 
 
@@ -197,22 +189,27 @@ model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
 model.model_name += '_tuned'
 swapped = 'DNMS'
 #multitask
-model.set_seed(0)
+model.set_seed(3)
 task_file = task_swaps_map[swapped]
 task_file
 model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
 model.instruct_mode=''
 
-unit = 124
+
+unit = 112
 var_of_insterest = 'diff_direction'
-trials = plot_neural_resp(model, 'C', var_of_insterest, unit, 1)
-trials.plot_trial(0)
 plot_neural_resp(model, 'DNMS', var_of_insterest, unit, 1)
-trials, var_of_insterest = make_test_trials('Go', 'direction', 0, num_trials=6)
-plot_tuning_curve(model, Task.TASK_GROUP_DICT['Delay'], var_of_insterest, unit, 1, [115]*4, swapped_task=swapped)
+plot_neural_resp(model, 'DMS', var_of_insterest, unit, 1)
+
+
+
+plot_tuning_curve(model, Task.TASK_GROUP_DICT['Delay'], var_of_insterest, unit, 1, [95]*4, swapped_task=swapped)
 
 model.set_seed(0)
 model.load_model('_ReLU128_5.7/single_holdouts/Anti_DM')
+
+
+
 
 unit = 110
 task_group = 'DM'
@@ -222,7 +219,8 @@ plot_neural_resp(model, Task.TASK_GROUP_DICT[task_group][1], task_var, unit, 1)
 plot_neural_resp(model, Task.TASK_GROUP_DICT[task_group][2], task_var, unit, 1)
 plot_neural_resp(model, Task.TASK_GROUP_DICT[task_group][3], task_var, unit, 1)
 
-plot_tuning_curve(model, Task.TASK_GROUP_DICT[task_group], task_var, unit, 1, [115]*4, swapped_task=None)
+plot_tuning_curve(model, Task.TASK_GROUP_DICT[task_group], task_var, unit, 1, [95]*4, swapped_task=None)
 
 model.instruct_mode
+
 
