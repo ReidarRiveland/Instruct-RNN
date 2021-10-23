@@ -20,16 +20,23 @@ from task import Task, make_test_trials
 
 from trainer import config_model_training
 
+from plotting import MODEL_STYLE_DICT, Line2D, plt
 
-for model_name in ['sbertNet_tuned', 'sbertNet', 'bertNet_tuned','bertNet', 'gptNet_tuned', 'gptNet']:
-    print(model_name)
-    model, _, _, _ = config_model_training(model_name)
-    get_all_CCGP(model, 'task')
+keys_list = ['all_CCGP', 'holdout_CCGP']
 
 
 
-instructs = ['jelly']*100
-instructs_reps = np.empty((100, 20))
+plot_CCGP_scores(['sbertNet_tuned', 'sbertNet', 'bertNet_tuned','bertNet', 'gptNet_tuned', 'gptNet', 'bowNet', 'simpleNet'], 'task_stim_start_')
+
+
+for swap_bool in [False, True]: 
+    for model_name in ['sbertNet_tuned', 'sbertNet', 'bertNet_tuned','bertNet', 'gptNet_tuned', 'gptNet', 'bowNet', 'simpleNet']:
+        print(model_name)
+        model, _, _, _ = config_model_training(model_name)
+        get_all_CCGP(model, 'task', swap=True)
+
+
+
 
 
 for i, j in zip(instructs, instructs_reps): 
@@ -44,12 +51,15 @@ for model_name in ['sbertNet_tuned', 'sbertNet', 'bertNet_tuned','bertNet', 'gpt
     for rdm in list(all_sims.values())[:-3]: 
         data_X.append(rdm.flatten())
 
+import pickle
 all_sims = pickle.load(open('_ReLU128_5.7/swap_holdouts/Multitask/sbertNet_tuned/all_RDM_scores', 'rb'))
 
-for i, sim in enumerate(all_sims.values()): 
-    if i<13:rep_type = 'lang'
-    else: rep_type ='task'
-    plot_RDM(np.mean(sim, axis=0), rep_type)
+for i, sim in enumerate(all_sims.items()): 
+    if i ==9: 
+        if i<13:rep_type = 'lang'
+        else: rep_type ='task'
+        print(sim[0])
+        plot_RDM(np.mean(sim[1], axis=0), rep_type, plot_title=str(sim[0]))
 
 
 
@@ -167,7 +177,7 @@ plot_rep_scatter(reduced_reps[0], Task.TASK_GROUP_DICT['Delay'], swapped_tasks=[
 
 plot_dPCA(model1, ['DM', 'Anti DM'], swapped_tasks=[])
 
-task_grou_trajs = get_hid_var_group_resp(model1, 'DM', 'diff_strength', swapped_tasks=['Anti DM'])
+task_grou_trajs = get_hid_var_group_resp(model, 'DM', 'diff_strength', swapped_tasks=['Anti DM'])
 plot_hid_traj_quiver(task_grou_trajs, 'DM', [0, 1, 2, 3,4], [0], [1], context_task='Anti DM')
 
 
@@ -187,23 +197,23 @@ plot_RDM(np.mean(all_sim_scores, axis=0), 'lang')
 
 model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
 model.model_name += '_tuned'
-swapped = 'DNMS'
+swapped = 'Anti DM'
 #multitask
-model.set_seed(3)
+model.set_seed(0)
 task_file = task_swaps_map[swapped]
 task_file
 model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
 model.instruct_mode=''
 
 
-unit = 112
-var_of_insterest = 'diff_direction'
+unit = 12
+var_of_insterest = 'diff_strength'
 plot_neural_resp(model, 'DNMS', var_of_insterest, unit, 1)
 plot_neural_resp(model, 'DMS', var_of_insterest, unit, 1)
 
 
 
-plot_tuning_curve(model, Task.TASK_GROUP_DICT['Delay'], var_of_insterest, unit, 1, [95]*4, swapped_task=swapped)
+plot_tuning_curve(model, Task.TASK_GROUP_DICT['DM'], var_of_insterest, unit, 1, [115]*4, swapped_task=swapped)
 
 model.set_seed(0)
 model.load_model('_ReLU128_5.7/single_holdouts/Anti_DM')

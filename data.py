@@ -40,7 +40,7 @@ class TaskDataSet():
     
     def __init_task_distribution__(self):
         #rescale sampling ratio of tasks to deal with holdouts 
-        if len(self.holdouts) > 0: 
+        if len(self.holdouts) > 0 and 'Multitask' not in self.holdouts: 
             for task in self.holdouts: 
                 del self.task_ratio_dict[task]
             raw_ratios=list(self.task_ratio_dict.values())

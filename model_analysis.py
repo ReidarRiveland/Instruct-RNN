@@ -61,7 +61,7 @@ def get_instruct_reps(langModel, instruct_dict, depth='full', swapped_tasks = []
 
             if depth == 'full': 
                 out_rep = langModel(list(instructions))
-                
+
             elif depth.isnumeric(): 
                 out_rep = torch.mean(langModel.forward_transformer(list(instructions))[1][int(depth)], dim=1)
             instruct_reps[i, :, :] = out_rep
@@ -196,12 +196,16 @@ def get_CCGP(reps):
 
 
 def get_all_CCGP(model, task_rep_type, swap=False): 
-    all_CCGP = np.empty((5, 17, 16, 2))
+    if not swap: 
+        tasks_to_compute = task_list +['Multitask']
+    else: 
+        tasks_to_compute = task_list
+    all_CCGP = np.empty((5, len(tasks_to_compute), 16, 2))
     holdout_CCGP = np.empty((5, 16, 2))
     epoch = 'stim_start'
     for i in range(5):
         model.set_seed(i)
-        for j, task in enumerate(task_list+['Multitask']):
+        for j, task in enumerate(tasks_to_compute):
             print('\n') 
             print(task) 
             task_file = task_swaps_map[task]

@@ -8,7 +8,7 @@ import torch.optim as optim
 
 from task import Task
 from data import TaskDataSet
-from utils import isCorrect, train_instruct_dict, training_lists_dict
+from utils import get_holdout_file, isCorrect, train_instruct_dict, training_lists_dict, get_holdout_file
 from model_analysis import task_eval, get_instruct_reps
 
 from rnn_models import SimpleNet, InstructNet
@@ -18,6 +18,7 @@ import torch.nn as nn
 import itertools
 import pickle
 import sys
+import copy
 
 device = torch.device(0)
 
@@ -58,7 +59,8 @@ def init_optimizer(model, lr, milestones, weight_decay=0.0, langLR=None):
     return optimizer, optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.5)
     
     
-def train_model(model, streamer, epochs, optimizer, scheduler, print_eval=False, testing=False): 
+def train_model(model, streamer, epochs, optimizer, scheduler, print_eval=False, testing=False, checkpoint_for_tuning=False): 
+    assert checkpoint_for_tuning != 'tuned' in model.model_name, 'checkpointed train for model for tuning'
     model.to(device)
     model.train()
     if testing: 
@@ -103,6 +105,31 @@ def train_model(model, streamer, epochs, optimizer, scheduler, print_eval=False,
 
         if scheduler is not None: 
             scheduler.step()    
+        
+        if checkpoint_for_tuning and i == epochs-5: 
+            model_for_tuning = copy.deepcopy(model)
+            model_for_tuning.model_name += '_tuned'
+            model.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
+            model.save_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
+
+def tune_model(model, holdouts): 
+    data = TaskDataSet(data_folder= model_file+'/training_data', holdouts=holdouts)
+    data.data_to_device(device)
+    model.set_seed(seed_num)
+    opt, sch = init_optimizer(model, 5*1e-4, [-1], langLR= 5*1e-5)
+    
+    model.load_model(model_file+'/'+holdout_type+'/'+holdout_file)
+    model.langModel.train_layers=['11', '10', '9']
+    model.langModel.init_train_layers()
+    if 'tuned' not in model.model_name: model.model_name = model.model_name+'_tuned'
+
+    model.to(device)
+    train_model(model, data, 10, opt, sch)
+
+    model.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
+    model.save_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
+    print('saved: '+ model_file+'/'+holdout_type+'/'+holdout_file)
+
 
 def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_5.7', holdout_type = 'single_holdouts', save=False): 
     if len(holdouts_test) > 1: holdout_file = '_'.join(holdouts_test)
@@ -128,7 +155,7 @@ def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_5.7', hol
     return correct_perf, loss_perf
 
 
-def _train_context_(model, data_streamer, epochs, opt, sch, context): 
+def _train_context_(model, data_streamer, epochs, opt, sch, context, self_supervised=False): 
     model.freeze_weights()
     model.eval()
     for i in range(epochs): 
@@ -139,13 +166,17 @@ def _train_context_(model, data_streamer, epochs, opt, sch, context):
             ins, tar, mask, tar_dir, task_type = data
 
             opt.zero_grad()
-            batch_context = context
+    
             #batch_context = context.repeat(ins.shape[0], 1).to(device)
-            task_info = model.get_task_info(ins.shape[0], task_type)
-            target_out, _ = model(task_info, ins)
-            proj = model.langModel.proj_out(batch_context)            
-            out, _ = super(type(model), model).forward(proj, ins)
-            loss = masked_MSE_Loss(out, target_out, mask) 
+            if self_supervised:
+                task_info = model.get_task_info(ins.shape[0], task_type)
+                target, _ = model(task_info, ins)
+            else: 
+                target = tar
+
+            #proj = model.langModel.proj_out(context.float())            
+            out, _ = super(type(model), model).forward(context, ins)
+            loss = masked_MSE_Loss(out, target, mask) 
             loss.backward()
 
             opt.step()
@@ -161,81 +192,50 @@ def _train_context_(model, data_streamer, epochs, opt, sch, context):
 
     return context.squeeze().detach().cpu().numpy()
 
+def get_model_contexts(model, num_contexts, target_embedding_layer, task_file, self_supervised, lang_init=False, foldername='_ReLU128_5.7'):
+    if target_embedding_layer.isnumeric(): 
+        context_dim = model.langModel.intermediate_lang_dim
+    elif target_embedding_layer =='full': 
+        context_dim = model.langModel.out_dim
+    all_contexts = np.empty((16, num_contexts, context_dim))
 
-def get_model_contexts(model, epochs, filename='_ReLU128_5.7', init_avg=False):
-    from decoder_rnn import DecoderRNN, get_decoder_loss
-    decoder_loss_ratio = 0.8
-    decoder_rnn = DecoderRNN(768, 768).to(device)
-    context_dim = 768
-    batch_len = 128
-    all_contexts = np.random.normal((16, batch_len, context_dim))
-    task_file = 'Anti_Go_MultiCOMP1'
+    if self_supervised:
+        supervised_str = ''
+    else:
+        supervised_str = '_supervised'
+
     model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
-    #context_dim = model.langModel.intermediate_lang_dim
-    
-    all_contexts_tensor =torch.randn((16, batch_len, context_dim), requires_grad=True, device=device)
-    opt= optim.Adam([{'params': decoder_rnn.parameters()},
-                    {'params': all_contexts_tensor}],
-                    lr=0.0005, weight_decay=0.0)
-                    
-    sch = optim.lr_scheduler.ExponentialLR(opt, 0.90)
+    model.to(device)
 
+    if lang_init: 
+        instruct_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth=target_embedding_layer)
+        batched_reps = np.repeat(np.mean(instruct_reps, axis=1), num_contexts).reshape(16, num_contexts, context_dim)
+        batched_reps+= np.random.randn(16, num_contexts, context_dim)
+        tensor_reps = torch.tensor(batched_reps, device=device)
+        lang_init_str = 'lang_init'
+    else: 
+        lang_init_str = ''
 
-    streamer = TaskDataSet(filename+'/training_data', batch_len = batch_len, num_batches = 500, holdouts=['Anti Go', 'MultiCOMP1'])
-    streamer.data_to_device(device)
+    for i, task in enumerate(Task.TASK_LIST):     
+        if lang_init: 
+            context = nn.Parameter(tensor_reps[i, ...], requires_grad=True)
+        else: 
+            context = nn.Parameter(torch.randn((num_contexts, context_dim), device=device))
 
-    for i in range(epochs): 
-        print('epoch', i)
-        streamer.shuffle_stream_order()
-        for j, data in enumerate(streamer.stream_batch()): 
-            ins, tar, mask, tar_dir, task_type = data
-            task_index = Task.TASK_LIST.index(task_type)
-            task_info = model.get_task_info(ins.shape[0], task_type)
-            target_out, _ = model(task_info, ins)
-            contexts = all_contexts_tensor[task_index, ...]
-            decoder_loss = get_decoder_loss(decoder_rnn, task_info, contexts, (500-j)/500, print_progress=j%50==0)
-            proj_contexts = model.langModel.proj_out(contexts)
-            out, _ = super(type(model), model).forward(proj_contexts, ins)
-            task_loss = masked_MSE_Loss(out, target_out, mask) 
-            loss = decoder_loss*decoder_loss_ratio+task_loss*(1-decoder_loss_ratio)
-            loss.backward()
-            opt.step
-
-            frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
-
-            if j%50 == 0:
-                print(task_type)
-                print(j, ':', model.model_name, ":", "{:.2e}".format(task_loss.item()))
-                print('Frac Correct ' + str(frac_correct) + '\n')
-
-            model._correct_data_dict[task_type] = np.array(model._correct_data_dict[task_type])
-            model._loss_data_dict[task_type] = np.array(model._correct_data_dict[task_type])
-
-        sch.step()
-    pickle.dump(all_contexts, open(filename+'/swap_holdouts/'+task_file + model.model_name+'/'+model.__seed_num_str__+'combo_context_vecs20', 'wb'))
-    pickle.dump(model._correct_data_dict, open(filename+'/swap_holdouts/'+task_file + model.model_name+'/'+model.__seed_num_str__+'combo_context_holdout_correct_data20', 'wb'))
-    pickle.dump(model._loss_data_dict, open(filename+'/swap_holdouts/'+task_file + model.model_name+'/'+model.__seed_num_str__+'combo_context_holdout_loss_data20', 'wb'))
-
-
-def _get_model_contexts(model, num_contexts, task_file, filename='_ReLU128_5.7'):
-    all_contexts = np.empty((16, num_contexts, model.langModel.intermediate_lang_dim))
-    model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
-    for i, task in enumerate(Task.TASK_LIST[::-1]):     
-        #contexts = np.empty((num_contexts, model.langModel.intermediate_lang_dim))
-        streamer = TaskDataSet(filename+'/training_data', num_batches = 500, task_ratio_dict={task:1})
-        streamer.data_to_device(device)
-        context = nn.Parameter(torch.randn((num_contexts, model.langModel.intermediate_lang_dim), device=device))
-
-        #for j in range(num_contexts): 
-        opt= optim.Adam([context], lr=1e-3, weight_decay=0.0)
+        opt= optim.Adam([context], lr=5e-3, weight_decay=0.0)
         sch = optim.lr_scheduler.ExponentialLR(opt, 0.95)
-        contexts =_train_context_(model, streamer, 30, opt, sch, context)
+
+        streamer = TaskDataSet(foldername+'/training_data', batch_len = num_contexts, num_batches = 500, task_ratio_dict={task:1})
+        streamer.data_to_device(device)
+
+        contexts =_train_context_(model, streamer, 10, opt, sch, context, self_supervised=self_supervised)
         all_contexts[i, ...] = contexts
 
 
-    pickle.dump(all_contexts, open(filename+'/swap_holdouts/'+task_file + '/'+model.model_name+'/'+model.__seed_num_str__+'_context_vecs768', 'wb'))
-    pickle.dump(model._correct_data_dict, open(filename+'/swap_holdouts/'+task_file+'/' + model.model_name+'/'+model.__seed_num_str__+'_context_holdout_correct_data768', 'wb'))
-    pickle.dump(model._loss_data_dict, open(filename+'/swap_holdouts/'+task_file + '/'+ model.model_name+'/'+model.__seed_num_str__+'_context_holdout_loss_data768', 'wb'))
+    filename=foldername+'/swap_holdouts/'+task_file + '/'+model.model_name+'/contexts/'+model.__seed_num_str__+lang_init_str+supervised_str
+    pickle.dump(all_contexts, open(filename+'_context_vecs'+str(context_dim), 'wb'))
+    pickle.dump(model._correct_data_dict, open(filename+'_context_holdout_correct_data'+str(context_dim), 'wb'))
+    pickle.dump(model._loss_data_dict, open(filename+'_context_holdout_loss_data'+str(context_dim), 'wb'))
 
 
 
@@ -350,10 +350,8 @@ if __name__ == "__main__":
 
             model.set_seed(seed_num)
             model.to(device)
-
-            _get_model_contexts(model, 128, 'Multitask')
-
-
+            for self_supervised in ['False', 'True']:
+                get_model_contexts(model, 256, 'full','Multitask', self_supervised=self_supervised, lang_init=False)
 
     if train_mode == 'test': 
         holdout_type = 'swap_holdouts'
@@ -366,9 +364,7 @@ if __name__ == "__main__":
             model_params_key, seed_num, holdouts = config
             for holdout in holdouts:
                 try:
-                    if len(holdouts) > 1: holdout_file = '_'.join(holdouts)
-                    else: holdout_file = holdouts[0]
-                    holdout_file = holdout_file.replace(' ', '_')
+                    holdout_file = get_holdout_file(holdouts)
                     pickle.load(open(model_file+'/'+holdout_type +'/'+holdout_file + '/' + model_params_key+'/'+instruct_mode+holdout.replace(' ', '_')+'_seed'+str(seed_num)+'_holdout_correct', 'rb'))
                     print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout)
                     continue
@@ -384,91 +380,49 @@ if __name__ == "__main__":
         holdout_type = 'swap_holdouts'
         seeds = [0, 1, 2, 3, 4]
         to_tune = list(itertools.product(['bertNet', 'gptNet'], seeds, [['Multitask']]))
+
         for config in to_tune: 
             model_params_key, seed_num, holdouts = config
-            if len(holdouts) > 1: holdout_file = '_'.join(holdouts)
-            else: holdout_file = holdouts[0]
-            holdout_file = holdout_file.replace(' ', '_')
-            print(holdout_file)
+            holdout_file = get_holdout_file(holdouts)
 
-            # try:
-            #     pickle.load(open(model_file+'/'+holdout_type +'/'+holdout_file + '/' + model_params_key+'_tuned'+'/seed'+str(seed_num)+'_training_correct', 'rb'))
-            #     print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
-            #     continue
-            # except FileNotFoundError: 
-            print(config)
-            model, _, _, _ = config_model_training(model_params_key)
-            opt, sch = init_optimizer(model, 5*1e-4, [-1], langLR= 5*1e-5)
-            model.set_seed(seed_num)
-            model.load_model(model_file+'/'+holdout_type+'/'+holdout_file)
-            model.langModel.train_layers=['11', '10', '9']
-            model.langModel.init_train_layers()
-            model.model_name = model.model_name+'_tuned'
-            if holdouts == ['Multitask']: data = TaskDataSet(data_folder= model_file+'/training_data')
-            else: data = TaskDataSet(data_folder= model_file+'/training_data', holdouts=holdouts)
-            data.data_to_device(device)
-            model.to(device)
-            train_model(model, data, 5, opt, sch)
+            try:
+                pickle.load(open(model_file+'/'+holdout_type +'/'+holdout_file + '/' + model_params_key+'_tuned'+'/seed'+str(seed_num)+'_training_correct', 'rb'))
+                print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
+                continue
+            except FileNotFoundError: 
+                print(config)
+                model, _, _, _ = config_model_training(model_params_key)
+                tune_model(model, holdouts)
 
-            model.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
-            model.save_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
-            print('saved: '+ model_file+'/'+holdout_type+'/'+holdout_file)
-
+            
     if train_mode == 'train': 
         holdout_type = 'swap_holdouts'
-
         seeds = [0, 1, 2, 3, 4]
         to_train = list(itertools.product(seeds, ['sbertNet', 'gptNet',  'simpleNet', 'bow20Net', 'bertNet'], [['Multitask']]))
-        print(to_train)
 
-        last_holdouts = None
-        data = None
         for cur_train in to_train:      
-            #get the seed, holdout task, and model to train 
             seed_num, model_params_key, holdouts = cur_train
+            holdout_file = get_holdout_file(holdouts)
 
-            #checkpoint the model training 
+            try: 
+                pickle.load(open(model_file+'/'+holdout_type+'/'+holdout_file+'/'+model_params_key+'/seed'+str(seed_num)+'_training_loss', 'rb'))
+                print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
 
-            #format save file name 
-            if len(holdouts) > 1: holdout_file = '_'.join(holdouts)
-            else: holdout_file = holdouts[0]
-            holdout_file = holdout_file.replace(' ', '_')
-
-            #build model from params 
-
-            # try: 
-            #     pickle.load(open(model_file+'/'+holdout_type+'/'+holdout_file+'/'+model_params_key+'/seed'+str(seed_num)+'_training_loss', 'rb'))
-            #     print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
-
-            #     last_holdouts = holdouts
-            #     continue
-            #except FileNotFoundError:
-            print(cur_train)
-                    #if its a new training task, make the new data 
-            if holdouts == last_holdouts and data is not None: 
-                pass 
-            else: 
-                if holdouts == ['Multitask']: data = TaskDataSet(data_folder= model_file+'/training_data')
-                else: data = TaskDataSet(data_folder= model_file+'/training_data', holdouts=holdouts)
+                last_holdouts = holdouts
+                continue
+            except FileNotFoundError:
+                print(cur_train)
+                data = TaskDataSet(data_folder= model_file+'/training_data', holdouts=holdouts)
                 data.data_to_device(device)
 
-            model, _, _, epoch = config_model_training(model_params_key)
-            model.set_seed(seed_num)
-            # model.load_model(model_file+'/'+holdout_type+'/'+'Multitask')
-            # model.load_training_data(model_file+'/'+holdout_type+'/'+'Multitask')
-            for n,p in model.named_parameters():
-                if p.requires_grad: print(n)
-            model.to(device)
-            print(model.model_name)
-            #opt, _ = init_optimizer(model, 5e-05, [])
+                model, _, _, epoch = config_model_training(model_params_key)
+                model.set_seed(seed_num)
 
-            opt, _ = init_optimizer(model, 0.001, [])
-            sch = optim.lr_scheduler.ExponentialLR(opt, 0.95)
-            #train 
-            train_model(model, data, epoch, opt, sch)
-            #save
-            model.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
-            model.save_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
+                opt, _ = init_optimizer(model, 0.001, [])
+                sch = optim.lr_scheduler.ExponentialLR(opt, 0.95)
+                #train 
+                train_model(model, data, epoch, opt, sch)
+                #save
+                model.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
+                model.save_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
 
-            #to check if you should make new data 
-            last_holdouts = holdouts

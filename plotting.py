@@ -463,39 +463,39 @@ def plot_hid_traj_quiver(task_group_hid_traj, task_group, task_indices, trial_in
             except IndexError: 
                 task = context_task
                 linestyle = 'solid'
-                task_color = 'white'
+                task_color = 'black'
 
             if task_index == context_task: instruct_indices = instruction_indices
             else: instruct_indices = [0]
             for instruct_index in instruct_indices: 
-                ax.quiver(embedded[task_index, instruct_index, 1:20, 0], embedded[task_index, instruct_index, 1:20, 1], embedded[task_index, instruct_index, 1:20, 2], 
-                            np.diff(embedded[task_index, instruct_index, :20, 0], axis=0), np.diff(embedded[task_index, instruct_index, :20, 1], axis=0), np.diff(embedded[task_index, instruct_index, :20, 2], axis=0),
+                ax.quiver(embedded[task_index, instruct_index, 1:, 0], embedded[task_index, instruct_index, 1:, 1], embedded[task_index, instruct_index, 1:, 2], 
+                            np.diff(embedded[task_index, instruct_index, :, 0], axis=0), np.diff(embedded[task_index, instruct_index, :, 1], axis=0), np.diff(embedded[task_index, instruct_index, :, 2], axis=0),
                             length = 0.35, color = task_color, facecolor = 'white', arrow_length_ratio=0.5,  pivot='middle', linewidth=1, linestyle = linestyle)
 
-                # ax.scatter(embedded[task_index, instruct_index, 0, 0], embedded[task_index, instruct_index, 0, 1], embedded[task_index, instruct_index, 0, 2],  
-                #             s = marker_size, color='white', edgecolor= task_colors[task], marker='*')
-                # ax.scatter(embedded[task_index, instruct_index, 119, 0], embedded[task_index, instruct_index, 119, 1], embedded[task_index, instruct_index, 119, 2],  
-                #             s = marker_size, color='white', edgecolor= task_colors[task], marker='o')
+                ax.scatter(embedded[task_index, instruct_index, 0, 0], embedded[task_index, instruct_index, 0, 1], embedded[task_index, instruct_index, 0, 2],  
+                            s = marker_size, color='white', edgecolor= task_colors[task], marker='*')
+                ax.scatter(embedded[task_index, instruct_index, 119, 0], embedded[task_index, instruct_index, 119, 1], embedded[task_index, instruct_index, 119, 2],  
+                            s = marker_size, color='white', edgecolor= task_colors[task], marker='o')
 
-                # ax.scatter(embedded[task_index, instruct_index, 99, 0], embedded[task_index, instruct_index, 99, 1], embedded[task_index, instruct_index, 99, 2], 
-                #             s=marker_size, color='white', edgecolor= task_colors[task], marker = 'P')
-                # if task_group == 'COMP': 
-                #     ax.scatter(embedded[task_index, instruct_index, 59, 0], embedded[task_index, instruct_index, 59, 1], embedded[task_index, instruct_index, 59, 2], 
-                #             s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
+                ax.scatter(embedded[task_index, instruct_index, 99, 0], embedded[task_index, instruct_index, 99, 1], embedded[task_index, instruct_index, 99, 2], 
+                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'P')
+                if task_group == 'COMP': 
+                    ax.scatter(embedded[task_index, instruct_index, 59, 0], embedded[task_index, instruct_index, 59, 1], embedded[task_index, instruct_index, 59, 2], 
+                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
 
-                # if 'RT' in task: 
-                #     ax.scatter(embedded[task_index, instruct_index, 99, 0], embedded[task_index, instruct_index, 99, 1], embedded[task_index, instruct_index, 99, 2], 
-                #             s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
-                # else: 
-                #     ax.scatter(embedded[task_index, instruct_index, 19, 0], embedded[task_index, instruct_index, 19, 1], embedded[task_index, instruct_index, 19, 2], 
-                #             s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
-                # if (task_index, trial_index, instruct_index) in annotate_tuples: 
-                #     offset = 0.25
-                #     instruction = str(1+instruct_index)+'. '+train_instruct_dict[task][instruct_index]
-                #     if len(instruction) > 90: 
-                #         instruction=two_line_instruct(instruction)
-                #     ax.text(embedded[task_index, instruct_index, 119, 0]+offset, embedded[task_index, instruct_index, 119, 1]+offset, embedded[task_index, instruct_index, 119, 2]+offset, 
-                #         instruction, size=8, zorder=50,  color='k') 
+                if 'RT' in task: 
+                    ax.scatter(embedded[task_index, instruct_index, 99, 0], embedded[task_index, instruct_index, 99, 1], embedded[task_index, instruct_index, 99, 2], 
+                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
+                else: 
+                    ax.scatter(embedded[task_index, instruct_index, 19, 0], embedded[task_index, instruct_index, 19, 1], embedded[task_index, instruct_index, 19, 2], 
+                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
+                if (task_index, trial_index, instruct_index) in annotate_tuples: 
+                    offset = 0.25
+                    instruction = str(1+instruct_index)+'. '+train_instruct_dict[task][instruct_index]
+                    if len(instruction) > 90: 
+                        instruction=two_line_instruct(instruction)
+                    ax.text(embedded[task_index, instruct_index, 119, 0]+offset, embedded[task_index, instruct_index, 119, 1]+offset, embedded[task_index, instruct_index, 119, 2]+offset, 
+                        instruction, size=8, zorder=50,  color='k') 
 
 
     ax.set_title(subtitle, fontsize='medium')
@@ -520,7 +520,7 @@ def plot_hid_traj_quiver(task_group_hid_traj, task_group, task_indices, trial_in
 
 
 
-def plot_hid_traj_quiver(task_group_hid_traj, task_group, task_indices, trial_indices, instruction_indices, subtitle='', annotate_tuples = [], context_task=None, save_file=None): 
+def plot_hid_traj(task_group_hid_traj, task_group, task_indices, trial_indices, instruction_indices, subtitle='', annotate_tuples = [], context_task=None, save_file=None): 
     alphas = np.linspace(0.8, 0.2, num=task_group_hid_traj.shape[2])
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111, projection='3d')
@@ -641,23 +641,12 @@ def plot_dPCA(model, tasks, swapped_tasks=[]):
     plt.show()
 
 
-def plot_RDM(sim_scores, rep_type, input_reps=None, cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', use_avg_reps = False, save_file=None):
-    if rep_type == 'lang': 
-        rep_dim = 768
-        number_reps=15
-        label_buffer = 2
-    if rep_type == 'task': 
-        rep_dim = 128
-        number_reps=100
-        label_buffer = 8
-
-    if sim_scores is None: 
-        reps = input_reps.copy()
-        if use_avg_reps:
-            reps = np.mean(reps, axis=1)
-        reps = reps.reshape(-1, rep_dim)
-        sim_scores = 1-np.corrcoef(reps)
-
+def plot_RDM(sim_scores, rep_type, cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', use_avg_reps = False, save_file=None):
+    if rep_type == 'lang': label_buffer = 2
+    if rep_type == 'task': label_buffer = 8
+    rep_dim = sim_scores.shape[-1]
+    number_reps=sim_scores.shape[1]
+    
 
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(10, 8))
     sns.heatmap(sim_scores, yticklabels = '', xticklabels= '', 
@@ -715,7 +704,6 @@ def plot_tuning_curve(model, tasks, task_variable, unit, mod, times, swapped_tas
 
 
 def plot_CCGP_scores(model_list, rep_type_file_str = '', save_file=None):
-    keys_list = ['all_CCGP', 'holdout_CCGP']
     barWidth = 0.08
     Patches = []
     for i, model_name in enumerate(model_list):
@@ -723,7 +711,7 @@ def plot_CCGP_scores(model_list, rep_type_file_str = '', save_file=None):
         else: marker_shape='s'
         Patches.append(Line2D([0], [0], linestyle='None', marker=marker_shape, color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
                 markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8))
-        len_values = len(keys_list)
+        len_values = 2
         if i == 0:
             r = np.arange(len_values)
         else:
@@ -734,26 +722,25 @@ def plot_CCGP_scores(model_list, rep_type_file_str = '', save_file=None):
             mark_size = 3
     
         for j, swap_mode in enumerate(['', '_swap']):
-            values = np.empty((2,))
+            values = np.full(2, np.NAN)
             spread_values = np.empty((len_values, 5))
 
-            CCGP_score = np.load(open('_ReLU128_5.7/CCGP_measures/'+rep_type_file_str+model_name+swap_mode+'_CCGP_scores.npz', 'rb'))
-            for k, key in enumerate(keys_list):  
-                if k == 0 and swap_mode == '_swap': 
-                    continue
-                else:
-                    values[k] = np.mean(np.nan_to_num(CCGP_score[key]))
-                    if len(CCGP_score[key].shape)>3:
-                        spread_values[k, :] = np.mean(np.nan_to_num(CCGP_score[key]), axis=(1,2,3))
-                    else: 
-                        spread_values[k, :] = np.mean(np.nan_to_num(CCGP_score[key]), axis=(1,2))
+            CCGP_score = np.load(open('_ReLU128_5.7/CCGP_measures_new/'+rep_type_file_str+model_name+swap_mode+'_CCGP_scores.npz', 'rb'))
+            if swap_mode != '_swap': 
+                print('all_CCGP')
+                values[0] = np.mean(np.nan_to_num(CCGP_score['all_CCGP'][:, -1, :, :]))
+                spread_values[0, :] = np.mean(np.nan_to_num(CCGP_score['all_CCGP'][:, -1, :, :]), axis=(1,2))
 
-                    markers, caps, bars = plt.errorbar(r[k], values[k], yerr = np.std(spread_values[k, :]), elinewidth = 0.5, capsize=1.0, marker=marker_shape, linestyle="", mfc = [None, 'white'][j], alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
+            values[1] = np.mean(np.nan_to_num(CCGP_score['holdout_CCGP']))
+            spread_values[1, :] = np.mean(np.nan_to_num(CCGP_score['holdout_CCGP']), axis=(1,2))
+
+            for k in range(2):
+                markers, caps, bars = plt.errorbar(r[k], values[k], yerr = np.std(spread_values[k, :]), elinewidth = 0.5, capsize=1.0, marker=marker_shape, linestyle="", mfc = [None, 'white'][j], alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
 
             [bar.set_alpha(0.2) for bar in bars]
 
     plt.hlines(0.5, 0, r[-1], linestyles='--', color='black')
-    plt.ylim(0.25, 1.05)
+    plt.ylim(0.45, 1.05)
     plt.title('CCGP Measures')
     plt.ylabel('Percentage Correct')
     r = np.arange(len_values)
@@ -766,7 +753,6 @@ def plot_CCGP_scores(model_list, rep_type_file_str = '', save_file=None):
     if save_file is not None: 
         plt.savefig('figs/'+save_file)
     plt.show()
-
 
 def plot_neural_resp(model, task_type, task_variable, unit, mod, save_file=None):
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
