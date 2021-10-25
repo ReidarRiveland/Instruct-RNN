@@ -8,7 +8,7 @@ import torch.optim as optim
 
 from task import Task
 from data import TaskDataSet
-from utils import get_holdout_file, isCorrect, train_instruct_dict, training_lists_dict, get_holdout_file
+from utils import get_holdout_file, isCorrect, train_instruct_dict, training_lists_dict, get_holdout_file, all_swaps
 from model_analysis import task_eval, get_instruct_reps
 
 from rnn_models import SimpleNet, InstructNet
@@ -155,7 +155,7 @@ def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_5.7', hol
     return correct_perf, loss_perf
 
 
-def _train_context_(model, data_streamer, epochs, opt, sch, context, self_supervised=False): 
+def _train_context_(model, data_streamer, epochs, opt, sch, context, self_supervised): 
     model.freeze_weights()
     model.eval()
     for i in range(epochs): 
@@ -199,10 +199,10 @@ def get_model_contexts(model, num_contexts, target_embedding_layer, task_file, s
         context_dim = model.langModel.out_dim
     all_contexts = np.empty((16, num_contexts, context_dim))
 
-    if self_supervised:
-        supervised_str = ''
-    else:
+    supervised_str = ''
+    if not self_supervised:
         supervised_str = '_supervised'
+    
 
     model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
     model.to(device)
@@ -228,14 +228,14 @@ def get_model_contexts(model, num_contexts, target_embedding_layer, task_file, s
         streamer = TaskDataSet(foldername+'/training_data', batch_len = num_contexts, num_batches = 500, task_ratio_dict={task:1})
         streamer.data_to_device(device)
 
-        contexts =_train_context_(model, streamer, 10, opt, sch, context, self_supervised=self_supervised)
+        contexts =_train_context_(model, streamer, 12, opt, sch, context, self_supervised)
         all_contexts[i, ...] = contexts
 
 
     filename=foldername+'/swap_holdouts/'+task_file + '/'+model.model_name+'/contexts/'+model.__seed_num_str__+lang_init_str+supervised_str
     pickle.dump(all_contexts, open(filename+'_context_vecs'+str(context_dim), 'wb'))
-    pickle.dump(model._correct_data_dict, open(filename+'_context_holdout_correct_data'+str(context_dim), 'wb'))
-    pickle.dump(model._loss_data_dict, open(filename+'_context_holdout_loss_data'+str(context_dim), 'wb'))
+    pickle.dump(model._correct_data_dict, open(filename+'_context_correct_data'+str(context_dim), 'wb'))
+    pickle.dump(model._loss_data_dict, open(filename+'_context_loss_data'+str(context_dim), 'wb'))
 
 
 
@@ -340,8 +340,8 @@ if __name__ == "__main__":
     print('Mode: ' + train_mode + '\n')
 
     if train_mode == 'train_contexts': 
-        seeds = [0, 1]
-        to_train = list(itertools.product(seeds, ['sbertNet_tuned'], ['']))
+        seeds = [0, 1, 2, 3, 4]
+        to_train = list(itertools.product(seeds, ALL_MODEL_PARAMS.keys(), ['Multitask']+all_swaps))
 
         for config in to_train: 
             print(config)
@@ -350,8 +350,17 @@ if __name__ == "__main__":
 
             model.set_seed(seed_num)
             model.to(device)
-            for self_supervised in ['False', 'True']:
-                get_model_contexts(model, 256, 'full','Multitask', self_supervised=self_supervised, lang_init=False)
+            for self_supervised in [False, True]:
+                supervised_str = ''
+                if not self_supervised:
+                    supervised_str = '_supervised'
+    
+                try: 
+                    filename=model_file+'/swap_holdouts/'+task_file + '/'+model.model_name+'/contexts/'+model.__seed_num_str__+supervised_str+'_context_vecs20'
+                    pickle.load(open(filename, 'rb'))
+                    print(filename+' already trained')
+                except FileNotFoundError:
+                    get_model_contexts(model, 256, 'full', task_file, self_supervised)
 
     if train_mode == 'test': 
         holdout_type = 'swap_holdouts'

@@ -6,7 +6,7 @@ from model_analysis import get_instruct_reps, get_model_performance, reduce_rep
 from plotting import plot_trained_performance, plot_rep_scatter
 import numpy as np
 import torch.optim as optim
-from utils import sort_vocab, isCorrect
+from utils import sort_vocab, isCorrect, task_swaps_map
 from task import Task
 import seaborn as sns
 
@@ -73,6 +73,7 @@ class BaseDecoder(nn.Module):
         self.vocab = Vocab()
         self.instruct_array = np.array([train_instruct_dict[task] for task in Task.TASK_LIST]).squeeze()
         self.contexts = self._init_context_set(init_context_set_obj)
+        self.validation_holdouts = self.contexts.shape[1]/5
 
     def _init_context_set(self, load_object):
         if type(load_object) is str: 
@@ -82,14 +83,18 @@ class BaseDecoder(nn.Module):
         return contexts
 
     def save_model(self, save_string): 
-        torch.save(self.state_dict(),'_ReLU128_5.7/swap_holdouts/'+save_string+'.pt')
+        torch.save(self.state_dict(), save_string+'.pt')
+
+    def save_model_data(self, save_string): 
+        pickle.dump(self.teacher_loss_list, open(save_string+'_teacher_loss_list', 'wb'))
+        pickle.dump(self.loss_list, open(save_string+'_loss_list', 'wb'))
 
     def load_model(self, save_string): 
         self.load_state_dict(torch.load('_ReLU128_5.7/swap_holdouts/'+save_string+'.pt'))
 
     def get_instruct_embedding_pair(self, task_index, instruct_index, training=True): 
         if training:
-            context_rep_index = np.random.randint(self.contexts.shape[1]-30, size=instruct_index.shape[0])
+            context_rep_index = np.random.randint(self.contexts.shape[1]-self.validation_holdouts, size=instruct_index.shape[0])
         else: 
             context_rep_index = np.random.randint(self.contexts.shape[1],size=instruct_index.shape[0])
         rep = self.contexts[task_index, context_rep_index, :]
@@ -101,44 +106,7 @@ class BaseDecoder(nn.Module):
         plot_rep_scatter(reps_reduced, tasks_to_plot)
         return reps_reduced
 
-
-
-class BaseDecoderRNN(BaseDecoder):
-    def __init__(self, init_context_set_obj):
-        super().__init__(init_context_set_obj)
-        self.hidden_size = self.contexts.shape[-1]
-        self.embedding = nn.Embedding(self.vocab.n_words, self.hidden_size)
-        self.gru = nn.GRU(self.hidden_size, self.hidden_size)
-        self.out = nn.Linear(self.hidden_size, self.vocab.n_words)
-        self.softmax = nn.LogSoftmax(dim=1)
-
-    def _base_forward(self, ins, hidden):
-        output = self.embedding(ins).view(1, 1, -1)
-        output = torch.relu(output)
-        output, hidden = self.gru(output, hidden.view(1, 1, -1))
-        output = self.softmax(self.out(output[0]))
-        return output, hidden
-
-    def forward(self, ins, hidden):
-        return self._base_forward(ins, hidden)
-
-    def decode_sentence(self, hidden_rep): 
-        decoder_hidden = torch.Tensor(hidden_rep).view(1, 1, -1)
-        decoder_input = torch.tensor([[self.vocab.SOS_token]])
-        decoded_sentence = []
-        for di in range(30):
-            decoder_output, decoder_hidden = self._base_forward(decoder_input, decoder_hidden)
-            _, topi = decoder_output.topk(1)
-            decoder_input = topi.squeeze().detach()  # detach from history as input
-            decoded_sentence.append(self.vocab.index2word[decoder_input.item()])
-            if decoder_input.item() == self.vocab.EOS_token:
-                break
-        return ' '.join(decoded_sentence[:-1]), decoder_hidden
-
-
-
-
-class BaseDecoderRNN_(BaseDecoder):
+class DecoderRNN(BaseDecoder):
     def __init__(self, hidden_size, init_context_set_obj):
         super().__init__(init_context_set_obj)
         self.hidden_size = hidden_size
@@ -168,10 +136,10 @@ class BaseDecoderRNN_(BaseDecoder):
 
     def decode_sentence(self, context): 
         _, _, decoded_indices = self.forward(context)
-        decoded_sentences = self.vocab.untokenize_sentence(decoded_indices)  # detach from history as input
+        decoded_sentences = self.vocab.untokenize_sentence(decoded_indices[1:,...])  # detach from history as input
         return decoded_sentences
 
-class DecoderTaskRNN(BaseDecoderRNN_):
+class DecoderTaskRNN(DecoderRNN):
     def __init__(self, hidden_size, init_context_set_obj):
         super().__init__(hidden_size, init_context_set_obj)
         self.task_decoder = nn.Linear(self.hidden_size, len(Task.TASK_LIST))
@@ -204,6 +172,32 @@ class DecoderTaskRNN(BaseDecoderRNN_):
         plt.show()
         return confusion_matrix
 
+def test_partner_model(partner_model, decoder, num_repeats=1): 
+    partner_model.eval()
+    batch_len = decoder.contexts.shape[1]
+    with torch.no_grad():
+        perf_array = np.empty((num_repeats, 2, 16))
+        for i, mode in enumerate(['context', 'instruct']): 
+            for j, task in enumerate(Task.TASK_LIST):
+                print(task)
+                mean_list = [] 
+                task_info = []
+                for k in range(num_repeats): 
+                    ins, targets, _, target_dirs, _ = construct_batch(task, batch_len)
+
+                    if mode == 'instruct': 
+                        instruct = decoder.decode_sentence(torch.Tensor(decoder.contexts[j,...]).to(device))
+                        task_info = list(instruct)
+                        out, _ = partner_model(task_info, torch.Tensor(ins).to(partner_model.__device__))
+                    elif mode == 'context':
+                        task_info = decoder.contexts[j, ...]
+                        out, _ = super(type(partner_model), partner_model).forward(torch.Tensor(task_info).to(partner_model.__device__), torch.Tensor(ins).to(partner_model.__device__))
+                    
+                    task_perf = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
+                    perf_array[k, i, j] = task_perf
+
+    return perf_array
+
 
 
 def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=None, task_loss_ratio=0.1): 
@@ -212,9 +206,9 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
     loss_list = []
     teacher_loss_list = []
     task_indices = list(range(16))
-    batch_size=12
+    batch_size=32
 
-    if holdout_tasks is not None: 
+    if holdout_tasks is not None and 'Multitask' not in holdout_tasks: 
         for holdout_task in holdout_tasks:
             holdout_index = Task.TASK_LIST.index(holdout_task)
             task_indices.remove(holdout_index)
@@ -242,29 +236,36 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
                 for di in range(pad_len):
                     
                     decoder_output, decoder_hidden = decoder._base_forward(decoder_input, init_hidden)
-                    task_cat = decoder.softmax(decoder.task_decoder(decoder_hidden))
-                    topv, topi = decoder_output.topk(1)
-                    _, topi_task = task_cat.topk(1)
+                    if hasattr(decoder, 'task_decoder'):
+                        task_cat = decoder.softmax(decoder.task_decoder(decoder_hidden))
+                        _, topi_task = task_cat.topk(1)
 
+                    topv, topi = decoder_output.topk(1)
                     #get words for last sentence in the batch
                     last_word_index = topi.squeeze().detach()[-1].item()
                     last_word = decoder.vocab.index2word[last_word_index]
                     decoded_sentence.append(last_word)
 
-                    task_loss += criterion(task_cat[-1, ...], torch.LongTensor([task_index]*batch_size).to(device))*(1/(pad_len-di))
                     decoder_loss += criterion(decoder_output, target_tensor[0, :, di])
                     decoder_input = torch.cat((decoder_input, target_tensor[..., di]))
-                      # Teacher forcing
+
+                if hasattr(decoder, 'task_decoder'):
+                    task_loss = criterion(task_cat[0, ...], torch.LongTensor([task_index]*batch_size).to(device))#*(1/(pad_len-di))
+
                 loss=(decoder_loss+task_loss_ratio*task_loss)/pad_len
                 teacher_loss_list.append(loss.item()/pad_len)
             else:
                 # Without teacher forcing: use its own predictions as the next input
-                decoder_output, decoder_hidden, task_cat, decoded_indices = decoder(init_hidden)
-                _, topi_task = task_cat.topk(1)
+                decoder_output, decoder_hidden, decoded_indices = decoder(init_hidden)
+                
 
                 for k in range(pad_len):
-                    task_loss += criterion(task_cat[k, ...], torch.LongTensor([task_index]*batch_size).to(device))**(1/(pad_len-k))
                     decoder_loss += criterion(decoder_output, target_tensor[0, :, k])
+
+                if hasattr(decoder, 'task_decoder'):
+                    _, topi_task = task_cat.topk(1)
+                    task_loss = criterion(task_cat[0, ...], torch.LongTensor([task_index]*batch_size).to(device))#*(1/(pad_len-k))
+                
                 loss=(decoder_loss+task_loss_ratio*task_loss)/pad_len
                 decoded_sentence = decoder.vocab.untokenize_sentence(decoded_indices)[-1]  # detach from history as input        
                 decoder.loss_list.append(loss.item()/pad_len)
@@ -275,7 +276,7 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
             if j%50==0: 
                 print('Teacher forceing: ' + str(use_teacher_forcing))
                 print('Decoder Loss: ' + str(decoder_loss.item()/pad_len))
-                print('Task Loss: ' + str(task_loss.item()/pad_len))
+                #print('Task Loss: ' + str(task_loss.item()/pad_len))
 
                 print('target instruction: ' + target_instruct[-1])
                 if use_teacher_forcing:
@@ -286,7 +287,9 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
                     decoded_sentence = ' '.join(decoded_sentence[:eos_index])
                 
                 print('decoded instruction: ' + decoded_sentence + '\n')
-                print('Predicted Task: ' + Task.TASK_LIST[topi_task[0, -1].squeeze().item()] + ', Target Task: ' + Task.TASK_LIST[task_index] + '\n')
+                
+                if hasattr(decoder, 'task_decoder'):
+                    print('Predicted Task: ' + Task.TASK_LIST[topi_task[0, -1].squeeze().item()] + ', Target Task: ' + Task.TASK_LIST[task_index] + '\n')
 
 
         sch.step()
@@ -294,173 +297,150 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
 
     return loss_list, teacher_loss_list
 
-decoder= DecoderTaskRNN(128, 'Multitask/sbertNet_tuned/seed1_context_vecs20')
-decoder.to(device)
-# decoder_output, decoder_hidden, task_cat, decoded_indices = decoder(torch.randn(5, 20).to(device))
-# decoded_sentence = decoder.vocab.untokenize_sentence(decoded_indices)[-1]  # detach from history as input        
 
-criterion = nn.NLLLoss(reduction='mean')
-decoder_optimizer = optim.Adam(decoder.parameters(), lr=0.001, weight_decay=0.0)
-sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
-decoder.to(device)
+# decoder= DecoderRNN(128, 'Anti_Go_MultiCOMP1/sbertNet_tuned/contexts/seed0_supervised_context_vecs20')
 
+# decoder.load_model('Anti_Go_MultiCOMP1/sbertNet_tuned/_wHoldoutseed0_decoder')
 
-train_decoder_(decoder, decoder_optimizer, sch, 50, 1.0, task_loss_ratio=1.0)
+# decoder.to(device)
 
-decoder.decode_sentence(torch.Tensor(decoder.contexts[1, ...]).to(device))
-decoder.save_model('Multitask_seed1_20')
+# decoded_set = {}
+# for i, task in enumerate(Task.TASK_LIST):
+#     decoded_set[task] = set(decoder.decode_sentence(torch.Tensor(decoder.contexts[i, ...]).to(device)))
 
 
-def train_decoder(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=None, task_loss_ratio=0.1): 
-    teacher_forcing_ratio = init_teacher_forcing_ratio
-    loss_list = []
-    teacher_loss_list = []
-    task_indices = list(range(16))
-    if holdout_tasks is not None: 
-        for holdout_task in holdout_tasks:
-            holdout_index = Task.TASK_LIST.index(holdout_task)
-            task_indices.remove(holdout_index)
+# correct_list = []
+# incorrect_list = []
+# for instruct in decoded_set['MultiCOMP1']: 
+#     if instruct in train_instruct_dict['MultiCOMP1']:
+#         correct_list.append(instruct)
+#     else: 
+#         incorrect_list.append(instruct)
 
-    for i in range(epochs): 
-        print('Epoch: ' + str(i)+'\n')
-        for j in range(500): 
-            use_teacher_forcing = True if np.random.random() < teacher_forcing_ratio else False
-            decoder_loss=0
-            task_loss=0
-            task_index = np.random.choice(task_indices)
-            instruct_index = np.random.randint(0, 15)
-            target_instruct, rep = decoder.get_instruct_embedding_pair(task_index, instruct_index)            
-            target_tensor = torch.LongTensor(decoder.vocab.tokenize_sentence(target_instruct)).to(device)
+# correct_list
+# incorrect_list
 
-            decoder_hidden = torch.Tensor(rep).view(1, 1, -1).to(device)
-            decoder_input = torch.tensor([[decoder.vocab.SOS_token]]).to(device)
-            target_length = target_tensor.shape[0]
+# model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+# model1.model_name += '_tuned'
+# model1.set_seed(1) 
+# model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
+# #model1.to(device)
 
-            opt.zero_grad()
-
-            decoded_sentence = []
-            if use_teacher_forcing:
-                # Teacher forcing: Feed the target as the next input
-                for di in range(target_length):
-                    decoder_output, decoder_hidden, task_cat = decoder(decoder_input, decoder_hidden)
-                    topv, topi = decoder_output.topk(1)
-                    _, topi_task = task_cat.topk(1)
-
-                    decoded_sentence.append(decoder.vocab.index2word[topi.squeeze().detach().item()])
-                    task_loss += criterion(task_cat, torch.LongTensor([task_index]).to(device))
-                    decoder_loss += criterion(decoder_output, target_tensor[di].unsqueeze(0))
-                    decoder_input = target_tensor[di]  # Teacher forcing
-                loss=decoder_loss+task_loss_ratio*task_loss
-                teacher_loss_list.append(loss.item()/target_length)
-            else:
-                # Without teacher forcing: use its own predictions as the next input
-                for di in range(target_length):
-                    decoder_output, decoder_hidden, task_cat = decoder(decoder_input, decoder_hidden)
-                    topv, topi = decoder_output.topk(1)
-                    _, topi_task = task_cat.topk(1)
-                    decoder_input = topi.squeeze().detach()  # detach from history as input
-                    decoded_sentence.append(decoder.vocab.index2word[decoder_input.item()])
-                    task_loss += criterion(task_cat, torch.LongTensor([task_index]).to(device))
-                    decoder_loss += criterion(decoder_output, target_tensor[di].unsqueeze(0))
-                    if decoder_input.item() == decoder.vocab.EOS_token:
-                        break
-                loss=decoder_loss+task_loss_ratio*task_loss
-                decoder.loss_list.append(loss.item()/target_length)
-
-            loss.backward()
-            opt.step()
-
-            if j%50==0: 
-                print('Teacher forceing: ' + str(use_teacher_forcing))
-                print('Decoder Loss: ' + str(decoder_loss.item()/target_length))
-                print('Task Loss: ' + str(task_loss.item()/target_length))
-
-                print('target instruction: ' + target_instruct)
-                print('decoded instruction: ' + ' '.join(decoded_sentence)+ '\n')
-                print('Predicted Task: ' + Task.TASK_LIST[topi_task.item()] + ', Target Task: ' + Task.TASK_LIST[task_index] + '\n')
+# model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+# model.model_name += '_tuned'
+# model.set_seed(0) 
+# model.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
+# lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='12')
 
 
-        sch.step()
-        teacher_forcing_ratio -= init_teacher_forcing_ratio/epochs
+# perf = test_partner_model(model1, decoder, num_repeats=2)
 
-    return loss_list, teacher_loss_list
+# from plotting import MODEL_STYLE_DICT, mpatches, Line2D
+# perf
+# perf
+# perf_dict = {}
+# perf_dict['contexts'] = perf[:, 0, ...]
+# perf_dict['instructions'] = perf[:,1, ...]
 
-def test_partner_model(partner_model, decoder, num_repeats=1): 
-    partner_model.eval()
-    batch_len = decoder.contexts.shape[1]
-    with torch.no_grad():
-        perf_array = np.empty(16)
-        for j, task in enumerate(Task.TASK_LIST):
-            print(task)
-            mean_list = [] 
-            task_info = []
-            for _ in range(num_repeats): 
-                ins, targets, _, target_dirs, _ = construct_batch(task, batch_len)
+# perf_dict['contexts'].shape
 
-                for i in range(batch_len):
-                    instruct, _ = decoder.decode_sentence(decoder.contexts[j, i, :])
-                    task_info.append(instruct)
+# def plot_trained_performance(all_perf_dict):
+#     barWidth = 0.2
+#     model_name = 'sbertNet_tuned'
+#     for i, mode in enumerate(['contexts', 'instructions']):  
+#         perf = all_perf_dict[mode]
+#         values = list(np.mean(perf, axis=0))
+#         std = np.std(perf, axis=0)
+        
+#         len_values = len(Task.TASK_LIST)
+#         if i == 0:
+#             r = np.arange(len_values)
+#         else:
+#             r = [x + barWidth for x in r]
+#         if '_layer_11' in model_name: 
+#             mark_size = 4
+#         else: 
+#             mark_size = 3
+#         if mode == 'contexts': 
+#             hatch_style = '/'
+#             edge_color = 'white'
+#         else: 
+#             hatch_style = None
+#             edge_color = None
+#         plt.plot(r, [1.05]*16, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
+#         plt.bar(r, values, width =barWidth, label = model_name, hatch=hatch_style, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
+#         #cap error bars at perfect performance 
+#         error_range= (std, np.where(values+std>1, (values+std)-1, std))
+#         print(error_range)
+#         markers, caps, bars = plt.errorbar(r, values, yerr = error_range, elinewidth = 0.5, capsize=1.0, linestyle="", alpha=0.8, color = 'black', markersize=1)
+
+#     plt.ylim(0, 1.15)
+#     plt.title('Trained Performance')
+#     plt.xlabel('Task Type', fontweight='bold')
+#     plt.ylabel('Percentage Correct')
+#     r = np.arange(len_values)
+#     plt.xticks([r + barWidth+0.25 for r in range(len_values)], Task.TASK_LIST, fontsize='xx-small', fontweight='bold')
+#     plt.tight_layout()
+#     Patches = [(Line2D([0], [0], linestyle='None', marker=MODEL_STYLE_DICT[model_name][1], color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
+#                 markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(all_perf_dict.keys()) if 'bert' in model_name or 'gpt' in model_name]
+#     Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['bowNet'][0], label='bowNet'))
+#     Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['simpleNet'][0], label='simpleNet'))
+#     #plt.legend()
+#     plt.show()
+
+# plot_trained_performance(perf_dict)
+
+if __name__ == "__main__": 
+    import itertools
+    from utils import training_lists_dict, all_models
+    seeds = [0, 1, 2, 3, 4]
+    model_file = '_ReLU128_5.7/swap_holdouts/'
+    to_train = list(itertools.product(seeds, all_models, ['Multitask']+training_lists_dict['swaps']))
+    for config in to_train: 
+        seed, model_name, tasks = config 
+        for holdout_train in [False, True]: 
+            if holdout_train: 
+                holdout_str = '_wHoldout'
+                holdouts=tasks
+            else: 
+                holdout_str = ''
+                holdouts = []
 
 
-                out, _ = partner_model(task_info, torch.Tensor(ins).to(partner_model.__device__))
-                mean_list.append(np.mean(isCorrect(out, torch.Tensor(targets), target_dirs)))
-            perf_array[j] = np.mean(mean_list)
-    return perf_array
+            print(seed, tasks, holdout_str, holdouts)
 
+            task_file = task_swaps_map[tasks[0]]
+            filename = model_file + task_file+'/'+ model_name 
 
+            try: 
+                pickle.load(open(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str+'_loss_list', 'rb'))
+                print(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str+'_loss_list already trained')
+            except FileNotFoundError:
+                decoder= DecoderRNN(128, filename+ '/contexts/seed' +str(seed)+'_context_vecs20')
+                decoder.to(device)
 
-decoder= DecoderTaskRNN('Multitask/sbertNet_tuned/seed1_context_vecs20')
+                criterion = nn.NLLLoss(reduction='mean')
+                decoder_optimizer = optim.Adam(decoder.parameters(), lr=0.001, weight_decay=0.0)
+                sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
+                decoder.to(device)
 
-criterion = nn.NLLLoss()
-decoder_optimizer = optim.Adam(decoder.parameters(), lr=0.001, weight_decay=0.0)
-sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
-decoder.to(device)
-
-train_decoder(decoder, decoder_optimizer, sch, 50, 1.0, task_loss_ratio=1.0)
-
-decoder.save_model('Multitask/sbertNet_tuned/seed0lang_init_context_task_decoder')
-
-
-
-
-decoder.to('cpu')
-
-decoder.get_confusion_matrix()
-
-for i in range(30): 
-    rep = decoder.contexts[4, -i, :]
-    print(decoder.decode_sentence(rep))
-
-
-model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-model1.model_name += '_tuned'
-model1.set_seed(1) 
-model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
-#model1.to(device)
-
-model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-model.model_name += '_tuned'
-model.set_seed(0) 
-model.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
-lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='12')
+                train_decoder_(decoder, decoder_optimizer, sch, 50, 1.0, holdout_tasks=holdouts, task_loss_ratio=0.0)
+                decoder.save_model(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str)
+                decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str)
 
 
 
 
 
+    model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+    model1.model_name += '_tuned'
+    model1.set_seed(1) 
+    model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
+    #model1.to(device)
 
-perf = test_partner_model(model1, decoder)
-
-
-
-if '__name__' == '__main__': 
-    for i in range(1):
-        model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-        model.model_name += '_tuned'
-        model.set_seed(i) 
-
-
-        #model.load_model('_ReLU128_5.7/single_holdouts/Multitask')
-        loss_list, teacher_loss_list = train_decoder(decoder, decoder_optimizer, sch, 15, 1.0)
-        torch.save(decoder.state_dict(), '_ReLU128_5.7/single_holdouts/Multitask/sbertNet_tuned/seed'+str(i)+'_decoder')
+    model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+    model.model_name += '_tuned'
+    model.set_seed(0) 
+    model.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
+    lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='12')
 

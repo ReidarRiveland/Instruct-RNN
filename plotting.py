@@ -10,7 +10,7 @@ task_list = Task.TASK_LIST
 task_group_dict = Task.TASK_GROUP_DICT
 
 from model_analysis import get_hid_var_resp
-from utils import isCorrect, train_instruct_dict, test_instruct_dict, two_line_instruct, task_swaps_map, task_colors, MODEL_STYLE_DICT, all_swaps, load_training_data, load_holdout_data
+from utils import isCorrect, train_instruct_dict, test_instruct_dict, two_line_instruct, task_swaps_map, task_colors, MODEL_STYLE_DICT, all_swaps, load_training_data, load_holdout_data, all_models
 
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
@@ -36,7 +36,6 @@ plt.rcParams['savefig.dpi'] = 300
 from matplotlib import rc
 plt.rcParams["font.family"] = "serif"
 
-all_models = ['sbertNet_tuned', 'sbertNet', 'bertNet_tuned', 'bertNet', 'gptNet_tuned', 'gptNet', 'bowNet', 'simpleNet']
 
 foldername = '_ReLU128_5.7/swap_holdouts'
 model_list = all_models

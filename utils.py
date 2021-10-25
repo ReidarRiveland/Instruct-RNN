@@ -15,7 +15,7 @@ train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict2', 'rb'
 
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict2', 'rb'))
 
-
+all_models = ['sbertNet_tuned', 'sbertNet', 'bertNet_tuned', 'bertNet', 'gptNet_tuned', 'gptNet', 'bowNet', 'simpleNet']
 
 training_lists_dict={
 'single_holdouts' :  [[item] for item in Task.TASK_LIST.copy()+['Multitask']],
