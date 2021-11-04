@@ -81,7 +81,11 @@ class BaseNet(nn.Module):
             self.load_state_dict(torch.load(f_name, map_location='cpu'))
         except RuntimeError:
             self.load_state_dict(self.langModel._convert_state_dict_format(f_name))
-            
+    
+    def reset_training_data(self): 
+        self._loss_data_dict = defaultdict(list)
+        self._correct_data_dict = defaultdict(list)
+
     def set_seed(self, seed_num): 
         self.__seed_num_str__ = 'seed'+str(seed_num)
 

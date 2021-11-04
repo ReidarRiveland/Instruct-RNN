@@ -62,6 +62,26 @@ class BERT(TransformerEmbedder):
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.init_train_layers()
 
+
+# class SBERT(TransformerEmbedder): 
+#     def __init__(self, out_dim, reducer=None, train_layers = [], output_nonlinearity = nn.ReLU()): 
+#         super().__init__(out_dim, reducer, train_layers, output_nonlinearity)
+#         self.embedder_name = 'sbert'
+#         self.transformer = SentenceTransformer('bert-base-nli-mean-tokens')
+#         self.tokenizer = self.transformer.tokenize
+#         self.init_train_layers()
+
+#     def forward_transformer(self, x): 
+#         tokens = self.tokenizer(x)
+#         for key, value in tokens.items():
+#             tokens[key] = value.to(self.__device__)
+#         sent_embedding = self.transformer(tokens)['sentence_embedding']
+#         return sent_embedding
+
+#     def forward(self, x): 
+#         return self.proj_out(self.forward_transformer(x))
+
+
 class SBERT(BERT): 
     def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
         super().__init__(out_dim, reducer, train_layers, output_nonlinearity)

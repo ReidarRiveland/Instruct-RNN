@@ -10,7 +10,7 @@ task_list = Task.TASK_LIST
 task_group_dict = Task.TASK_GROUP_DICT
 
 from model_analysis import get_hid_var_resp
-from utils import isCorrect, train_instruct_dict, test_instruct_dict, two_line_instruct, task_swaps_map, task_colors, MODEL_STYLE_DICT, all_swaps, load_training_data, load_holdout_data, all_models
+from utils import isCorrect, train_instruct_dict, test_instruct_dict, two_line_instruct, task_swaps_map, task_colors, MODEL_STYLE_DICT, all_swaps, load_training_data, load_holdout_data, all_models, load_context_training_data
 
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
@@ -73,10 +73,13 @@ def plot_avg_curves(foldername, model_list, correct_or_loss, seeds=np.array(rang
     plt.show()
     return data_dict
 
-def plot_task_curves(foldername, model_list, correct_or_loss, train_folder=None, seeds=np.array(range(5))):
+def plot_task_curves(foldername, model_list, correct_or_loss, train_folder=None, seeds=np.array(range(5)), plot_contexts=None):
     if train_folder is None: 
         data_dict = load_holdout_data(foldername, model_list)
         marker_every=15
+    elif plot_contexts is not None: 
+        data_dict = load_context_training_data(foldername, model_list, train_mode=plot_contexts)
+        marker_every=200
     else: 
         data_dict = load_training_data(foldername, model_list)
         marker_every=200
@@ -104,9 +107,11 @@ def plot_task_curves(foldername, model_list, correct_or_loss, train_folder=None,
     plt.show()
     return data_dict
 
-#plot_task_curves(foldername, ['sbertNet_tuned'],'correct', train_folder='Multitask')
+#plot_task_curves(foldername, ['sbertNet_tuned'],'correct', seeds=[1])
 
-#data_dict = plot_task_curves(foldername, all_models[::-1],'correct', train_folder='Multitask')
+#data_dict = plot_task_curves(foldername, all_models[::-1],'correct', train_folder=swap, seeds=[4])
+
+#data_dict = plot_task_curves(foldername, ['sbertNet_tuned'],'correct', train_folder='Multitask', seeds=[0], plot_contexts='supervised_')
 
 
 
@@ -418,7 +423,7 @@ def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_a
     flattened_reduced = reps_to_plot.reshape(-1, reps_to_plot.shape[-1])
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.scatter(flattened_reduced[:, 0], flattened_reduced[:, 1], c = colors_to_plot, s=25)
-    ax.scatter(np.mean(reps_to_plot, axis=1)[:, 0], np.mean(reps_to_plot, axis=1)[:, 1], c = [task_colors[task] for task in tasks_to_plot], s=10, marker='D', edgecolors='white')
+    ax.scatter(np.mean(reps_to_plot, axis=1)[:, 0], np.mean(reps_to_plot, axis=1)[:, 1], c = [task_colors[task] for task in tasks_to_plot], s=20, marker='D', edgecolors='white')
 
 
     for i, indices in enumerate(annotate_tuples): 
@@ -641,8 +646,9 @@ def plot_dPCA(model, tasks, swapped_tasks=[]):
 
 
 def plot_RDM(sim_scores, rep_type, cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', use_avg_reps = False, save_file=None):
-    if rep_type == 'lang': label_buffer = 2
-    if rep_type == 'task': label_buffer = 8
+    # if rep_type == 'lang': label_buffer = 2
+    # if rep_type == 'task': label_buffer = 8
+    label_buffer=0
     rep_dim = sim_scores.shape[-1]
     number_reps=sim_scores.shape[1]
     
@@ -739,7 +745,7 @@ def plot_CCGP_scores(model_list, rep_type_file_str = '', save_file=None):
             [bar.set_alpha(0.2) for bar in bars]
 
     plt.hlines(0.5, 0, r[-1], linestyles='--', color='black')
-    plt.ylim(0.45, 1.05)
+    plt.ylim(0.45, 0.95)
     plt.title('CCGP Measures')
     plt.ylabel('Percentage Correct')
     r = np.arange(len_values)
@@ -757,7 +763,7 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, save_file=None)
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
     trials, _ = make_test_trials(task_type, task_variable, mod)
     _, hid_mean = get_hid_var_resp(model, task_type, trials)
-    if task_variable == 'direction' or 'diff_direction': 
+    if task_variable == 'direction' or task_variable=='diff_direction': 
         labels = ["0", "$2\pi$"]
         cmap = plt.get_cmap('twilight') 
     # elif task_variable == 'diff_direction':

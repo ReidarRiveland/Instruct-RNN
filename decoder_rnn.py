@@ -1,3 +1,5 @@
+import itertools
+from seaborn.palettes import color_palette
 from sklearn.metrics.pairwise import paired_euclidean_distances
 from nlp_models import SBERT
 from rnn_models import InstructNet
@@ -6,9 +8,11 @@ from model_analysis import get_instruct_reps, get_model_performance, reduce_rep
 from plotting import plot_trained_performance, plot_rep_scatter
 import numpy as np
 import torch.optim as optim
-from utils import sort_vocab, isCorrect, task_swaps_map
+from utils import sort_vocab, isCorrect, task_swaps_map, inv_train_instruct_dict
 from task import Task
 import seaborn as sns
+from collections import defaultdict
+
 
 from task import construct_batch
 
@@ -77,7 +81,7 @@ class BaseDecoder(nn.Module):
 
     def _init_context_set(self, load_object):
         if type(load_object) is str: 
-            contexts = pickle.load(open('_ReLU128_5.7/swap_holdouts/'+load_object, 'rb'))
+            contexts = pickle.load(open(load_object, 'rb'))
         else: 
             contexts = load_object
         return contexts
@@ -139,6 +143,35 @@ class DecoderRNN(BaseDecoder):
         decoded_sentences = self.vocab.untokenize_sentence(decoded_indices[1:,...])  # detach from history as input
         return decoded_sentences
 
+    def get_decoded_set(self): 
+        decoded_set = {}
+        confusion_mat = np.zeros((16, 17))
+        for i, task in enumerate(Task.TASK_LIST):
+            tasks_decoded = defaultdict(list)
+
+            decoded_sentences = self.decode_sentence(torch.Tensor(self.contexts[i, ...]).to(device))
+
+            for instruct in decoded_sentences:
+                try: 
+                    decoded_task = inv_train_instruct_dict[instruct]
+                    tasks_decoded[decoded_task].append(instruct)
+                    confusion_mat[i, Task.TASK_LIST.index(decoded_task)] += 1
+                except KeyError:
+                    tasks_decoded['other'].append(instruct)
+                    confusion_mat[i, -1] += 1
+
+            decoded_set[task] = tasks_decoded
+
+        return decoded_set, confusion_mat
+
+    def plot_confuse_mat(self): 
+        _, confusion_mat = self.get_decoded_set()
+        res=sns.heatmap(confusion_mat, xticklabels=Task.TASK_LIST+['other'], yticklabels=Task.TASK_LIST, annot=True, cmap='Blues', fmt='g', cbar=False)
+        res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8)
+        res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
+        plt.show()
+
+
 class DecoderTaskRNN(DecoderRNN):
     def __init__(self, hidden_size, init_context_set_obj):
         super().__init__(hidden_size, init_context_set_obj)
@@ -172,15 +205,15 @@ class DecoderTaskRNN(DecoderRNN):
         plt.show()
         return confusion_matrix
 
-def test_partner_model(partner_model, decoder, num_repeats=1): 
+def test_partner_model(partner_model, decoder, num_repeats=1, tasks=Task.TASK_LIST): 
     partner_model.eval()
     batch_len = decoder.contexts.shape[1]
+    decoded_instructs = {}
     with torch.no_grad():
-        perf_array = np.empty((num_repeats, 2, 16))
+        perf_array = np.empty((num_repeats, 2, len(tasks)))
         for i, mode in enumerate(['context', 'instruct']): 
-            for j, task in enumerate(Task.TASK_LIST):
+            for j, task in enumerate(tasks):
                 print(task)
-                mean_list = [] 
                 task_info = []
                 for k in range(num_repeats): 
                     ins, targets, _, target_dirs, _ = construct_batch(task, batch_len)
@@ -188,6 +221,7 @@ def test_partner_model(partner_model, decoder, num_repeats=1):
                     if mode == 'instruct': 
                         instruct = decoder.decode_sentence(torch.Tensor(decoder.contexts[j,...]).to(device))
                         task_info = list(instruct)
+                        decoded_instructs[task] = task_info
                         out, _ = partner_model(task_info, torch.Tensor(ins).to(partner_model.__device__))
                     elif mode == 'context':
                         task_info = decoder.contexts[j, ...]
@@ -196,11 +230,12 @@ def test_partner_model(partner_model, decoder, num_repeats=1):
                     task_perf = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
                     perf_array[k, i, j] = task_perf
 
-    return perf_array
+    return perf_array, decoded_instructs
 
 
 
 def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=None, task_loss_ratio=0.1): 
+    criterion = nn.NLLLoss(reduction='mean')
     teacher_forcing_ratio = init_teacher_forcing_ratio
     pad_len  = decoder.vocab.pad_len 
     loss_list = []
@@ -298,33 +333,72 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
     return loss_list, teacher_loss_list
 
 
-# decoder= DecoderRNN(128, 'Anti_Go_MultiCOMP1/sbertNet_tuned/contexts/seed0_supervised_context_vecs20')
+model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+model1.model_name += '_tuned'
+model1.set_seed(0) 
+model1.to(device)
 
-# decoder.load_model('Anti_Go_MultiCOMP1/sbertNet_tuned/_wHoldoutseed0_decoder')
+foldername = '_ReLU128_5.7/swap_holdouts/'
+all_decoded_set = {}
+all_confuse_mat = np.empty((16, 17))
+all_perf = np.empty((1, 2, 16))
+for i, holdout_task in enumerate(Task.TASK_LIST): 
+    print(holdout_task)
+    task_file = task_swaps_map[holdout_task]
+    decoder= DecoderRNN(128, foldername+task_file+'/sbertNet_tuned/contexts/seed0_context_vecs20')
+    decoder.load_model(task_file+'/sbertNet_tuned/decoders/seed0_decoder')
+    decoder.to(device)
+    decoded_set, confusion_mat = decoder.get_decoded_set()
+    all_decoded_set[holdout_task] = decoded_set[holdout_task]
+    all_confuse_mat[i, :] = confusion_mat[i, :]
+    model1.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
+    perf, _ = test_partner_model(model1, decoder)
+    print()
+    all_perf[0, :, i] = perf[0,:, i]
 
-# decoder.to(device)
 
-# decoded_set = {}
-# for i, task in enumerate(Task.TASK_LIST):
-#     decoded_set[task] = set(decoder.decode_sentence(torch.Tensor(decoder.contexts[i, ...]).to(device)))
+decoder= DecoderRNN(128, foldername+'Multitask/sbertNet_tuned/contexts/seed0_context_vecs20')
+decoder.load_model('Multitask/sbertNet_tuned/decoders/seed0_decoder_wHoldout')
+model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
+
+decoder.to(device)
+perf = test_partner_model(model1, decoder)
+
+perf[0]
+
+partner_model = model1
+
+task_info = decoder.contexts[0, ...]
+
+ins, targets, _, target_dirs, _ = construct_batch('Go', 256)
+
+out, _ = super(type(partner_model), partner_model).forward(torch.Tensor(task_info).to(partner_model.__device__), torch.Tensor(ins).to(partner_model.__device__))
+
+task_perf = isCorrect(out, torch.Tensor(targets), target_dirs)
+task_perf
+np.mean(task_perf)
+
+res=sns.heatmap(all_confuse_mat, xticklabels=Task.TASK_LIST+['other'], yticklabels=Task.TASK_LIST, annot=True, cmap='Blues', fmt='g', cbar=False)
+res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8)
+res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
+
+plt.show()
 
 
-# correct_list = []
-# incorrect_list = []
-# for instruct in decoded_set['MultiCOMP1']: 
-#     if instruct in train_instruct_dict['MultiCOMP1']:
-#         correct_list.append(instruct)
-#     else: 
-#         incorrect_list.append(instruct)
+sns.heatmap(all_confuse_mat)
+plt.show()
 
-# correct_list
-# incorrect_list
+all_decoded_set['Anti Go']['other']
+
+
+
+# len(decoded_set['Anti RT Go']['Anti Go'])
 
 # model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
 # model1.model_name += '_tuned'
 # model1.set_seed(1) 
 # model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
-# #model1.to(device)
+# model1.to(device)
 
 # model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
 # model.model_name += '_tuned'
@@ -333,62 +407,60 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
 # lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='12')
 
 
-# perf = test_partner_model(model1, decoder, num_repeats=2)
+# perf, instructs = test_partner_model(model1, decoder, num_repeats=5)
 
-# from plotting import MODEL_STYLE_DICT, mpatches, Line2D
-# perf
-# perf
-# perf_dict = {}
-# perf_dict['contexts'] = perf[:, 0, ...]
-# perf_dict['instructions'] = perf[:,1, ...]
+# len(instructs['Anti RT Go'])
 
-# perf_dict['contexts'].shape
+# np.mean(perf, axis=0)
 
-# def plot_trained_performance(all_perf_dict):
-#     barWidth = 0.2
-#     model_name = 'sbertNet_tuned'
-#     for i, mode in enumerate(['contexts', 'instructions']):  
-#         perf = all_perf_dict[mode]
-#         values = list(np.mean(perf, axis=0))
-#         std = np.std(perf, axis=0)
+from plotting import MODEL_STYLE_DICT, mpatches, Line2D
+
+def plot_trained_performance(all_perf_dict):
+    barWidth = 0.2
+    model_name = 'sbertNet_tuned'
+    for i, mode in enumerate(['instructions', 'contexts']):  
+        perf = all_perf_dict[mode]
+        values = list(np.mean(perf, axis=0))
+        std = np.std(perf, axis=0)
         
-#         len_values = len(Task.TASK_LIST)
-#         if i == 0:
-#             r = np.arange(len_values)
-#         else:
-#             r = [x + barWidth for x in r]
-#         if '_layer_11' in model_name: 
-#             mark_size = 4
-#         else: 
-#             mark_size = 3
-#         if mode == 'contexts': 
-#             hatch_style = '/'
-#             edge_color = 'white'
-#         else: 
-#             hatch_style = None
-#             edge_color = None
-#         plt.plot(r, [1.05]*16, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
-#         plt.bar(r, values, width =barWidth, label = model_name, hatch=hatch_style, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
-#         #cap error bars at perfect performance 
-#         error_range= (std, np.where(values+std>1, (values+std)-1, std))
-#         print(error_range)
-#         markers, caps, bars = plt.errorbar(r, values, yerr = error_range, elinewidth = 0.5, capsize=1.0, linestyle="", alpha=0.8, color = 'black', markersize=1)
+        len_values = len(Task.TASK_LIST)
+        if i == 0:
+            r = np.arange(len_values)
+        else:
+            r = [x + barWidth for x in r]
+        if '_layer_11' in model_name: 
+            mark_size = 4
+        else: 
+            mark_size = 3
+        if mode == 'contexts': 
+            hatch_style = '/'
+            edge_color = 'white'
+        else: 
+            hatch_style = None
+            edge_color = None
+        plt.plot(r, [1.05]*16, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
+        plt.bar(r, values, width =barWidth, label = model_name, hatch=hatch_style, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
+        #cap error bars at perfect performance 
+        error_range= (std, np.where(values+std>1, (values+std)-1, std))
+        print(error_range)
+        markers, caps, bars = plt.errorbar(r, values, yerr = error_range, elinewidth = 0.5, capsize=1.0, linestyle="", alpha=0.8, color = 'black', markersize=1)
 
-#     plt.ylim(0, 1.15)
-#     plt.title('Trained Performance')
-#     plt.xlabel('Task Type', fontweight='bold')
-#     plt.ylabel('Percentage Correct')
-#     r = np.arange(len_values)
-#     plt.xticks([r + barWidth+0.25 for r in range(len_values)], Task.TASK_LIST, fontsize='xx-small', fontweight='bold')
-#     plt.tight_layout()
-#     Patches = [(Line2D([0], [0], linestyle='None', marker=MODEL_STYLE_DICT[model_name][1], color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
-#                 markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(all_perf_dict.keys()) if 'bert' in model_name or 'gpt' in model_name]
-#     Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['bowNet'][0], label='bowNet'))
-#     Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['simpleNet'][0], label='simpleNet'))
-#     #plt.legend()
-#     plt.show()
+    plt.ylim(0, 1.15)
+    plt.title('Trained Performance')
+    plt.xlabel('Task Type', fontweight='bold')
+    plt.ylabel('Percentage Correct')
+    r = np.arange(len_values)
+    plt.xticks([r + barWidth+0.25 for r in range(len_values)], Task.TASK_LIST, fontsize='xx-small', fontweight='bold')
+    plt.tight_layout()
+    Patches = [(Line2D([0], [0], linestyle='None', marker=MODEL_STYLE_DICT[model_name][1], color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
+                markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(all_perf_dict.keys()) if 'bert' in model_name or 'gpt' in model_name]
+    Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['bowNet'][0], label='bowNet'))
+    Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['simpleNet'][0], label='simpleNet'))
+    #plt.legend()
+    plt.show()
+all_perf.shape
 
-# plot_trained_performance(perf_dict)
+plot_trained_performance({'instructions': all_perf[:, 1, :], 'contexts': all_perf[:, 0, :]})
 
 if __name__ == "__main__": 
     import itertools
@@ -405,7 +477,6 @@ if __name__ == "__main__":
             else: 
                 holdout_str = ''
                 holdouts = []
-
 
             print(seed, tasks, holdout_str, holdouts)
 
@@ -432,15 +503,17 @@ if __name__ == "__main__":
 
 
 
-    model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-    model1.model_name += '_tuned'
-    model1.set_seed(1) 
-    model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
-    #model1.to(device)
 
-    model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-    model.model_name += '_tuned'
-    model.set_seed(0) 
-    model.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
-    lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='12')
+
+    # model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+    # model1.model_name += '_tuned'
+    # model1.set_seed(1) 
+    # model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
+    # #model1.to(device)
+
+    # model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+    # model.model_name += '_tuned'
+    # model.set_seed(0) 
+    # model.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
+    # lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='12')
 

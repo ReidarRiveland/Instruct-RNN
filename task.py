@@ -502,7 +502,7 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
 
     conditions_arr = np.empty((2, 2, 2, num_trials))
     intervals = np.empty((num_trials, 5), dtype=tuple)
-    for i in range(num_trials): intervals[i, :] = ((0, 20), (20, 40), (40, 80), (80, 100), (100, 120))
+    for i in range(num_trials): intervals[i, :] = ((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))
 
     if task_variable == 'direction': 
         directions = np.linspace(0, 2*np.pi, num=num_trials)
@@ -557,5 +557,6 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
         trials = Delay(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr, sigma_in=sigma_in)
 
     return trials, var_of_interest
+
 
 
