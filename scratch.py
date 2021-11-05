@@ -29,29 +29,42 @@ from utils import all_models
 
 
 
-unit=10
-var_of_insterest = 'diff_strength'
+unit=90
+var_of_insterest = 'direction'
 
 model = InstructNet(SBERT(20, train_layers=[], reducer=torch.mean), 128, 1)
 model.model_name += '_tuned'
-model.set_seed(1)
-swapped = 'Anti DM'
+model.set_seed(3)
+swapped = 'Anti Go'
 #multitask
-model.set_seed(1)
 task_file = task_swaps_map[swapped]
 task_file
 model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
 
-perf = get_model_performance(model, 1)
+perf = get_model_performance(model, 3)
 
+dummpy_list = np.array([1, 2, 3, 4, 5])
+
+np.delete(dummpy_list, [0, 3])
+
+dummpy_list
+dummpy_list.delete((2, 3))
+
+all(np.array(dummpy_list) > 0)
+
+# perf
+
+trials = plot_tuning_curve(model, Task.TASK_GROUP_DICT['Go'], var_of_insterest, unit, 1, [115]*4, swapped_task=swapped)
+
+
+model1 = SimpleNet(128, 1, use_ortho_rules=True)
+model1.set_seed(2)
+swapped = 'Anti RT Go'
+#multitask
+task_file = task_swaps_map[swapped]
+model1.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
+perf = get_model_performance(model1, 3)
 perf
-
-trials = plot_tuning_curve(model, Task.TASK_GROUP_DICT['DM'], var_of_insterest, unit, 1, [115]*4, swapped_task=swapped)
-
-
-
-
-
 
 
 

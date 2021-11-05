@@ -70,21 +70,24 @@ class Vocab:
             self.word2count[word] += 1
 
 class BaseDecoder(nn.Module):
-    def __init__(self, init_context_set_obj):
+    def __init__(self):
         super(BaseDecoder, self).__init__()
+        self.load_foldername = '_ReLU128_5.7/swap_holdouts'
         self.teacher_loss_list = []
         self.loss_list = []
         self.vocab = Vocab()
         self.instruct_array = np.array([train_instruct_dict[task] for task in Task.TASK_LIST]).squeeze()
-        self.contexts = self._init_context_set(init_context_set_obj)
-        self.validation_holdouts = self.contexts.shape[1]/5
+        self.contexts = None
+        self.validation_ratio = 0.2
 
-    def _init_context_set(self, load_object):
-        if type(load_object) is str: 
-            contexts = pickle.load(open(load_object, 'rb'))
-        else: 
-            contexts = load_object
-        return contexts
+    def init_context_set(self, task_file, model_name, seed_str, supervised_str=''):
+        all_contexts = np.empty((16, 256, 20))
+        for i, task in enumerate(Task.TASK_LIST):
+            filename = self.load_foldername+'/'+task_file+'/'+model_name+'/contexts/'+seed_str+'/'+task+supervised_str+'_context_vecs20'
+            task_contexts = pickle.load(open(filename, 'rb'))
+            all_contexts[i, ...]=task_contexts
+        self.contexts = all_contexts
+        return all_contexts
 
     def save_model(self, save_string): 
         torch.save(self.state_dict(), save_string+'.pt')
@@ -97,8 +100,9 @@ class BaseDecoder(nn.Module):
         self.load_state_dict(torch.load('_ReLU128_5.7/swap_holdouts/'+save_string+'.pt'))
 
     def get_instruct_embedding_pair(self, task_index, instruct_index, training=True): 
+        assert self.contexts is not None, 'must initalize decoder contexts with init_context_set'
         if training:
-            context_rep_index = np.random.randint(self.contexts.shape[1]-self.validation_holdouts, size=instruct_index.shape[0])
+            context_rep_index = np.random.randint(self.contexts.shape[1]-self.contexts.shape[1]*self.validation_ratio, size=instruct_index.shape[0])
         else: 
             context_rep_index = np.random.randint(self.contexts.shape[1],size=instruct_index.shape[0])
         rep = self.contexts[task_index, context_rep_index, :]
@@ -111,10 +115,10 @@ class BaseDecoder(nn.Module):
         return reps_reduced
 
 class DecoderRNN(BaseDecoder):
-    def __init__(self, hidden_size, init_context_set_obj):
-        super().__init__(init_context_set_obj)
+    def __init__(self, hidden_size):
+        super().__init__()
         self.hidden_size = hidden_size
-        self.context_dim = self.contexts.shape[-1]
+        self.context_dim = 20
         self.embedding = nn.Embedding(self.vocab.n_words, self.hidden_size)
         self.gru = nn.GRU(self.hidden_size, self.hidden_size)
         self.out = nn.Linear(self.hidden_size, self.vocab.n_words)
@@ -170,7 +174,6 @@ class DecoderRNN(BaseDecoder):
         res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8)
         res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
         plt.show()
-
 
 class DecoderTaskRNN(DecoderRNN):
     def __init__(self, hidden_size, init_context_set_obj):
@@ -231,8 +234,6 @@ def test_partner_model(partner_model, decoder, num_repeats=1, tasks=Task.TASK_LI
                     perf_array[k, i, j] = task_perf
 
     return perf_array, decoded_instructs
-
-
 
 def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=None, task_loss_ratio=0.1): 
     criterion = nn.NLLLoss(reduction='mean')
@@ -333,89 +334,9 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
     return loss_list, teacher_loss_list
 
 
-model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-model1.model_name += '_tuned'
-model1.set_seed(0) 
-model1.to(device)
-
-foldername = '_ReLU128_5.7/swap_holdouts/'
-all_decoded_set = {}
-all_confuse_mat = np.empty((16, 17))
-all_perf = np.empty((1, 2, 16))
-for i, holdout_task in enumerate(Task.TASK_LIST): 
-    print(holdout_task)
-    task_file = task_swaps_map[holdout_task]
-    decoder= DecoderRNN(128, foldername+task_file+'/sbertNet_tuned/contexts/seed0_context_vecs20')
-    decoder.load_model(task_file+'/sbertNet_tuned/decoders/seed0_decoder')
-    decoder.to(device)
-    decoded_set, confusion_mat = decoder.get_decoded_set()
-    all_decoded_set[holdout_task] = decoded_set[holdout_task]
-    all_confuse_mat[i, :] = confusion_mat[i, :]
-    model1.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
-    perf, _ = test_partner_model(model1, decoder)
-    print()
-    all_perf[0, :, i] = perf[0,:, i]
-
-
-decoder= DecoderRNN(128, foldername+'Multitask/sbertNet_tuned/contexts/seed0_context_vecs20')
-decoder.load_model('Multitask/sbertNet_tuned/decoders/seed0_decoder_wHoldout')
-model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
-
-decoder.to(device)
-perf = test_partner_model(model1, decoder)
-
-perf[0]
-
-partner_model = model1
-
-task_info = decoder.contexts[0, ...]
-
-ins, targets, _, target_dirs, _ = construct_batch('Go', 256)
-
-out, _ = super(type(partner_model), partner_model).forward(torch.Tensor(task_info).to(partner_model.__device__), torch.Tensor(ins).to(partner_model.__device__))
-
-task_perf = isCorrect(out, torch.Tensor(targets), target_dirs)
-task_perf
-np.mean(task_perf)
-
-res=sns.heatmap(all_confuse_mat, xticklabels=Task.TASK_LIST+['other'], yticklabels=Task.TASK_LIST, annot=True, cmap='Blues', fmt='g', cbar=False)
-res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8)
-res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
-
-plt.show()
-
-
-sns.heatmap(all_confuse_mat)
-plt.show()
-
-all_decoded_set['Anti Go']['other']
-
-
-
-# len(decoded_set['Anti RT Go']['Anti Go'])
-
-# model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-# model1.model_name += '_tuned'
-# model1.set_seed(1) 
-# model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
-# model1.to(device)
-
-# model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-# model.model_name += '_tuned'
-# model.set_seed(0) 
-# model.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
-# lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='12')
-
-
-# perf, instructs = test_partner_model(model1, decoder, num_repeats=5)
-
-# len(instructs['Anti RT Go'])
-
-# np.mean(perf, axis=0)
-
 from plotting import MODEL_STYLE_DICT, mpatches, Line2D
 
-def plot_trained_performance(all_perf_dict):
+def plot_partner_performance(all_perf_dict):
     barWidth = 0.2
     model_name = 'sbertNet_tuned'
     for i, mode in enumerate(['instructions', 'contexts']):  
@@ -458,16 +379,96 @@ def plot_trained_performance(all_perf_dict):
     Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['simpleNet'][0], label='simpleNet'))
     #plt.legend()
     plt.show()
-all_perf.shape
 
-plot_trained_performance({'instructions': all_perf[:, 1, :], 'contexts': all_perf[:, 0, :]})
+
+# model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+# model1.model_name += '_tuned'
+# model1.set_seed(0) 
+# model1.to(device)
+
+# foldername = '_ReLU128_5.7/swap_holdouts/'
+# all_decoded_set = {}
+# all_confuse_mat = np.empty((16, 17))
+# all_perf = np.empty((1, 2, 16))
+# for i, holdout_task in enumerate(Task.TASK_LIST): 
+#     print(holdout_task)
+#     task_file = task_swaps_map[holdout_task]
+#     decoder= DecoderRNN(128, foldername+task_file+'/sbertNet_tuned/contexts/seed0_context_vecs20')
+#     decoder.load_model(task_file+'/sbertNet_tuned/decoders/seed0_decoder')
+#     decoder.to(device)
+#     decoded_set, confusion_mat = decoder.get_decoded_set()
+#     all_decoded_set[holdout_task] = decoded_set[holdout_task]
+#     all_confuse_mat[i, :] = confusion_mat[i, :]
+#     model1.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
+#     perf, _ = test_partner_model(model1, decoder)
+#     print()
+#     all_perf[0, :, i] = perf[0,:, i]
+
+
+# decoder= DecoderRNN(128, foldername+'Multitask/sbertNet_tuned/contexts/seed0_context_vecs20')
+# decoder.load_model('Multitask/sbertNet_tuned/decoders/seed0_decoder_wHoldout')
+# model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
+
+# decoder.to(device)
+# perf = test_partner_model(model1, decoder)
+
+# perf[0]
+
+# partner_model = model1
+
+# task_info = decoder.contexts[0, ...]
+
+# ins, targets, _, target_dirs, _ = construct_batch('Go', 256)
+
+# out, _ = super(type(partner_model), partner_model).forward(torch.Tensor(task_info).to(partner_model.__device__), torch.Tensor(ins).to(partner_model.__device__))
+
+# task_perf = isCorrect(out, torch.Tensor(targets), target_dirs)
+# task_perf
+# np.mean(task_perf)
+
+# res=sns.heatmap(all_confuse_mat, xticklabels=Task.TASK_LIST+['other'], yticklabels=Task.TASK_LIST, annot=True, cmap='Blues', fmt='g', cbar=False)
+# res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8)
+# res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
+
+# plt.show()
+
+
+# sns.heatmap(all_confuse_mat)
+# plt.show()
+
+# all_decoded_set['Anti Go']['other']
+
+# plot_trained_performance({'instructions': all_perf[:, 1, :], 'contexts': all_perf[:, 0, :]})
+
+
+# len(decoded_set['Anti RT Go']['Anti Go'])
+
+# model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+# model1.model_name += '_tuned'
+# model1.set_seed(1) 
+# model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
+# model1.to(device)
+
+# model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+# model.model_name += '_tuned'
+# model.set_seed(0) 
+# model.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
+# lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='12')
+
+
+# perf, instructs = test_partner_model(model1, decoder, num_repeats=5)
+
+# len(instructs['Anti RT Go'])
+
+# np.mean(perf, axis=0)
+
 
 if __name__ == "__main__": 
     import itertools
     from utils import training_lists_dict, all_models
     seeds = [0, 1, 2, 3, 4]
     model_file = '_ReLU128_5.7/swap_holdouts/'
-    to_train = list(itertools.product(seeds, all_models, ['Multitask']+training_lists_dict['swaps']))
+    to_train = list(itertools.product(seeds, all_models, [['Multitask']]+training_lists_dict['swap_holdouts']))
     for config in to_train: 
         seed, model_name, tasks = config 
         for holdout_train in [False, True]: 
@@ -483,21 +484,22 @@ if __name__ == "__main__":
             task_file = task_swaps_map[tasks[0]]
             filename = model_file + task_file+'/'+ model_name 
 
-            try: 
-                pickle.load(open(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str+'_loss_list', 'rb'))
-                print(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str+'_loss_list already trained')
-            except FileNotFoundError:
-                decoder= DecoderRNN(128, filename+ '/contexts/seed' +str(seed)+'_context_vecs20')
-                decoder.to(device)
+            # try: 
+            #     pickle.load(open(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str+'_loss_list', 'rb'))
+            #     print(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str+'_loss_list already trained')
+            #except FileNotFoundError:
+            decoder= DecoderRNN(128)
+            decoder.init_context_set(task_file, model_name, 'seed'+str(seed))
+            decoder.to(device)
 
-                criterion = nn.NLLLoss(reduction='mean')
-                decoder_optimizer = optim.Adam(decoder.parameters(), lr=0.001, weight_decay=0.0)
-                sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
-                decoder.to(device)
+            criterion = nn.NLLLoss(reduction='mean')
+            decoder_optimizer = optim.Adam(decoder.parameters(), lr=0.001, weight_decay=0.0)
+            sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
+            decoder.to(device)
 
-                train_decoder_(decoder, decoder_optimizer, sch, 50, 1.0, holdout_tasks=holdouts, task_loss_ratio=0.0)
-                decoder.save_model(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str)
-                decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str)
+            train_decoder_(decoder, decoder_optimizer, sch, 50, 1.0, holdout_tasks=holdouts, task_loss_ratio=0.0)
+            decoder.save_model(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str)
+            decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str)
 
 
 

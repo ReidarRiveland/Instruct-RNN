@@ -13,6 +13,9 @@
 /*shuffledModel1/*
 /*swapModel3.3/*
 /*ICMLFigures/*
-/*training_data/*
+
+
 /*training_data_COMPTEST/*
+retrain_list
+test_dict
 sbert_raw.pt

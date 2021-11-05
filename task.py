@@ -262,7 +262,7 @@ class Comp(Task):
                     base_strength = np.random.uniform(1.3, 1.5, size=2)
                     redraw = True
                     while redraw: 
-                        coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
+                        coh = np.random.choice([-0.25, -0.2, -0.15, 0.15, 0.2, 0.25], size=2, replace=False)
                         if coh[0] != -1*coh[1]: 
                             redraw = False
                     
@@ -502,7 +502,7 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
 
     conditions_arr = np.empty((2, 2, 2, num_trials))
     intervals = np.empty((num_trials, 5), dtype=tuple)
-    for i in range(num_trials): intervals[i, :] = ((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))
+    for i in range(num_trials): intervals[i, :] = ((0, 20), (20, 60), (60, 80), (80, 100), (100, 120))
 
     if task_variable == 'direction': 
         directions = np.linspace(0, 2*np.pi, num=num_trials)
@@ -515,7 +515,9 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
         var_of_interest = strengths
 
     elif task_variable == 'diff_strength': 
-        directions = np.array([[np.pi/2] * num_trials, [3*np.pi/2] * num_trials])
+        directions = np.array([[np.pi] * num_trials, [2*np.pi] * num_trials])
+
+        #directions = np.array([[np.pi/2] * num_trials, [3*np.pi/2] * num_trials])
         fixed_strengths = np.array([1]* num_trials)
         diff_strength = np.linspace(-0.5, 0.5, num=num_trials)
         strengths = np.array([fixed_strengths, fixed_strengths-diff_strength])
@@ -557,6 +559,4 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
         trials = Delay(task_type, num_trials, intervals=intervals, conditions_arr=conditions_arr, sigma_in=sigma_in)
 
     return trials, var_of_interest
-
-
 

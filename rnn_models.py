@@ -4,6 +4,7 @@ import torch
 from torch._C import device
 import torch.nn as nn
 import numpy as np
+from task import Task
 
 from collections import defaultdict
 
@@ -82,6 +83,10 @@ class BaseNet(nn.Module):
         except RuntimeError:
             self.load_state_dict(self.langModel._convert_state_dict_format(f_name))
     
+    def check_model_training(self, threshold): 
+        latest_perf = np.array([task_perf[-1] for task_perf in self._correct_data_dict.values()])
+        return all(latest_perf>threshold)
+
     def reset_training_data(self): 
         self._loss_data_dict = defaultdict(list)
         self._correct_data_dict = defaultdict(list)
