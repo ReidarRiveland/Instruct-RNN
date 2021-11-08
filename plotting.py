@@ -137,18 +137,18 @@ def plot_task_curves(foldername, model_list, correct_or_loss, train_folder=None,
     plt.show()
     return data_dict
 
-plot_task_curves(foldername, ['gptNet'],'correct', train_folder='Go_Anti_DM', seeds=[0])
+plot_task_curves('_ReLU128_5.7/swap_holdouts', ['sbertNet', 'simpleNet'],'correct', train_folder='Multitask')
 
 
 
-plot_task_curves(foldername, ['simpleNet'],'correct',  instruct_mode='')
+# plot_task_curves(foldername, ['simpleNet'],'correct',  instruct_mode='')
 
 
 #data_dict = plot_task_curves(foldername, all_models[::-1],'correct', train_folder=swap, seeds=[4])
 
-data_dict = plot_avg_curves(foldername, ['simpleNet'],'correct', split_axes=True)
+# data_dict = plot_avg_curves(foldername, ['simpleNet'],'correct', split_axes=True)
 
-np.mean(np.mean(data_dict['simpleNet'][''][0, ...], axis=0), axis=0)
+# np.mean(np.mean(data_dict['simpleNet'][''][0, ...], axis=0), axis=0)
 
 #data_dict = plot_task_curves(foldername, ['sbertNet_tuned'],'correct', train_folder='Multitask', seeds=[0], plot_contexts='')
 

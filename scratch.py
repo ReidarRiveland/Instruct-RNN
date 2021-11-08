@@ -6,7 +6,7 @@ from matplotlib.pyplot import axis
 from numpy.core.fromnumeric import size, var
 from numpy.lib.function_base import append
 from numpy.ma import cos
-from nlp_models import SBERT, BERT
+from nlp_models import GPT, SBERT, BERT
 from rnn_models import InstructNet, SimpleNet
 from utils import train_instruct_dict
 from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_layer_sim_scores, get_hid_var_group_resp, get_hid_var_resp, get_all_CCGP
@@ -32,14 +32,23 @@ from utils import all_models
 unit=90
 var_of_insterest = 'direction'
 
-model = InstructNet(SBERT(20, train_layers=[], reducer=torch.mean), 128, 1)
+model = InstructNet(GPT(20, train_layers=[], reducer=torch.mean), 128, 1)
 model.model_name += '_tuned'
-model.set_seed(3)
-swapped = 'Anti Go'
+model.set_seed(1)
+swapped = 'Multitask'
 #multitask
 task_file = task_swaps_map[swapped]
 task_file
-model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
+model.load_training_data('1_ReLU128_5.7/swap_holdouts/'+task_file)
+
+
+training_dict = model._correct_data_dict
+
+
+len(training_dict['Anti Go'])
+len(training_dict['DMS'])
+
+model.load_model('1_ReLU128_5.7/swap_holdouts/'+task_file)
 
 perf = get_model_performance(model, 3)
 

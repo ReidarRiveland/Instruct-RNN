@@ -3,6 +3,7 @@ import numpy as np
 from numpy.random import randn
 
 import torch
+from torch._C import Value
 import torch.nn as nn
 import torch.optim as optim
 
@@ -26,6 +27,9 @@ device
 
 torch.cuda.is_available()
 torch.cuda.get_device_name(device)
+
+#def trim_data_for_retune(model): 
+
 
 ALL_MODEL_PARAMS = {
     'sbertNet_tuned': {'model': InstructNet, 
@@ -148,7 +152,7 @@ def masked_MSE_Loss(nn_out, nn_target, mask):
     return torch.mean(avg_applied)
 
     
-def train_model(model, streamer, epochs, optimizer, scheduler, print_eval=False, testing=False, checkpoint_for_tuning=False): 
+def train_model(model, streamer, epochs, optimizer, scheduler, print_eval=False, testing=False, checkpoint_for_tuning=None): 
     model.to(device)
     model.train()
 
@@ -157,11 +161,19 @@ def train_model(model, streamer, epochs, optimizer, scheduler, print_eval=False,
     except: 
         pass
 
-    step_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[epochs-2], gamma=0.1)
+    step_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[epochs-10, epochs-3, epochs-2], gamma=0.5)
 
 
     batch_len = streamer.batch_len 
     for i in range(epochs):
+
+        if i == epochs-checkpoint_for_tuning: 
+            model_for_tuning = copy.deepcopy(model)
+            model_for_tuning.model_name += '_tuned'
+            model_for_tuning.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
+            model_for_tuning.save_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
+            print('model checkpointed')
+
         print('epoch', i)
         streamer.shuffle_stream_order()
         for j, data in enumerate(streamer.stream_batch()): 
@@ -201,29 +213,25 @@ def train_model(model, streamer, epochs, optimizer, scheduler, print_eval=False,
             step_scheduler.step()
         
 
-        if checkpoint_for_tuning and i == epochs-10: 
-            model_for_tuning = copy.deepcopy(model)
-            model_for_tuning.model_name += '_tuned'
-            model_for_tuning.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
-            model_for_tuning.save_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
-            print('model checkpointed')
-
     return model.check_model_training(0.95)
 
 
-def tune_model(model, holdouts): 
-    data = TaskDataSet(data_folder= model_file+'/training_data', holdouts=holdouts)
+def tune_model(model, holdouts, epochs): 
+    data = TaskDataSet(data_folder= '_ReLU128_5.7/training_data', holdouts=holdouts)
     data.data_to_device(device)
     model.set_seed(seed_num)
-    opt, sch = init_optimizer(model, 5*1e-4, [-1], langLR= 5*1e-5)
-    
+    opt, _ = init_optimizer(model, 5*1e-4, [-1], langLR= 5*1e-5)
+    sch = optim.lr_scheduler.ExponentialLR(opt, 0.9)
+
+    if 'tuned' not in model.model_name: model.model_name = model.model_name+'_tuned'
     model.load_model(model_file+'/'+holdout_type+'/'+holdout_file)
+    model.load_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
     model.langModel.train_layers=['11', '10', '9']
     model.langModel.init_train_layers()
-    if 'tuned' not in model.model_name: model.model_name = model.model_name+'_tuned'
 
     model.to(device)
-    train_model(model, data, 10, opt, sch)
+    is_tuned = train_model(model, data, epochs, opt, sch)
+    return is_tuned
 
 
 def test_model(model, holdouts_test, repeats=5, foldername = '_ReLU128_5.7', holdout_type = 'single_holdouts', save=False): 
@@ -444,59 +452,113 @@ if __name__ == "__main__":
                 
     if train_mode == 'fine_tune': 
         holdout_type = 'swap_holdouts'
-        seeds = [0, 1, 2, 3, 4]
-        to_tune = list(itertools.product(['gptNet'], seeds, [['Multitask']]))
-
+        #seeds = [0, 1, 2, 3, 4]
+        #to_tune = list(itertools.product(['gptNet'], seeds, [['Multitask']]))
+        to_tune =[
+        #             ('gptNet', 0, ['Go', 'Anti DM'])]
+        #('gptNet', 0, ['Anti RT Go', 'DMC']),
+        #             ('gptNet', 0, ['Anti MultiDM', 'COMP1']),
+        #             ('gptNet', 0, ['COMP2', 'DMS']),
+        #             ('gptNet', 1, ['Anti RT Go', 'DMC']),
+        #             ('gptNet', 1, ['RT Go', 'DNMC']),
+        #     ('gptNet', 1, ['Anti MultiDM', 'COMP1']),
+        #     ('gptNet', 1, ['COMP2', 'DMS']),
+        #     ('gptNet', 1, ['Anti Go', 'MultiCOMP1']),
+        #     ('gptNet', 2, ['RT Go', 'DNMC']),
+        #     ('gptNet', 2, ['COMP2', 'DMS']),
+        #     ('gptNet', 3, ['Anti RT Go', 'DMC']),
+        #     ('gptNet', 3, ['RT Go', 'DNMC']),
+        #     ('gptNet', 3, ['Anti MultiDM', 'COMP1']),
+        #     ('gptNet', 4, ['Go', 'Anti DM']),
+        #     ('gptNet', 4, ['DM', 'MultiCOMP2']),
+        #     ('gptNet', 4, ['COMP2', 'DMS']),
+        #     ('gptNet', 4, ['Anti Go', 'MultiCOMP1']),
+            ('bertNet', 1, ['MultiDM', 'DNMS']),
+            # ('bertNet', 1, ['Anti MultiDM', 'COMP1']),
+            # ('bertNet', 1, ['Anti Go', 'MultiCOMP1']),
+            # ('sbertNet', 0, ['Anti RT Go', 'DMC']),
+            # ('sbertNet', 0, ['Anti Go', 'MultiCOMP1']),
+            # ('sbertNet', 2, ['RT Go', 'DNMC']),
+            # ('sbertNet', 2, ['Anti Go', 'MultiCOMP1']),
+            # ('sbertNet', 4, ['RT Go', 'DNMC']),
+        #     ('gptNet', 0, ['Multitask']),
+        #     ('gptNet', 1, ['Multitask']),
+        #     ('gptNet', 2, ['Multitask']),
+        #     ('gptNet', 4, ['Multitask'])
+        # ]
+        ]
+        inspection_list = []
         for config in to_tune: 
             model_params_key, seed_num, holdouts = config
             torch.manual_seed(seed_num)
             holdout_file = get_holdout_file(holdouts)
 
-            try:
-                pickle.load(open(model_file+'/'+holdout_type +'/'+holdout_file + '/' + model_params_key+'_tuned'+'/seed'+str(seed_num)+'_training_correct', 'rb'))
-                print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
-                continue
-            except FileNotFoundError: 
-                print(config)
-                model, _, _, _ = config_model_training(model_params_key)
-                tune_model(model, holdouts)
+            # try:
+            #     pickle.load(open(model_file+'/'+holdout_type +'/'+holdout_file + '/' + model_params_key+'_tuned'+'/seed'+str(seed_num)+'_training_correct', 'rb'))
+            #     print(model_params_key+'_seed'+str(seed_num)+' already trained for ' + holdout_file)
+            #     continue
+            #except FileNotFoundError: 
+            print(config)
+            model, _, _, _ = config_model_training(model_params_key)
+            if holdouts == ['Multitask']: 
+                eps = 10
+            else: 
+                eps = 5 
 
+            is_tuned = tune_model(model, holdouts, eps)
+            if not is_tuned: 
+                inspection_list.append(config)
+            else: 
+                model.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
+                model.save_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
+        print(inspection_list)
             
     if train_mode == 'train': 
         holdout_type = 'swap_holdouts'
         #seeds = [2]
         #to_train = list(itertools.product(seeds, ['simpleNet'], [['Go', 'Anti DM'], ['Anti RT Go', 'DMC']]))
-        to_train= [('gptNet', 0, ['Go', 'Anti DM']),
-            ('gptNet', 0, ['Anti RT Go', 'DMC']),
-            ('gptNet', 0, ['Anti MultiDM', 'COMP1']),
-            ('gptNet', 0, ['COMP2', 'DMS']),
-            ('gptNet', 1, ['Anti RT Go', 'DMC']),
-            ('gptNet', 1, ['RT Go', 'DNMC']),
-            ('gptNet', 1, ['DM', 'MultiCOMP2']),
-            ('gptNet', 1, ['Anti MultiDM', 'COMP1']),
-            ('gptNet', 1, ['COMP2', 'DMS']),
-            ('gptNet', 1, ['Anti Go', 'MultiCOMP1']),
-            ('gptNet', 2, ['RT Go', 'DNMC']),
-            ('gptNet', 2, ['COMP2', 'DMS']),
-            ('gptNet', 3, ['Anti RT Go', 'DMC']),
-            ('gptNet', 3, ['RT Go', 'DNMC']),
-            ('gptNet', 3, ['Anti MultiDM', 'COMP1']),
-            ('gptNet', 4, ['Go', 'Anti DM']),
-            ('gptNet', 4, ['RT Go', 'DNMC']),
-            ('gptNet', 4, ['DM', 'MultiCOMP2']),
-            ('gptNet', 4, ['COMP2', 'DMS']),
-            ('gptNet', 4, ['Anti Go', 'MultiCOMP1']),
-            ('bertNet', 1, ['MultiDM', 'DNMS']),
-            ('bertNet', 1, ['Anti MultiDM', 'COMP1']),
-            ('bertNet', 1, ['Anti Go', 'MultiCOMP1']),
-            ('sbertNet', 0, ['Anti RT Go', 'DMC']),
-            ('sbertNet', 0, ['Anti Go', 'MultiCOMP1']),
-            ('sbertNet', 2, ['RT Go', 'DNMC']),
-            ('sbertNet', 2, ['Anti Go', 'MultiCOMP1']),
-            ('sbertNet', 4, ['RT Go', 'DNMC'])]
+        to_train=[('', 'gptNet', 0, ['Go', 'Anti DM']),
+                    ('original', 'gptNet', 0, ['DM', 'MultiCOMP2']),
+                    ('original', 'gptNet', 0, ['MultiDM', 'DNMS']),
+                    ('', 'gptNet', 0, ['Anti MultiDM', 'COMP1']),
+                    ('', 'gptNet', 0, ['COMP2', 'DMS']),
+                    ('', 'gptNet', 1, ['DM', 'MultiCOMP2']),
+                    ('original', 'gptNet', 1, ['MultiDM', 'DNMS']),
+                    ('', 'gptNet', 1, ['Anti MultiDM', 'COMP1']),
+                    ('', 'gptNet', 1, ['COMP2', 'DMS']),
+                    ('original', 'gptNet', 2, ['Go', 'Anti DM']),
+                    ('original', 'gptNet', 2, ['Anti RT Go', 'DMC']),
+                    ('', 'gptNet', 2, ['RT Go', 'DNMC']),
+                    ('original', 'gptNet', 2, ['MultiDM', 'DNMS']),
+                    ('original', 'gptNet', 2, ['Anti MultiDM', 'COMP1']),
+                    ('', 'gptNet', 2, ['COMP2', 'DMS']),
+                    ('original', 'gptNet', 3, ['Go', 'Anti DM']),
+                    ('', 'gptNet', 3, ['Anti RT Go', 'DMC']),
+                    ('original', 'gptNet', 3, ['MultiDM', 'DNMS']),
+                    ('', 'gptNet', 4, ['Go', 'Anti DM']),
+                    ('original', 'gptNet', 4, ['Anti RT Go', 'DMC']),
+                    ('original', 'gptNet', 4, ['MultiDM', 'DNMS']),
+                    ('original', 'gptNet', 4, ['Anti MultiDM', 'COMP1']),
+                    ('', 'gptNet', 4, ['COMP2', 'DMS']),
+                    ('original', 'sbertNet', 0, ['Go', 'Anti DM']),
+                    ('original', 'sbertNet', 0, ['Anti MultiDM', 'COMP1']),
+                    ('original', 'sbertNet', 2, ['Go', 'Anti DM']),
+                    ('original', 'sbertNet', 4, ['Anti RT Go', 'DMC']),
+                    ('', 'sbertNet', 4, ['RT Go', 'DNMC']),
+                    ('original', 'sbertNet', 4, ['DM', 'MultiCOMP2']),
+                    ('original', 'bertNet', 0, ['COMP2', 'DMS']),
+                    ('original', 'bertNet', 1, ['Go', 'Anti DM']),
+                    ('original', 'bertNet', 1, ['RT Go', 'DNMC']),
+                    ('', 'bertNet', 1, ['Anti Go', 'MultiCOMP1']),
+                    ('original', 'bertNet', 2, ['RT Go', 'DNMC']),
+                    ('original', 'bertNet', 2, ['COMP2', 'DMS']),
+                    ('original', 'bertNet', 3, ['DM', 'MultiCOMP2']),
+                    ('original', 'bertNet', 4, ['RT Go', 'DNMC'])]
+        #to_train=[('original', 'bertNet', 2, ['Multitask'])]
+            
         inspection_list = []
         for cur_train in to_train:      
-            model_params_key, seed_num, holdouts = cur_train
+            _, model_params_key, seed_num, holdouts = cur_train
             torch.manual_seed(seed_num)
             holdout_file = get_holdout_file(holdouts)
 
@@ -516,23 +578,40 @@ if __name__ == "__main__":
 
             opt, _ = init_optimizer(model, 0.001, [])
             sch = optim.lr_scheduler.ExponentialLR(opt, 0.95)
+
             #train 
-            finished_training = train_model(model, data, 35, opt, sch, checkpoint_for_tuning=True)
+            if holdouts == ['Multitask']: 
+                eps = 55
+                checkpoint=-10
+
+            else: 
+                eps = 35 
+                checkpoint=-5
+
+            print(eps)
+
+            finished_training = train_model(model, data, eps, opt, sch, checkpoint_for_tuning=checkpoint)
+
             if not finished_training: 
                 inspection_list.append(cur_train)
             #save
             model.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
             model.save_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
-
+        
+        print(inspection_list)
 
     if train_mode == 'check_train':
+        model_file='_ReLU128_5.7'
         holdout_type = 'swap_holdouts'
         seeds = [0, 1, 2, 3, 4]
         from utils import all_models
-        to_tune = list(itertools.product(['gptNet', 'bertNet', 'sbertNet'], seeds, training_lists_dict['swap_holdouts']))
+        #to_check = list(itertools.product(['gptNet', 'sbertNet', 'bertNet'], seeds, training_lists_dict['swap_holdouts']))
+        to_check = list(itertools.product(['gptNet_tuned', 'sbertNet_tuned', 'bertNet_tuned'], seeds, [['Multitask']]))
+
+
         test_dict = {}
         to_retrain = []
-        for config in to_tune: 
+        for config in to_check: 
             model_params_key, seed_num, holdouts = config
             torch.manual_seed(seed_num)
             holdout_file = get_holdout_file(holdouts) 
@@ -540,16 +619,26 @@ if __name__ == "__main__":
             model, _, _, _ = config_model_training(model_params_key)
             model.to(device)
             model.set_seed(seed_num)
-            model.load_model(model_file+'/'+holdout_type+'/'+holdout_file)
+            try: 
+                version_str=''
+                model.load_model(model_file+'/'+holdout_type+'/'+holdout_file)
+            except: 
+                version_str='original'
+                print('testing original model')
+                model.load_model('_ReLU128_5.7/'+holdout_type+'/'+holdout_file)
+
             perf = get_model_performance(model, 3).round(2)
-            holdout_indices = [Task.TASK_LIST.index(holdouts[0]), Task.TASK_LIST.index(holdouts[1])]
+            try:
+                holdout_indices = [Task.TASK_LIST.index(holdouts[0]), Task.TASK_LIST.index(holdouts[1])]
+            except ValueError: 
+                holdout_indices=[]
             check_array=np.delete(perf, holdout_indices)
             passed_test = all(check_array>=0.95)
             print(perf)
             print(passed_test)
-            test_dict[str(model_params_key)+ str(seed_num)+str(holdouts)] = perf
+            test_dict[version_str+str(model_params_key)+ str(seed_num)+str(holdouts)] = perf
             if not passed_test: 
-                to_retrain.append((model_params_key, seed_num, holdouts))
+                to_retrain.append((version_str, model_params_key, seed_num, holdouts))
         print(test_dict)
 
 

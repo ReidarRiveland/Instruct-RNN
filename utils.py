@@ -283,17 +283,19 @@ def load_training_data(foldername, model_list, load_contexts=False):
         for i in range(5):
             seed_name = 'seed' + str(i)
             for j, task_file in enumerate(all_swaps+['Multitask']):
-                correct_dict = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+seed_name+'_training_correct', 'rb'))
-                loss_dict = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+seed_name+'_training_loss', 'rb'))
+                try:
+                    correct_dict = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+seed_name+'_training_correct', 'rb'))
+                    loss_dict = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+seed_name+'_training_loss', 'rb'))
+                except FileNotFoundError: 
+                    print('No folder for '+ foldername+'/'+task_file+'/'+model_name+'/'+seed_name)
+
+
                 for k, task in enumerate(task_list): 
                     try:
                         num_examples = len(correct_dict[task])
-                    except KeyError: 
-                        continue
-                    try:
                         training_data[0, i, j, k,:num_examples] = correct_dict[task]
                         training_data[1, i, j, k, :num_examples] = loss_dict[task]
-                    except FileNotFoundError: 
+                    except: 
                         print('No training data for '+ model_name + ' '+seed_name+' '+task)
                         print(foldername+'/'+task_file+'/'+model_name+'/'+seed_name)
                         continue 
