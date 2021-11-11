@@ -1,4 +1,5 @@
 from collections import defaultdict
+from math import inf
 from re import I
 from matplotlib.cbook import flatten
 
@@ -27,26 +28,102 @@ from plotting import plot_CCGP_scores
 
 from utils import all_models
 
+test_list = [1]*1350
+
+del test_list[1440:]
+
+len(test_list)
 
 
 unit=90
 var_of_insterest = 'direction'
 
-model = InstructNet(GPT(20, train_layers=[], reducer=torch.mean), 128, 1)
+model_file = '_ReLU128_4.11'
+
+model = InstructNet(SBERT(20, train_layers=[], reducer=torch.mean), 128, 1)
 model.model_name += '_tuned'
-model.set_seed(1)
+model.set_seed(0)
+swapped = 'Go'
+#multitask
+task_file = task_swaps_map[swapped]
+task_file
+model.load_model(model_file+'/swap_holdouts/'+task_file)   
+
+model_bert = InstructNet(BERT(20, train_layers=[], reducer=torch.mean), 128, 1)
+#model.model_name += '_tuned'
+model_bert.set_seed(0)
 swapped = 'Multitask'
 #multitask
 task_file = task_swaps_map[swapped]
 task_file
-model.load_training_data('1_ReLU128_5.7/swap_holdouts/'+task_file)
+model_bert.load_model(model_file+'/swap_holdouts/'+task_file)   
 
 
-training_dict = model._correct_data_dict
+model_gpt = InstructNet(GPT(20, train_layers=[], reducer=torch.mean), 128, 1)
+#model_gpt.model_name += '_tuned'
+model_gpt.set_seed(0)
+swapped = 'Multitask'
+#multitask
+task_file = task_swaps_map[swapped]
+task_file
+model_gpt.load_model(model_file+'/swap_holdouts/'+task_file)   
 
 
-len(training_dict['Anti Go'])
-len(training_dict['DMS'])
+
+
+
+lang_reps = get_task_reps(model, epoch='stim_start')
+gpt_reps = get_instruct_reps(model_gpt.langModel, train_instruct_dict, depth='12')
+bert_reps = get_instruct_reps(model_bert.langModel, train_instruct_dict, depth='12')
+
+lang_reps == bert_reps
+
+
+sbert_sims = get_layer_sim_scores(model, 'Multitask','_ReLU128_4.11/swap_holdouts', use_cos_sim=True)
+sims = get_layer_sim_scores(model_bert, 'Multitask', '_ReLU128_4.11/swap_holdouts', use_cos_sim=True)
+
+sbert_sims == sims
+
+plot_RDM(sbert_sims[0, ...], 'lang')
+
+
+lang_reps == bert_reps
+
+reduced_reps, _ = reduce_rep(lang_reps[0])
+
+
+
+plot_rep_scatter(reduced_reps, Task.TASK_GROUP_DICT['Go'])
+
+def get_rep_svd(reps):
+    return np.linalg.svd(reps.reshape(reps.shape[0]*reps.shape[1], -1))
+
+
+sbert_u, sbert_s, sbert_v = get_rep_svd(lang_reps)
+bert_u, bert_s, bert_v = get_rep_svd(bert_reps)
+gpt_u, gpt_s, gpt_v = get_rep_svd(gpt_reps)
+
+
+
+plt.bar(range(240), gpt_s, width=0.8, bottom=None, align='center', data=None, color='red')
+plt.bar(range(240), bert_s, width=0.8, bottom=None, align='center', data=None, color='green')
+plt.bar(range(240), sbert_s, width=0.8, bottom=None, align='center', data=None, color='purple')
+plt.show()
+
+lang_rep_reduced, _ = reduce_rep(lang_reps)
+
+from plotting import plot_rep_scatter
+plot_rep_scatter(lang_rep_reduced, Task.TASK_GROUP_DICT['COMP'])
+
+
+
+
+get_model_performance(model, 3)
+
+
+np.inf-10
+
+
 
 model.load_model('1_ReLU128_5.7/swap_holdouts/'+task_file)
 
@@ -185,7 +262,7 @@ plot_model_response(model, trials, instructions=[train_instruct_dict['COMP2'][5]
 #SimpleNet
 model1 = SimpleNet(128, 1, use_ortho_rules=True)
 
-swapped = 'DNMS'
+swapped = 'Multitask'
 #multitask
 model1.set_seed(1)
 task_file = task_swaps_map[swapped]
@@ -229,9 +306,9 @@ model.instruct_mode
 
 #task scatter
 reps, _ = get_task_reps(model, epoch='stim_start', stim_start_buffer=0)
-reduced_reps, _ = reduce_rep(reps, dim=3)
+reduced_reps, _ = reduce_rep(reps)
 reduced_reps.shape
-plot_rep_scatter(reduced_reps[..., 1:3], Task.TASK_GROUP_DICT['COMP'])
+plot_rep_scatter(reduced_reps, Task.TASK_GROUP_DICT['Go'])
 
 lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='full')
 np.mean(lang_reps[7, ...], axis=0)

@@ -243,6 +243,16 @@ def get_input_rule(batch_size, task_type, instruct_mode, lang_dim = None):
     
     return torch.Tensor(task_rule)
 
+def tuning_check(model): 
+    data_dict = model._correct_data_dict
+    is_multitask = len(Task.TASK_LIST) == len(data_dict.keys())
+    example_data = list(data_dict.values())[0]
+    if len(example_data) > 1150: 
+        raise ValueError('trying data for that of a previously tuned model, please inspect')
+    elif len(example_data) > 1450 and is_multitask: 
+        raise ValueError('trying data for that of a previously tuned model, please inspect')
+    else: 
+        pass 
 
 
 def load_holdout_data(foldername, model_list): 
@@ -274,7 +284,7 @@ def load_holdout_data(foldername, model_list):
         data_dict[model_name] = model_data_dict
     return data_dict
 
-def load_training_data(foldername, model_list, load_contexts=False): 
+def load_training_data(foldername, model_list): 
     #for each model name in the dict entry 
     data_dict = dict.fromkeys(model_list)
 

@@ -136,7 +136,7 @@ def reduce_rep(reps, dim=2, reduction_method='PCA'):
 
     return embedded.reshape(reps.shape[0], reps.shape[1], dim), explained_variance
 
-def get_layer_sim_scores(model, holdout_file, rep_depth='12', model_file='_ReLU128_5.7/swap_holdouts', use_cos_sim=False): 
+def get_layer_sim_scores(model, holdout_file, model_file, rep_depth='12', use_cos_sim=False): 
     if rep_depth.isnumeric(): 
         rep_dim = model.langModel.intermediate_lang_dim
         number_reps=15
@@ -195,7 +195,7 @@ def get_CCGP(reps):
     return all_decoding_score
 
 
-def get_all_CCGP(model, task_rep_type, swap=False): 
+def get_all_CCGP(model, task_rep_type, foldername, swap=False): 
     if not swap: 
         tasks_to_compute = task_list +['Multitask']
     else: 
@@ -231,5 +231,22 @@ def get_all_CCGP(model, task_rep_type, swap=False):
             all_CCGP[i, j, ...] = decoding_score
             if j != 16: 
                 holdout_CCGP[i, j] = decoding_score[j, :]
-    np.savez('_ReLU128_5.7/CCGP_measures_new/' +task_rep_type+'_'+ epoch + '_' + model.model_name + swap_str +'_CCGP_scores', all_CCGP=all_CCGP, holdout_CCGP= holdout_CCGP)
+    np.savez(foldername+'/CCGP_measures/' +task_rep_type+'_'+ epoch + '_' + model.model_name + swap_str +'_CCGP_scores', all_CCGP=all_CCGP, holdout_CCGP= holdout_CCGP)
     return all_CCGP, holdout_CCGP
+
+if __name__ == "__main__":
+
+    from model_trainer import config_model
+    model_file = '_ReLU128_4.11'
+    ###GET ALL MODEL CCGPs###
+    for swap_bool in [False, True]: 
+        for model_name in ['sbertNet_tuned', 'sbertNet', 'bertNet_tuned','bertNet', 'gptNet_tuned', 'gptNet', 'bowNet', 'simpleNet']:
+            print(model_name)
+            model, _, _, _ = config_model(model_name)
+            get_all_CCGP(model, 'task', model_file, swap=swap_bool)
+
+
+
+
+
+

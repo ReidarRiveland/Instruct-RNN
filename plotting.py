@@ -1,9 +1,11 @@
 import enum
+from math import nan
 import matplotlib
 from numpy.core.fromnumeric import ndim, size
 from numpy.core.numeric import indices
 from scipy.ndimage.measurements import label
 from torch.nn.modules.container import T
+from torch.random import seed
 from model_analysis import get_hid_var_group_resp, get_hid_var_resp, get_model_performance, get_instruct_reps
 from task import Comp, Task, make_test_trials, construct_batch
 task_list = Task.TASK_LIST
@@ -137,7 +139,7 @@ def plot_task_curves(foldername, model_list, correct_or_loss, train_folder=None,
     plt.show()
     return data_dict
 
-plot_task_curves('_ReLU128_5.7/swap_holdouts', ['sbertNet', 'simpleNet'],'correct', train_folder='Multitask')
+data=plot_task_curves('_ReLU128_4.11/swap_holdouts', ['simpleNet', 'sbertNet_tuned'],'correct', train_folder='Anti_RT_Go_DMC', seeds=[0])
 
 
 
@@ -146,7 +148,7 @@ plot_task_curves('_ReLU128_5.7/swap_holdouts', ['sbertNet', 'simpleNet'],'correc
 
 #data_dict = plot_task_curves(foldername, all_models[::-1],'correct', train_folder=swap, seeds=[4])
 
-# data_dict = plot_avg_curves(foldername, ['simpleNet'],'correct', split_axes=True)
+#data_dict = plot_avg_curves('_ReLU128_4.11/swap_holdouts', ['simpleNet', 'bowNet'],'correct', split_axes=True)
 
 # np.mean(np.mean(data_dict['simpleNet'][''][0, ...], axis=0), axis=0)
 

@@ -262,7 +262,7 @@ class Comp(Task):
                     base_strength = np.random.uniform(1.3, 1.5, size=2)
                     redraw = True
                     while redraw: 
-                        coh = np.random.choice([-0.25, -0.2, -0.15, 0.15, 0.2, 0.25], size=2, replace=False)
+                        coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
                         if coh[0] != -1*coh[1]: 
                             redraw = False
                     

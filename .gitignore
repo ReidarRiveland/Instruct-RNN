@@ -15,7 +15,6 @@
 /*ICMLFigures/*
 
 
-/*training_data_COMPTEST/*
-retrain_list
-test_dict
+/*training_data/*
+
 sbert_raw.pt

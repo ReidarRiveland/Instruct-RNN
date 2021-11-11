@@ -78,10 +78,12 @@ class BaseNet(nn.Module):
 
     def load_model(self, foldername): 
         f_name = foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.__seed_num_str__+'.pt'
-        try: 
-            self.load_state_dict(torch.load(f_name, map_location='cpu'))
-        except RuntimeError:
-            self.load_state_dict(self.langModel._convert_state_dict_format(f_name))
+        self.load_state_dict(torch.load(f_name, map_location='cpu'))
+
+        # try: 
+        #     self.load_state_dict(torch.load(f_name, map_location='cpu'))
+        # except RuntimeError:
+        #     self.load_state_dict(self.langModel._convert_state_dict_format(f_name))
     
     def check_model_training(self, threshold): 
         latest_perf = np.array([task_perf[-1] for task_perf in self._correct_data_dict.values()])
