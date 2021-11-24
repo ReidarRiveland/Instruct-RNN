@@ -72,7 +72,7 @@ class Vocab:
 class BaseDecoder(nn.Module):
     def __init__(self):
         super(BaseDecoder, self).__init__()
-        self.load_foldername = '_ReLU128_5.7/swap_holdouts'
+        self.load_foldername = '_ReLU128_4.11/swap_holdouts'
         self.teacher_loss_list = []
         self.loss_list = []
         self.vocab = Vocab()
@@ -83,7 +83,7 @@ class BaseDecoder(nn.Module):
     def init_context_set(self, task_file, model_name, seed_str, supervised_str=''):
         all_contexts = np.empty((16, 256, 20))
         for i, task in enumerate(Task.TASK_LIST):
-            filename = self.load_foldername+'/'+task_file+'/'+model_name+'/contexts/'+seed_str+'/'+task+supervised_str+'_context_vecs20'
+            filename = self.load_foldername+'/'+task_file+'/'+model_name+'/contexts/'+seed_str+task+supervised_str+'_context_vecs20'
             task_contexts = pickle.load(open(filename, 'rb'))
             all_contexts[i, ...]=task_contexts
         self.contexts = all_contexts
@@ -97,7 +97,7 @@ class BaseDecoder(nn.Module):
         pickle.dump(self.loss_list, open(save_string+'_loss_list', 'wb'))
 
     def load_model(self, save_string): 
-        self.load_state_dict(torch.load('_ReLU128_5.7/swap_holdouts/'+save_string+'.pt'))
+        self.load_state_dict(torch.load(self.load_foldername+'/'+save_string+'.pt'))
 
     def get_instruct_embedding_pair(self, task_index, instruct_index, training=True): 
         assert self.contexts is not None, 'must initalize decoder contexts with init_context_set'
@@ -349,18 +349,15 @@ def plot_partner_performance(all_perf_dict):
             r = np.arange(len_values)
         else:
             r = [x + barWidth for x in r]
-        if '_layer_11' in model_name: 
-            mark_size = 4
-        else: 
-            mark_size = 3
+        mark_size = 3
         if mode == 'contexts': 
             hatch_style = '/'
             edge_color = 'white'
         else: 
             hatch_style = None
             edge_color = None
-        plt.plot(r, [1.05]*16, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
-        plt.bar(r, values, width =barWidth, label = model_name, hatch=hatch_style, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
+        plt.plot(r, [1.05]*16, linestyle="", alpha=0.8, color = ['blue', 'red'][i], markersize=mark_size)
+        plt.bar(r, values, width =barWidth, label = model_name, color = ['blue', 'red'][i], edgecolor = 'white')
         #cap error bars at perfect performance 
         error_range= (std, np.where(values+std>1, (values+std)-1, std))
         print(error_range)
@@ -371,7 +368,7 @@ def plot_partner_performance(all_perf_dict):
     plt.xlabel('Task Type', fontweight='bold')
     plt.ylabel('Percentage Correct')
     r = np.arange(len_values)
-    plt.xticks([r + barWidth+0.25 for r in range(len_values)], Task.TASK_LIST, fontsize='xx-small', fontweight='bold')
+    plt.xticks([r + barWidth for r in range(len_values)], Task.TASK_LIST, fontsize='xx-small', fontweight='bold')
     plt.tight_layout()
     Patches = [(Line2D([0], [0], linestyle='None', marker=MODEL_STYLE_DICT[model_name][1], color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
                 markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(all_perf_dict.keys()) if 'bert' in model_name or 'gpt' in model_name]
@@ -381,12 +378,12 @@ def plot_partner_performance(all_perf_dict):
     plt.show()
 
 
-# model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-# model1.model_name += '_tuned'
-# model1.set_seed(0) 
-# model1.to(device)
+model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+model1.model_name += '_tuned'
+model1.set_seed(1) 
+model1.to(device)
 
-# foldername = '_ReLU128_5.7/swap_holdouts/'
+foldername = '_ReLU128_4.11/swap_holdouts/Multitask'
 # all_decoded_set = {}
 # all_confuse_mat = np.empty((16, 17))
 # all_perf = np.empty((1, 2, 16))
@@ -405,12 +402,20 @@ def plot_partner_performance(all_perf_dict):
 #     all_perf[0, :, i] = perf[0,:, i]
 
 
-# decoder= DecoderRNN(128, foldername+'Multitask/sbertNet_tuned/contexts/seed0_context_vecs20')
-# decoder.load_model('Multitask/sbertNet_tuned/decoders/seed0_decoder_wHoldout')
-# model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
 
-# decoder.to(device)
-# perf = test_partner_model(model1, decoder)
+decoder= DecoderRNN(128)
+decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed'+str(0), supervised_str='_supervised')
+
+decoder.load_model('Multitask/sbertNet_tuned/decoders/seed0_decoder')
+model1.load_model('_ReLU128_4.11/swap_holdouts/Multitask')
+
+decoder.to(device)
+all_perf, decoded_instructs = test_partner_model(model1, decoder, num_repeats=5)
+
+
+np.mean(all_perf[:, 1, :])
+
+plot_partner_performance({'instructions': all_perf[:, 1, :], 'contexts': all_perf[:, 0, :]})
 
 # perf[0]
 
@@ -438,7 +443,6 @@ def plot_partner_performance(all_perf_dict):
 
 # all_decoded_set['Anti Go']['other']
 
-# plot_trained_performance({'instructions': all_perf[:, 1, :], 'contexts': all_perf[:, 0, :]})
 
 
 # len(decoded_set['Anti RT Go']['Anti Go'])
@@ -466,8 +470,8 @@ def plot_partner_performance(all_perf_dict):
 if __name__ == "__main__": 
     import itertools
     from utils import training_lists_dict, all_models
-    seeds = [0, 1, 2, 3, 4]
-    model_file = '_ReLU128_5.7/swap_holdouts/'
+    seeds = [0, 1]
+    model_file = '_ReLU128_4.11/swap_holdouts/'
     to_train = list(itertools.product(seeds, all_models, [['Multitask']]+training_lists_dict['swap_holdouts']))
     for config in to_train: 
         seed, model_name, tasks = config 

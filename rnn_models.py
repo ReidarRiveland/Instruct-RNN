@@ -85,9 +85,9 @@ class BaseNet(nn.Module):
         # except RuntimeError:
         #     self.load_state_dict(self.langModel._convert_state_dict_format(f_name))
     
-    def check_model_training(self, threshold): 
-        latest_perf = np.array([task_perf[-1] for task_perf in self._correct_data_dict.values()])
-        return all(latest_perf>threshold)
+    def check_model_training(self, threshold, duration): 
+        latest_perf = np.array([task_perf[-duration:] for task_perf in self._correct_data_dict.values()])
+        return np.all(latest_perf>threshold)
 
     def reset_training_data(self): 
         self._loss_data_dict = defaultdict(list)
@@ -120,7 +120,8 @@ class SimpleNet(BaseNet):
         return get_input_rule(batch_len, task_type, self.instruct_mode).to(self.__device__)
 
     def forward(self, task_rule, x):
-        task_rule = torch.matmul(task_rule, self.rule_transform)
+        if self.instruct_mode is not 'masked': 
+            task_rule = torch.matmul(task_rule, self.rule_transform)
         outs, rnn_hid = super().forward(task_rule, x)
         return outs, rnn_hid
 

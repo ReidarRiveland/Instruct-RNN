@@ -39,26 +39,33 @@ from matplotlib import rc
 plt.rcParams["font.family"] = "serif"
 
 
-foldername = '_ReLU128_5.7/swap_holdouts'
-model_list = all_models
 
-def _plot_performance_curve(avg_perf, std_dev_perf, plt_ax, model_name, plt_args): 
-        if std_dev_perf is not None: 
+def _plot_performance_curve(avg_perf, all_perf, plt_ax, model_name, plt_args): 
+        if all_perf is not None: 
+            std_dev_perf = np.std(all_perf, axis=0)
+
             plt_ax.fill_between(np.linspace(0, avg_perf.shape[-1], avg_perf.shape[-1]), np.min(np.array([np.ones(avg_perf.shape[-1]), avg_perf+std_dev_perf]), axis=0), 
-                                            avg_perf-std_dev_perf, color = MODEL_STYLE_DICT[model_name][0], alpha= 0.1)
-        plt_ax.plot(avg_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], markeredgecolor='white', markeredgewidth=0.25, **plt_args)
+                                            avg_perf-std_dev_perf, color = MODEL_STYLE_DICT[model_name][0], alpha= 0.08)
+        plt_ax.plot(avg_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], markeredgewidth=0.25, **plt_args)
 
-def plot_avg_curves(foldername, model_list, correct_or_loss, seeds=np.array(range(5)), split_axes=False):
+
+# def _plot_performance_curve(avg_perf, all_perf, plt_ax, model_name, plt_args): 
+#     if all_perf is not None: 
+#         plt_ax.fill_between(np.linspace(0, avg_perf.shape[-1], avg_perf.shape[-1]), np.max(all_perf, axis=0), 
+#                                         np.min(all_perf, axis=0), color = MODEL_STYLE_DICT[model_name][0], alpha= 0.1)
+#     plt_ax.plot(avg_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], markeredgecolor='white', markeredgewidth=0.25, **plt_args)
+
+
+def plot_avg_curves(foldername, model_list, correct_or_loss='correct', plot_swaps = False, seeds=np.array(range(5)), split_axes=False):
     data_dict = load_holdout_data(foldername, model_list)
     if correct_or_loss == 'correct': data_type_index = 0
     else: data_type_index = 1
 
     if split_axes: 
-        inset1_lims = (0, 10)
-        inset2_lims = (80, 100)
+        inset1_lims = (-1, 10)
+        inset2_lims = (80, 99)
         gs_kw = dict(width_ratios=[inset1_lims[1]-inset1_lims[0],inset2_lims[1]-inset2_lims[0]], height_ratios=[1])
         fig,(axn,ax2) = plt.subplots(1,2,sharey=True, facecolor='w',  gridspec_kw=gs_kw, figsize =(6, 4))
-        fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.7, 0.48), title='Models', title_fontsize = 'small', fontsize='x-small')
 
         axn.set_xlim(inset1_lims)
         ax2.set_xlim(inset2_lims)
@@ -87,25 +94,30 @@ def plot_avg_curves(foldername, model_list, correct_or_loss, seeds=np.array(rang
         axn.yaxis.set_tick_params(labelsize=10)
         axn.set_yticks(np.linspace(0, 1, 11))
 
-    plt_args={'linewidth' : 0.8, 'linestyle' : '-', 'alpha':1, 'markersize':4, 'markevery':10}
+    plt_args={'linewidth' : 1.2, 'linestyle' : '-', 'alpha':1, 'markersize':4, 'markevery':5}
 
     for model_name in model_list:
         data = data_dict[model_name][''][data_type_index, seeds, ...]
         plt_args['linestyle'] = '-'
-        _plot_performance_curve(np.mean(data, axis = (0, 1)), np.std(np.mean(data, axis = 1), 0), axn, model_name, plt_args=plt_args)
+        #_plot_performance_curve(np.mean(data, axis = (0, 1)), np.mean(data, axis = 1), axn, model_name, plt_args=plt_args)
+        _plot_performance_curve(np.mean(data, axis = (0, 1)), None, axn, model_name, plt_args=plt_args)
 
-        swap_data = data_dict[model_name]['swap'][data_type_index, seeds, ...]
-        plt_args['linestyle'] = '--'
-        _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, axn, model_name, plt_args=plt_args)
+        if plot_swaps:
+            swap_data = data_dict[model_name]['swap'][data_type_index, seeds, ...]
+            plt_args['linestyle'] = '--'
+            _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, axn, model_name, plt_args=plt_args)
 
-        if split_axes: 
-            _plot_performance_curve(np.mean(data, axis = (0, 1)), np.std(np.mean(data, axis = 1), 0), ax2, model_name, plt_args=plt_args)
-            _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, ax2, model_name, plt_args=plt_args)
-
+        if split_axes:
+            plt_args['linestyle'] = '-'
+            _plot_performance_curve(np.mean(data, axis = (0, 1)), np.mean(data, axis = 1), ax2, model_name, plt_args=plt_args)
+            if plot_swaps:
+                plt_args['linestyle'] = '--'
+                _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, ax2, model_name, plt_args=plt_args)
+    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.7, 0.48), title='Models', title_fontsize = 'small', fontsize='x-small')
     plt.show()
     return data_dict
 
-def plot_task_curves(foldername, model_list, correct_or_loss, train_folder=None, seeds=np.array(range(5)), plot_contexts=None, instruct_mode=''):
+def plot_task_curves(foldername, model_list, correct_or_loss='correct', train_folder=None, seeds=np.array(range(5)), plot_contexts=None, plot_swaps=False):
     if train_folder is None: 
         data_dict = load_holdout_data(foldername, model_list)
         marker_every=15
@@ -123,39 +135,29 @@ def plot_task_curves(foldername, model_list, correct_or_loss, train_folder=None,
     fig.suptitle('Avg. Performance on Heldout Tasks', size=14)        
 
     plt_args={'linewidth' : 0.6, 'linestyle' : '-', 'alpha':1, 'markersize':3, 'markevery':marker_every}
-
+    if plot_swaps: mode_list = ['', 'swap']
+    else: mode_list=['']
     for model_name in model_list: 
-        if train_folder is None: data = data_dict[model_name][instruct_mode][data_type_index, seeds, ...]
-        else: data = data_dict[model_name][data_type_index, seeds, list(all_swaps+['Multitask']).index(train_folder), ...]
+        for instruct_mode in mode_list:
+            if train_folder is None: data = data_dict[model_name][instruct_mode][data_type_index, seeds, ...]
+            else: data = data_dict[model_name][data_type_index, seeds, list(all_swaps+['Multitask']).index(train_folder), ...]
 
-        for j, task in enumerate(task_list):
-            ax = axn.flat[j]
-            ax.set_ylim(-0.05, 1.05)
-            ax.set_title(task, size=6, pad=1)
-            ax.xaxis.set_tick_params(labelsize=5)
-            ax.yaxis.set_tick_params(labelsize=10)
-            _plot_performance_curve(np.mean(data[:, j, :], axis = 0), np.std(data[:, j, :], axis=0), ax, model_name, plt_args=plt_args)
+            for j, task in enumerate(task_list):
+                ax = axn.flat[j]
+                ax.set_ylim(-0.05, 1.05)
+                ax.set_title(task, size=6, pad=1)
+                ax.xaxis.set_tick_params(labelsize=5)
+                ax.yaxis.set_tick_params(labelsize=10)
+                if instruct_mode =='':
+                    plt_args['linestyle'] = '-'
+                    all_perf_curve = data[:,j,:]
+                else:
+                    plt_args['linestyle'] = '--'
+                    all_perf_curve = None
+                _plot_performance_curve(np.mean(data[:, j, :], axis = 0), all_perf_curve, ax, model_name, plt_args=plt_args)
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
     return data_dict
-
-data=plot_task_curves('_ReLU128_4.11/swap_holdouts', ['simpleNet', 'sbertNet_tuned'],'correct', train_folder='Anti_RT_Go_DMC', seeds=[0])
-
-
-
-# plot_task_curves(foldername, ['simpleNet'],'correct',  instruct_mode='')
-
-
-#data_dict = plot_task_curves(foldername, all_models[::-1],'correct', train_folder=swap, seeds=[4])
-
-#data_dict = plot_avg_curves('_ReLU128_4.11/swap_holdouts', ['simpleNet', 'bowNet'],'correct', split_axes=True)
-
-# np.mean(np.mean(data_dict['simpleNet'][''][0, ...], axis=0), axis=0)
-
-#data_dict = plot_task_curves(foldername, ['sbertNet_tuned'],'correct', train_folder='Multitask', seeds=[0], plot_contexts='')
-
-
-#model_data_dict = plot_context_training('_ReLU128_5.7/swap_holdouts/', ['bowNet'],  1, smoothing = 0.01)
 
 
 def plot_tuned_vs_standard(model_data_dict): 
@@ -224,10 +226,10 @@ def plot_k_shot_learning(model_data_dict_list, save_file=None):
 
 def plot_trained_performance(all_perf_dict):
     barWidth = 0.1
-    for i, model_name in enumerate(['sbertNet_tuned', 'sbertNet', 'bertNet_tuned','bertNet', 'gptNet_tuned', 'gptNet', 'bowNet']):  
+    for i, model_name in enumerate(all_perf_dict.keys()):  
         perf = all_perf_dict[model_name]
-        values = list(np.mean(perf, axis=1))
-        std = np.std(perf, axis=1)
+        values = list(np.mean(perf, axis=0))
+        std = np.std(perf, axis=0)
         
         len_values = len(task_list)
         if i == 0:
@@ -538,7 +540,7 @@ def plot_tuning_curve(model, tasks, task_variable, unit, mod, times, swapped_tas
     return trials
 
 
-def plot_CCGP_scores(model_list, rep_type_file_str = '', save_file=None):
+def plot_CCGP_scores(model_list, rep_type_file_str = '', plot_swaps=False):
     barWidth = 0.08
     Patches = []
     for i, model_name in enumerate(model_list):
@@ -555,12 +557,14 @@ def plot_CCGP_scores(model_list, rep_type_file_str = '', save_file=None):
             mark_size = 4
         else: 
             mark_size = 3
-    
-        for j, swap_mode in enumerate(['', '_swap']):
+
+        if plot_swaps: mode_list = ['', '_swap']
+        else: mode_list = ['']
+        for j, swap_mode in enumerate(mode_list):
             values = np.full(2, np.NAN)
             spread_values = np.empty((len_values, 5))
 
-            CCGP_score = np.load(open('_ReLU128_5.7/CCGP_measures_new/'+rep_type_file_str+model_name+swap_mode+'_CCGP_scores.npz', 'rb'))
+            CCGP_score = np.load(open('_ReLU128_4.11/CCGP_measures/'+rep_type_file_str+model_name+swap_mode+'_CCGP_scores.npz', 'rb'))
             if swap_mode != '_swap': 
                 print('all_CCGP')
                 values[0] = np.mean(np.nan_to_num(CCGP_score['all_CCGP'][:, -1, :, :]))
@@ -585,9 +589,10 @@ def plot_CCGP_scores(model_list, rep_type_file_str = '', save_file=None):
     plt.tight_layout()
 
     plt.legend(handles=Patches, fontsize=6, markerscale=0.5)
-    if save_file is not None: 
-        plt.savefig('figs/'+save_file)
+
     plt.show()
+
+
 
 def plot_neural_resp(model, task_type, task_variable, unit, mod, save_file=None):
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']

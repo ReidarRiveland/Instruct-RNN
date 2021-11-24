@@ -43,6 +43,15 @@ def get_model_performance(model, num_batches):
             perf_array[i] = np.mean(mean_list)
     return perf_array
 
+def get_multitask_val_performance(model, foldername, seeds=np.array(range(5))): 
+    performance = np.empty((len(seeds), len(Task.TASK_LIST)))
+    model.instruct_model = 'validation'
+    for seed in seeds:
+        model.set_seed(seed)
+        model.load_model(foldername+'/Multitask')
+        perf = get_model_performance(model, 3)
+        performance[seed, :] = perf
+    return performance
 
 def get_instruct_reps(langModel, instruct_dict, depth='full', swapped_tasks = []):
     langModel.eval()
@@ -68,7 +77,7 @@ def get_instruct_reps(langModel, instruct_dict, depth='full', swapped_tasks = []
     return instruct_reps.cpu().numpy().astype(np.float64)
 
 
-def get_task_reps(model, epoch='prep', stim_start_buffer=0, num_trials =100, swapped_tasks = []):
+def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, swapped_tasks = []):
     assert epoch in ['stim', 'prep', 'stim_start'] or epoch.isnumeric(), "entered invalid epoch: %r" %epoch
     assert model.instruct_mode == '', "use swapped task argument to evaluate tasks under alternative instruct_modes"
     model.eval()
@@ -209,7 +218,7 @@ def get_all_CCGP(model, task_rep_type, foldername, swap=False):
             print('\n') 
             print(task) 
             task_file = task_swaps_map[task]
-            model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
+            model.load_model(foldername+'/swap_holdouts/'+task_file)
             if swap: 
                 swapped_list = [task]
                 swap_str = '_swap'
@@ -237,15 +246,17 @@ def get_all_CCGP(model, task_rep_type, foldername, swap=False):
 if __name__ == "__main__":
 
     from model_trainer import config_model
+    import pickle
+    from utils import all_models
     model_file = '_ReLU128_4.11'
+
     ###GET ALL MODEL CCGPs###
-    for swap_bool in [False, True]: 
-        for model_name in ['sbertNet_tuned', 'sbertNet', 'bertNet_tuned','bertNet', 'gptNet_tuned', 'gptNet', 'bowNet', 'simpleNet']:
+    for swap_bool in [False]: 
+        for model_name in ['gptNet_tuned']:
             print(model_name)
-            model, _, _, _ = config_model(model_name)
+            model = config_model(model_name)
+            model.to(torch.device(0))
             get_all_CCGP(model, 'task', model_file, swap=swap_bool)
-
-
 
 
 

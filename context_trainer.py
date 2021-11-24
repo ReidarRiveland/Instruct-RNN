@@ -21,6 +21,8 @@ device = torch.device(0)
 def train_context(model, data_streamer, epochs, opt, sch, context, self_supervised): 
     model.freeze_weights()
     model.eval()
+    step_scheduler = optim.lr_scheduler.MultiStepLR(opt,milestones=[epochs-2, epochs-1], gamma=0.1)
+
     for i in range(epochs): 
         print('epoch', i)
         data_streamer.shuffle_stream_order()
@@ -30,16 +32,15 @@ def train_context(model, data_streamer, epochs, opt, sch, context, self_supervis
 
             opt.zero_grad()
     
-            #batch_context = context.repeat(ins.shape[0], 1).to(device)
             if self_supervised:
                 task_info = model.get_task_info(ins.shape[0], task_type)
-                target, _ = model(task_info, ins)
+                target, _ = model(task_info, ins.to(device))
             else: 
                 target = tar
 
             #proj = model.langModel.proj_out(context.float())            
-            out, _ = super(type(model), model).forward(context, ins)
-            loss = masked_MSE_Loss(out, target, mask) 
+            out, _ = super(type(model), model).forward(context, ins.to(device))
+            loss = masked_MSE_Loss(out, target.to(device), mask.to(device)) 
             loss.backward()
 
             opt.step()
@@ -51,10 +52,14 @@ def train_context(model, data_streamer, epochs, opt, sch, context, self_supervis
                 print(task_type)
                 print(j, ':', model.model_name, ":", "{:.2e}".format(loss.item()))
                 print('Frac Correct ' + str(frac_correct) + '\n')
+        
+        if i>5 and model.check_model_training(0.91, 5):
+            return context.squeeze().detach().cpu().numpy(), True
         if sch is not None:                
             sch.step()
-
-    return context.squeeze().detach().cpu().numpy()
+        step_scheduler.step()
+    is_trained = model.check_model_training(0.91, 5)
+    return context.squeeze().detach().cpu().numpy(), is_trained
 
 def test_context(model, holdouts_test, foldername, repeats=5, holdout_type = 'swap_holdouts', save=False): 
     holdout_file = get_holdout_file(holdouts_test)
@@ -84,7 +89,7 @@ def test_context(model, holdouts_test, foldername, repeats=5, holdout_type = 'sw
 
     return correct_perf, loss_perf
 
-def get_model_contexts(model, num_contexts, target_embedding_layer, task_file, self_supervised, lang_init=False, foldername='_ReLU128_5.7'):
+def get_all_contexts(model, num_contexts, target_embedding_layer, task_file, self_supervised, tasks_to_train=Task.TASK_LIST, foldername='_ReLU128_4.11'):
     try: 
         if target_embedding_layer.isnumeric(): 
             context_dim = model.langModel.intermediate_lang_dim
@@ -93,63 +98,75 @@ def get_model_contexts(model, num_contexts, target_embedding_layer, task_file, s
     except: 
         context_dim = 20
 
+    inspection_list = []
+
     supervised_str = ''
     if not self_supervised:
         supervised_str = '_supervised'
     
 
-    model.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
+    model.load_model(foldername+'/swap_holdouts/'+task_file)
     model.to(device)
 
     filename=foldername+'/swap_holdouts/'+task_file + '/'+model.model_name+'/contexts/'+model.__seed_num_str__
 
-    for i, task in enumerate(Task.TASK_LIST):     
+    for task in tasks_to_train:     
+        try:
+            pickle.load(open(filename+task+supervised_str+'_context_correct_data'+str(context_dim), 'rb'))
+            print(filename+task+supervised_str+'_context_correct_data'+str(context_dim))
+            print('contexts already trained')
+            continue
+        except FileNotFoundError: 
+            context = nn.Parameter(torch.randn((num_contexts, context_dim), device=device))
 
-        context = nn.Parameter(torch.randn((num_contexts, context_dim), device=device))
+            opt= optim.Adam([context], lr=8e-2, weight_decay=0.0)
+            sch = optim.lr_scheduler.ExponentialLR(opt, 0.95)
 
-        opt= optim.Adam([context], lr=8e-2, weight_decay=0.0)
-        #sch = optim.lr_scheduler.ExponentialLR(opt, 0.99)
-        sch = optim.lr_scheduler.MultiStepLR(opt, [10, 12, 14], 0.1)
+            streamer = TaskDataSet(batch_len = num_contexts, num_batches = 250, task_ratio_dict={task:1})
 
+            contexts, is_trained = train_context(model, streamer, 20, opt, sch, context, self_supervised)
+            if is_trained:
+                pickle.dump(contexts, open(filename+task+supervised_str+'_context_vecs'+str(context_dim), 'wb'))
+                pickle.dump(model._correct_data_dict, open(filename+task+supervised_str+'_context_correct_data'+str(context_dim), 'wb'))
+                pickle.dump(model._loss_data_dict, open(filename+task+supervised_str+'_context_loss_data'+str(context_dim), 'wb'))
+                print('saved: '+filename+' '+task)
+            else:
+                inspection_list.append(task)
+            model.reset_training_data()
+            print(inspection_list)
+    return inspection_list
 
-        streamer = TaskDataSet(batch_len = num_contexts, num_batches = 250, task_ratio_dict={task:1})
-        streamer.data_to_device(device)
+def get_all_contexts_set(to_get):
+    inspection_dict = {}
+    for config in to_get: 
+        seed_num, model_params_key, tasks = config 
+        task_file = get_holdout_file(tasks)
+        model = config_model(model_params_key)
+        torch.manual_seed(seed_num)
+        model.set_seed(seed_num)
+        model.to(device)
+        for self_supervised in [False, True]:
+            supervised_str = ''
+            if not self_supervised:
+                supervised_str = '_supervised'
 
-        contexts =train_context(model, streamer, 16, opt, sch, context, self_supervised)
-        pickle.dump(contexts, open(filename+'/'+task+supervised_str+'_context_vecs'+str(context_dim), 'wb'))
-        pickle.dump(model._correct_data_dict, open(filename+'/'+task+supervised_str+'_context_correct_data'+str(context_dim), 'wb'))
-        pickle.dump(model._loss_data_dict, open(filename+'/'+task+supervised_str+'_context_loss_data'+str(context_dim), 'wb'))
-        print('saved: '+filename)
-        model.reset_training_data()
+            print(str(config) + supervised_str) 
+            inspection_list = get_all_contexts(model, 256, 'full', task_file, self_supervised)
+            inspection_dict[model.model_name+model.__seed_num_str__+supervised_str] = inspection_list
+    return inspection_dict
 
 if __name__ == "__main__":
     model_file = '_ReLU128_4.11'
 
-    train_mode = str(sys.argv[1])
-
+    #train_mode = str(sys.argv[1])
+    train_mode = 'train_contexts'
     if train_mode == 'train_contexts': 
+        holdout_type = 'swap_holdouts'
         seeds = [0, 1, 2, 3, 4]
-        to_train = list(itertools.product(seeds, ['sbertNet_tuned', 'simpleNet'], ['Multitask']+all_swaps))
-        print(to_train)
-        for config in to_train: 
-            seed_num, model_params_key, task_file = config 
-            model, _, _, _ = config_model(model_params_key)
-            torch.manual_seed(seed_num)
-            model.set_seed(seed_num)
-            model.to(device)
-            for self_supervised in [False, True]:
-                supervised_str = ''
-                if not self_supervised:
-                    supervised_str = '_supervised'
-    
-                print(str(config) + supervised_str) 
-
-                # try: 
-                #     filename=model_file+'/swap_holdouts/'+task_file + '/'+model.model_name+'/contexts/'+model.__seed_num_str__+'/'+supervised_str+'_context_correct_data20'
-                #     pickle.load(open(filename, 'rb'))
-                #     print(filename+' already trained')
-                #except FileNotFoundError:
-                get_model_contexts(model, 256, 'full', task_file, self_supervised)
+        to_train_contexts = list(itertools.product([0, 1], ['sbertNet_tuned'], [['Multitask']]+training_lists_dict['swap_holdouts']))
+        to_train_contexts
+        inspection_dict = get_all_contexts_set(to_train_contexts)
+        print(inspection_dict)
 
     if train_mode == 'test_contexts': 
         holdout_type = 'swap_holdouts'

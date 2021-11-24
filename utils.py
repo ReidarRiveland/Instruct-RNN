@@ -49,6 +49,8 @@ task_swaps_map = {'Go': 'Go_Anti_DM',
 
 all_swaps = list(set(task_swaps_map.values()))
 
+all_swaps
+
 task_colors = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT Go':'orange',
                         'DM':'Red', 'Anti DM':'Green', 'MultiDM':'Blue', 'Anti MultiDM':'goldenrod', 
                         'COMP1':'sienna', 'COMP2':'seagreen', 'MultiCOMP1':'skyblue', 'MultiCOMP2':'gold',
@@ -235,7 +237,7 @@ def get_input_rule(batch_size, task_type, instruct_mode, lang_dim = None):
     elif instruct_mode == 'comp': 
         task_rule = comp_input_rule(batch_size, task_type)
     elif instruct_mode == 'masked': 
-        task_rule = mask_input_rule(batch_size, lang_dim)
+        task_rule = np.zeros((batch_size, 20))
     elif instruct_mode == ' shuffled': 
         task_rule = one_hot_input_rule(batch_size, task_type, shuffled=True)
     else: 
@@ -243,16 +245,13 @@ def get_input_rule(batch_size, task_type, instruct_mode, lang_dim = None):
     
     return torch.Tensor(task_rule)
 
-def tuning_check(model): 
+def tuning_check(model, holdouts): 
+    if holdouts == ['Multitask']: min_tuned_len = 1600
+    else: min_tuned_len = 1150
     data_dict = model._correct_data_dict
-    is_multitask = len(Task.TASK_LIST) == len(data_dict.keys())
     example_data = list(data_dict.values())[0]
-    if len(example_data) > 1150: 
-        raise ValueError('trying data for that of a previously tuned model, please inspect')
-    elif len(example_data) > 1450 and is_multitask: 
-        raise ValueError('trying data for that of a previously tuned model, please inspect')
-    else: 
-        pass 
+    tried_tuning = len(example_data) > min_tuned_len
+    return tried_tuning
 
 
 def load_holdout_data(foldername, model_list): 
@@ -277,8 +276,8 @@ def load_holdout_data(foldername, model_list):
                         holdout_data[0, i, j, :] = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+mode+holdout_file+seed_name+'_holdout_correct', 'rb'))
                         holdout_data[1, i, j, :] = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+mode+holdout_file+seed_name+'_holdout_loss', 'rb'))
                     except FileNotFoundError: 
-                        print('No training data for '+ model_name + ' '+seed_name+' '+task)
-                        print(foldername+'/'+task_file+'/'+model_name+'/'+holdout_file+seed_name)
+                        print('No training data for '+ model_name + ' '+seed_name+' '+mode+task)
+                        #print(foldername+'/'+task_file+'/'+model_name+'/'+holdout_file+seed_name)
                         continue 
             model_data_dict[mode] = holdout_data
         data_dict[model_name] = model_data_dict
@@ -289,7 +288,7 @@ def load_training_data(foldername, model_list):
     data_dict = dict.fromkeys(model_list)
 
     for model_name in model_list: 
-        training_data = np.full((2, 5, len(all_swaps)+1, len(task_list), 2000), np.NaN)
+        training_data = np.full((2, 5, len(all_swaps), len(task_list), 2000), np.NaN)
         for i in range(5):
             seed_name = 'seed' + str(i)
             for j, task_file in enumerate(all_swaps+['Multitask']):
@@ -298,7 +297,7 @@ def load_training_data(foldername, model_list):
                     loss_dict = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+seed_name+'_training_loss', 'rb'))
                 except FileNotFoundError: 
                     print('No folder for '+ foldername+'/'+task_file+'/'+model_name+'/'+seed_name)
-
+                    continue
 
                 for k, task in enumerate(task_list): 
                     try:
