@@ -1,6 +1,7 @@
 import itertools
 from seaborn.palettes import color_palette
 from sklearn.metrics.pairwise import paired_euclidean_distances
+from torch.nn.modules.rnn import GRU
 from nlp_models import SBERT
 from rnn_models import InstructNet
 from utils import train_instruct_dict
@@ -35,7 +36,7 @@ class Vocab:
         self.pad_len = 30
         self.vocab = sort_vocab()
         self.word2index = {}
-        self.index2word = {0: "SOS", 1: "EOS", 2: "PAD"}
+        self.index2word = {0: '[CLS]', 1: 'EOS', 2: '[PAD]'}
         self.n_words = 3
         for word in self.vocab: 
             self.addWord(word)
@@ -124,7 +125,7 @@ class DecoderRNN(BaseDecoder):
         self.out = nn.Linear(self.hidden_size, self.vocab.n_words)
         self.context_encoder = nn.Linear(self.context_dim, self.hidden_size)
         self.softmax = nn.LogSoftmax(dim=1)
-
+ 
     def _base_forward(self, ins, context):
         embedded = self.embedding(ins)
         init_hidden = torch.relu(self.context_encoder(context))
@@ -175,38 +176,29 @@ class DecoderRNN(BaseDecoder):
         res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
         plt.show()
 
-class DecoderTaskRNN(DecoderRNN):
-    def __init__(self, hidden_size, init_context_set_obj):
-        super().__init__(hidden_size, init_context_set_obj)
-        self.task_decoder = nn.Linear(self.hidden_size, len(Task.TASK_LIST))
+class TranEmbedder(nn.Module):
+    def __init__(self, hidden_size, langModel, vocab):
+        super(TranEmbedder, self).__init__()
+        self.hidden_size = hidden_size
+        self.langModel = langModel
+        self.vocab = vocab
+        self.W_embedder = nn.Linear(768, 128)
+    
+    def forward(self, ins): 
+        np_ins = ins.detach().cpu().numpy()
+        decoded_sentences=self.vocab.untokenize_sentence(np_ins[1:,...]) 
+        tokens = self.langModel.tokenizer(list(decoded_sentences), return_tensors='pt', padding=True)
+        for key, value in tokens.items():
+            tokens[key] = value.to(0)
+        trans_out = self.langModel.transformer(**tokens)
+        out = torch.sigmoid(self.W_embedder(trans_out.last_hidden_state)[:, 0:-1, :])
+        return torch.swapaxes(out, 0, 1)
 
-    def forward(self, context):
-        output, hidden, decoded_indices = super().forward(context)
-        task_cat = self.softmax(self.task_decoder(hidden))
-        return output, hidden, task_cat, decoded_indices
-
-    def decode_sentence(self, context): 
-        _, hidden, task_cat, decoded_indices = self.forward(context)
-        decoded_sentences = self.vocab.untokenize_sentence(decoded_indices)  
-        task_cat = self.task_decoder(hidden[0, ...])
-        _, topi_task = task_cat.topk(1)
-        predicted_task = np.array(Task.TASK_LIST)[topi_task.detach().cpu().numpy()] 
-        return decoded_sentences, predicted_task
-
-    def get_confusion_matrix(self): 
-        confusion_matrix = np.zeros((16, 16))
-        for task_index, task in enumerate(Task.TASK_LIST): 
-            for j in range(self.contexts.shape[1]): 
-                rep = self.contexts[task_index, j, :]
-                _, predicted = self.decode_sentence(rep)
-                confusion_matrix[task_index, Task.TASK_LIST.index(predicted)] += 1
-        fig, ax = plt.subplots(figsize=(6, 4))
-        res = sns.heatmap(confusion_matrix, xticklabels=Task.TASK_LIST, yticklabels=Task.TASK_LIST, annot=True, cmap='Blues', ax=ax)
-        res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 6)
-        res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 6)
-
-        plt.show()
-        return confusion_matrix
+class TranDecoderRNN(DecoderRNN):
+    def __init__(self, hidden_size, langModel):
+        super().__init__(hidden_size)
+        tranEmbedder = TranEmbedder(hidden_size, langModel, self.vocab)
+        self.embedding = tranEmbedder
 
 def test_partner_model(partner_model, decoder, num_repeats=1, tasks=Task.TASK_LIST): 
     partner_model.eval()
@@ -270,12 +262,7 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
                 decoded_sentence = []
                 # Teacher forcing: Feed the target as the next input
                 for di in range(pad_len):
-                    
                     decoder_output, decoder_hidden = decoder._base_forward(decoder_input, init_hidden)
-                    if hasattr(decoder, 'task_decoder'):
-                        task_cat = decoder.softmax(decoder.task_decoder(decoder_hidden))
-                        _, topi_task = task_cat.topk(1)
-
                     topv, topi = decoder_output.topk(1)
                     #get words for last sentence in the batch
                     last_word_index = topi.squeeze().detach()[-1].item()
@@ -284,9 +271,6 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
 
                     decoder_loss += criterion(decoder_output, target_tensor[0, :, di])
                     decoder_input = torch.cat((decoder_input, target_tensor[..., di]))
-
-                if hasattr(decoder, 'task_decoder'):
-                    task_loss = criterion(task_cat[0, ...], torch.LongTensor([task_index]*batch_size).to(device))#*(1/(pad_len-di))
 
                 loss=(decoder_loss+task_loss_ratio*task_loss)/pad_len
                 teacher_loss_list.append(loss.item()/pad_len)
@@ -298,9 +282,6 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
                 for k in range(pad_len):
                     decoder_loss += criterion(decoder_output, target_tensor[0, :, k])
 
-                if hasattr(decoder, 'task_decoder'):
-                    _, topi_task = task_cat.topk(1)
-                    task_loss = criterion(task_cat[0, ...], torch.LongTensor([task_index]*batch_size).to(device))#*(1/(pad_len-k))
                 
                 loss=(decoder_loss+task_loss_ratio*task_loss)/pad_len
                 decoded_sentence = decoder.vocab.untokenize_sentence(decoded_indices)[-1]  # detach from history as input        
@@ -324,8 +305,6 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
                 
                 print('decoded instruction: ' + decoded_sentence + '\n')
                 
-                if hasattr(decoder, 'task_decoder'):
-                    print('Predicted Task: ' + Task.TASK_LIST[topi_task[0, -1].squeeze().item()] + ', Target Task: ' + Task.TASK_LIST[task_index] + '\n')
 
 
         sch.step()
@@ -378,148 +357,87 @@ def plot_partner_performance(all_perf_dict):
     plt.show()
 
 
-model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-model1.model_name += '_tuned'
-model1.set_seed(1) 
-model1.to(device)
+import itertools
+from utils import training_lists_dict, all_models
+seeds = [0, 1]
+model_file = '_ReLU128_4.11/swap_holdouts/'
+#to_train = list(itertools.product(seeds, ['sbertNet_tuned'], training_lists_dict['swap_holdouts']))
+to_train = list(itertools.product(seeds, ['sbertNet_tuned'], [['Multitask']]))
+for config in to_train: 
+    seed, model_name, tasks = config 
+    for holdout_train in [False, True]: 
+        if holdout_train: 
+            holdout_str = '_wHoldout'
+            holdouts=tasks
+        else: 
+            holdout_str = ''
+            holdouts = []
 
-foldername = '_ReLU128_4.11/swap_holdouts/Multitask'
-# all_decoded_set = {}
-# all_confuse_mat = np.empty((16, 17))
-# all_perf = np.empty((1, 2, 16))
-# for i, holdout_task in enumerate(Task.TASK_LIST): 
-#     print(holdout_task)
-#     task_file = task_swaps_map[holdout_task]
-#     decoder= DecoderRNN(128, foldername+task_file+'/sbertNet_tuned/contexts/seed0_context_vecs20')
-#     decoder.load_model(task_file+'/sbertNet_tuned/decoders/seed0_decoder')
-#     decoder.to(device)
-#     decoded_set, confusion_mat = decoder.get_decoded_set()
-#     all_decoded_set[holdout_task] = decoded_set[holdout_task]
-#     all_confuse_mat[i, :] = confusion_mat[i, :]
-#     model1.load_model('_ReLU128_5.7/swap_holdouts/'+task_file)
-#     perf, _ = test_partner_model(model1, decoder)
-#     print()
-#     all_perf[0, :, i] = perf[0,:, i]
+        print(seed, tasks, holdout_str, holdouts)
 
+        task_file = task_swaps_map[tasks[0]]
+        filename = model_file + task_file+'/'+ model_name 
 
+        # try: 
+        #     pickle.load(open(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str+'_loss_list', 'rb'))
+        #     print(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str+'_loss_list already trained')
+        #except FileNotFoundError:
 
-decoder= DecoderRNN(128)
-decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed'+str(0), supervised_str='_supervised')
+        foldername = '_ReLU128_4.11/swap_holdouts/Multitask'
 
-decoder.load_model('Multitask/sbertNet_tuned/decoders/seed0_decoder')
-model1.load_model('_ReLU128_4.11/swap_holdouts/Multitask')
+        model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+        model1.model_name += '_tuned'
+        model1.set_seed(1) 
 
-decoder.to(device)
-all_perf, decoded_instructs = test_partner_model(model1, decoder, num_repeats=5)
+        model1.load_model('_ReLU128_4.11/swap_holdouts/Multitask')
 
+        model1.to(device)
+        model1.eval()
 
-np.mean(all_perf[:, 1, :])
+        decoder= TranDecoderRNN(128, model1.langModel)
+        #decoder= DecoderRNN(128)
+        decoder.init_context_set(task_file, model_name, 'seed'+str(seed))
+        decoder.to(device)
 
-plot_partner_performance({'instructions': all_perf[:, 1, :], 'contexts': all_perf[:, 0, :]})
+        criterion = nn.NLLLoss(reduction='mean')
 
-# perf[0]
+        params = [{'params' : decoder.gru.parameters()},
+            {'params' : decoder.out.parameters()},
+            {'params' : decoder.context_encoder.parameters()}, 
+            {'params' : decoder.embedding.W_embedder.parameters()}
+            ]
 
-# partner_model = model1
+        #decoder_optimizer = optim.Adam(decoder.parameters(), lr=0.001, weight_decay=0.0)
+        decoder_optimizer = optim.Adam(params, lr=0.001, weight_decay=0.0)
+        sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
+        decoder.to(device)
 
-# task_info = decoder.contexts[0, ...]
-
-# ins, targets, _, target_dirs, _ = construct_batch('Go', 256)
-
-# out, _ = super(type(partner_model), partner_model).forward(torch.Tensor(task_info).to(partner_model.__device__), torch.Tensor(ins).to(partner_model.__device__))
-
-# task_perf = isCorrect(out, torch.Tensor(targets), target_dirs)
-# task_perf
-# np.mean(task_perf)
-
-# res=sns.heatmap(all_confuse_mat, xticklabels=Task.TASK_LIST+['other'], yticklabels=Task.TASK_LIST, annot=True, cmap='Blues', fmt='g', cbar=False)
-# res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8)
-# res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
-
-# plt.show()
-
-
-# sns.heatmap(all_confuse_mat)
-# plt.show()
-
-# all_decoded_set['Anti Go']['other']
+        train_decoder_(decoder, decoder_optimizer, sch, 50, 1.0, holdout_tasks=holdouts, task_loss_ratio=0.0)
+        decoder.save_model(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str)
+        decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str)
 
 
 
-# len(decoded_set['Anti RT Go']['Anti Go'])
+
+
+# foldername = '_ReLU128_4.11/swap_holdouts/Multitask'
 
 # model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
 # model1.model_name += '_tuned'
 # model1.set_seed(1) 
-# model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
 # model1.to(device)
 
-# model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-# model.model_name += '_tuned'
-# model.set_seed(0) 
-# model.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
-# lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='12')
+# decoder= DecoderRNN(128)
+# decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed'+str(0), supervised_str='_supervised')
 
+# decoder.load_model('Multitask/sbertNet_tuned/decoders/seed0_decoder')
+# model1.load_model('_ReLU128_4.11/swap_holdouts/Multitask')
 
-# perf, instructs = test_partner_model(model1, decoder, num_repeats=5)
+# decoder.to(device)
+# all_perf, decoded_instructs = test_partner_model(model1, decoder, num_repeats=5)
 
-# len(instructs['Anti RT Go'])
-
-# np.mean(perf, axis=0)
-
-
-if __name__ == "__main__": 
-    import itertools
-    from utils import training_lists_dict, all_models
-    seeds = [0, 1]
-    model_file = '_ReLU128_4.11/swap_holdouts/'
-    to_train = list(itertools.product(seeds, all_models, [['Multitask']]+training_lists_dict['swap_holdouts']))
-    for config in to_train: 
-        seed, model_name, tasks = config 
-        for holdout_train in [False, True]: 
-            if holdout_train: 
-                holdout_str = '_wHoldout'
-                holdouts=tasks
-            else: 
-                holdout_str = ''
-                holdouts = []
-
-            print(seed, tasks, holdout_str, holdouts)
-
-            task_file = task_swaps_map[tasks[0]]
-            filename = model_file + task_file+'/'+ model_name 
-
-            # try: 
-            #     pickle.load(open(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str+'_loss_list', 'rb'))
-            #     print(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str+'_loss_list already trained')
-            #except FileNotFoundError:
-            decoder= DecoderRNN(128)
-            decoder.init_context_set(task_file, model_name, 'seed'+str(seed))
-            decoder.to(device)
-
-            criterion = nn.NLLLoss(reduction='mean')
-            decoder_optimizer = optim.Adam(decoder.parameters(), lr=0.001, weight_decay=0.0)
-            sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
-            decoder.to(device)
-
-            train_decoder_(decoder, decoder_optimizer, sch, 50, 1.0, holdout_tasks=holdouts, task_loss_ratio=0.0)
-            decoder.save_model(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str)
-            decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str)
+# plot_partner_performance({'instructions': all_perf[:, 1, :], 'contexts': all_perf[:, 0, :]})
 
 
 
-
-
-
-
-    # model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-    # model1.model_name += '_tuned'
-    # model1.set_seed(1) 
-    # model1.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
-    # #model1.to(device)
-
-    # model = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-    # model.model_name += '_tuned'
-    # model.set_seed(0) 
-    # model.load_model('_ReLU128_5.7/swap_holdouts/Multitask')
-    # lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='12')
 

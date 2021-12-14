@@ -502,7 +502,7 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
 
     conditions_arr = np.empty((2, 2, 2, num_trials))
     intervals = np.empty((num_trials, 5), dtype=tuple)
-    for i in range(num_trials): intervals[i, :] = ((0, 20), (20, 60), (60, 80), (80, 100), (100, 120))
+    for i in range(num_trials): intervals[i, :] = ((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))
 
     if task_variable == 'direction': 
         directions = np.linspace(0, 2*np.pi, num=num_trials)
@@ -515,7 +515,7 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
         var_of_interest = strengths
 
     elif task_variable == 'diff_strength': 
-        directions = np.array([[np.pi] * num_trials, [2*np.pi] * num_trials])
+        directions = np.array([[np.pi/2] * num_trials, [3*np.pi/2] * num_trials])
 
         #directions = np.array([[np.pi/2] * num_trials, [3*np.pi/2] * num_trials])
         fixed_strengths = np.array([1]* num_trials)

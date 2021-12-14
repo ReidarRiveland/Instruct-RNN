@@ -119,12 +119,12 @@ def get_all_contexts(model, num_contexts, target_embedding_layer, task_file, sel
         except FileNotFoundError: 
             context = nn.Parameter(torch.randn((num_contexts, context_dim), device=device))
 
-            opt= optim.Adam([context], lr=8e-2, weight_decay=0.0)
-            sch = optim.lr_scheduler.ExponentialLR(opt, 0.95)
+            opt= optim.Adam([context], lr=8*1e-2, weight_decay=0.0)
+            sch = optim.lr_scheduler.ExponentialLR(opt, 0.99)
 
-            streamer = TaskDataSet(batch_len = num_contexts, num_batches = 250, task_ratio_dict={task:1})
+            streamer = TaskDataSet(batch_len = num_contexts, num_batches = 350, task_ratio_dict={task:1})
 
-            contexts, is_trained = train_context(model, streamer, 20, opt, sch, context, self_supervised)
+            contexts, is_trained = train_context(model, streamer, 50, opt, sch, context, self_supervised)
             if is_trained:
                 pickle.dump(contexts, open(filename+task+supervised_str+'_context_vecs'+str(context_dim), 'wb'))
                 pickle.dump(model._correct_data_dict, open(filename+task+supervised_str+'_context_correct_data'+str(context_dim), 'wb'))

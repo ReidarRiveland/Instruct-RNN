@@ -49,13 +49,6 @@ def _plot_performance_curve(avg_perf, all_perf, plt_ax, model_name, plt_args):
         plt_ax.plot(avg_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], markeredgewidth=0.25, **plt_args)
 
 
-# def _plot_performance_curve(avg_perf, all_perf, plt_ax, model_name, plt_args): 
-#     if all_perf is not None: 
-#         plt_ax.fill_between(np.linspace(0, avg_perf.shape[-1], avg_perf.shape[-1]), np.max(all_perf, axis=0), 
-#                                         np.min(all_perf, axis=0), color = MODEL_STYLE_DICT[model_name][0], alpha= 0.1)
-#     plt_ax.plot(avg_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], markeredgecolor='white', markeredgewidth=0.25, **plt_args)
-
-
 def plot_avg_curves(foldername, model_list, correct_or_loss='correct', plot_swaps = False, seeds=np.array(range(5)), split_axes=False):
     data_dict = load_holdout_data(foldername, model_list)
     if correct_or_loss == 'correct': data_type_index = 0
@@ -99,8 +92,8 @@ def plot_avg_curves(foldername, model_list, correct_or_loss='correct', plot_swap
     for model_name in model_list:
         data = data_dict[model_name][''][data_type_index, seeds, ...]
         plt_args['linestyle'] = '-'
-        #_plot_performance_curve(np.mean(data, axis = (0, 1)), np.mean(data, axis = 1), axn, model_name, plt_args=plt_args)
-        _plot_performance_curve(np.mean(data, axis = (0, 1)), None, axn, model_name, plt_args=plt_args)
+        _plot_performance_curve(np.mean(data, axis = (0, 1)), np.mean(data, axis = 1), axn, model_name, plt_args=plt_args)
+        #_plot_performance_curve(np.mean(data, axis = (0, 1)), None, axn, model_name, plt_args=plt_args)
 
         if plot_swaps:
             swap_data = data_dict[model_name]['swap'][data_type_index, seeds, ...]
@@ -159,53 +152,42 @@ def plot_task_curves(foldername, model_list, correct_or_loss='correct', train_fo
     plt.show()
     return data_dict
 
-
-def plot_tuned_vs_standard(model_data_dict): 
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(2, 5))
-    for model_name in ['sbertNet', 'bertNet', 'gptNet']:
-        for i in range(4):
-            tuned_perf = np.mean(model_data_dict[model_name+'_tuned'], axis=0)[:,0]
-            standard_perf =np.mean(model_data_dict[model_name], axis=0)[:,0]
-            color = MODEL_STYLE_DICT[model_name][0]
-            axn.plot([0, 1], [tuned_perf[i], standard_perf[i]], color=color, linewidth=0.8)
-            axn.plot([0], tuned_perf[i], marker='v', mec=color, color=task_colors[task_group_dict['COMP'][i]])
-            axn.plot([1], standard_perf[i], marker='o', mec=color, color=task_colors[task_group_dict['COMP'][i]])
-    axn.set_ylim(0, 1.0)
-    axn.set_xlim(-0.15, 1.15)
-    axn.xaxis.set_tick_params(labelsize=8)
-    axn.yaxis.set_tick_params(labelsize=8)
-    axn.set_yticks(np.linspace(0, 1, 11))
-    plt.show()
-
-
-def plot_k_shot_learning(model_data_dict_list, save_file=None): 
+def plot_k_shot_learning(model_list, foldername, save_file=None): 
     barWidth = 0.1
     ks = [0, 1, 3]
     plt.figure(figsize=(3, 6))
+    data_dict = load_holdout_data(foldername, model_list)
 
-    for index, model_data_dict in enumerate(model_data_dict_list):
-        for i, item in enumerate(model_data_dict.items()):  
-            model_name, perf = item
-            values = list(np.mean(perf, axis=(0,1))[ks])
-            spread = list(np.std(np.mean(perf, axis=1), axis=0)[ks])
+    for i, model_name in enumerate(model_list):  
+        data = data_dict[model_name][''][0, : 8:12, :]
+    
+        all_mean = np.mean(data_dict[model_name][''][0, :, 8:12, :], axis=(0,1))
+        all_std = np.std(np.mean(data_dict[model_name][''][0, :, 8:12, :], axis=1), axis=0)
 
-            len_values = len(ks)
-            if i == 0:
-                r = np.arange(len_values)
-            else:
-                r = [x + barWidth for x in r]
-            if '_layer_11' in model_name: 
-                mark_size = 8
-            else: 
-                mark_size = 4
-            # if index == 0: 
-            #     plt.plot(r, [vals+0.1 for vals in values], marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
-            #     plt.bar(r, values, yerr = spread, error_kw = {'elinewidth':0.3, 'capsize': 1.0}, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white', linestyle=['-','--'][index])
-            # plt.bar(r, values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white', linestyle=['-','--'][index])
-            if index == 0: 
-                plt.plot(r, [vals+0.03 for vals in values], marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
-                plt.bar(r, values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white', linestyle=['-','--'][index])
-            plt.bar(r, values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white', linestyle=['-','--'][index])
+        values = list(all_mean[ks])
+        std = np.array(list(all_std[ks]))
+        print(data_dict[model_name][''].shape)
+        print(model_name)
+        print(values)
+
+
+        len_values = len(ks)
+        if i == 0:
+            r = np.arange(len_values)
+        else:
+            r = [x + barWidth for x in r]
+
+        mark_size = 4
+        # if index == 0: 
+        #     plt.plot(r, [vals+0.1 for vals in values], marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
+        #     plt.bar(r, values, yerr = spread, error_kw = {'elinewidth':0.3, 'capsize': 1.0}, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white', linestyle=['-','--'][index])
+        # plt.bar(r, values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white', linestyle=['-','--'][index])
+        
+        plt.plot(r, [vals+0.08 for vals in values], marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
+        error_range= (std, np.where(values+std>1, (values+std)-1, std))
+
+        markers, caps, bars = plt.errorbar(r, values, yerr = error_range, elinewidth = 0.5, capsize=1.0, linestyle="", alpha=0.8, color = 'black', markersize=1)
+        plt.bar(r, values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
 
 
     plt.ylim(0, 1.05)
@@ -215,7 +197,7 @@ def plot_k_shot_learning(model_data_dict_list, save_file=None):
     r = np.arange(len_values)
     plt.xticks([r + barWidth + 0.2 for r in range(len_values)], [0, 1, 3], size=8)
     Patches = [(Line2D([0], [0], linestyle='None', marker=MODEL_STYLE_DICT[model_name][1], color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
-                markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(model_data_dict.keys()) if 'bert' in model_name or 'gpt' in model_name]
+                markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in model_list if 'bert' in model_name or 'gpt' in model_name]
     Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['bowNet'][0], label='bowNet'))
     Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['simpleNet'][0], label='simpleNet'))
 
@@ -223,6 +205,8 @@ def plot_k_shot_learning(model_data_dict_list, save_file=None):
     if save_file is not None: 
         plt.savefig('figs/'+save_file)
     plt.show()
+
+
 
 def plot_trained_performance(all_perf_dict):
     barWidth = 0.1
@@ -240,8 +224,10 @@ def plot_trained_performance(all_perf_dict):
             mark_size = 4
         else: 
             mark_size = 3
-        plt.plot(r, [1.05]*16, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
-        plt.bar(r, values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
+        #plt.plot(r, [1.05]*16, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
+        #plt.bar(r, values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
+        plt.plot(r, [1.05]*16, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, markeredgecolor = MODEL_STYLE_DICT[model_name][0], color='white', markersize=mark_size)
+        plt.bar(r, values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white', hatch='/')
         #cap error bars at perfect performance 
         error_range= (std, np.where(values+std>1, (values+std)-1, std))
         print(error_range)
@@ -260,6 +246,39 @@ def plot_trained_performance(all_perf_dict):
     Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['simpleNet'][0], label='simpleNet'))
     #plt.legend()
     plt.show()
+
+
+
+def plot_val_performance(all_perf_dict):
+    barWidth = 0.1
+    for i, model_name in enumerate(all_perf_dict.keys()):  
+        perf = all_perf_dict[model_name]
+        values = np.mean(perf)
+        std = np.std(np.mean(perf, axis=1), axis=0)
+        mark_size = 3
+        if i == 0:
+            r = np.arange(1)
+        else:
+            r = [x + barWidth for x in r]
+        plt.plot(r, 0.01, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
+        plt.bar(r, -values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
+        #cap error bars at perfect performance 
+        error_range= -1*np.array([(std, np.where(values+std>1, (values+std)-1, std))]).T
+        print(error_range)
+        markers, caps, bars = plt.errorbar(r, -values, yerr = error_range, elinewidth = 0.5, capsize=1.0, linestyle="", alpha=0.8, color = 'black', markersize=1)
+
+    plt.ylim(-0.15, 0.02)
+    plt.title('Trained Performance')
+    plt.xlabel('Task Type', fontweight='bold')
+    plt.ylabel('Percentage Correct')
+    plt.tight_layout()
+    Patches = [(Line2D([0], [0], linestyle='None', marker=MODEL_STYLE_DICT[model_name][1], color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
+                markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(all_perf_dict.keys()) if 'bert' in model_name or 'gpt' in model_name]
+    Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['bowNet'][0], label='bowNet'))
+    Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['simpleNet'][0], label='simpleNet'))
+    #plt.legend()
+    plt.show()
+
 
 
 def plot_model_response(model, trials, plotting_index = 0, instructions = None, save_file=None):
@@ -316,14 +335,14 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
             plt.savefig('figs/'+save_file)
         plt.show()
 
-def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_args=[], swapped_tasks= [], save_file=None): 
+def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_args=[], swapped_tasks= [], save_file=None, s=25): 
     colors_to_plot = list(itertools.chain.from_iterable([[task_colors[task]]*reps_reduced.shape[1] for task in tasks_to_plot]))
     task_indices = [Task.TASK_LIST.index(task) for task in tasks_to_plot]
 
     reps_to_plot = reps_reduced[task_indices, ...]
     flattened_reduced = reps_to_plot.reshape(-1, reps_to_plot.shape[-1])
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.scatter(flattened_reduced[:, 0], flattened_reduced[:, 1], c = colors_to_plot, s=25)
+    ax.scatter(flattened_reduced[:, 0], flattened_reduced[:, 1], c = colors_to_plot, s=s)
     ax.scatter(np.mean(reps_to_plot, axis=1)[:, 0], np.mean(reps_to_plot, axis=1)[:, 1], c = [task_colors[task] for task in tasks_to_plot], s=20, marker='D', edgecolors='white')
 
 
@@ -350,7 +369,65 @@ def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_a
     plt.show()
 
 
+def plot_hid_traj(task_group_hid_traj, task_group, task_indices, trial_indices, instruct_indices, s = 1, subtitle='', annotate_tuples = [], context_task=None, save_file=None): 
+    alphas = np.linspace(0.8, 0.2, num=task_group_hid_traj.shape[2])
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    embedder = PCA(n_components=3)
+    marker_size=40
+    for trial_index in trial_indices: 
+        embedded = embedder.fit_transform(task_group_hid_traj[:,:,trial_index, :, : ].reshape(-1, 128)).reshape((*task_group_hid_traj[:,:,trial_index, :, : ].shape[0:-1], 3))
+        for task_index in task_indices:
+            try: 
+                task = list(task_group_dict[task_group])[task_index]
+                linestyle = 'solid'
+            except IndexError: 
+                task = context_task
+                linestyle = 'dashed'
+            for instruct_index in instruct_indices: 
+                ax.scatter(embedded[task_index, instruct_index, 1:, 0], embedded[task_index, instruct_index, 1:, 1], embedded[task_index, instruct_index, 1:, 2], s=s, color = task_colors[task])
 
+                ax.scatter(embedded[task_index, instruct_index, 0, 0], embedded[task_index, instruct_index, 0, 1], embedded[task_index, instruct_index, 0, 2],  
+                            s = marker_size, color='white', edgecolor= task_colors[task], marker='*')
+
+                ax.scatter(embedded[task_index, instruct_index, 119, 0], embedded[task_index, instruct_index, 119, 1], embedded[task_index, instruct_index, 119, 2],  
+                            s = marker_size, color='white', edgecolor= task_colors[task], marker='o')
+                ax.scatter(embedded[task_index, instruct_index, 99, 0], embedded[task_index, instruct_index, 99, 1], embedded[task_index, instruct_index, 99, 2], 
+                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'P')
+                if task_group == 'COMP': 
+                    ax.scatter(embedded[task_index, instruct_index, 49, 0], embedded[task_index, instruct_index, 49, 1], embedded[task_index, instruct_index, 49, 2], 
+                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
+                if 'RT' in task: 
+                    ax.scatter(embedded[task_index, instruct_index, 99, 0], embedded[task_index, instruct_index, 99, 1], embedded[task_index, instruct_index, 99, 2], 
+                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
+                else: 
+                    ax.scatter(embedded[task_index, instruct_index, 19, 0], embedded[task_index, instruct_index, 19, 1], embedded[task_index, instruct_index, 19, 2], 
+                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
+                if (task_index, trial_index, instruct_index) in annotate_tuples: 
+                    offset = 0.25
+                    instruction = str(1+instruct_index)+'. '+train_instruct_dict[task][instruct_index]
+                    if len(instruction) > 90: 
+                        instruction=two_line_instruct(instruction)
+                    ax.text(embedded[task_index, instruct_index, 119, 0]+offset, embedded[task_index, instruct_index, 119, 1]+offset, embedded[task_index, instruct_index, 119, 2]+offset, 
+                        instruction, size=8, zorder=50,  color='k') 
+    ax.set_title(subtitle, fontsize='medium')
+    ax.set_xlabel('PC 1')
+    ax.set_ylabel('PC 2')
+    ax.set_zlabel('PC 3')
+    ax.set_zlim(-6, 6)
+    marker_list = [('*', 'Start'), ('X', 'Stim. Onset'), ('P', 'Resp.'), ('o', 'End')]
+    marker_patches = [(Line2D([0], [0], linestyle='None', marker=marker[0], color='grey', label=marker[1], 
+                    markerfacecolor='white', markersize=8)) for marker in marker_list]
+    try: 
+        Patches = [mpatches.Patch(color=task_colors[task_group_dict[task_group][index]], label=task_group_dict[task_group][index]) for index in task_indices]
+    except: 
+        Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in task_group_dict[task_group]]
+    plt.legend(handles=Patches+marker_patches, fontsize = 'x-small')
+    plt.suptitle('Neural Hidden State Trajectories for ' + task_group + ' Tasks')
+    plt.tight_layout()
+    if save_file is not None: 
+        plt.savefig('figs/'+save_file)
+    plt.show()
 
 def plot_hid_traj_quiver(task_group_hid_traj, task_group, task_indices, trial_indices, instruction_indices, subtitle='', annotate_tuples = [], context_task=None, save_file=None): 
     alphas = np.linspace(0.8, 0.2, num=task_group_hid_traj.shape[2])
@@ -500,7 +577,7 @@ def plot_RDM(sim_scores, rep_type, cmap=sns.color_palette("rocket_r", as_cmap=Tr
     plt.show()
     
 
-def plot_tuning_curve(model, tasks, task_variable, unit, mod, times, swapped_task = None, save_file=None): 
+def plot_tuning_curve(model, tasks, task_variable, unit, mod, times, num_repeats =10, swapped_task = None, save_file=None): 
     if task_variable == 'direction': 
         labels = ["0", "$2\pi$"]
         plt.xticks([0, np.pi, 2*np.pi], labels=['0', '$\pi$', '$2\pi$'])
@@ -514,7 +591,7 @@ def plot_tuning_curve(model, tasks, task_variable, unit, mod, times, swapped_tas
     for i, task in enumerate(tasks): 
         time = times[i]
         trials, var_of_interest = make_test_trials(task, task_variable, mod)
-        _, hid_mean = get_hid_var_resp(model, task, trials)
+        _, hid_mean = get_hid_var_resp(model, task, trials, num_repeats=num_repeats)
         neural_resp = hid_mean[:, time, unit]
         plt.plot(var_of_interest, neural_resp, color=task_colors[task])
         y_max = max(y_max, neural_resp.max())
@@ -594,10 +671,10 @@ def plot_CCGP_scores(model_list, rep_type_file_str = '', plot_swaps=False):
 
 
 
-def plot_neural_resp(model, task_type, task_variable, unit, mod, save_file=None):
+def plot_neural_resp(model, task_type, task_variable, unit, mod, num_repeats = 10, save_file=None):
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
     trials, _ = make_test_trials(task_type, task_variable, mod)
-    _, hid_mean = get_hid_var_resp(model, task_type, trials)
+    _, hid_mean = get_hid_var_resp(model, task_type, trials, num_repeats=num_repeats)
     if task_variable == 'direction' or task_variable=='diff_direction': 
         labels = ["0", "$2\pi$"]
         cmap = plt.get_cmap('twilight') 

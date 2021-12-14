@@ -1,5 +1,7 @@
 from collections import defaultdict
 from math import inf
+import pickle
+from model_trainer import config_model
 from re import I
 from matplotlib.cbook import flatten
 
@@ -13,13 +15,34 @@ from rnn_models import InstructNet, SimpleNet
 from utils import train_instruct_dict
 from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_layer_sim_scores, get_hid_var_group_resp, get_hid_var_resp, get_all_CCGP
 import numpy as np
-from utils import train_instruct_dict, task_swaps_map
+from utils import train_instruct_dict, task_swaps_map, all_models
 from task import DM
 from plotting import plot_RDM, plot_rep_scatter, plot_CCGP_scores, plot_model_response, plot_hid_traj_quiver, plot_dPCA, plot_neural_resp, plot_trained_performance, plot_tuning_curve
 import torch
 
 from task import Task, make_test_trials
 
+all_perf_dict = {}
+for model_name in all_models:
+    print(model_name)
+    perf_array = np.empty((5, 16))
+    for i in range(5): 
+        print(i)
+        model = config_model(model_name)
+        model.instruct_mode = 'validation'
+        model.set_seed(i)
+        model.load_model('_ReLU128_4.11/swap_holdouts/Multitask')
+        perf=get_model_performance(model, 3)
+        print(perf)
+        perf_array[i, :]=perf
+    all_perf_dict[model_name]=perf_array
+
+foldername = '_ReLU128_4.11/swap_holdouts'
+
+all_perf_dict
+
+import pickle
+pickle.dump(all_perf_dict, open(foldername+'/Multitask/val_perf_dict', 'wb'))
 
 import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
@@ -79,3 +102,17 @@ len(outputs)
 loss = outputs.loss
 logits = outputs.logits
 logits.shape
+
+
+from model_trainer import config_model
+sbert_net = config_model('sbertNet_tuned')
+sbert = sbert_net.langModel
+
+x =['hi there']
+
+tokens = sbert.tokenizer(x, return_tensors='pt', padding=True)
+
+
+out = sbert.transformer(**tokens)
+out.last_hidden_state.shape
+sbert.tokenizer.special_tokens_map

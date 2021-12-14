@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from torch._C import device
 from torch.nn.modules import transformer
+from torch.random import seed
 from utils import task_swaps_map
 
 from sklearn import svm, metrics
@@ -56,7 +57,7 @@ def get_multitask_val_performance(model, foldername, seeds=np.array(range(5))):
 def get_instruct_reps(langModel, instruct_dict, depth='full', swapped_tasks = []):
     langModel.eval()
     if depth.isnumeric(): 
-        assert hasattr(langModel, 'transformer'), 'language model must be transformer to evaluate a that depth'
+        #assert hasattr(langModel, 'transformer'), 'language model must be transformer to evaluate a that depth'
         rep_dim = 768
     else: rep_dim = langModel.out_dim 
     instruct_reps = torch.empty(len(instruct_dict.keys())+len(swapped_tasks), len(list(instruct_dict.values())[0]), rep_dim)
@@ -145,7 +146,7 @@ def reduce_rep(reps, dim=2, reduction_method='PCA'):
 
     return embedded.reshape(reps.shape[0], reps.shape[1], dim), explained_variance
 
-def get_layer_sim_scores(model, holdout_file, model_file, rep_depth='12', use_cos_sim=False): 
+def get_layer_sim_scores(model, holdout_file, model_file, rep_depth='12', use_cos_sim=False, seeds=range(5)): 
     if rep_depth.isnumeric(): 
         rep_dim = model.langModel.intermediate_lang_dim
         number_reps=15
@@ -157,9 +158,9 @@ def get_layer_sim_scores(model, holdout_file, model_file, rep_depth='12', use_co
         rep_dim = 128
         number_reps=100
     
-    all_sim_scores = np.empty((5, 16*number_reps, 16*number_reps), dtype=np.float64)
-    for i in range(5): 
-        model.set_seed(i) 
+    all_sim_scores = np.empty((len(seeds), 16*number_reps, 16*number_reps), dtype=np.float64)
+    for i, seed in enumerate(seeds): 
+        model.set_seed(seed) 
         model.load_model(model_file+'/'+holdout_file)
         if rep_depth == 'task': 
             reps, _ = get_task_reps(model)
