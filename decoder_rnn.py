@@ -116,12 +116,13 @@ class BaseDecoder(nn.Module):
         return reps_reduced
 
 class DecoderRNN(BaseDecoder):
-    def __init__(self, hidden_size):
+    def __init__(self, embedding_size, hidden_size):
         super().__init__()
         self.hidden_size = hidden_size
+        self.embedding_size=embedding_size
         self.context_dim = 20
-        self.embedding = nn.Embedding(self.vocab.n_words, self.hidden_size)
-        self.gru = nn.GRU(self.hidden_size, self.hidden_size)
+        self.embedding = nn.Embedding(self.vocab.n_words, self.embedding_size)
+        self.gru = nn.GRU(self.embedding_size, self.hidden_size)
         self.out = nn.Linear(self.hidden_size, self.vocab.n_words)
         self.context_encoder = nn.Linear(self.context_dim, self.hidden_size)
         self.softmax = nn.LogSoftmax(dim=1)
@@ -177,12 +178,13 @@ class DecoderRNN(BaseDecoder):
         plt.show()
 
 class TranEmbedder(nn.Module):
-    def __init__(self, hidden_size, langModel, vocab):
+    def __init__(self, embedding_size, langModel, vocab, layer):
         super(TranEmbedder, self).__init__()
-        self.hidden_size = hidden_size
+        self.embedding_size = embedding_size
         self.langModel = langModel
         self.vocab = vocab
-        self.W_embedder = nn.Linear(768, 128)
+        self.trans_layer = layer
+        self.W_embedder = nn.Linear(768, embedding_size)
     
     def forward(self, ins): 
         np_ins = ins.detach().cpu().numpy()
@@ -191,14 +193,24 @@ class TranEmbedder(nn.Module):
         for key, value in tokens.items():
             tokens[key] = value.to(0)
         trans_out = self.langModel.transformer(**tokens)
-        out = torch.sigmoid(self.W_embedder(trans_out.last_hidden_state)[:, 0:-1, :])
+        out = torch.relu(self.W_embedder(trans_out[2][self.layer][:, 0:-1, :]))
         return torch.swapaxes(out, 0, 1)
 
+
 class TranDecoderRNN(DecoderRNN):
-    def __init__(self, hidden_size, langModel):
-        super().__init__(hidden_size)
-        tranEmbedder = TranEmbedder(hidden_size, langModel, self.vocab)
+    def __init__(self, embedding_size, hidden_size, langModel, train_layers=None, tran_embedder_layer=11):
+        super().__init__(embedding_size, hidden_size)
+        self.embedding_size = embedding_size
+        self.hidden_size = hidden_size
+        self.langModel = langModel
+        self.train_layers=train_layers
+        self.tran_embedder_layer = tran_embedder_layer
+        tranEmbedder = TranEmbedder(embedding_size, langModel, self.vocab, tran_embedder_layer)
         self.embedding = tranEmbedder
+        langModel.train_layers = train_layers
+        langModel.init_train_layers()
+        for p in langModel.proj_out.parameters():
+            p.requires_grad=False
 
 def test_partner_model(partner_model, decoder, num_repeats=1, tasks=Task.TASK_LIST): 
     partner_model.eval()
@@ -387,14 +399,14 @@ for config in to_train:
 
         model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
         model1.model_name += '_tuned'
-        model1.set_seed(1) 
+        model1.set_seed(seed) 
 
         model1.load_model('_ReLU128_4.11/swap_holdouts/Multitask')
 
         model1.to(device)
         model1.eval()
 
-        decoder= TranDecoderRNN(128, model1.langModel)
+        decoder= TranDecoderRNN(256, model1.langModel, train_layers=['11'])
         #decoder= DecoderRNN(128)
         decoder.init_context_set(task_file, model_name, 'seed'+str(seed))
         decoder.to(device)
@@ -404,33 +416,40 @@ for config in to_train:
         params = [{'params' : decoder.gru.parameters()},
             {'params' : decoder.out.parameters()},
             {'params' : decoder.context_encoder.parameters()}, 
-            {'params' : decoder.embedding.W_embedder.parameters()}
             ]
 
-        #decoder_optimizer = optim.Adam(decoder.parameters(), lr=0.001, weight_decay=0.0)
-        decoder_optimizer = optim.Adam(params, lr=0.001, weight_decay=0.0)
+        for n,p in decoder.named_parameters():
+            if p.requires_grad: print(n)
+
+        decoder_optimizer = optim.Adam(decoder.parameters(), lr=1e-5, weight_decay=0.0)
+        # decoder_optimizer = optim.Adam([
+        #         {'params' : decoder.embedding.parameters(), 'lr': 1e-5}
+        #     ], lr=5*1e-4)
         sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
         decoder.to(device)
 
-        train_decoder_(decoder, decoder_optimizer, sch, 50, 1.0, holdout_tasks=holdouts, task_loss_ratio=0.0)
-        decoder.save_model(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str)
-        decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str)
+        train_decoder_(decoder, decoder_optimizer, sch, 80, 0.8, holdout_tasks=holdouts, task_loss_ratio=0.0)
+        decoder.save_model(filename+'/decoders/seed'+str(seed)+'tran_decoder'+holdout_str)
+        decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'tran_decoder'+holdout_str)
 
 
 
 
 
-# foldername = '_ReLU128_4.11/swap_holdouts/Multitask'
+foldername = '_ReLU128_4.11/swap_holdouts/Multitask'
 
-# model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-# model1.model_name += '_tuned'
-# model1.set_seed(1) 
-# model1.to(device)
+model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+model1.model_name += '_tuned'
+model1.set_seed(0) 
+model1.to(device)
 
-# decoder= DecoderRNN(128)
-# decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed'+str(0), supervised_str='_supervised')
+decoder= TranDecoderRNN(128, model1.langModel)
+decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed'+str(0), supervised_str='_supervised')
 
-# decoder.load_model('Multitask/sbertNet_tuned/decoders/seed0_decoder')
+decoder.load_model('Multitask/sbertNet_tuned/decoders/seed0tran_decoder')
+decoder.to(device)
+decoded_set = decoder.get_decoded_set()
+decoded_set['Go']
 # model1.load_model('_ReLU128_4.11/swap_holdouts/Multitask')
 
 # decoder.to(device)

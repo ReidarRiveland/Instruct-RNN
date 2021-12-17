@@ -124,7 +124,7 @@ def get_all_contexts(model, num_contexts, target_embedding_layer, task_file, sel
 
             streamer = TaskDataSet(batch_len = num_contexts, num_batches = 350, task_ratio_dict={task:1})
 
-            contexts, is_trained = train_context(model, streamer, 50, opt, sch, context, self_supervised)
+            contexts, is_trained = train_context(model, streamer, 30, opt, sch, context, self_supervised)
             if is_trained:
                 pickle.dump(contexts, open(filename+task+supervised_str+'_context_vecs'+str(context_dim), 'wb'))
                 pickle.dump(model._correct_data_dict, open(filename+task+supervised_str+'_context_correct_data'+str(context_dim), 'wb'))
@@ -139,7 +139,7 @@ def get_all_contexts(model, num_contexts, target_embedding_layer, task_file, sel
 def get_all_contexts_set(to_get):
     inspection_dict = {}
     for config in to_get: 
-        seed_num, model_params_key, tasks = config 
+        model_params_key, seed_num, tasks = config 
         task_file = get_holdout_file(tasks)
         model = config_model(model_params_key)
         torch.manual_seed(seed_num)
@@ -163,8 +163,8 @@ if __name__ == "__main__":
     if train_mode == 'train_contexts': 
         holdout_type = 'swap_holdouts'
         seeds = [0, 1, 2, 3, 4]
-        to_train_contexts = list(itertools.product([0, 1], ['sbertNet_tuned'], [['Multitask']]+training_lists_dict['swap_holdouts']))
-        to_train_contexts
+        to_train_contexts = list(itertools.product(['sbertNet_tuned'], [0, 1], [['Multitask']]+training_lists_dict['swap_holdouts']))
+        print(to_train_contexts)
         inspection_dict = get_all_contexts_set(to_train_contexts)
         print(inspection_dict)
 
