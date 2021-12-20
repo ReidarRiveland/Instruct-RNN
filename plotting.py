@@ -26,7 +26,6 @@ from matplotlib.lines import Line2D
 from matplotlib import rc
 import matplotlib.transforms as mtrans
 import matplotlib
-from dPCA import dPCA
 import torch
 
 from sklearn.decomposition import PCA
