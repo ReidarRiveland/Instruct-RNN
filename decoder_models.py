@@ -21,8 +21,8 @@ import pickle
 device = torch.device(0)
 
 class RNNtokenizer():
-    SOS_token = 0
-    EOS_token = 1
+    sos_token = 0
+    eos_token = 1
     def __init__(self):
         self.pad_len = 30
         self.vocab = sort_vocab()
@@ -32,15 +32,22 @@ class RNNtokenizer():
         for word in self.vocab: 
             self.addWord(word)
     
-    def _tokenize_sentence(self, sent): 
-        tokens = [2]*self.pad_len
+    def __call__(self, sent_list, pad_len=30):
+        return self.tokenize_sentence(sent_list, pad_len)
+
+    def _tokenize_sentence(self, sent, pad_len): 
+        tokens = [2]*pad_len
         for i, word in enumerate(sent.split()): 
             tokens[i] = self.word2index[word]
         tokens[i+1]=1
-        return tokens
+        return torch.Tensor(tokens).unsqueeze(0)
 
-    def tokenize_sentence(self, sent_list): 
-        return np.array(list(map(self._tokenize_sentence, sent_list)))
+    def tokenize_sentence(self, sent_list, pad_len): 
+        tokenized_tensor = torch.Tensor([])
+        for sent in sent_list:
+            tokens = self._tokenize_sentence(sent, pad_len)
+            torch.cat((tokenized_tensor, tokens), dim=0)
+        return tokenized_tensor
 
     def _untokenize_sentence(self, tokens): 
         sent = []
@@ -64,13 +71,18 @@ class RNNtokenizer():
 class BaseDecoder(nn.Module):
     def __init__(self):
         super(BaseDecoder, self).__init__()
+        self.init_instructions(train_instruct_dict)
         self.load_foldername = '_ReLU128_4.11/swap_holdouts'
         self.teacher_loss_list = []
         self.loss_list = []
-        self.instruct_dict = self.add_punctuation()
         self.instruct_array = np.array([self.instruct_dict[task] for task in Task.TASK_LIST]).squeeze()
         self.contexts = None
         self.validation_ratio = 0.2
+
+    def init_instructions(self, instruct_dict): 
+        self.instruct_dict = instruct_dict
+        self.instruct_array = np.array([self.instruct_dict[task] for task in Task.TASK_LIST]).squeeze()
+        
 
     def add_punctuation(self): 
         instruct_dict = {}
@@ -125,9 +137,9 @@ class DecoderRNN(BaseDecoder):
         self.context_dim = 20
         self.tokenizer = RNNtokenizer()
 
-        self.embedding = nn.Embedding(self.vocab.n_words, self.embedding_size)
+        self.embedding = nn.Embedding(self.tokenizer.n_words, self.embedding_size)
         self.gru = nn.GRU(self.embedding_size, self.hidden_size)
-        self.out = nn.Linear(self.hidden_size, self.vocab.n_words)
+        self.out = nn.Linear(self.hidden_size, self.tokenizer.n_words)
         self.context_encoder = nn.Linear(self.context_dim, self.hidden_size)
         self.softmax = nn.LogSoftmax(dim=1)
  
@@ -139,9 +151,9 @@ class DecoderRNN(BaseDecoder):
         return output, rnn_out
 
     def forward(self, context):
-        sos_input = torch.tensor([[self.vocab.SOS_token]*context.shape[0]]).to(context.get_device())
+        sos_input = torch.tensor([[self.tokenizer.sos_token]*context.shape[0]]).to(context.get_device())
         decoder_input = sos_input
-        for di in range(self.vocab.pad_len):
+        for di in range(self.tokenizer.pad_len):
             decoder_output, decoder_hidden = self._base_forward(decoder_input, context)
             _, topi = decoder_output.topk(1)
             decoder_input = torch.cat((decoder_input, topi.T))
@@ -185,7 +197,7 @@ class gptDecoder(BaseDecoder):
     def __init__(self):
         super().__init__()
         self.context_dim = 20
-
+        self.init_instructions(self.add_punctuation())
         self.gpt = GPT2LMHeadModel.from_pretrained('gpt2')
         self.context_encoder = nn.Linear(self.context_dim, 768)
 
@@ -193,7 +205,6 @@ class gptDecoder(BaseDecoder):
         self.tokenizer.add_special_tokens({'pad_token': self.tokenizer.eos_token})
         self.tokenizer.model_max_length=30
         self.softmax = torch.nn.LogSoftmax(dim=-1)
-
 
     def tokenize_instruction(self, instructions): 
         instructions = [instruct+' '+self.tokenizer.eos_token for instruct in instructions]
@@ -232,8 +243,20 @@ class gptDecoder(BaseDecoder):
 
 #add periods to the end of all setnences
 
-gpt_decoder = gptDecoder()
-gpt_decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed0')
+rnn_decoder = DecoderRNN(20, 128)
+rnn_decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed0')
+
+type(rnn_decoder) is DecoderRNN
+
+go_instructs = train_instruct_dict['Go']
+
+kargs = {'pad_len': 30}
+
+rnn_decoder.tokenizer(go_instructs)
+
+
+
+
 
 def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=None): 
     criterion = nn.NLLLoss(reduction='mean')
@@ -256,7 +279,9 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
             task_index = np.random.choice(task_indices)
             instruct_index = np.random.randint(0, 15, size=batch_size)
             target_instruct, rep = decoder.get_instruct_embedding_pair(task_index, instruct_index)  
-            pad_len = max([len(instruct.split(' ')) for instruct in target_instruct])+1
+            pad_len = max([len(instruct.split(' ')) for instruct in target_instruct])+3
+            # if type(rnn_decoder) is DecoderRNN: 
+            # else: token_kargs = 
             tokenized_targets = decoder.tokenizer(target_instruct, padding= 'max_length', max_length=pad_len, return_tensors='pt')
             target_ids = tokenized_targets.input_ids
 
@@ -265,12 +290,14 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
             if use_teacher_forcing:
                 decoded_indices = torch.Tensor([])
                 decoder_loss = 0
+                past_keys = None
                 # Teacher forcing: Feed the target as the next input
                 for di in range(pad_len-1):
                     mask = tokenized_targets.attention_mask[:, :di+1]
-                    outputs = decoder._base_forward(rep, input_ids=target_ids[:, :di], attention_mask = mask)
+                    outputs = decoder._base_forward(rep, input_ids=target_ids[:, di].unsqueeze(1), past_keys=past_keys)
                     #get words for last sentence in the batch
                     logits = outputs.logits
+                    past_keys = outputs.past_key_values
                     scores = decoder.softmax(logits)
                     input_ids = torch.argmax(scores[:, -1, :], -1).unsqueeze(1)
                     decoded_indices = torch.cat((decoded_indices, input_ids), dim=1)
@@ -312,10 +339,11 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
     return loss_list, teacher_loss_list
 
 import torch.optim as optim
-decoder_optimizer = optim.Adam(gpt_decoder.parameters(), lr=1e-5, weight_decay=0.0)
+decoder_optimizer = optim.Adam(rnn_decoder.parameters(), lr=1e-5, weight_decay=0.0)
 sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
 
-train_decoder_(gpt_decoder, decoder_optimizer, sch, 50, 1.0)
+train_decoder_(rnn_decoder, decoder_optimizer, sch, 50, 1.0)
+
 
 
 gpt_decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed0')
