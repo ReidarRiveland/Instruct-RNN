@@ -45,31 +45,6 @@ class ContextTrainer():
         sch = optim.lr_scheduler.ExponentialLR(opt, gamma)
         return opt, sch
 
-    def get_all_contexts(self, num_contexts, self_supervised):
-        inspection_list = []
-
-        if not self_supervised: self.supervised_str = '_supervised'
-        else: self.supervised_str = ''
-
-        for task in Task.TASK_LIST:     
-            try:
-                self.check_trained(task)
-                continue
-            except FileNotFoundError: 
-                context = nn.Parameter(torch.randn((num_contexts, self.context_dim), device=device))
-                opt, sch = self.init_trainer_opts(context, 8e-2, 0.99)
-                streamer = TaskDataSet(batch_len = num_contexts, num_batches = 350, task_ratio_dict={task:1})
-                contexts, is_trained = train_context(self.model, streamer, 30, opt, sch, context, self_supervised)
-
-                if is_trained:
-                    self.save_contexts(contexts, task)
-                else:
-                    inspection_list.append(task)
-
-                self.model.reset_training_data()
-                print(inspection_list)
-        return inspection_list
-
     def train_context(self, data_streamer, epochs, opt, sch, context): 
         self.model.freeze_weights()
         self.model.eval()
@@ -108,17 +83,16 @@ class ContextTrainer():
                     print(j, ':', self.model.model_name, ":", "{:.2e}".format(loss.item()))
                     print('Frac Correct ' + str(frac_correct) + '\n')
             
-            if i>5 and self.model.check_model_training(0.93, 5):
+            if i>5 and self.model.check_model_training(0.92, 3):
                 return context.squeeze().detach().cpu().numpy(), True
             if sch is not None:                
                 sch.step()
             step_scheduler.step()
-        is_trained = self.model.check_model_training(0.93, 5)
+        is_trained = self.model.check_model_training(0.92, 3)
         return context.squeeze().detach().cpu().numpy(), is_trained
 
 
     def get_all_contexts(self, num_contexts):
-
         inspection_list = []
         for task in Task.TASK_LIST:     
             try:
@@ -129,12 +103,12 @@ class ContextTrainer():
             except FileNotFoundError: 
                 context = nn.Parameter(torch.randn((num_contexts, self.context_dim), device=device))
 
-                opt= optim.Adam([context], lr=8*1e-3, weight_decay=0.0)
-                sch = optim.lr_scheduler.ExponentialLR(opt, 0.99)
+                opt= optim.Adam([context], lr=5*1e-3, weight_decay=0.0)
+                sch = optim.lr_scheduler.ExponentialLR(opt, 0.98)
 
-                streamer = TaskDataSet(batch_len = num_contexts, num_batches = 350, task_ratio_dict={task:1})
+                streamer = TaskDataSet(batch_len = num_contexts, num_batches = 800, task_ratio_dict={task:1})
 
-                contexts, is_trained = self.train_context(streamer, 30, opt, sch, context)
+                contexts, is_trained = self.train_context(streamer, 100, opt, sch, context)
                 if is_trained:
                     pickle.dump(contexts, open(self.filename+task+self.supervised_str+'_context_vecs'+str(self.context_dim), 'wb'))
                     pickle.dump(self.model._correct_data_dict, open(self.filename+task+self.supervised_str+'_context_correct_data'+str(self.context_dim), 'wb'))

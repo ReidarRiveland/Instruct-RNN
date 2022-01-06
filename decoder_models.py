@@ -96,11 +96,11 @@ class BaseDecoder(nn.Module):
         return instruct_dict
 
     def init_context_set(self, task_file, model_name, seed_str, supervised_str=''):
-        all_contexts = np.empty((16, 256, 20))
+        all_contexts = np.empty((16, 128, self.context_dim))
         for i, task in enumerate(Task.TASK_LIST):
             filename = self.load_foldername+'/'+task_file+'/'+model_name+'/contexts/'+seed_str+task+supervised_str+'_context_vecs20'
             task_contexts = pickle.load(open(filename, 'rb'))
-            all_contexts[i, ...]=task_contexts
+            all_contexts[i, ...]=task_contexts[:128, :]
         self.contexts = all_contexts
         return all_contexts
 
@@ -130,8 +130,9 @@ class BaseDecoder(nn.Module):
         return reps_reduced
 
 class DecoderRNN(BaseDecoder):
-    def __init__(self, embedding_size, hidden_size):
+    def __init__(self, context_dim, embedding_size, hidden_size):
         super().__init__()
+        self.context_dim = context_dim
         self.hidden_size = hidden_size
         self.embedding_size=embedding_size
         self.context_dim = 20
@@ -194,9 +195,9 @@ class DecoderRNN(BaseDecoder):
         plt.show()
 
 class gptDecoder(BaseDecoder): 
-    def __init__(self):
+    def __init__(self, context_dim):
         super().__init__()
-        self.context_dim = 20
+        self.context_dim = context_dim
         self.init_instructions(self.add_punctuation())
         self.gpt = GPT2LMHeadModel.from_pretrained('gpt2')
         self.context_encoder = nn.Linear(self.context_dim, 768)
@@ -237,22 +238,22 @@ class gptDecoder(BaseDecoder):
         return outputs, decoded_indices
 
     def decode_sentence(self, context): 
-        decoded_indices, _ = self.forward(context)
+        _, decoded_indices = self.forward(context)
         decoded_sentences = self.tokenizer.batch_decode(decoded_indices[1:,...])  # detach from history as input
         return decoded_sentences
 
 #add periods to the end of all setnences
 
-rnn_decoder = DecoderRNN(20, 128)
-rnn_decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed0')
+# rnn_decoder = DecoderRNN(20, 128)
+# rnn_decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed0')
 
-type(rnn_decoder) is DecoderRNN
+# type(rnn_decoder) is DecoderRNN
 
-go_instructs = train_instruct_dict['Go']
+# go_instructs = train_instruct_dict['Go']
 
-kargs = {'pad_len': 30}
+# kargs = {'pad_len': 30}
 
-rnn_decoder.tokenizer(go_instructs)
+# rnn_decoder.tokenizer(go_instructs)
 
 
 
@@ -339,12 +340,21 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
     return loss_list, teacher_loss_list
 
 import torch.optim as optim
-decoder_optimizer = optim.Adam(rnn_decoder.parameters(), lr=1e-5, weight_decay=0.0)
+gpt_decoder = gptDecoder(20)
+gpt_decoder.init_context_set('Go_Anti_DM', 'sbertNet_tuned', 'seed0')
+decoder_optimizer = optim.Adam(gpt_decoder.parameters(), lr=1e-6, weight_decay=0.0)
 sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
 
-train_decoder_(rnn_decoder, decoder_optimizer, sch, 50, 1.0)
+train_decoder_(gpt_decoder, decoder_optimizer, sch, 50, 1.0, holdout_tasks=['Anti DM'])
 
+Task.TASK_LIST.index('Anti DM')
 
+anti_dm_tensor=torch.Tensor(gpt_decoder.contexts[5])
+anti_dm_out = gpt_decoder.forward(anti_dm_tensor)
+anti_dm_out[1]
+gpt_decoder.decode_sentence(anti_dm_out[1])
+
+gpt_decoder.tokenizer.batch_decode(anti_dm_out[1])
 
 gpt_decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed0')
 go_contexts = gpt_decoder.contexts[0, ...]
