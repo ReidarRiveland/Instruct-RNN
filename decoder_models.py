@@ -1,4 +1,3 @@
-from torch.tensor import Tensor
 import transformers
 from utils import train_instruct_dict
 from model_analysis import reduce_rep
@@ -228,14 +227,18 @@ class gptDecoder(BaseDecoder):
         past_keys = None
         input_ids = None
         decoded_indices = torch.Tensor([])
+        scores = torch.Tensor([])
+
         for di in range(self.tokenizer.model_max_length):
             outputs = self._base_forward(context, input_ids = input_ids, past_keys=past_keys)
             past_keys = outputs.past_key_values
             logits = outputs.logits
-            scores = self.softmax(logits)
-            input_ids = torch.argmax(scores[:, -1, :], -1).unsqueeze(1)
+            cur_scores = self.softmax(logits)
+            input_ids = torch.argmax(cur_scores[:, -1, :], -1).unsqueeze(1)
             decoded_indices = torch.cat((decoded_indices, input_ids), dim=1)
-        return outputs, decoded_indices
+            scores = torch.cat((scores, cur_scores), dim=1)
+
+        return scores, decoded_indices
 
     def decode_sentence(self, context): 
         _, decoded_indices = self.forward(context)
@@ -260,7 +263,7 @@ class gptDecoder(BaseDecoder):
 
 
 def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=None): 
-    criterion = nn.NLLLoss(reduction='mean')
+    criterion = nn.NLLLoss(reduction='none', ignore_index=decoder.tokenizer.pad_token_id)
     teacher_forcing_ratio = init_teacher_forcing_ratio
     loss_list = []
     teacher_loss_list = []
@@ -283,7 +286,7 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
             pad_len = max([len(instruct.split(' ')) for instruct in target_instruct])+3
             # if type(rnn_decoder) is DecoderRNN: 
             # else: token_kargs = 
-            tokenized_targets = decoder.tokenizer(target_instruct, padding= 'max_length', max_length=pad_len, return_tensors='pt')
+            tokenized_targets = decoder.tokenizer(target_instruct, padding= 'max_length', return_tensors='pt')
             target_ids = tokenized_targets.input_ids
 
             opt.zero_grad()
@@ -309,11 +312,12 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
                 teacher_loss_list.append(loss.item()/pad_len)
             else:
                 # Without teacher forcing: use its own predictions as the next input
-                outputs, decoded_indices = decoder(rep)
-                softmax_scores = torch.softmax(outputs.logits, dim=-1)
-                seq_loss = [criterion(softmax_scores[:, i, :], target_ids[:, i]) for i in range(softmax_scores.shape[1])]
-        
-                loss=torch.mean(seq_loss)
+                scores, decoded_indices = decoder(rep)
+                scores = scores.squeeze().transpose(1, 2)
+                #softmax_scores = decoder.softmax(outputs.logits)
+                seq_loss = criterion(scores, target_ids)
+                loss = torch.mean(seq_loss)
+                #loss = torch.Tensor([criterion(softmax_scores[:, i, :], target_ids[:, i]) for i in range(softmax_scores.shape[1])], requires_grad=True)
                 decoder.loss_list.append(loss.item()/pad_len)
 
             loss.backward()
@@ -341,11 +345,13 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
 
 import torch.optim as optim
 gpt_decoder = gptDecoder(20)
-gpt_decoder.init_context_set('Go_Anti_DM', 'sbertNet_tuned', 'seed0')
+gpt_decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed0')
 decoder_optimizer = optim.Adam(gpt_decoder.parameters(), lr=1e-6, weight_decay=0.0)
 sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
 
-train_decoder_(gpt_decoder, decoder_optimizer, sch, 50, 1.0, holdout_tasks=['Anti DM'])
+gpt_decoder.tokenizer.pad_token_id
+
+train_decoder_(gpt_decoder, decoder_optimizer, sch, 50, 0.0, holdout_tasks=['Anti DM'])
 
 Task.TASK_LIST.index('Anti DM')
 
