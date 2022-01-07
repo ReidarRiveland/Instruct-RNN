@@ -18,7 +18,7 @@ import sys
 from model_analysis import get_instruct_reps
 from collections import defaultdict
 
-device = torch.device(0)
+device = torch.device('cpu')
 
 class ContextTrainer(): 
     def __init__(self, model, context_dim, load_file): 
@@ -134,18 +134,35 @@ class ContextNetwork(nn.Module):
         self._correct_data_dict = defaultdict(list)
         self.sm_model = sm_model
         self.sm_model.freeze_weights()
-        self.sm_model.eval()
         self.hidden_size = hidden_size
         self.gru = CustomGRU(128+65, hidden_size, 1, activ_func=torch.relu)
         self.out = nn.Linear(hidden_size, self.target_dim)
+        self.__weights_init__()
+
+    def __weights_init__(self):
+        for n, p in self.named_parameters():
+            if 'weight_ih' in n:
+                for ih in p.chunk(3, 0):
+                    torch.nn.init.normal_(ih, std = 1/np.sqrt(200))
+            elif 'weight_hh' in n:
+                for hh in p.chunk(3, 0):
+                    hh.data.copy_(torch.eye(self.hidden_size)*0.5)
+            elif 'W_out' in n:
+                torch.nn.init.normal_(p, std = 0.4/np.sqrt(self.hidden_size))
 
     def forward(self, s_input, sm_hidden, h0): 
-        ins = torch.cat((s_input, sm_hidden))
+        ins = torch.cat((s_input, sm_hidden), dim=2)
         rnn_hid, _ = self.gru(ins, h0)
         outs = self.out(rnn_hid)
         return outs, rnn_hid
-    
-    def train_context(self, data_streamer, epochs, opt, sch, context): 
+
+    def init_trainer_opts(self, lr, gamma):
+        opt= optim.Adam([{'params': self.gru.parameters()}, 
+                        {'params': self.out.parameters()}], lr=lr, weight_decay=0.0)
+        sch = optim.lr_scheduler.ExponentialLR(opt, gamma)
+        return opt, sch
+
+    def train(self, data_streamer, epochs, opt, sch): 
         criterion = nn.MSELoss(reduction='mean')
         step_scheduler = optim.lr_scheduler.MultiStepLR(opt,milestones=[epochs-2, epochs-1], gamma=0.1)
         h0 = torch.full((1, data_streamer.batch_len, self.hidden_size), 0.1, device=device)
@@ -157,15 +174,23 @@ class ContextNetwork(nn.Module):
                 opt.zero_grad()
         
                 task_info = self.sm_model.get_task_info(ins.shape[0], task_type)
-                instruct_embedded = self.langModel(task_info)
-                _, sm_rnn_hid = self.sm_model.forward(instruct_embedded, ins)
+                last_transformer_hid = torch.mean(self.sm_model.langModel.forward_transformer(task_info)[1][int(12)], dim=1)
+                instruct_embedded = self.sm_model.langModel.proj_out(last_transformer_hid)
+                _, sm_rnn_hid = super(type(self.sm_model), self.sm_model).forward(instruct_embedded, ins.to(device))
                 outs, _ = self.forward(ins, sm_rnn_hid, h0)
 
-                loss = criterion(outs, instruct_embedded) 
+                if self.target_dim == 768: 
+                    target = last_transformer_hid
+                else: 
+                    target = instruct_embedded
+
+                target = target.unsqueeze(1).repeat(1, 120, 1)
+
+                loss = criterion(outs, target) 
                 loss.backward()
 
                 opt.step()
-                self.self._loss_data_dict[task_type].append(loss.item())
+                self._loss_data_dict[task_type].append(loss.item())
 
                 if j%50 == 0:
                     frac_correct = self.test_context(ins, outs, tar, tar_dir)
@@ -173,21 +198,21 @@ class ContextNetwork(nn.Module):
                     self._correct_data_dict[task_type].append(frac_correct)
 
                     print(task_type)
-                    print(j, ':', self.model.model_name, ":", "{:.2e}".format(loss.item()))
+                    print(j, ':', self.sm_model.model_name, ":", "{:.2e}".format(loss.item()))
                     print('Frac Correct ' + str(frac_correct) + '\n')
             
             if sch is not None: sch.step()
             step_scheduler.step()
 
             if i>5 and self.model.check_model_training(0.92, 3):
-                return context.squeeze().detach().cpu().numpy(), True
+                return True
 
         is_trained = self.model.check_model_training(0.92, 3)
-        return context.squeeze().detach().cpu().numpy(), is_trained
+        return is_trained
 
     def test_context(self, ins, context, tar, tar_dir): 
         if self.target_dim == 768: 
-            projected = self.model.langModel.proj_out(context.float())           
+            projected = self.sm_model.langModel.proj_out(context[:, -1,:].float())           
         else:
             projected = context 
         out, _ = super(type(self.sm_model), self.sm_model).forward(projected, ins.to(device))
@@ -201,6 +226,12 @@ model.set_seed(0)
 model.load_model('_ReLU128_4.11/swap_holdouts/'+task_file)
 
 contextNet = ContextNetwork(128, model, '12')
+opt, sch = contextNet.init_trainer_opts(1e-3, 0.99)
+
+data_streamer = TaskDataSet(num_batches=800)
+contextNet.train(data_streamer, 30, opt, sch)
+
+
 
 def get_all_contexts_set(to_get):
     inspection_dict = {}
