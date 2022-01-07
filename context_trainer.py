@@ -10,10 +10,13 @@ from torch._C import Value
 import torch.nn as nn
 import torch.optim as optim
 
+from jit_GRU import CustomGRU
 
 import pickle
 import itertools
 import sys
+from model_analysis import get_instruct_reps
+from collections import defaultdict
 
 device = torch.device(0)
 
@@ -120,78 +123,84 @@ class ContextTrainer():
                 print(inspection_list)
         return inspection_list
 
+class ContextNetwork(nn.Module): 
+    def __init__(self, hidden_size, sm_model, depth):
+        super(ContextNetwork, self).__init__()
+        if depth.isnumeric(): 
+            self.target_dim = 768
+        elif depth == 'full': 
+            self.target_dim = 20
+        self._loss_data_dict = defaultdict(list)
+        self._correct_data_dict = defaultdict(list)
+        self.sm_model = sm_model
+        self.sm_model.freeze_weights()
+        self.sm_model.eval()
+        self.hidden_size = hidden_size
+        self.gru = CustomGRU(128+65, hidden_size, 1, activ_func=torch.relu)
+        self.out = nn.Linear(hidden_size, self.target_dim)
 
-
-def train_context(model, data_streamer, epochs, opt, sch, context, self_supervised): 
-    model.freeze_weights()
-    model.eval()
-    step_scheduler = optim.lr_scheduler.MultiStepLR(opt,milestones=[epochs-2, epochs-1], gamma=0.1)
-
-    for i in range(epochs): 
-        print('epoch', i)
-        data_streamer.shuffle_stream_order()
-        for j, data in enumerate(data_streamer.stream_batch()): 
-
-            ins, tar, mask, tar_dir, task_type = data
-
-            opt.zero_grad()
+    def forward(self, s_input, sm_hidden, h0): 
+        ins = torch.cat((s_input, sm_hidden))
+        rnn_hid, _ = self.gru(ins, h0)
+        outs = self.out(rnn_hid)
+        return outs, rnn_hid
     
-            if self_supervised:
-                task_info = model.get_task_info(ins.shape[0], task_type)
-                target, _ = model(task_info, ins.to(device))
-            else: 
-                target = tar
-
-            proj = model.langModel.proj_out(context.float())            
-            out, _ = super(type(model), model).forward(proj, ins.to(device))
-            loss = masked_MSE_Loss(out, target.to(device), mask.to(device)) 
-            loss.backward()
-
-            opt.step()
-
-            frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
-            model._loss_data_dict[task_type].append(loss.item())
-            model._correct_data_dict[task_type].append(frac_correct)
-            if j%50 == 0:
-                print(task_type)
-                print(j, ':', model.model_name, ":", "{:.2e}".format(loss.item()))
-                print('Frac Correct ' + str(frac_correct) + '\n')
+    def train_context(self, data_streamer, epochs, opt, sch, context): 
+        criterion = nn.MSELoss(reduction='mean')
+        step_scheduler = optim.lr_scheduler.MultiStepLR(opt,milestones=[epochs-2, epochs-1], gamma=0.1)
+        h0 = torch.full((1, data_streamer.batch_len, self.hidden_size), 0.1, device=device)
+        for i in range(epochs): 
+            print('epoch', i)
+            data_streamer.shuffle_stream_order()
+            for j, data in enumerate(data_streamer.stream_batch()): 
+                ins, tar, _, tar_dir, task_type = data
+                opt.zero_grad()
         
-        if i>5 and model.check_model_training(0.91, 5):
-            return context.squeeze().detach().cpu().numpy(), True
-        if sch is not None:                
-            sch.step()
-        step_scheduler.step()
-    is_trained = model.check_model_training(0.91, 5)
-    return context.squeeze().detach().cpu().numpy(), is_trained
+                task_info = self.sm_model.get_task_info(ins.shape[0], task_type)
+                instruct_embedded = self.langModel(task_info)
+                _, sm_rnn_hid = self.sm_model.forward(instruct_embedded, ins)
+                outs, _ = self.forward(ins, sm_rnn_hid, h0)
 
-def test_context(model, holdouts_test, foldername, repeats=5, holdout_type = 'swap_holdouts', save=False): 
-    holdout_file = get_holdout_file(holdouts_test)
-    for holdout in holdouts_test: 
-        for _ in range(repeats): 
-            model.load_model(foldername+'/'+holdout_type+'/'+holdout_file)
-            context = nn.Parameter(torch.randn((128, 20), device=device))
+                loss = criterion(outs, instruct_embedded) 
+                loss.backward()
 
-            opt = optim.Adam([
-                    {'params' : model.parameters()},
-                    {'params' : [context], 'lr': 1e-3},
-                ], lr=0.001)
-            sch = optim.lr_scheduler.ExponentialLR(opt, 0.95)
-            data = TaskDataSet(batch_len=128, num_batches=500, task_ratio_dict={holdout:1})
-            data.data_to_device(device)
-            self_super = False
-            train_context(model, data, 8, opt, sch, context, self_super)
-        
-        correct_perf = np.mean(np.array(model._correct_data_dict[holdout]).reshape(repeats, -1), axis=0)
-        loss_perf = np.mean(np.array(model._loss_data_dict[holdout]).reshape(repeats, -1), axis=0)
+                opt.step()
+                self.self._loss_data_dict[task_type].append(loss.item())
 
-        if save: 
-            filename=foldername + '/' + holdout_type +'/'+holdout_file + '/' + model.model_name+'/context_test'+holdout.replace(' ', '_')+'_'+model.__seed_num_str__
-            pickle.dump(correct_perf, open(filename+'_holdout_correct', 'wb'))
-            pickle.dump(loss_perf, open(filename+'_holdout_loss', 'wb'))
-            print(filename)
+                if j%50 == 0:
+                    frac_correct = self.test_context(ins, outs, tar, tar_dir)
+                    self.sm_model._correct_data_dict[task_type].append(frac_correct)
+                    self._correct_data_dict[task_type].append(frac_correct)
 
-    return correct_perf, loss_perf
+                    print(task_type)
+                    print(j, ':', self.model.model_name, ":", "{:.2e}".format(loss.item()))
+                    print('Frac Correct ' + str(frac_correct) + '\n')
+            
+            if sch is not None: sch.step()
+            step_scheduler.step()
+
+            if i>5 and self.model.check_model_training(0.92, 3):
+                return context.squeeze().detach().cpu().numpy(), True
+
+        is_trained = self.model.check_model_training(0.92, 3)
+        return context.squeeze().detach().cpu().numpy(), is_trained
+
+    def test_context(self, ins, context, tar, tar_dir): 
+        if self.target_dim == 768: 
+            projected = self.model.langModel.proj_out(context.float())           
+        else:
+            projected = context 
+        out, _ = super(type(self.sm_model), self.sm_model).forward(projected, ins.to(device))
+        frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
+        return frac_correct
+
+
+task_file = 'Go_Anti_DM'
+model = config_model('sbertNet_tuned')
+model.set_seed(0)
+model.load_model('_ReLU128_4.11/swap_holdouts/'+task_file)
+
+contextNet = ContextNetwork(128, model, '12')
 
 def get_all_contexts_set(to_get):
     inspection_dict = {}
@@ -201,7 +210,7 @@ def get_all_contexts_set(to_get):
         model = config_model(model_params_key)
         torch.manual_seed(seed_num)
         model.set_seed(seed_num)
-        trainer=ContextTrainer(model, 768, task_file)
+        trainer=ContextTrainer(model, 20, task_file)
         for self_supervised in [False, True]:
             trainer.supervised_str = ''
             if not self_supervised:

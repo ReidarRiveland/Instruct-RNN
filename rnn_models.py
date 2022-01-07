@@ -1,4 +1,3 @@
-from custom_GRU import CustomGRU
 import numpy as np
 import torch
 from torch._C import device
@@ -120,7 +119,7 @@ class SimpleNet(BaseNet):
         return get_input_rule(batch_len, task_type, self.instruct_mode).to(self.__device__)
 
     def forward(self, task_rule, x):
-        if self.instruct_mode is not 'masked': 
+        if self.instruct_mode != 'masked': 
             task_rule = torch.matmul(task_rule, self.rule_transform)
         outs, rnn_hid = super().forward(task_rule, x)
         return outs, rnn_hid
