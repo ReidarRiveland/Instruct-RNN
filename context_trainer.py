@@ -28,7 +28,7 @@ class ContextTrainer():
         self.model = model
         self.model.load_model(self.foldername)
         self.model.to(device)
-        self.filename = self.foldername + '/'+self.model.model_name+'/contexts/'+self.model.__seed_num_str__+'_'
+        self.filename = self.foldername + '/'+self.model.model_name+'/contexts/'+self.model.__seed_num_str__
 
         self.supervised_str = None
 
@@ -211,7 +211,7 @@ def get_all_contexts_set(to_get):
         torch.manual_seed(seed_num)
         model.set_seed(seed_num)
         trainer=ContextTrainer(model, 20, task_file)
-        for self_supervised in [False, True]:
+        for self_supervised in [False]:
             trainer.supervised_str = ''
             if not self_supervised:
                 trainer.supervised_str = '_supervised'
