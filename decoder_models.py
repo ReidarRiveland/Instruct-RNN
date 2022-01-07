@@ -39,14 +39,14 @@ class RNNtokenizer():
         for i, word in enumerate(sent.split()): 
             tokens[i] = self.word2index[word]
         tokens[i+1]=1
-        return torch.Tensor(tokens).unsqueeze(0)
+        return tokens
 
     def tokenize_sentence(self, sent_list, pad_len): 
-        tokenized_tensor = torch.Tensor([])
+        tokenized_list = []
         for sent in sent_list:
             tokens = self._tokenize_sentence(sent, pad_len)
-            torch.cat((tokenized_tensor, tokens), dim=0)
-        return tokenized_tensor
+            tokenized_list.append(tokens)
+        return torch.LongTensor(tokenized_list)
 
     def _untokenize_sentence(self, tokens): 
         sent = []
@@ -238,7 +238,7 @@ class gptDecoder(BaseDecoder):
             decoded_indices = torch.cat((decoded_indices, input_ids), dim=1)
             scores = torch.cat((scores, cur_scores), dim=1)
 
-        return scores, decoded_indices
+        return scores.squeeze(), decoded_indices
 
     def decode_sentence(self, context): 
         _, decoded_indices = self.forward(context)
@@ -313,11 +313,8 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
             else:
                 # Without teacher forcing: use its own predictions as the next input
                 scores, decoded_indices = decoder(rep)
-                scores = scores.squeeze().transpose(1, 2)
-                #softmax_scores = decoder.softmax(outputs.logits)
-                seq_loss = criterion(scores, target_ids)
+                seq_loss = criterion(scores.transpose(1, 2), target_ids)
                 loss = torch.mean(seq_loss)
-                #loss = torch.Tensor([criterion(softmax_scores[:, i, :], target_ids[:, i]) for i in range(softmax_scores.shape[1])], requires_grad=True)
                 decoder.loss_list.append(loss.item()/pad_len)
 
             loss.backward()
@@ -343,86 +340,15 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
 
     return loss_list, teacher_loss_list
 
-import torch.optim as optim
-gpt_decoder = gptDecoder(20)
-gpt_decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed0')
-decoder_optimizer = optim.Adam(gpt_decoder.parameters(), lr=1e-6, weight_decay=0.0)
-sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
+# import torch.optim as optim
+# gpt_decoder = gptDecoder(20)
+# gpt_decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed0')
+# decoder_optimizer = optim.Adam(gpt_decoder.parameters(), lr=1e-6, weight_decay=0.0)
+# sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
 
-gpt_decoder.tokenizer.pad_token_id
+# gpt_decoder.tokenizer.pad_token_id
 
-train_decoder_(gpt_decoder, decoder_optimizer, sch, 50, 0.0, holdout_tasks=['Anti DM'])
-
-Task.TASK_LIST.index('Anti DM')
-
-anti_dm_tensor=torch.Tensor(gpt_decoder.contexts[5])
-anti_dm_out = gpt_decoder.forward(anti_dm_tensor)
-anti_dm_out[1]
-gpt_decoder.decode_sentence(anti_dm_out[1])
-
-gpt_decoder.tokenizer.batch_decode(anti_dm_out[1])
-
-gpt_decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed0')
-go_contexts = gpt_decoder.contexts[0, ...]
-
-decoded_contexts = gpt_decoder(torch.Tensor(go_contexts))
-
-gpt_decoder.tokenizer.batch_decode(decoded_contexts[0])
-
-
-import torch
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-model = GPT2LMHeadModel.from_pretrained('gpt2', use_cache=True)
-tokenizer.add_special_tokens({'pad_token': tokenizer.eos_token})
-
-def tokenize(instructions):
-    instructions = [instruct+' '+tokenizer.eos_token for instruct in instructions]
-    return tokenizer(instructions, return_tensors='pt', padding=True)
-
-tokenized=tokenize(instructs)
-
-#why am I getting different outputs here? Is it the padding?
-
-prompt = ["In the middle of the night I", "When I was a young man in"]
-past_keys = None
-tokenized = tokenizer(prompt, return_tensors="pt", padding=True)
-inputs = tokenized.input_ids
-decoded_inputs=inputs
-
-for i in range(20): 
-    outputs = model(input_ids=inputs, past_key_values=past_keys)
-    loss = outputs.loss
-    logits = outputs.logits
-    past_keys = outputs.past_key_values
-    scores = torch.softmax(logits, dim=-1)
-    inputs = torch.argmax(scores[:, -1, :], -1).unsqueeze(1)
-    decoded_inputs = torch.cat((decoded_inputs, inputs), dim=1)
-
-tokenizer.batch_decode(decoded_inputs)
-
-torch.cat((torch.Tensor([]), decoded_inputs))
-
-
-# tokenizer.batch_decode(torch.max(scores, 2).indices[:, -1])
-
-
-# scores = torch.softmax(logits, dim=-1)[-1]
-# inputs = torch.argmax(scores).view(1, -1)
-# inputs.shape
-
-
-# .item()
-
-
-
-# decoded_sentence
-
-tokenizer.batch_decode(tokenized['input_ids'], skip_special_tokens=True)
-
-
-
-
-
+# train_decoder_(gpt_decoder, decoder_optimizer, sch, 50, 0.0, holdout_tasks=['Anti DM'])
 
 
 def test_partner_model(partner_model, decoder, num_repeats=1, tasks=Task.TASK_LIST): 
