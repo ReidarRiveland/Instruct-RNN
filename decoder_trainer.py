@@ -13,6 +13,7 @@ from utils import sort_vocab, isCorrect, task_swaps_map, inv_train_instruct_dict
 from task import Task
 import seaborn as sns
 from collections import defaultdict
+from decoder_models import DecoderRNN
 
 
 from task import construct_batch
@@ -34,7 +35,7 @@ device = torch.device(0)
 def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=None, task_loss_ratio=0.1): 
     criterion = nn.NLLLoss(reduction='mean')
     teacher_forcing_ratio = init_teacher_forcing_ratio
-    pad_len  = decoder.vocab.pad_len 
+    pad_len  = decoder.tokenizer.pad_len 
     loss_list = []
     teacher_loss_list = []
     task_indices = list(range(16))
@@ -55,10 +56,10 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
             task_index = np.random.choice(task_indices)
             instruct_index = np.random.randint(0, 15, size=batch_size)
             target_instruct, rep = decoder.get_instruct_embedding_pair(task_index, instruct_index)            
-            target_tensor = torch.LongTensor([decoder.vocab.tokenize_sentence(target_instruct)]).to(device)
+            target_tensor = decoder.tokenizer(target_instruct).to(device)
 
             init_hidden = torch.Tensor(rep).to(device)
-            decoder_input = torch.tensor([[decoder.vocab.SOS_token]*batch_size]).to(device)
+            decoder_input = torch.tensor([[decoder.tokenizer.sos_token]*batch_size]).to(device)
 
             opt.zero_grad()
 
@@ -70,11 +71,11 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
                     topv, topi = decoder_output.topk(1)
                     #get words for last sentence in the batch
                     last_word_index = topi.squeeze().detach()[-1].item()
-                    last_word = decoder.vocab.index2word[last_word_index]
+                    last_word = decoder.tokenizer.index2word[last_word_index]
                     decoded_sentence.append(last_word)
 
-                    decoder_loss += criterion(decoder_output, target_tensor[0, :, di])
-                    decoder_input = torch.cat((decoder_input, target_tensor[..., di]))
+                    decoder_loss += criterion(decoder_output, target_tensor[:, di])
+                    decoder_input = torch.cat((decoder_input, target_tensor[:, di].unsqueeze(0)), dim=0)
 
                 loss=(decoder_loss+task_loss_ratio*task_loss)/pad_len
                 teacher_loss_list.append(loss.item()/pad_len)
@@ -84,11 +85,11 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
                 
 
                 for k in range(pad_len):
-                    decoder_loss += criterion(decoder_output, target_tensor[0, :, k])
+                    decoder_loss += criterion(decoder_output, target_tensor[:, k])
 
                 
                 loss=(decoder_loss+task_loss_ratio*task_loss)/pad_len
-                decoded_sentence = decoder.vocab.untokenize_sentence(decoded_indices)[-1]  # detach from history as input        
+                decoded_sentence = decoder.tokenizer.untokenize_sentence(decoded_indices)[-1]  # detach from history as input        
                 decoder.loss_list.append(loss.item()/pad_len)
 
             loss.backward()
@@ -146,7 +147,7 @@ for config in to_train:
 
         foldername = '_ReLU128_4.11/swap_holdouts/Multitask'
 
-        decoder= DecoderRNN(128)
+        decoder= DecoderRNN(20, 128, 128)
         decoder.init_context_set(task_file, model_name, 'seed'+str(seed))
         decoder.to(device)
 
