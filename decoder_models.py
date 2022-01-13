@@ -7,7 +7,7 @@ from utils import sort_vocab, isCorrect, inv_train_instruct_dict
 from task import Task
 import seaborn as sns
 from collections import defaultdict
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from transformers import GPT2TokenizerFast, GPT2LMHeadModel
 
 from task import construct_batch
 
@@ -196,12 +196,13 @@ class DecoderRNN(BaseDecoder):
 class gptDecoder(BaseDecoder): 
     def __init__(self, context_dim):
         super().__init__()
+        self.gelu = nn.GELU()
         self.context_dim = context_dim
         self.init_instructions(self.add_punctuation())
         self.gpt = GPT2LMHeadModel.from_pretrained('gpt2')
         self.context_encoder = nn.Linear(self.context_dim, 768)
 
-        self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2', use_cache=True)
+        self.tokenizer = GPT2TokenizerFast.from_pretrained('gpt2', use_cache=True)
         self.tokenizer.add_special_tokens({'pad_token': self.tokenizer.eos_token})
         self.tokenizer.model_max_length=30
         self.softmax = torch.nn.LogSoftmax(dim=-1)
@@ -214,9 +215,9 @@ class gptDecoder(BaseDecoder):
 
     def _base_forward(self, context=None, input_ids=None, attention_mask=None, past_keys=None): 
         if past_keys is None: 
-            embedded_inputs = torch.sigmoid(self.context_encoder(context)).unsqueeze(1)
+            embedded_inputs = self.gelu(self.context_encoder(context)).unsqueeze(1)
         else: 
-            embedded_inputs = torch.Tensor([])
+            embedded_inputs = torch.Tensor([]).to(device)
 
         if input_ids is not None: 
             embedded_inputs = torch.cat((embedded_inputs, self.gpt.transformer.wte(input_ids)), dim=1)
@@ -226,8 +227,8 @@ class gptDecoder(BaseDecoder):
     def forward(self, context):
         past_keys = None
         input_ids = None
-        decoded_indices = torch.Tensor([])
-        scores = torch.Tensor([])
+        decoded_indices = torch.Tensor([]).to(device)
+        scores = torch.Tensor([]).to(device)
 
         for di in range(self.tokenizer.model_max_length):
             outputs = self._base_forward(context, input_ids = input_ids, past_keys=past_keys)
@@ -242,7 +243,7 @@ class gptDecoder(BaseDecoder):
 
     def decode_sentence(self, context): 
         _, decoded_indices = self.forward(context)
-        decoded_sentences = self.tokenizer.batch_decode(decoded_indices[1:,...])  # detach from history as input
+        decoded_sentences = self.tokenizer.batch_decode(decoded_indices[1:,...], skip_special_tokens=True)  # detach from history as input
         return decoded_sentences
 
 #add periods to the end of all setnences
@@ -263,7 +264,7 @@ class gptDecoder(BaseDecoder):
 
 
 def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=None): 
-    criterion = nn.NLLLoss(reduction='none', ignore_index=decoder.tokenizer.pad_token_id)
+    criterion = nn.NLLLoss(reduction='none')
     teacher_forcing_ratio = init_teacher_forcing_ratio
     loss_list = []
     teacher_loss_list = []
@@ -298,22 +299,22 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
                 # Teacher forcing: Feed the target as the next input
                 for di in range(pad_len-1):
                     mask = tokenized_targets.attention_mask[:, :di+1]
-                    outputs = decoder._base_forward(rep, input_ids=target_ids[:, di].unsqueeze(1), past_keys=past_keys)
+                    outputs = decoder._base_forward(rep.to(device), input_ids=target_ids[:, di].unsqueeze(1).to(device), past_keys=past_keys)
                     #get words for last sentence in the batch
                     logits = outputs.logits
                     past_keys = outputs.past_key_values
                     scores = decoder.softmax(logits)
                     input_ids = torch.argmax(scores[:, -1, :], -1).unsqueeze(1)
-                    decoded_indices = torch.cat((decoded_indices, input_ids), dim=1)
+                    decoded_indices = torch.cat((decoded_indices, input_ids.cpu()), dim=1)
 
-                    decoder_loss += criterion(scores[:, -1, :], target_ids[:, di])
+                    decoder_loss += criterion(scores[:, -1, :], target_ids[:, di].to(device))
 
-                loss=decoder_loss/pad_len
+                loss=torch.mean(decoder_loss)/pad_len
                 teacher_loss_list.append(loss.item()/pad_len)
             else:
                 # Without teacher forcing: use its own predictions as the next input
-                scores, decoded_indices = decoder(rep)
-                seq_loss = criterion(scores.transpose(1, 2), target_ids)
+                scores, decoded_indices = decoder(rep.to(device))
+                seq_loss = criterion(scores.transpose(1, 2), target_ids.to(device))
                 loss = torch.mean(seq_loss)
                 decoder.loss_list.append(loss.item()/pad_len)
 
@@ -321,18 +322,17 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
             opt.step()
 
             if j%50==0: 
-                decoded_sentence = decoder.tokenizer.batch_decode(decoded_indices)[-1]
+                decoded_sentence = decoder.tokenizer.batch_decode(decoded_indices.int())[-1]
                 print('Decoder Loss: ' + str(loss.item()/pad_len))
                 #print('Task Loss: ' + str(task_loss.item()/pad_len))
+                print('Teacher Forcing:' + str(use_teacher_forcing))
 
                 print('target instruction: ' + target_instruct[-1])
-                if use_teacher_forcing:
-                    try:
-                        eos_index = decoded_sentence.index(decoder.tokenizer.eos_token)
-                    except ValueError: 
-                        eos_index = -1
-                    decoded_sentence = decoded_sentence[:eos_index]
-                
+                try:
+                    eos_index = decoded_sentence.index(decoder.tokenizer.eos_token)
+                except ValueError: 
+                    eos_index = -1
+                decoded_sentence = decoded_sentence[:eos_index]
                 print('decoded instruction: ' + decoded_sentence + '\n')
                 
         sch.step()
@@ -340,16 +340,32 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
 
     return loss_list, teacher_loss_list
 
-# import torch.optim as optim
-# gpt_decoder = gptDecoder(20)
-# gpt_decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed0')
-# decoder_optimizer = optim.Adam(gpt_decoder.parameters(), lr=1e-6, weight_decay=0.0)
-# sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
+import torch.optim as optim
+gpt_decoder = gptDecoder(20)
 
-# gpt_decoder.tokenizer.pad_token_id
+for n, p in gpt_decoder.named_parameters(): 
+    if p.requires_grad: print(n)
 
-# train_decoder_(gpt_decoder, decoder_optimizer, sch, 50, 0.0, holdout_tasks=['Anti DM'])
+gpt_decoder.to(device)
+gpt_decoder.eval()
+gpt_decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed0')
 
+decoder_optimizer = optim.Adam(gpt_decoder.parameters(), lr=1e-5, weight_decay=0.0)
+sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.99, verbose=False)
+
+train_decoder_(gpt_decoder, decoder_optimizer, sch, 250, 0.8, holdout_tasks=['Anti DM'])
+
+
+
+gpt_decoder.save_model('gpt_decoder_ANTIDM')
+
+gpt_decoder.to(device)
+gpt_decoder.contexts.shape
+torch.cuda.empty_cache()
+decoded_set = gpt_decoder.decode_sentence(torch.Tensor(gpt_decoder.contexts[11, :32,...]).to(device))
+
+decoded_set
+gpt_decoder.decode_sentence(torch.Tensor(gpt_decoder.contexts[11, :32,...]).to(device))
 
 def test_partner_model(partner_model, decoder, num_repeats=1, tasks=Task.TASK_LIST): 
     partner_model.eval()
