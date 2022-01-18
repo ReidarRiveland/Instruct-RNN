@@ -1,45 +1,27 @@
 import itertools
-from seaborn.palettes import color_palette
-from sklearn.metrics.pairwise import paired_euclidean_distances
-from torch.nn.modules.rnn import GRU
-from nlp_models import SBERT
-from rnn_models import InstructNet
-from utils import train_instruct_dict
-from model_analysis import get_instruct_reps, get_model_performance, reduce_rep
-from plotting import plot_trained_performance, plot_rep_scatter
+from model_trainer import config_model
 import numpy as np
 import torch.optim as optim
-from utils import sort_vocab, isCorrect, task_swaps_map, inv_train_instruct_dict
+from utils import task_swaps_map, training_lists_dict
 from task import Task
-import seaborn as sns
-from collections import defaultdict
-from decoder_models import DecoderRNN
+from data import TaskDataSet
+from decoder_models import DecoderRNN, gptDecoder
+import pickle
 
-
-from task import construct_batch
-
-from transformers import GPT2Model, GPT2Tokenizer
-
-
-import matplotlib.pyplot as plt
-
-from numpy.lib import utils
 import torch
 import torch.nn as nn
-import pickle
 
 device = torch.device(0)
 
-
-
-def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=None, task_loss_ratio=0.1): 
+def train_rnn_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=[]): 
+    data_streamer = TaskDataSet(batch_len = 64, num_batches = 1000, holdouts=holdout_tasks)
     criterion = nn.NLLLoss(reduction='mean')
     teacher_forcing_ratio = init_teacher_forcing_ratio
     pad_len  = decoder.tokenizer.pad_len 
     loss_list = []
     teacher_loss_list = []
     task_indices = list(range(16))
-    batch_size=32
+    batch_size=64
 
     if holdout_tasks is not None and 'Multitask' not in holdout_tasks: 
         for holdout_task in holdout_tasks:
@@ -49,17 +31,20 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
     for i in range(epochs): 
         print('Epoch: ' + str(i)+'\n')
         
-        for j in range(500): 
+        for j, data in enumerate(data_streamer.stream_batch()): 
+            ins, _, _, _, task_type = data
+
             use_teacher_forcing = True if np.random.random() < teacher_forcing_ratio else False
+
             decoder_loss=0
-            task_loss=0
-            task_index = np.random.choice(task_indices)
-            instruct_index = np.random.randint(0, 15, size=batch_size)
-            target_instruct, rep = decoder.get_instruct_embedding_pair(task_index, instruct_index)            
+
+            target_instruct = sm_model.get_task_info(batch_size, task_type)
+
             target_tensor = decoder.tokenizer(target_instruct).to(device)
 
-            init_hidden = torch.Tensor(rep).to(device)
             decoder_input = torch.tensor([[decoder.tokenizer.sos_token]*batch_size]).to(device)
+
+            _, sm_hidden = sm_model.forward(ins.to(device), target_instruct)
 
             opt.zero_grad()
 
@@ -67,7 +52,7 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
                 decoded_sentence = []
                 # Teacher forcing: Feed the target as the next input
                 for di in range(pad_len):
-                    decoder_output, decoder_hidden = decoder._base_forward(decoder_input, init_hidden)
+                    decoder_output, decoder_hidden = decoder._base_forward(decoder_input, sm_hidden)
                     topv, topi = decoder_output.topk(1)
                     #get words for last sentence in the batch
                     last_word_index = topi.squeeze().detach()[-1].item()
@@ -77,18 +62,18 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
                     decoder_loss += criterion(decoder_output, target_tensor[:, di])
                     decoder_input = torch.cat((decoder_input, target_tensor[:, di].unsqueeze(0)), dim=0)
 
-                loss=(decoder_loss+task_loss_ratio*task_loss)/pad_len
+                loss=(decoder_loss)/pad_len
                 teacher_loss_list.append(loss.item()/pad_len)
             else:
                 # Without teacher forcing: use its own predictions as the next input
-                decoder_output, decoder_hidden, decoded_indices = decoder(init_hidden)
+                decoder_output, decoder_hidden, decoded_indices = decoder(sm_hidden)
                 
 
                 for k in range(pad_len):
                     decoder_loss += criterion(decoder_output, target_tensor[:, k])
 
                 
-                loss=(decoder_loss+task_loss_ratio*task_loss)/pad_len
+                loss=(decoder_loss)/pad_len
                 decoded_sentence = decoder.tokenizer.untokenize_sentence(decoded_indices)[-1]  # detach from history as input        
                 decoder.loss_list.append(loss.item()/pad_len)
 
@@ -110,8 +95,6 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
                 
                 print('decoded instruction: ' + decoded_sentence + '\n')
                 
-
-
         sch.step()
         teacher_forcing_ratio -= init_teacher_forcing_ratio/epochs
 
@@ -119,15 +102,114 @@ def train_decoder_(decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdou
 
 
 
-import itertools
-from utils import training_lists_dict, all_models
-seeds = [0, 1]
-model_file = '_ReLU128_4.11/swap_holdouts/'
-#to_train = list(itertools.product(seeds, ['sbertNet_tuned'], training_lists_dict['swap_holdouts']))
-to_train = list(itertools.product(seeds, ['sbertNet_tuned'], [['Multitask']]))
-for config in to_train: 
+def train_gpt_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=None): 
+    data_streamer = TaskDataSet(batch_len = 64, num_batches = 1000, holdouts=holdout_tasks)
+
+    criterion = nn.NLLLoss(reduction='none')
+    teacher_forcing_ratio = init_teacher_forcing_ratio
+    loss_list = []
+    teacher_loss_list = []
+    batch_size=64
+
+    for i in range(epochs): 
+        print('Epoch: ' + str(i)+'\n')
+        
+        for j, data in enumerate(data_streamer.stream_batch()): 
+            use_teacher_forcing = True if np.random.random() < teacher_forcing_ratio else False
+            
+            ins, tar, _, tar_dir, task_type = data
+
+            target_instruct = sm_model.get_task_info(batch_size, task_type)
+
+            pad_len = max([len(instruct.split(' ')) for instruct in target_instruct])+3
+            # if type(rnn_decoder) is DecoderRNN: 
+            # else: token_kargs = 
+            tokenized_targets = decoder.tokenizer(target_instruct, padding= 'max_length', return_tensors='pt')
+            target_ids = tokenized_targets.input_ids
+
+            _, sm_hidden = sm_model.forward(ins.to(device), target_instruct)
+
+            opt.zero_grad()
+
+            if use_teacher_forcing:
+                decoded_indices = torch.Tensor([]).to(device)
+                decoder_loss = 0
+                past_keys = None
+                # Teacher forcing: Feed the target as the next input
+                for di in range(pad_len-1):
+                    mask = tokenized_targets.attention_mask[:, :di+1]
+                    outputs = decoder._base_forward(sm_hidden.to(device), input_ids=target_ids[:, di].unsqueeze(1).to(device), past_keys=past_keys)
+                    #get words for last sentence in the batch
+                    logits = outputs.logits
+                    past_keys = outputs.past_key_values
+                    scores = decoder.softmax(logits)
+                    last_logits = logits[:, -1, :]
+                    input_ids = decoder.draw_next(last_logits, decoded_indices)
+                    decoded_indices = torch.cat((decoded_indices, input_ids), dim=1)
+
+                    decoder_loss += criterion(scores[:, -1, :], target_ids[:, di].to(device))
+
+                loss=torch.mean(decoder_loss)/pad_len
+                teacher_loss_list.append(loss.item()/pad_len)
+            else:
+                # Without teacher forcing: use its own predictions as the next input
+                scores, decoded_indices = decoder(sm_hidden.to(device))
+                seq_loss = criterion(scores.transpose(1, 2), target_ids.to(device))
+                loss = torch.mean(seq_loss)/pad_len
+                decoder.loss_list.append(loss.item()/pad_len)
+
+            loss.backward()
+            opt.step()
+
+            if j%50==0: 
+                decoded_sentence = decoder.tokenizer.batch_decode(decoded_indices.int())[-1]
+                print('Decoder Loss: ' + str(loss.item()/pad_len))
+                #print('Task Loss: ' + str(task_loss.item()/pad_len))
+                print('Teacher Forcing:' + str(use_teacher_forcing))
+
+                print('target instruction: ' + target_instruct[-1])
+                try:
+                    eos_index = decoded_sentence.index(decoder.tokenizer.eos_token)
+                except ValueError: 
+                    eos_index = -1
+                decoded_sentence = decoded_sentence[:eos_index]
+                print('decoded instruction: ' + decoded_sentence + '\n')
+                
+        sch.step()
+        teacher_forcing_ratio -= init_teacher_forcing_ratio/epochs
+
+    return loss_list, teacher_loss_list
+
+
+
+# from rnn_models import InstructNet
+# from nlp_models import SBERT
+# from data import TaskDataSet
+# from decoder_models import DecoderRNN
+# from model_trainer import config_model
+# from utils import training_lists_dict
+
+# model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+# model1.model_name += '_tuned'
+# model1.set_seed(0) 
+# model1.load_model('_ReLU128_4.11/swap_holdouts/Multitask')
+# model1.to(device)
+
+
+# decoder_rnn = DecoderRNN(128, conv_out_channels=64).to(device)
+
+# decoder_optimizer = optim.Adam(decoder_rnn.parameters(), lr=1e-4, weight_decay=0.0)
+# sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.99, verbose=False)
+
+# train_decoder(model1, decoder_rnn, decoder_optimizer, sch, 100, 0.8, holdout_tasks=['Anti DM'])
+
+
+def train_decoder_set(config, decoder_type='rnn'): 
     seed, model_name, tasks = config 
-    for holdout_train in [False, True]: 
+    for holdout_train in [True]:
+        if tasks == ['Multitask'] and holdout_train == True:
+            continue
+
         if holdout_train: 
             holdout_str = '_wHoldout'
             holdouts=tasks
@@ -135,63 +217,45 @@ for config in to_train:
             holdout_str = ''
             holdouts = []
 
+
         print(seed, tasks, holdout_str, holdouts)
 
         task_file = task_swaps_map[tasks[0]]
         filename = model_file + task_file+'/'+ model_name 
-
         # try: 
-        #     pickle.load(open(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str+'_loss_list', 'rb'))
-        #     print(filename+'/decoders/seed'+str(seed)+'_decoder'+holdout_str+'_loss_list already trained')
-        #except FileNotFoundError:
+        #     pickle.load(open(filename+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str+'_loss_list', 'rb'))
+        #     print(filename+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str+'   already trained')
+        # except FileNotFoundError:
 
-        foldername = '_ReLU128_4.11/swap_holdouts/Multitask'
+        sm_model = config_model(model_name)
+        sm_model.set_seed(seed) 
+        sm_model.load_model(model_file + task_file)
+        sm_model.to(device)
 
-        decoder= DecoderRNN(20, 128, 128)
-        decoder.init_context_set(task_file, model_name, 'seed'+str(seed))
+        if decoder_type == 'rnn': 
+            decoder= DecoderRNN(128)
+            trainer= train_rnn_decoder
+        else: 
+            decoder= gptDecoder()
+            trainer= train_gpt_decoder
+        decoder.train()
         decoder.to(device)
+        #decoder_rnn.load_model(filename+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str)
 
-        criterion = nn.NLLLoss(reduction='mean')
-
-        params = [{'params' : decoder.gru.parameters()},
-            {'params' : decoder.out.parameters()},
-            {'params' : decoder.context_encoder.parameters()}, 
-            ]
-
-        for n,p in decoder.named_parameters():
+        decoder_optimizer = optim.Adam(decoder.parameters(), lr=1e-3, weight_decay=0.0)
+        sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.99, verbose=False)
+        for n, p in decoder.named_parameters(): 
             if p.requires_grad: print(n)
 
-        decoder_optimizer = optim.Adam(decoder.parameters(), lr=1e-5, weight_decay=0.0)
-        # decoder_optimizer = optim.Adam([
-        #         {'params' : decoder.embedding.parameters(), 'lr': 1e-5}
-        #     ], lr=5*1e-4)
-        sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.95, verbose=False)
-        decoder.to(device)
 
-        train_decoder_(decoder, decoder_optimizer, sch, 80, 0.8, holdout_tasks=holdouts, task_loss_ratio=0.0)
-        decoder.save_model(filename+'/decoders/seed'+str(seed)+'tran_decoder'+holdout_str)
-        decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'tran_decoder'+holdout_str)
+        trainer(sm_model, decoder, decoder_optimizer, sch, 120, 0.8, holdout_tasks=holdouts)
+        decoder.save_model(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_conv'+str(decoder.conv_out_channels)+holdout_str)
+        decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_conv'+str(decoder.conv_out_channels)+holdout_str)
 
 
 
-# foldername = '_ReLU128_4.11/swap_holdouts/Multitask'
-
-# model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-# model1.model_name += '_tuned'
-# model1.set_seed(0) 
-# model1.to(device)
-
-# decoder= TranDecoderRNN(128, model1.langModel)
-# decoder.init_context_set('Multitask', 'sbertNet_tuned', 'seed'+str(0), supervised_str='_supervised')
-
-# decoder.load_model('Multitask/sbertNet_tuned/decoders/seed0tran_decoder')
-# decoder.to(device)
-# decoded_set = decoder.get_decoded_set()
-# decoded_set['Go']
-# model1.load_model('_ReLU128_4.11/swap_holdouts/Multitask')
-
-# decoder.to(device)
-# all_perf, decoded_instructs = test_partner_model(model1, decoder, num_repeats=5)
-
-# plot_partner_performance({'instructions': all_perf[:, 1, :], 'contexts': all_perf[:, 0, :]})
-
+seeds = [0, 1]
+model_file = '_ReLU128_4.11/swap_holdouts/'
+to_train = list(itertools.product(seeds, ['sbertNet_tuned'], [['Multitask']]+training_lists_dict['swap_holdouts']))
+for config in to_train: 
+    train_decoder_set(config, decoder_type='rnn')

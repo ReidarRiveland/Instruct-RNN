@@ -50,7 +50,7 @@ class BaseNet(nn.Module):
     def __initHidden__(self, batch_size):
         return torch.full((self.num_layers, batch_size, self.hid_dim), self.__hiddenInitValue__, device=self.__device__.type)
 
-    def forward(self, task_info, x , t=120): 
+    def forward(self, x, task_info, t=120): 
         h0 = self.__initHidden__(x.shape[0])
         #task_info_block = torch.rand(task_info.shape[0], t, task_info.shape[1])*0.05
         task_info_block = task_info.unsqueeze(1).repeat(1, t, 1)
@@ -118,7 +118,7 @@ class SimpleNet(BaseNet):
     def get_task_info(self, batch_len, task_type): 
         return get_input_rule(batch_len, task_type, self.instruct_mode).to(self.__device__)
 
-    def forward(self, task_rule, x):
+    def forward(self, x, task_rule):
         if self.instruct_mode != 'masked': 
             task_rule = torch.matmul(task_rule, self.rule_transform)
         outs, rnn_hid = super().forward(task_rule, x)
@@ -142,7 +142,11 @@ class InstructNet(BaseNet):
     def get_task_info(self, batch_len, task_type): 
         return get_instructions(batch_len, task_type, self.instruct_mode)
 
-    def forward(self, instructions, x):
-        instruct_embedded = self.langModel(instructions)
-        outs, rnn_hid = super().forward(instruct_embedded, x)
+    def forward(self, x, instruction = None, context = None):
+        assert instruction is not None or context is not None, 'must have instruction or context input'
+        if instruction is not None: 
+            info_embedded = self.langModel(instruction)
+        else: 
+            info_embedded = context
+        outs, rnn_hid = super().forward(x, info_embedded)
         return outs, rnn_hid
