@@ -29,7 +29,7 @@ class ContextTrainer():
         self.model.load_model(self.foldername)
         self.model.to(device)
         self.filename = self.foldername + '/'+self.model.model_name+'/contexts/'+self.model.__seed_num_str__
-
+        self._decode_during_training_ = []
         self.supervised_str = None
 
     def check_trained(self, task):
@@ -48,7 +48,7 @@ class ContextTrainer():
         sch = optim.lr_scheduler.ExponentialLR(opt, gamma)
         return opt, sch
 
-    def train_context(self, data_streamer, epochs, opt, sch, context): 
+    def train_context(self, data_streamer, epochs, opt, sch, context, decoder=None): 
         self.model.freeze_weights()
         self.model.eval()
         step_scheduler = optim.lr_scheduler.MultiStepLR(opt,milestones=[epochs-2, epochs-1], gamma=0.1)
@@ -72,7 +72,12 @@ class ContextTrainer():
                     projected = self.model.langModel.proj_out(context.float())           
                 else:
                     projected = context 
-                out, _ = super(type(self.model), self.model).forward(ins.to(device), projected)
+
+                out, rnn_hid = super(type(self.model), self.model).forward(ins.to(device), projected)
+
+                if decoder is not None: 
+                    self._decode_during_training_.append(list(decoder.decode_sentence(rnn_hid)))
+
                 loss = masked_MSE_Loss(out, target.to(device), mask.to(device)) 
                 loss.backward()
 
@@ -86,12 +91,12 @@ class ContextTrainer():
                     print(j, ':', self.model.model_name, ":", "{:.2e}".format(loss.item()))
                     print('Frac Correct ' + str(frac_correct) + '\n')
                 
-                if i>5 and self.model.check_model_training(0.92, 3):
+                if i>20 and self.model.check_model_training(0.99, 5):
                     return context.squeeze().detach().cpu().numpy(), True
             if sch is not None:                
                 sch.step()
             step_scheduler.step()
-        is_trained = self.model.check_model_training(0.80, 3)
+        is_trained = self.model.check_model_training(0.97, 3)
         return context.squeeze().detach().cpu().numpy(), is_trained
 
 
@@ -106,23 +111,22 @@ class ContextTrainer():
             except FileNotFoundError: 
                 context = nn.Parameter(torch.randn((num_contexts, self.context_dim), device=device))
 
-                opt= optim.Adam([context], lr=1e-2, weight_decay=0.0)
+                opt= optim.Adam([context], lr=5*1e-2, weight_decay=0.0)
                 sch = optim.lr_scheduler.ExponentialLR(opt, 0.99)
 
-                streamer = TaskDataSet(batch_len = num_contexts, num_batches = 800, task_ratio_dict={task:1})
+                streamer = TaskDataSet(batch_len = num_contexts, num_batches = 600, task_ratio_dict={task:1})
 
                 contexts, is_trained = self.train_context(streamer, 150, opt, sch, context)
                 if is_trained:
-                    pickle.dump(contexts, open(self.filename+task+self.supervised_str+'_context_vecs'+str(self.context_dim), 'wb'))
-                    pickle.dump(self.model._correct_data_dict, open(self.filename+task+self.supervised_str+'_context_correct_data'+str(self.context_dim), 'wb'))
-                    pickle.dump(self.model._loss_data_dict, open(self.filename+task+self.supervised_str+'_context_loss_data'+str(self.context_dim), 'wb'))
+                    pickle.dump(contexts, open(self.filename+task+'_'+self.supervised_str+'_context_vecs'+str(self.context_dim), 'wb'))
+                    pickle.dump(self.model._correct_data_dict, open(self.filename+task+'_'+self.supervised_str+'_context_correct_data'+str(self.context_dim), 'wb'))
+                    pickle.dump(self.model._loss_data_dict, open(self.filename+task+'_'+self.supervised_str+'_context_loss_data'+str(self.context_dim), 'wb'))
                     print('saved: '+self.filename+' '+task)
                 else:
                     inspection_list.append(task)
                 self.model.reset_training_data()
                 print(inspection_list)
         return inspection_list
-
 
 def get_all_contexts_set(to_get):
     inspection_dict = {}
@@ -136,7 +140,7 @@ def get_all_contexts_set(to_get):
         for self_supervised in [False]:
             trainer.supervised_str = ''
             if not self_supervised:
-                trainer.supervised_str = '_supervised'
+                trainer.supervised_str = 'supervised'
 
             print(str(config) + trainer.supervised_str) 
             inspection_list = trainer.get_all_contexts(128)
@@ -151,7 +155,7 @@ if __name__ == "__main__":
     if train_mode == 'train_contexts': 
         holdout_type = 'swap_holdouts'
         seeds = [0, 1, 2, 3, 4]
-        to_train_contexts = list(itertools.product(['sbertNet_tuned'], [0, 1], training_lists_dict['swap_holdouts']))
+        to_train_contexts = list(itertools.product(['sbertNet_tuned'], seeds, training_lists_dict['swap_holdouts']))
         print(to_train_contexts)
         inspection_dict = get_all_contexts_set(to_train_contexts)
         print(inspection_dict)

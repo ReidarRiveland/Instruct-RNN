@@ -52,10 +52,11 @@ def train_rnn_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_
                 decoded_sentence = []
                 # Teacher forcing: Feed the target as the next input
                 for di in range(pad_len):
-                    decoder_output, decoder_hidden = decoder._base_forward(decoder_input, sm_hidden)
-                    topv, topi = decoder_output.topk(1)
+                    logits, _ = decoder._base_forward(decoder_input, sm_hidden)
+                    decoder_output = decoder.softmax(logits)
+                    next_index = decoder.draw_next(logits)
                     #get words for last sentence in the batch
-                    last_word_index = topi.squeeze().detach()[-1].item()
+                    last_word_index = next_index.detach()[-1].item()
                     last_word = decoder.tokenizer.index2word[last_word_index]
                     decoded_sentence.append(last_word)
 
@@ -204,58 +205,83 @@ def train_gpt_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_
 # train_decoder(model1, decoder_rnn, decoder_optimizer, sch, 100, 0.8, holdout_tasks=['Anti DM'])
 
 
-def train_decoder_set(config, decoder_type='rnn'): 
-    seed, model_name, tasks = config 
-    for holdout_train in [True]:
-        if tasks == ['Multitask'] and holdout_train == True:
-            continue
+#def train_decoder_set(config, decoder_type='rnn'): 
 
-        if holdout_train: 
-            holdout_str = '_wHoldout'
-            holdouts=tasks
-        else: 
-            holdout_str = ''
-            holdouts = []
+# seeds = [1, 2, 3, 4]
+# model_file = '_ReLU128_4.11/swap_holdouts/'
+# to_train = list(itertools.product(seeds, ['sbertNet_tuned'], [['Multitask']]))
+# config = to_train[0]
+# decoder_type = 'rnn'
 
-
-        print(seed, tasks, holdout_str, holdouts)
-
-        task_file = task_swaps_map[tasks[0]]
-        filename = model_file + task_file+'/'+ model_name 
-        # try: 
-        #     pickle.load(open(filename+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str+'_loss_list', 'rb'))
-        #     print(filename+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str+'   already trained')
-        # except FileNotFoundError:
-
-        sm_model = config_model(model_name)
-        sm_model.set_seed(seed) 
-        sm_model.load_model(model_file + task_file)
-        sm_model.to(device)
-
-        if decoder_type == 'rnn': 
-            decoder= DecoderRNN(128)
-            trainer= train_rnn_decoder
-        else: 
-            decoder= gptDecoder()
-            trainer= train_gpt_decoder
-        decoder.train()
-        decoder.to(device)
-        #decoder_rnn.load_model(filename+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str)
-
-        decoder_optimizer = optim.Adam(decoder.parameters(), lr=1e-3, weight_decay=0.0)
-        sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.99, verbose=False)
-        for n, p in decoder.named_parameters(): 
-            if p.requires_grad: print(n)
-
-
-        trainer(sm_model, decoder, decoder_optimizer, sch, 120, 0.8, holdout_tasks=holdouts)
-        decoder.save_model(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_conv'+str(decoder.conv_out_channels)+holdout_str)
-        decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_conv'+str(decoder.conv_out_channels)+holdout_str)
-
-
-
-seeds = [0, 1]
+training_lists_dict['swap_holdouts']
+#def train_decoder_set(config, decoder_type='rnn'): 
+decoder_type = 'rnn'
+config=(0, 'sbertNet_tuned', training_lists_dict['swap_holdouts'][0])
 model_file = '_ReLU128_4.11/swap_holdouts/'
-to_train = list(itertools.product(seeds, ['sbertNet_tuned'], [['Multitask']]+training_lists_dict['swap_holdouts']))
+seed, model_name, tasks = config 
+for holdout_train in [True]:
+    # if tasks == ['Multitask'] and holdout_train == True:
+    #     continue
+
+    if holdout_train: 
+        holdout_str = '_wHoldout'
+        holdouts=tasks
+    else: 
+        holdout_str = ''
+        holdouts = []
+
+
+    print(seed, tasks, holdout_str, holdouts)
+
+    task_file = task_swaps_map[tasks[0]]
+    filename = model_file + task_file+'/'+ model_name 
+    # try: 
+    #     pickle.load(open(filename+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str+'_loss_list', 'rb'))
+    #     print(filename+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str+'   already trained')
+    # except FileNotFoundError:
+
+    sm_model = config_model(model_name)
+    sm_model.set_seed(seed) 
+    sm_model.load_model(model_file + task_file)
+    sm_model.to(device)
+
+    if decoder_type == 'rnn': 
+        decoder= DecoderRNN(64)
+        trainer= train_rnn_decoder
+        decoder_optimizer = optim.Adam([
+            {'params' : decoder.embedding.parameters()},
+            {'params' : decoder.gru.parameters()},
+            {'params' : decoder.out.parameters()},
+            {'params' : decoder.sm_decoder.parameters(), 'lr': 1e-4}
+        ], lr=1e-4, weight_decay=0.0)
+    else: 
+        decoder= gptDecoder()
+        trainer= train_gpt_decoder
+        decoder_optimizer = optim.Adam([
+            {'params' : decoder.gpt.parameters()},
+            {'params' : decoder.sm_decoder.parameters(), 'lr': 1e-4}
+        ], lr=1e-6, weight_decay=0.0001)
+    decoder.train()
+    decoder.to(device)
+    #decoder_rnn.load_model(filename+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str)
+
+
+
+    sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.97, verbose=False)
+    for n, p in decoder.named_parameters(): 
+        if p.requires_grad: print(n)
+
+
+    trainer(sm_model, decoder, decoder_optimizer, sch, 30, 1.0, holdout_tasks=holdouts)
+    decoder.save_model(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_lin'+holdout_str)
+    decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_lin'+holdout_str)
+
+
+
+seeds = [0]
+model_file = '_ReLU128_4.11/swap_holdouts/'
+to_train = list(itertools.product(seeds, ['sbertNet_tuned'], [['Multitask']]))
 for config in to_train: 
-    train_decoder_set(config, decoder_type='rnn')
+    train_decoder_set(config, decoder_type='gpt')
+
+
