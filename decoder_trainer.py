@@ -104,7 +104,7 @@ def train_rnn_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_
 
 
 def train_gpt_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=None): 
-    data_streamer = TaskDataSet(batch_len = 64, num_batches = 1000, holdouts=holdout_tasks)
+    data_streamer = TaskDataSet(batch_len = 64, num_batches = 800, holdouts=holdout_tasks)
 
     criterion = nn.NLLLoss(reduction='none')
     teacher_forcing_ratio = init_teacher_forcing_ratio
@@ -216,7 +216,10 @@ def train_gpt_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_
 training_lists_dict['swap_holdouts']
 #def train_decoder_set(config, decoder_type='rnn'): 
 decoder_type = 'rnn'
-config=(0, 'sbertNet_tuned', training_lists_dict['swap_holdouts'][0])
+#config=(0, 'sbertNet_tuned', training_lists_dict['swap_holdouts'][0])
+config=(0, 'sbertNet_tuned', ['Go', 'Anti DM'])
+#config=(0, 'sbertNet_tuned', ['Multitask'])
+
 model_file = '_ReLU128_4.11/swap_holdouts/'
 seed, model_name, tasks = config 
 for holdout_train in [True]:
@@ -253,14 +256,14 @@ for holdout_train in [True]:
             {'params' : decoder.gru.parameters()},
             {'params' : decoder.out.parameters()},
             {'params' : decoder.sm_decoder.parameters(), 'lr': 1e-4}
-        ], lr=1e-4, weight_decay=0.0)
+        ], lr=1e-4, weight_decay=0.00001)
     else: 
         decoder= gptDecoder()
         trainer= train_gpt_decoder
         decoder_optimizer = optim.Adam([
             {'params' : decoder.gpt.parameters()},
             {'params' : decoder.sm_decoder.parameters(), 'lr': 1e-4}
-        ], lr=1e-6, weight_decay=0.0001)
+        ], lr=1e-6, weight_decay=0.0)
     decoder.train()
     decoder.to(device)
     #decoder_rnn.load_model(filename+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str)
@@ -272,7 +275,7 @@ for holdout_train in [True]:
         if p.requires_grad: print(n)
 
 
-    trainer(sm_model, decoder, decoder_optimizer, sch, 30, 1.0, holdout_tasks=holdouts)
+    trainer(sm_model, decoder, decoder_optimizer, sch, 80, 0.5, holdout_tasks=holdouts)
     decoder.save_model(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_lin'+holdout_str)
     decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_lin'+holdout_str)
 

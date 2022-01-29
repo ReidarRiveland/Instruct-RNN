@@ -72,7 +72,7 @@ class SMDecoder(nn.Module):
         super(SMDecoder, self).__init__()
         # self.conv1 = nn.Conv1d(128, 12, 9, 1, padding=4)
         # self.maxer = nn.MaxPool1d(2, 2)
-        self.dropper = nn.Dropout(p=0.4)
+        self.dropper = nn.Dropout(p=0.5)
         self.fc1 = nn.Linear(128*2, out_dim)
         #self.fc2 =nn.Linear(128, 128)
         self.id = nn.Identity()
@@ -233,7 +233,7 @@ class DecoderRNN(BaseDecoder):
             elif 'W_out' in n:
                 torch.nn.init.normal_(p, std = 0.4/np.sqrt(self.hidden_size))
 
-    def draw_next(self, logits, k_sample=1):
+    def draw_next(self, logits, k_sample=3):
         top_k = logits.topk(k_sample)
         probs = torch.softmax(top_k.values, dim=-1)
         dist = Categorical(probs)
@@ -490,7 +490,7 @@ class EncoderDecoder(nn.Module):
     def plot_partner_performance(self, all_perf_dict):
         barWidth = 0.2
         model_name = 'sbertNet_tuned'
-        for i, mode in enumerate(['instructions']):  
+        for i, mode in enumerate(['instructions', 'context']):  
 
             perf = all_perf_dict[mode]
             values = list(np.mean(perf, axis=1))
@@ -529,6 +529,13 @@ class EncoderDecoder(nn.Module):
         #plt.legend()
         plt.show()
     
+
+# import smart_open
+# smart_open.open = smart_open.smart_open
+# import gensim
+# model = gensim.models.KeyedVectors.load_word2vec_format('path/to/file')
+# weights = torch.FloatTensor(model.vectors)
+
 
 # from utils import task_swaps_map
 # from model_trainer import config_model, training_lists_dict
@@ -569,7 +576,7 @@ class EncoderDecoder(nn.Module):
 
 
 
-# rnn_decoder=DecoderRNN(128)
+# rnn_decoder=DecoderRNN(64)
 # sm_model.to(device)
 # rnn_decoder.to(device)
 # sm_model.eval()
@@ -577,24 +584,25 @@ class EncoderDecoder(nn.Module):
 
 # load_str = '_ReLU128_4.11/swap_holdouts/'+task_file
 # sm_model.load_model(load_str)
+
 # rnn_decoder.load_model(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_rnn_decoder_lin_wHoldout')
 # encoder_decoder = EncoderDecoder(sm_model, rnn_decoder)
 
 # encoder_decoder.init_context_set(task_file, seed)
 
 
-# encoder_decoder.plot_confuse_mat(128, from_contexts=True)
+# encoder_decoder.plot_confuse_mat(128, from_contexts=False)
 
 
 
-# decoded, confuse_mat = encoder_decoder.decode_set(128, from_contexts=True, t=100)
+# decoded, confuse_mat = encoder_decoder.decode_set(128, from_contexts=False)
 
 # task_info = list(itertools.chain.from_iterable([value for value in decoded['Anti Go'].values()]))
 # Counter(task_info)
 
 
 # from collections import Counter
-# Counter(decoded['Anti Go']['other'])
+# Counter(decoded['Anti DM']['other'])
 
 
 
@@ -612,10 +620,18 @@ class EncoderDecoder(nn.Module):
 
 # model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
 # model1.model_name += '_tuned'
-# model1.set_seed(1) 
+# model1.set_seed(0) 
 # model1.load_model('_ReLU128_4.11/swap_holdouts/Multitask')
 # model1.to(device)
 
+
+# perf, _ = encoder_decoder.test_partner_model(model1, num_repeats=5)
+
+# np.mean(perf['instructions'])
+
+# encoder_decoder.plot_partner_performance(perf)
+
+# perf
 
 # fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(8, 8))
 # for j, task in enumerate(Task.TASK_LIST):
