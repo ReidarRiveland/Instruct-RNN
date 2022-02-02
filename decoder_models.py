@@ -1,3 +1,4 @@
+from lib2to3.pgen2 import token
 from context_trainer import ContextTrainer
 from torch.distributions.utils import logits_to_probs
 from torch.nn.modules.pooling import MaxPool1d
@@ -6,14 +7,12 @@ from model_trainer import config_model
 from utils import train_instruct_dict
 from model_analysis import reduce_rep
 from plotting import plot_rep_scatter
-from utils import sort_vocab, isCorrect, inv_train_instruct_dict
+from utils import sort_vocab, isCorrect, inv_train_instruct_dict, count_vocab
 from task import Task, construct_batch
 from jit_GRU import CustomGRU
 from context_trainer import ContextTrainer
 from data import TaskDataSet
 import torch.optim as optim
-
-
 
 from transformers import GPT2TokenizerFast, GPT2LMHeadModel
 
@@ -48,35 +47,13 @@ class PenalizedSoftmax():
         p = torch.exp((exps))/normalizer.repeat(k, 1).T
         return p 
 
-# class SMDecoder(nn.Module): 
-#     def __init__(self):
-#         super(SMDecoder, self).__init__()
-#         self.conv1 = nn.Conv1d(128, 12, 9, 1, padding=4)
-#         self.maxer = nn.MaxPool1d(2, 2)
-#         self.dropper = nn.Dropout(p=0.4)
-#         self.fc1 = nn.Linear(12*60, 32)
-#         self.fc2 =nn.Linear(32, 128)
-
-    
-#     def forward(self, sm_hidden): 
-#         batch_len = sm_hidden.shape[0]
-#         out = torch.relu(self.conv1(sm_hidden.transpose(1,2)))
-#         out = self.dropper(self.maxer(out).view(batch_len, -1))
-#         out = torch.relu(self.fc1(out))
-#         out = torch.relu(self.fc2(out))
-#         return out.unsqueeze(0)
-
-
 class SMDecoder(nn.Module): 
-    def __init__(self, out_dim):
+    def __init__(self, out_dim, drop_p):
         super(SMDecoder, self).__init__()
-        # self.conv1 = nn.Conv1d(128, 12, 9, 1, padding=4)
-        # self.maxer = nn.MaxPool1d(2, 2)
-        self.dropper = nn.Dropout(p=0.5)
+        self.dropper = nn.Dropout(p=drop_p)
         self.fc1 = nn.Linear(128*2, out_dim)
-        #self.fc2 =nn.Linear(128, 128)
+        #self.fc2 =nn.Linear(128, out_dim)
         self.id = nn.Identity()
-    
     
     def forward(self, sm_hidden): 
         out_mean = self.id(torch.mean(sm_hidden, dim=1))
@@ -88,53 +65,53 @@ class SMDecoder(nn.Module):
         return out.unsqueeze(0)
 
 
-# class SM_RNNDecoder(nn.Module): 
-#     def __init__(self):
-#         super(SMDecoder, self).__init__()
-#         # self.conv1 = nn.Conv1d(128, 12, 9, 1, padding=4)
-#         # self.maxer = nn.MaxPool1d(2, 2)
-#         #self.dropper = nn.Dropout(p=0.1)
-#         self.rnn = 
-#         self.fc2 =nn.Linear(128, 128)
-#         self.id = nn.Identity()
-    
-#     def forward(self, sm_hidden): 
-#         out_mean = self.id(torch.mean(sm_hidden, dim=1))
-#         out_max = self.id(torch.max(sm_hidden, dim=1).values)
-#         out = torch.cat((out_max, out_mean), dim=-1)
-#         #out = self.dropper(out)
-#         out = torch.relu(self.fc1(out))
-#         out = torch.relu(self.fc2(out))
-#         return out.unsqueeze(0)
-
-
-
 class RNNtokenizer():
-    sos_token = 0
-    eos_token = 1
-    def __init__(self):
+    def __init__(self, langModel):
+        self.langModel = langModel
+        self.sos_token_id = 0
+        self.eos_token_id = 1
+        if self.langModel is not None: 
+            langModel.tokenizer.eos_token = '[EOS]'
+            self.sos_token_id = self.langModel.tokenizer.cls_token_id
+            self.eos_token_id = self.langModel.tokenizer.eos_token_id
+        self.langModel = langModel
         self.pad_len = 30
-        self.vocab = sort_vocab()
+        self.counts, self.vocab = count_vocab()
         self.word2index = {}
-        self.index2word = {0: '[CLS]', 1: 'EOS', 2: '[PAD]'}
+        self.index2word = {0: '[CLS]', 1: '[EOS]', 2: '[PAD]'}
         self.n_words = 3
         for word in self.vocab: 
             self.addWord(word)
-    
-    def __call__(self, sent_list, pad_len=30):
-        return self.tokenize_sentence(sent_list, pad_len)
 
-    def _tokenize_sentence(self, sent, pad_len): 
+        if self.langModel is not None:
+            self.order_bert_tokens = [token[0] for token in self.langModel.tokenizer(list(self.index2word.values()), add_special_tokens=False).input_ids]
+            self.bert_word2index = dict(zip(self.word2index.keys(),self.order_bert_tokens))
+
+    def get_smoothed_freq(self, a=100): 
+        freq_tensor = torch.empty(len(self.index2word.items()))
+        for index, word in self.index2word.items(): 
+            freq_tensor[index] = self.counts[word]
+        freq_tensor[0:3] = torch.Tensor([torch.ceil(torch.mean(freq_tensor)).item()]*3)
+        freq_weight = (a/(a+freq_tensor))
+        return freq_weight
+
+    def __call__(self, sent_list, use_langModel = False, pad_len=30):
+        return self.tokenize_sentence(sent_list, pad_len, use_langModel)
+
+    def _tokenize_sentence(self, sent, pad_len, use_langModel): 
         tokens = [2]*pad_len
         for i, word in enumerate(sent.split()): 
-            tokens[i] = self.word2index[word]
+            if use_langModel:
+                tokens[i] = self.bert_word2index[word]
+            else: 
+                tokens[i] = self.word2index[word]
         tokens[i+1]=1
         return tokens
 
-    def tokenize_sentence(self, sent_list, pad_len): 
+    def tokenize_sentence(self, sent_list, pad_len, use_langModel): 
         tokenized_list = []
         for sent in sent_list:
-            tokens = self._tokenize_sentence(sent, pad_len)
+            tokens = self._tokenize_sentence(sent, pad_len, use_langModel)
             tokenized_list.append(tokens)
         return torch.LongTensor(tokenized_list)
 
@@ -142,7 +119,7 @@ class RNNtokenizer():
         sent = []
         for token in tokens: 
             sent.append(self.index2word[token])
-            if sent[-1] == "EOS":
+            if sent[-1] == "[EOS]":
                 break
         return ' '.join(sent[:-1])
 
@@ -156,6 +133,7 @@ class RNNtokenizer():
             self.n_words += 1
         else:
             self.word2count[word] += 1
+
 
 class BaseDecoder(nn.Module):
     def __init__(self):
@@ -208,17 +186,26 @@ class BaseDecoder(nn.Module):
         return reps_reduced
 
 class DecoderRNN(BaseDecoder):
-    def __init__(self, hidden_size):
+    def __init__(self, hidden_size, drop_p = 0.1, langModel=None):
         super().__init__()
         self.hidden_size = hidden_size
         self.context_dim = 20
-        self.tokenizer = RNNtokenizer()
+        self.langModel = langModel
 
-        self.embedding = nn.Embedding(self.tokenizer.n_words, self.hidden_size)
+        self.tokenizer = RNNtokenizer(langModel)
+        if langModel is None: 
+            self.embedding_size=64
+            self.embedding = nn.Embedding(self.tokenizer.n_words, self.embedding_size)
+        else: 
+            self.embedding = nn.Sequential(langModel.transformer.embeddings.word_embeddings, 
+                                            langModel.transformer.embeddings.LayerNorm, 
+                                            langModel.transformer.embeddings.dropout)
+            self.embedding_size=768
+
         #self.gru = nn.GRU(self.hidden_size, self.hidden_size)
-        self.gru = CustomGRU(self.hidden_size, self.hidden_size, 1, activ_func = torch.relu, batch_first=True)
+        self.gru = CustomGRU(self.embedding_size, self.hidden_size, 1, activ_func = torch.relu, batch_first=True)
         self.out = nn.Linear(self.hidden_size, self.tokenizer.n_words)
-        self.sm_decoder = SMDecoder(self.hidden_size)
+        self.sm_decoder = SMDecoder(self.hidden_size, drop_p=drop_p)
         self.__weights_init__()
         self.softmax = nn.LogSoftmax(dim=1)
 
@@ -233,7 +220,7 @@ class DecoderRNN(BaseDecoder):
             elif 'W_out' in n:
                 torch.nn.init.normal_(p, std = 0.4/np.sqrt(self.hidden_size))
 
-    def draw_next(self, logits, k_sample=3):
+    def draw_next(self, logits, k_sample=1):
         top_k = logits.topk(k_sample)
         probs = torch.softmax(top_k.values, dim=-1)
         dist = Categorical(probs)
@@ -248,7 +235,7 @@ class DecoderRNN(BaseDecoder):
         return logits, rnn_out
 
     def forward(self, sm_hidden):
-        sos_input = torch.tensor([[self.tokenizer.sos_token]*sm_hidden.shape[0]]).to(sm_hidden.get_device())
+        sos_input = torch.tensor([[self.tokenizer.sos_token_id]*sm_hidden.shape[0]]).to(sm_hidden.get_device())
         decoder_input = sos_input
         for di in range(self.tokenizer.pad_len):
             logits, decoder_hidden = self._base_forward(decoder_input, sm_hidden)
@@ -543,6 +530,8 @@ class EncoderDecoder(nn.Module):
 
 # swap_tasks = training_lists_dict['swap_holdouts']
 
+
+
 # confusion_mat = np.zeros((16, 17))
 # decoded_dict = {}
 
@@ -569,14 +558,17 @@ class EncoderDecoder(nn.Module):
 
 
 
+
+
 # task_file='Multitask'
 # seed=0
 # sm_model = config_model('sbertNet_tuned')
 # sm_model.set_seed(seed)
 
+# sm_model.langModel.transformer.embeddings
 
+# rnn_decoder = DecoderRNN(128)
 
-# rnn_decoder=DecoderRNN(64)
 # sm_model.to(device)
 # rnn_decoder.to(device)
 # sm_model.eval()
@@ -591,18 +583,16 @@ class EncoderDecoder(nn.Module):
 # encoder_decoder.init_context_set(task_file, seed)
 
 
-# encoder_decoder.plot_confuse_mat(128, from_contexts=False)
+# encoder_decoder.plot_confuse_mat(128, from_contexts=True)
 
-
-
-# decoded, confuse_mat = encoder_decoder.decode_set(128, from_contexts=False)
+# decoded, confuse_mat = encoder_decoder.decode_set(128, from_contexts=True)
 
 # task_info = list(itertools.chain.from_iterable([value for value in decoded['Anti Go'].values()]))
 # Counter(task_info)
 
 
 # from collections import Counter
-# Counter(decoded['Anti DM']['other'])
+# Counter(decoded['DMS']['other'])
 
 
 
@@ -742,17 +732,6 @@ class EncoderDecoder(nn.Module):
 
 # decoded_dict, _ = encoder.decode_set(64)
 
-# decoded_dict['Anti DM']
-
-# # import itertools
-
-# # list(itertools.chain.from_iterable([value for value in decoded_dict['Anti DM'].values()]))
-
-# #encoder.plot_confuse_mat(128, from_contexts=True)
-
-
-
-
 
 
 # import seaborn as sns
@@ -791,3 +770,5 @@ class EncoderDecoder(nn.Module):
 # sns.heatmap(sm_hidden[0, ...].detach().numpy())
 # plt.show()
 # plot_heatmap(out, index=5)
+
+

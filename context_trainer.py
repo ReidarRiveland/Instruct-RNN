@@ -104,8 +104,8 @@ class ContextTrainer():
         inspection_list = []
         for task in Task.TASK_LIST:     
             try:
-                pickle.load(open(self.filename+task+self.supervised_str+'_context_correct_data'+str(self.context_dim), 'rb'))
-                print(self.filename+task+self.supervised_str+'_context_correct_data'+str(self.context_dim))
+                pickle.load(open(self.filename+task+'_'+self.supervised_str+'_context_correct_data'+str(self.context_dim), 'rb'))
+                print(self.filename+task+'_'+self.supervised_str+'_context_correct_data'+str(self.context_dim))
                 print('contexts already trained')
                 continue
             except FileNotFoundError: 

@@ -27,8 +27,6 @@ import copy
 device = torch.device(0)
 
 
-torch.cuda.is_available()
-torch.cuda.get_device_name(device)
 
 
 model_file = '_ReLU128_4.11'

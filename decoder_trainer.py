@@ -11,11 +11,14 @@ import pickle
 import torch
 import torch.nn as nn
 
+torch.cuda.is_available()
+
 device = torch.device(0)
 
 def train_rnn_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=[]): 
     data_streamer = TaskDataSet(batch_len = 64, num_batches = 1000, holdouts=holdout_tasks)
-    criterion = nn.NLLLoss(reduction='mean')
+    weights = decoder.tokenizer.get_smoothed_freq().to(device)
+    criterion = nn.NLLLoss(weight = weights, reduction='mean')
     teacher_forcing_ratio = init_teacher_forcing_ratio
     pad_len  = decoder.tokenizer.pad_len 
     loss_list = []
@@ -42,13 +45,20 @@ def train_rnn_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_
 
             target_tensor = decoder.tokenizer(target_instruct).to(device)
 
-            decoder_input = torch.tensor([[decoder.tokenizer.sos_token]*batch_size]).to(device)
+            
 
             _, sm_hidden = sm_model.forward(ins.to(device), target_instruct)
 
             opt.zero_grad()
 
             if use_teacher_forcing:
+                
+                decoder_input = torch.tensor([[decoder.tokenizer.sos_token_id]*batch_size]).to(device)
+                if decoder.langModel is not None: 
+                    input_token_tensor = decoder.tokenizer(target_instruct, use_langModel=True).to(device)
+                else: 
+                    input_token_tensor  =  target_tensor
+                    
                 decoded_sentence = []
                 # Teacher forcing: Feed the target as the next input
                 for di in range(pad_len):
@@ -61,7 +71,7 @@ def train_rnn_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_
                     decoded_sentence.append(last_word)
 
                     decoder_loss += criterion(decoder_output, target_tensor[:, di])
-                    decoder_input = torch.cat((decoder_input, target_tensor[:, di].unsqueeze(0)), dim=0)
+                    decoder_input = torch.cat((decoder_input, input_token_tensor[:, di].unsqueeze(0)), dim=0)
 
                 loss=(decoder_loss)/pad_len
                 teacher_loss_list.append(loss.item()/pad_len)
@@ -89,7 +99,7 @@ def train_rnn_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_
                 print('target instruction: ' + target_instruct[-1])
                 if use_teacher_forcing:
                     try:
-                        eos_index = decoded_sentence.index('EOS')
+                        eos_index = decoded_sentence.index('[EOS]')
                     except ValueError: 
                         eos_index = -1
                     decoded_sentence = ' '.join(decoded_sentence[:eos_index])
@@ -217,8 +227,8 @@ training_lists_dict['swap_holdouts']
 #def train_decoder_set(config, decoder_type='rnn'): 
 decoder_type = 'rnn'
 #config=(0, 'sbertNet_tuned', training_lists_dict['swap_holdouts'][0])
-config=(0, 'sbertNet_tuned', ['Go', 'Anti DM'])
-#config=(0, 'sbertNet_tuned', ['Multitask'])
+config=(0, 'sbertNet_tuned', ['Multitask'])
+#config=(0, 'sbertNet_tuned', ['Go', 'Anti DM'])
 
 model_file = '_ReLU128_4.11/swap_holdouts/'
 seed, model_name, tasks = config 
@@ -249,14 +259,16 @@ for holdout_train in [True]:
     sm_model.to(device)
 
     if decoder_type == 'rnn': 
-        decoder= DecoderRNN(64)
+        #decoder= DecoderRNN(128, langModel=sm_model.langModel)
+        decoder= DecoderRNN(64, drop_p = 0.3, langModel=None)
         trainer= train_rnn_decoder
         decoder_optimizer = optim.Adam([
-            {'params' : decoder.embedding.parameters()},
+            #{'params' : decoder.embedding.parameters()},
             {'params' : decoder.gru.parameters()},
             {'params' : decoder.out.parameters()},
+            {'params' : decoder.embedding.parameters()},
             {'params' : decoder.sm_decoder.parameters(), 'lr': 1e-4}
-        ], lr=1e-4, weight_decay=0.00001)
+        ], lr=1e-4, weight_decay=0.0000)
     else: 
         decoder= gptDecoder()
         trainer= train_gpt_decoder
@@ -275,7 +287,7 @@ for holdout_train in [True]:
         if p.requires_grad: print(n)
 
 
-    trainer(sm_model, decoder, decoder_optimizer, sch, 80, 0.5, holdout_tasks=holdouts)
+    trainer(sm_model, decoder, decoder_optimizer, sch, 50, 0.5, holdout_tasks=holdouts)
     decoder.save_model(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_lin'+holdout_str)
     decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_lin'+holdout_str)
 
