@@ -92,20 +92,22 @@ class ContextTrainer():
                     print('Frac Correct ' + str(frac_correct) + '\n')
                 
                 if i>20 and self.model.check_model_training(0.99, 5):
-                    return context.squeeze().detach().cpu().numpy(), True
+                    return True
+
             if sch is not None:                
                 sch.step()
             step_scheduler.step()
+
         is_trained = self.model.check_model_training(0.97, 3)
-        return context.squeeze().detach().cpu().numpy(), is_trained
+        return is_trained
 
 
-    def get_all_contexts(self, num_contexts):
+    def get_all_contexts(self, num_contexts, tasks=Task.TASK_LIST):
         inspection_list = []
-        for task in Task.TASK_LIST:     
+        for task in tasks:     
             try:
-                pickle.load(open(self.filename+task+'_'+self.supervised_str+'_context_correct_data'+str(self.context_dim), 'rb'))
-                print(self.filename+task+'_'+self.supervised_str+'_context_correct_data'+str(self.context_dim))
+                pickle.load(open(self.filename+task+self.supervised_str+'_context_correct_data'+str(self.context_dim), 'rb'))
+                print(self.filename+task+self.supervised_str+'_context_correct_data'+str(self.context_dim))
                 print('contexts already trained')
                 continue
             except FileNotFoundError: 
@@ -116,15 +118,13 @@ class ContextTrainer():
 
                 streamer = TaskDataSet(batch_len = num_contexts, num_batches = 600, task_ratio_dict={task:1})
 
-                contexts, is_trained = self.train_context(streamer, 150, opt, sch, context)
+                is_trained = self.train_context(streamer, 150, opt, sch, context)
                 if is_trained:
-                    pickle.dump(contexts, open(self.filename+task+'_'+self.supervised_str+'_context_vecs'+str(self.context_dim), 'wb'))
-                    pickle.dump(self.model._correct_data_dict, open(self.filename+task+'_'+self.supervised_str+'_context_correct_data'+str(self.context_dim), 'wb'))
-                    pickle.dump(self.model._loss_data_dict, open(self.filename+task+'_'+self.supervised_str+'_context_loss_data'+str(self.context_dim), 'wb'))
-                    print('saved: '+self.filename+' '+task)
+                    self.save_contexts(context.detach().cpu().numpy(), task)
                 else:
                     inspection_list.append(task)
                 self.model.reset_training_data()
+                del streamer
                 print(inspection_list)
         return inspection_list
 
@@ -143,7 +143,7 @@ def get_all_contexts_set(to_get):
                 trainer.supervised_str = 'supervised'
 
             print(str(config) + trainer.supervised_str) 
-            inspection_list = trainer.get_all_contexts(128)
+            inspection_list = trainer.get_all_contexts(128, tasks=tasks)
             inspection_dict[model.model_name+model.__seed_num_str__+trainer.supervised_str] = inspection_list
     return inspection_dict
 
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     train_mode = 'train_contexts'
     if train_mode == 'train_contexts': 
         holdout_type = 'swap_holdouts'
-        seeds = [0, 1, 2, 3, 4]
+        seeds = [0]
         to_train_contexts = list(itertools.product(['sbertNet_tuned'], seeds, training_lists_dict['swap_holdouts']))
         print(to_train_contexts)
         inspection_dict = get_all_contexts_set(to_train_contexts)
@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
     if train_mode == 'test_contexts': 
         holdout_type = 'swap_holdouts'
-        seeds = [0, 1, 2, 3, 4]
+        seeds = [0]
         to_test = list(itertools.product(ALL_MODEL_PARAMS.keys(), seeds,  training_lists_dict['swap_holdouts']))
 
         for config in to_test: 

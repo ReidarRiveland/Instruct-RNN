@@ -31,6 +31,7 @@ import pickle
 
 device = torch.device(0)
 
+
 class PenalizedSoftmax():
     def __init__(self, temp=1, theta=1.2):
         self.theta=theta
@@ -54,6 +55,7 @@ class SMDecoder(nn.Module):
         self.fc1 = nn.Linear(128*2, out_dim)
         #self.fc2 =nn.Linear(128, out_dim)
         self.id = nn.Identity()
+    
     
     def forward(self, sm_hidden): 
         out_mean = self.id(torch.mean(sm_hidden, dim=1))
@@ -134,7 +136,6 @@ class RNNtokenizer():
         else:
             self.word2count[word] += 1
 
-
 class BaseDecoder(nn.Module):
     def __init__(self):
         super(BaseDecoder, self).__init__()
@@ -168,7 +169,7 @@ class BaseDecoder(nn.Module):
         pickle.dump(self.loss_list, open(save_string+'_loss_list', 'wb'))
 
     def load_model(self, load_string): 
-        self.load_state_dict(torch.load(load_string+'.pt'))
+        self.load_state_dict(torch.load(load_string+'.pt', map_location=torch.device('cpu')))
 
     def get_instruct_embedding_pair(self, task_index, instruct_index, training=True): 
         assert self.contexts is not None, 'must initalize decoder contexts with init_context_set'
@@ -228,7 +229,7 @@ class DecoderRNN(BaseDecoder):
         return next_indices
 
     def _base_forward(self, ins, sm_hidden):
-        embedded = self.embedding(ins)
+        embedded = torch.relu(self.embedding(ins))
         init_hidden = self.sm_decoder(sm_hidden)
         rnn_out, _ = self.gru(embedded.transpose(0,1), init_hidden)
         logits = self.out(rnn_out[:, -1,:])
@@ -353,55 +354,54 @@ class EncoderDecoder(nn.Module):
         all_contexts = np.empty((16, 128, 20))
         for i, task in enumerate(Task.TASK_LIST):
             try: 
-                filename = self.load_foldername+'/'+task_file+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+task+'_supervised_context_vecs20'
+                filename = self.load_foldername+'/'+task_file+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+task+'supervised_context_vecs20'
                 task_contexts = pickle.load(open(filename, 'rb'))
                 all_contexts[i, ...]=task_contexts[:128, :]
             except FileNotFoundError: 
                 print('no contexts for '+task+' for model file '+task_file)
 
         self.contexts = all_contexts
-        return all_contexts
 
-    def decode_set(self, num_trials, from_contexts=False, tasks=Task.TASK_LIST, t=120): 
+    def decode_set(self, num_trials, num_repeats = 1, from_contexts=False, tasks=Task.TASK_LIST, t=120): 
         decoded_set = {}
         confusion_mat = np.zeros((16, 17))
+        for _ in range(num_repeats): 
+            for i, task in enumerate(tasks): 
+                tasks_decoded = defaultdict(list)
 
-        for i, task in enumerate(tasks): 
-            tasks_decoded = defaultdict(list)
+                ins, _, _, _, _ = construct_batch(task, num_trials)
 
-            ins, _, _, _, _ = construct_batch(task, num_trials)
+                if from_contexts: 
+                    task_index = Task.TASK_LIST.index(task)
+                    task_info = torch.Tensor(self.contexts[task_index, ...]).to(self.sm_model.__device__)
+                    _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), context=task_info)
+                else: 
+                    task_info = self.sm_model.get_task_info(num_trials, task)
+                    _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), task_info)
+                
+                decoded_sentences = self.decoder.decode_sentence(sm_hidden[:,0:t, :]) 
 
-            if from_contexts: 
-                task_index = Task.TASK_LIST.index(task)
-                task_info = torch.Tensor(self.contexts[task_index, ...]).to(self.sm_model.__device__)
-                _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), context=task_info)
-            else: 
-                task_info = self.sm_model.get_task_info(num_trials, task)
-                _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), task_info)
-            
-            decoded_sentences = self.decoder.decode_sentence(sm_hidden[:,0:t, :]) 
-
-            for instruct in decoded_sentences:
-                try: 
-                    decoded_task = inv_train_instruct_dict[instruct]
-                    tasks_decoded[decoded_task].append(instruct)
-                    confusion_mat[i, Task.TASK_LIST.index(decoded_task)] += 1
-                except KeyError:
-                    tasks_decoded['other'].append(instruct)
-                    confusion_mat[i, -1] += 1
-            decoded_set[task] = tasks_decoded
+                for instruct in decoded_sentences:
+                    try: 
+                        decoded_task = inv_train_instruct_dict[instruct]
+                        tasks_decoded[decoded_task].append(instruct)
+                        confusion_mat[i, Task.TASK_LIST.index(decoded_task)] += 1
+                    except KeyError:
+                        tasks_decoded['other'].append(instruct)
+                        confusion_mat[i, -1] += 1
+                decoded_set[task] = tasks_decoded
 
         return decoded_set, confusion_mat
     
-    def plot_confuse_mat(self, num_trials, from_contexts=False, confusion_mat=None): 
+    def plot_confuse_mat(self, num_trials, num_repeats, from_contexts=False, confusion_mat=None): 
         if confusion_mat is None:
-            _, confusion_mat = self.decode_set(num_trials, from_contexts=from_contexts)
+            _, confusion_mat = self.decode_set(num_trials, num_repeats = num_repeats, from_contexts=from_contexts)
         res=sns.heatmap(confusion_mat, xticklabels=Task.TASK_LIST+['other'], yticklabels=Task.TASK_LIST, annot=True, cmap='Blues', fmt='g', cbar=False)
         res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8)
         res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
         plt.show()
 
-    def test_partner_model(self, partner_model, num_repeats=3, tasks=Task.TASK_LIST, decoded_dict=None): 
+    def test_partner_model(self, partner_model, num_repeats=3, tasks=Task.TASK_LIST, decoded_dict=None, use_others=False): 
         partner_model.eval()
         if decoded_dict is None: 
             decoded_dict, _ = self.decode_set(128, from_contexts=True)
@@ -412,19 +412,21 @@ class EncoderDecoder(nn.Module):
         with torch.no_grad():
             for i, mode in enumerate(['context', 'instructions']): 
                 perf_array = np.empty((len(tasks), num_repeats))
-
-                for j, task in enumerate(tasks):
-                    print(task)
-                    task_info = []
-                    for k in range(num_repeats): 
+                for k in range(num_repeats): 
+                    for j, task in enumerate(tasks):
+                        print(task)
+                        task_info = []
                         ins, targets, _, target_dirs, _ = construct_batch(task, 128)
-
                         if mode == 'instructions': 
-                            task_info = list(itertools.chain.from_iterable([value for value in decoded_dict[task].values()]))
+                            if use_others:
+                                task_info = list(np.random.choice(decoded_dict[task]['other'], 128))
+                            else: 
+                                task_info = list(itertools.chain.from_iterable([value for value in decoded_dict[task].values()]))
                             decoded_instructs[task] = task_info
                             out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), task_info)
                         elif mode == 'context':
-                            task_info = self.contexts[j, ...]
+                            task_index = Task.TASK_LIST.index(task)
+                            task_info = self.contexts[task_index, ...]
                             out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), context=torch.Tensor(task_info).to(partner_model.__device__))
                         
                         task_perf = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
@@ -560,49 +562,41 @@ class EncoderDecoder(nn.Module):
 
 
 
-# task_file='Multitask'
+# task_file='DM_MultiCOMP2'
 # seed=0
 # sm_model = config_model('sbertNet_tuned')
 # sm_model.set_seed(seed)
 
-# sm_model.langModel.transformer.embeddings
-
-# rnn_decoder = DecoderRNN(128)
+# rnn_decoder = DecoderRNN(64, drop_p=0.1)
 
 # sm_model.to(device)
 # rnn_decoder.to(device)
 # sm_model.eval()
-# rnn_decoder.eval()
+# #rnn_decoder.eval()
 
 # load_str = '_ReLU128_4.11/swap_holdouts/'+task_file
 # sm_model.load_model(load_str)
 
-# rnn_decoder.load_model(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_rnn_decoder_lin_wHoldout')
+# rnn_decoder.load_model(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_rnn_decoder_lin')
 # encoder_decoder = EncoderDecoder(sm_model, rnn_decoder)
 
 # encoder_decoder.init_context_set(task_file, seed)
 
-
-# encoder_decoder.plot_confuse_mat(128, from_contexts=True)
+# encoder_decoder.plot_confuse_mat(128, 1, from_contexts=True)
 
 # decoded, confuse_mat = encoder_decoder.decode_set(128, from_contexts=True)
 
-# task_info = list(itertools.chain.from_iterable([value for value in decoded['Anti Go'].values()]))
-# Counter(task_info)
-
-
 # from collections import Counter
-# Counter(decoded['DMS']['other'])
+# Counter(decoded['DM']['other'])
 
 
 
-# num_gen = 0
+# total_len = 0 
 # for task in Task.TASK_LIST: 
-#     num_gen += len(set(decoded[task][task]))
-# task = 'Anti Go'
-# set(decoded[task][task])
+#     total_len += len(set(decoded[task]['other']))
+# total_len
+# total_len/(16*128)
 
-# num_gen/16
 
 
 # from rnn_models import InstructNet
@@ -611,17 +605,23 @@ class EncoderDecoder(nn.Module):
 # model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
 # model1.model_name += '_tuned'
 # model1.set_seed(0) 
-# model1.load_model('_ReLU128_4.11/swap_holdouts/Multitask')
+# model1.load_model('_ReLU128_4.11/swap_holdouts/Go_Anti_DM')
 # model1.to(device)
 
 
-# perf, _ = encoder_decoder.test_partner_model(model1, num_repeats=5)
+# encoder_decoder.contexts[0, ...]
+
+
+
+# perf, _ = encoder_decoder.test_partner_model(model1, num_repeats=1)
+# perf
+# perf['context']
 
 # np.mean(perf['instructions'])
 
 # encoder_decoder.plot_partner_performance(perf)
 
-# perf
+
 
 # fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(8, 8))
 # for j, task in enumerate(Task.TASK_LIST):
