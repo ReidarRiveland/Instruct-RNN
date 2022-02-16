@@ -55,7 +55,7 @@ def get_multitask_val_performance(model, foldername, seeds=np.array(range(5))):
     return performance
 
 def get_instruct_reps(langModel, instruct_dict, depth='full', swapped_tasks = []):
-    langModel.eval()
+    #langModel.eval()
     if depth.isnumeric(): 
         #assert hasattr(langModel, 'transformer'), 'language model must be transformer to evaluate a that depth'
         rep_dim = 768

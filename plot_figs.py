@@ -40,20 +40,12 @@ np.mean(data_dict[model_name][''][0, :, 1, 0])
 
 plot_trained_performance(zero_shot_dict)
 
-from task import DM
-
-trials = DM('MultiDM', 100)
-
-trials.plot_trial(0)
 
 all_val_perf = pickle.load(open(foldername+'/Multitask/val_perf_dict', 'rb'))
 del all_val_perf['simpleNet']
-
-for key in all_val_perf.keys(): 
-    all_val_perf[key] = all_val_perf[key]-1
+plot_trained_performance(all_val_perf)
 
 
-plot_val_performance(all_val_perf)
 
 #Figure 2
 data_dict = plot_avg_curves('_ReLU128_4.11/swap_holdouts', all_models[::-1],'correct', split_axes=True, plot_swaps=True)

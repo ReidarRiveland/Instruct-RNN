@@ -86,9 +86,9 @@ class GPT(TransformerEmbedder):
 
 class GPTNeo(TransformerEmbedder): 
     def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
-        super().__init__(out_dim,  reducer,  train_layers, output_nonlinearity, 2560)
+        super().__init__(out_dim,  reducer,  train_layers, output_nonlinearity, 2048)
         self.embedder_name = 'gpt'
-        self.transformer = GPTNeoModel.from_pretrained("EleutherAI/gpt-neo-2.7B", output_hidden_states=True)
+        self.transformer = GPTNeoModel.from_pretrained("EleutherAI/gpt-neo-1.3B", output_hidden_states=True)
         self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.init_train_layers()
@@ -113,4 +113,5 @@ class BoW(InstructionEmbedder):
         freq_tensor = torch.stack(tuple(map(self.make_freq_tensor, x))).to(self.__device__)
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
+
 

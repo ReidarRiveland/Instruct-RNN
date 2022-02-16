@@ -264,9 +264,9 @@ def train_decoder_set(config, decoder_type='rnn'):
 
 
 
-seeds = [0]
+seeds = [1, 2,3,4]
 model_file = '_ReLU128_4.11/swap_holdouts/'
-to_train = list(itertools.product(seeds, ['sbertNet_tuned'], training_lists_dict['swap_holdouts'][-2:]))
+to_train = list(itertools.product(seeds, ['sbertNet_tuned'], [['Multitask']]))
 for config in to_train: 
     train_decoder_set(config, decoder_type='rnn')
 

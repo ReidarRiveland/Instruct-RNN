@@ -91,14 +91,14 @@ class ContextTrainer():
                     print(j, ':', self.model.model_name, ":", "{:.2e}".format(loss.item()))
                     print('Frac Correct ' + str(frac_correct) + '\n')
                 
-                if i>20 and self.model.check_model_training(0.99, 5):
+                if i>20 and self.model.check_model_training(0.98, 5):
                     return True
 
             if sch is not None:                
                 sch.step()
             step_scheduler.step()
 
-        is_trained = self.model.check_model_training(0.97, 3)
+        is_trained = self.model.check_model_training(0.93, 3)
         return is_trained
 
 
@@ -113,12 +113,12 @@ class ContextTrainer():
             except FileNotFoundError: 
                 context = nn.Parameter(torch.randn((num_contexts, self.context_dim), device=device))
 
-                opt= optim.Adam([context], lr=5*1e-2, weight_decay=0.0)
+                opt= optim.Adam([context], lr=8*1e-2, weight_decay=0.0)
                 sch = optim.lr_scheduler.ExponentialLR(opt, 0.99)
 
                 streamer = TaskDataSet(batch_len = num_contexts, num_batches = 600, task_ratio_dict={task:1})
 
-                is_trained = self.train_context(streamer, 150, opt, sch, context)
+                is_trained = self.train_context(streamer, 250, opt, sch, context)
                 if is_trained:
                     self.save_contexts(context.detach().cpu().numpy(), task)
                 else:
@@ -143,7 +143,7 @@ def get_all_contexts_set(to_get):
                 trainer.supervised_str = 'supervised'
 
             print(str(config) + trainer.supervised_str) 
-            inspection_list = trainer.get_all_contexts(128, tasks=tasks)
+            inspection_list = trainer.get_all_contexts(128)
             inspection_dict[model.model_name+model.__seed_num_str__+trainer.supervised_str] = inspection_list
     return inspection_dict
 
@@ -154,8 +154,8 @@ if __name__ == "__main__":
     train_mode = 'train_contexts'
     if train_mode == 'train_contexts': 
         holdout_type = 'swap_holdouts'
-        seeds = [0]
-        to_train_contexts = list(itertools.product(['sbertNet_tuned'], seeds, training_lists_dict['swap_holdouts']))
+        seeds = [1, 2, 3, 4]
+        to_train_contexts = list(itertools.product(['sbertNet_tuned'], seeds, [['Multitask']]))
         print(to_train_contexts)
         inspection_dict = get_all_contexts_set(to_train_contexts)
         print(inspection_dict)

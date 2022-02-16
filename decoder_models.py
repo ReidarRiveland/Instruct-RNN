@@ -7,7 +7,7 @@ from model_trainer import config_model
 from utils import train_instruct_dict
 from model_analysis import reduce_rep
 from plotting import plot_rep_scatter
-from utils import sort_vocab, isCorrect, inv_train_instruct_dict, count_vocab
+from utils import sort_vocab, isCorrect, inv_train_instruct_dict, count_vocab, training_lists_dict, get_holdout_file
 from task import Task, construct_batch
 from jit_GRU import CustomGRU
 from context_trainer import ContextTrainer
@@ -354,7 +354,7 @@ class EncoderDecoder(nn.Module):
         all_contexts = np.empty((16, 128, 20))
         for i, task in enumerate(Task.TASK_LIST):
             try: 
-                filename = self.load_foldername+'/'+task_file+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+task+'supervised_context_vecs20'
+                filename = self.load_foldername+'/'+task_file+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+task+'_supervised_context_vecs20'
                 task_contexts = pickle.load(open(filename, 'rb'))
                 all_contexts[i, ...]=task_contexts[:128, :]
             except FileNotFoundError: 
@@ -434,26 +434,17 @@ class EncoderDecoder(nn.Module):
                 perf_dict[mode] = perf_array
         return perf_dict, decoded_instructs
 
-    def _partner_model_over_training(self, partner_model, task, num_repeats=1, task_file='Multitask'): 
+    def _decoded_over_training(self, task, num_repeats=1, task_file='Multitask', lr=1e-1): 
         context_trainer = ContextTrainer(self.sm_model, self.decoder.context_dim, task_file)
         context_trainer.supervised_str=='supervised'
-        context = nn.Parameter(torch.randn((128, self.decoder.context_dim), device=device))
+        context = nn.Parameter(torch.randn((256, self.decoder.context_dim), device=device))
 
-        opt= optim.Adam([context], lr=5*1e-1, weight_decay=0.0)
+        opt= optim.Adam([context], lr=lr, weight_decay=0.0)
         sch = optim.lr_scheduler.ExponentialLR(opt, 0.99)
-        streamer = TaskDataSet(batch_len = 128, num_batches = 100, task_ratio_dict={task:1})
-        contexts, is_trained = context_trainer.train_context(streamer, 1, opt, sch, context, decoder=self.decoder)
+        streamer = TaskDataSet(batch_len = 256, num_batches = 100, task_ratio_dict={task:1})
+        is_trained = context_trainer.train_context(streamer, 1, opt, sch, context, decoder=self.decoder)
 
-        task_perf_list = []
-        ins, targets, _, target_dirs, _ = construct_batch(task, 128)
-        for i in range(2*100): 
-            if i%50==0: 
-                print(i)
-            task_info = context_trainer._decode_during_training_[i]
-            out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), task_info)
-            task_perf_list.append(np.mean(isCorrect(out, torch.Tensor(targets), target_dirs)))
-        
-        return task_perf_list, context_trainer._decode_during_training_, self.sm_model._correct_data_dict
+        return context_trainer._decode_during_training_, self.sm_model._correct_data_dict
 
     def _partner_model_over_t(self, partner_model, task, from_contexts=True, t_set = [120]): 
         ins, targets, _, target_dirs, _ = construct_batch(task, 128)
@@ -519,26 +510,7 @@ class EncoderDecoder(nn.Module):
         plt.show()
     
 
-# import smart_open
-# smart_open.open = smart_open.smart_open
-# import gensim
-# model = gensim.models.KeyedVectors.load_word2vec_format('path/to/file')
-# weights = torch.FloatTensor(model.vectors)
 
-
-# from utils import task_swaps_map
-# from model_trainer import config_model, training_lists_dict
-
-
-# swap_tasks = training_lists_dict['swap_holdouts']
-
-
-
-# confusion_mat = np.zeros((16, 17))
-# decoded_dict = {}
-
-# from_context = True
-# seed=0
 
 # sm_model = config_model('sbertNet_tuned')
 # sm_model.set_seed(seed)
@@ -562,51 +534,74 @@ class EncoderDecoder(nn.Module):
 
 
 
-# task_file='DM_MultiCOMP2'
-# seed=0
-# sm_model = config_model('sbertNet_tuned')
-# sm_model.set_seed(seed)
+task_file='Multitask'
+seed=0
+sm_model = config_model('sbertNet_tuned')
+sm_model.set_seed(seed)
 
-# rnn_decoder = DecoderRNN(64, drop_p=0.1)
+rnn_decoder = DecoderRNN(64, drop_p=0.1)
 
-# sm_model.to(device)
-# rnn_decoder.to(device)
-# sm_model.eval()
-# #rnn_decoder.eval()
+sm_model.to(device)
+rnn_decoder.to(device)
+sm_model.eval()
+#rnn_decoder.eval()
 
-# load_str = '_ReLU128_4.11/swap_holdouts/'+task_file
-# sm_model.load_model(load_str)
+load_str = '_ReLU128_4.11/swap_holdouts/'+task_file
+sm_model.load_model(load_str)
 
-# rnn_decoder.load_model(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_rnn_decoder_lin')
-# encoder_decoder = EncoderDecoder(sm_model, rnn_decoder)
+rnn_decoder.load_model(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_rnn_decoder_lin_wHoldout')
+encoder_decoder = EncoderDecoder(sm_model, rnn_decoder)
 
-# encoder_decoder.init_context_set(task_file, seed)
+encoder_decoder.init_context_set(task_file, seed)
 
-# encoder_decoder.plot_confuse_mat(128, 1, from_contexts=True)
+decode_during_training, correct_data_dict = encoder_decoder._decoded_over_training('DM', lr=1.8)
 
-# decoded, confuse_mat = encoder_decoder.decode_set(128, from_contexts=True)
+plt.plot(correct_data_dict['DM'])
+plt.show()
 
-# from collections import Counter
-# Counter(decoded['DM']['other'])
+Counter(decode_during_training[0])
 
+encoder_decoder.plot_confuse_mat(128, 1, from_contexts=True)
 
+decoded, confuse_mat = encoder_decoder.decode_set(128, from_contexts=True)
 
-# total_len = 0 
-# for task in Task.TASK_LIST: 
-#     total_len += len(set(decoded[task]['other']))
-# total_len
-# total_len/(16*128)
-
+from collections import Counter
+Counter(decoded['COMP1']['other'])
 
 
-# from rnn_models import InstructNet
-# from nlp_models import SBERT
 
-# model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
-# model1.model_name += '_tuned'
-# model1.set_seed(0) 
-# model1.load_model('_ReLU128_4.11/swap_holdouts/Go_Anti_DM')
-# model1.to(device)
+total_len = 0 
+for task in Task.TASK_LIST: 
+    total_len += len(set(decoded[task]['other']))
+total_len
+total_len/(16*128)
+
+
+from rnn_models import InstructNet
+from nlp_models import SBERT
+
+model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
+model1.model_name += '_tuned'
+model1.to(device)
+
+num_repeats = 10
+
+all_perf_dict = {}
+all_perf_dict['instructions'] = np.empty((16, 5, num_repeats))
+all_perf_dict['context'] = np.empty((16, 5, num_repeats))
+
+for i in range(5): 
+    model1.set_seed(i) 
+    for tasks in training_lists_dict['swap_holdouts']: 
+        holdout_file = get_holdout_file(tasks)
+        model1.load_model('_ReLU128_4.11/swap_holdouts/'+holdout_file)
+        perf, _ = encoder_decoder.test_partner_model(model1, num_repeats=num_repeats, tasks=tasks)
+        for mode in ['context', 'instructions']:
+            all_perf_dict[mode][[Task.TASK_LIST.index(tasks[0]), Task.TASK_LIST.index(tasks[1])], i, :] = perf[mode]
+
+np.mean(all_perf_dict['instructions'])
+
+
 
 
 # encoder_decoder.contexts[0, ...]
