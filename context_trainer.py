@@ -81,7 +81,6 @@ class ContextTrainer():
                 loss = masked_MSE_Loss(out, target.to(device), mask.to(device)) 
                 loss.backward()
 
-                opt.step()
 
                 frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
                 self.model._loss_data_dict[task_type].append(loss.item())
@@ -91,14 +90,19 @@ class ContextTrainer():
                     print(j, ':', self.model.model_name, ":", "{:.2e}".format(loss.item()))
                     print('Frac Correct ' + str(frac_correct) + '\n')
                 
-                if i>20 and self.model.check_model_training(0.98, 5):
+                if i>2 and self.model.check_model_training(0.9, 1):
                     return True
+
+                opt.step()
+
 
             if sch is not None:                
                 sch.step()
+                print('Current lr:' +str([round(lr, 7) for lr in sch.get_last_lr()]))
+
             step_scheduler.step()
 
-        is_trained = self.model.check_model_training(0.93, 3)
+        is_trained = self.model.check_model_training(0.96, 3)
         return is_trained
 
 
@@ -113,12 +117,12 @@ class ContextTrainer():
             except FileNotFoundError: 
                 context = nn.Parameter(torch.randn((num_contexts, self.context_dim), device=device))
 
-                opt= optim.Adam([context], lr=8*1e-2, weight_decay=0.0)
-                sch = optim.lr_scheduler.ExponentialLR(opt, 0.99)
+                opt= optim.Adam([context], lr=2*1e-2, weight_decay=0.0)
+                sch = optim.lr_scheduler.ExponentialLR(opt, 1)
 
-                streamer = TaskDataSet(batch_len = num_contexts, num_batches = 600, task_ratio_dict={task:1})
+                streamer = TaskDataSet(batch_len = num_contexts, num_batches = 500, task_ratio_dict={task:1})
 
-                is_trained = self.train_context(streamer, 250, opt, sch, context)
+                is_trained = self.train_context(streamer, 150, opt, sch, context)
                 if is_trained:
                     self.save_contexts(context.detach().cpu().numpy(), task)
                 else:
@@ -143,7 +147,7 @@ def get_all_contexts_set(to_get):
                 trainer.supervised_str = 'supervised'
 
             print(str(config) + trainer.supervised_str) 
-            inspection_list = trainer.get_all_contexts(128)
+            inspection_list = trainer.get_all_contexts(200)
             inspection_dict[model.model_name+model.__seed_num_str__+trainer.supervised_str] = inspection_list
     return inspection_dict
 
@@ -154,7 +158,7 @@ if __name__ == "__main__":
     train_mode = 'train_contexts'
     if train_mode == 'train_contexts': 
         holdout_type = 'swap_holdouts'
-        seeds = [1, 2, 3, 4]
+        seeds = [3]
         to_train_contexts = list(itertools.product(['sbertNet_tuned'], seeds, [['Multitask']]))
         print(to_train_contexts)
         inspection_dict = get_all_contexts_set(to_train_contexts)

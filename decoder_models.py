@@ -1,4 +1,6 @@
 from lib2to3.pgen2 import token
+
+from matplotlib import use
 from context_trainer import ContextTrainer
 from torch.distributions.utils import logits_to_probs
 from torch.nn.modules.pooling import MaxPool1d
@@ -354,7 +356,8 @@ class EncoderDecoder(nn.Module):
         all_contexts = np.empty((16, 128, 20))
         for i, task in enumerate(Task.TASK_LIST):
             try: 
-                filename = self.load_foldername+'/'+task_file+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+task+'_supervised_context_vecs20'
+                #need an underscore
+                filename = self.load_foldername+'/'+task_file+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+task+'supervised_context_vecs20'
                 task_contexts = pickle.load(open(filename, 'rb'))
                 all_contexts[i, ...]=task_contexts[:128, :]
             except FileNotFoundError: 
@@ -393,10 +396,10 @@ class EncoderDecoder(nn.Module):
 
         return decoded_set, confusion_mat
     
-    def plot_confuse_mat(self, num_trials, num_repeats, from_contexts=False, confusion_mat=None): 
+    def plot_confuse_mat(self, num_trials, num_repeats, from_contexts=False, confusion_mat=None, fmt='g'): 
         if confusion_mat is None:
             _, confusion_mat = self.decode_set(num_trials, num_repeats = num_repeats, from_contexts=from_contexts)
-        res=sns.heatmap(confusion_mat, xticklabels=Task.TASK_LIST+['other'], yticklabels=Task.TASK_LIST, annot=True, cmap='Blues', fmt='g', cbar=False)
+        res=sns.heatmap(confusion_mat, linewidths=0.5, linecolor='black', mask=confusion_mat == 0, xticklabels=Task.TASK_LIST+['other'], yticklabels=Task.TASK_LIST, annot=True, cmap='Blues', fmt=fmt, cbar=False)
         res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8)
         res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
         plt.show()
@@ -407,22 +410,24 @@ class EncoderDecoder(nn.Module):
             decoded_dict, _ = self.decode_set(128, from_contexts=True)
         batch_len = sum([len(item) for item in list(decoded_dict.values())[0].values()])
 
-        decoded_instructs = {}
         perf_dict = {}
         with torch.no_grad():
-            for i, mode in enumerate(['context', 'instructions']): 
+            for i, mode in enumerate(['context', 'instructions', 'others']): 
                 perf_array = np.empty((len(tasks), num_repeats))
+                perf_array[:] = np.nan
                 for k in range(num_repeats): 
                     for j, task in enumerate(tasks):
                         print(task)
                         task_info = []
                         ins, targets, _, target_dirs, _ = construct_batch(task, 128)
-                        if mode == 'instructions': 
-                            if use_others:
+                        if mode == 'others': 
+                            try:
                                 task_info = list(np.random.choice(decoded_dict[task]['other'], 128))
-                            else: 
-                                task_info = list(itertools.chain.from_iterable([value for value in decoded_dict[task].values()]))
-                            decoded_instructs[task] = task_info
+                                out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), task_info)
+                            except ValueError:
+                                continue
+                        elif mode == 'instructions':
+                            task_info = list(itertools.chain.from_iterable([value for value in decoded_dict[task].values()]))
                             out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), task_info)
                         elif mode == 'context':
                             task_index = Task.TASK_LIST.index(task)
@@ -432,7 +437,7 @@ class EncoderDecoder(nn.Module):
                         task_perf = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
                         perf_array[j, k] = task_perf
                 perf_dict[mode] = perf_array
-        return perf_dict, decoded_instructs
+        return perf_dict, decoded_dict
 
     def _decoded_over_training(self, task, num_repeats=1, task_file='Multitask', lr=1e-1): 
         context_trainer = ContextTrainer(self.sm_model, self.decoder.context_dim, task_file)
@@ -510,32 +515,145 @@ class EncoderDecoder(nn.Module):
         plt.show()
     
 
+def get_all_partner_model_perf(num_repeats=5): 
+    task_file='Multitask'    
+    sm_model = config_model('sbertNet_tuned')
+    partner_model = config_model('sbertNet_tuned')
+
+    rnn_decoder = DecoderRNN(64, drop_p=0.1)
+    sm_model.to(device)
+    rnn_decoder.to(device)
+    sm_model.eval()
+    all_seeds = [0, 1, 2, 3, 4]
+
+    load_str = '_ReLU128_4.11/swap_holdouts/'+task_file
+    
+    for seed in [0]: 
+        all_perf_dict = {}
+        all_perf_dict['instructions'] = np.empty((4, 16, num_repeats))
+        all_perf_dict['context'] = np.empty((4, 16, num_repeats))
+        all_perf_dict['others'] = np.empty((4, 16, num_repeats))
+        print('\n seed '+str(seed)+'\n')
+        sm_model.set_seed(seed)
+        sm_model.load_model(load_str)
+        rnn_decoder.load_model(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_rnn_decoder_lin_wHoldout')
+        encoder_decoder = EncoderDecoder(sm_model, rnn_decoder)
+        encoder_decoder.init_context_set(task_file, seed)
+        decoded, confuse_mat = encoder_decoder.decode_set(128, from_contexts=True)
+        partner_seeds = all_seeds.copy()
+        partner_seeds.remove(seed)
+        for i, partner_seed in enumerate([1]): 
+            print(partner_seeds)
+            print('\n partner seed '+str(partner_seed)+'\n')
+            partner_model.set_seed(partner_seed)
+            partner_model.load_model(load_str)
+            perf, _ = encoder_decoder.test_partner_model(partner_model, num_repeats=num_repeats)
+            for mode in ['context', 'instructions', 'others']:
+                all_perf_dict[mode][i,...] = perf[mode]
+        # pickle.dump(all_perf_dict, open(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_all_perf_dict', 'wb'))
+        # pickle.dump(confuse_mat, open(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_confuse_mat', 'wb'))
+        # pickle.dump(decoded, open(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_decoded_set', 'wb'))
+
+    return all_perf_dict
 
 
-# sm_model = config_model('sbertNet_tuned')
-# sm_model.set_seed(seed)
-# decoder_rnn=DecoderRNN(128)
-# sm_model.to(device)
-# decoder_rnn.to(device)
-# # for tasks in swap_tasks:
-# #     task_file = task_swaps_map[tasks[0]]
-# #     load_str = '_ReLU128_4.11/swap_holdouts/'+task_file
-# #     sm_model.load_model(load_str)
-# #     decoder_rnn.load_model(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_rnn_decoder')
-# #     encoder_decoder = EncoderDecoder(sm_model, decoder_rnn)
-# #     if from_context:
-# #         encoder_decoder.init_context_set(task_file, seed)
-# #     tmp_decoded, tmp_confuse_mat = encoder_decoder.decode_set(128, from_contexts=from_context, tasks=tasks)
-# #     for i, task in enumerate(tasks):
-# #         decoded_dict[task] =tmp_decoded[task]
-# #         confusion_mat[Task.TASK_LIST.index(task),:] = tmp_confuse_mat[i,:] 
+def load_decoder_outcomes(num_repeats=5): 
+    all_perf_dict = {}
+    all_perf_dict['instructions'] = np.empty((5, 4, 16, num_repeats))
+    all_perf_dict['context'] = np.empty((5, 4, 16, num_repeats))
+    all_perf_dict['others'] = np.empty((5, 4, 16, num_repeats))
+    all_decoded_sets = []
+    all_confuse_mat = np.empty((5, 16, 17))
+    task_file='Multitask'    
 
+    load_str = '_ReLU128_4.11/swap_holdouts/'+task_file
+
+
+    for seed in range(5): 
+        perf_dict=pickle.load(open(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_all_perf_dict', 'rb'))
+        confuse_mat = pickle.load(open(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_confuse_mat', 'rb'))
+        decoded_set = pickle.load(open(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_decoded_set', 'rb'))
+
+        for mode in ['context', 'instructions', 'others']:
+            all_perf_dict[mode][seed,...] = perf_dict[mode]        
+        all_confuse_mat[seed, ...] = confuse_mat
+        all_decoded_sets.append(decoded_set)
+
+    return all_perf_dict, all_confuse_mat, all_decoded_sets
+
+
+all_perf_dict, all_confuse_mat, all_decoded_sets = load_decoder_outcomes()                                
+
+np.mean(all_perf_dict['context'][0])
+
+
+all_other_dict = defaultdict(list)
+for task in Task.TASK_LIST: 
+    for i in range(5): 
+        for item in all_decoded_sets[i][task]['other']:
+            all_other_dict[task].append(item)
+
+from collections import Counter, OrderedDict
+
+total_other = 0
+unique_other = 0
+
+len(set(all_other_dict['Go']))
+
+for task in Task.TASK_LIST: 
+    tot=len(all_other_dict[task])
+    unique = len(set(all_other_dict[task]))
+    print(task + ' ' + str(tot)+ ' ' +str(unique))
+    total_other += len(all_other_dict[task])
+    unique_other += len(set(all_other_dict[task]))
+
+(125*5*16)
+
+total_other/(125*5*16)
+unique_other/16
+
+sm_model = config_model('sbertNet_tuned')
+rnn_decoder = DecoderRNN(64, drop_p=0.1)
+encoder_decoder = EncoderDecoder(sm_model, rnn_decoder)
+
+
+def get_n_params(model):
+    pp=0
+    for p in list(model.parameters()):
+        nn=1
+        for s in list(p.size()):
+            nn = nn*s
+        pp += nn
+    return pp
+
+
+15*16
+
+get_n_params(rnn_decoder)
+
+count_vocab()
+
+
+
+encoder_decoder.plot_confuse_mat(0, 0, confusion_mat=np.round(np.sum(all_confuse_mat, axis=0)/(5*128), 2), fmt='.0%')
+
+np.mean(all_perf_dict['context'])
+
+np.mean(all_perf_dict['context'][0,1, ...])
+
+to_plot_dict = {}
+for mode in ['instructions', 'context']:
+    to_plot_dict[mode]=np.mean(all_perf_dict[mode], axis=(1, -1)).T
+
+
+encoder_decoder.plot_partner_performance(to_plot_dict)
 
 
 
 
 task_file='Multitask'
 seed=0
+
 sm_model = config_model('sbertNet_tuned')
 sm_model.set_seed(seed)
 
@@ -554,216 +672,69 @@ encoder_decoder = EncoderDecoder(sm_model, rnn_decoder)
 
 encoder_decoder.init_context_set(task_file, seed)
 
-decode_during_training, correct_data_dict = encoder_decoder._decoded_over_training('DM', lr=1.8)
 
-plt.plot(correct_data_dict['DM'])
-plt.show()
-
-Counter(decode_during_training[0])
-
-encoder_decoder.plot_confuse_mat(128, 1, from_contexts=True)
-
-decoded, confuse_mat = encoder_decoder.decode_set(128, from_contexts=True)
-
-from collections import Counter
-Counter(decoded['COMP1']['other'])
-
-
-
-total_len = 0 
-for task in Task.TASK_LIST: 
-    total_len += len(set(decoded[task]['other']))
-total_len
-total_len/(16*128)
 
 
 from rnn_models import InstructNet
 from nlp_models import SBERT
+num_repeats=3
+all_perf_dict = {}
+all_perf_dict['instructions'] = np.empty((4, 16, num_repeats))
+all_perf_dict['context'] = np.empty((4, 16, num_repeats))
+all_perf_dict['others'] = np.empty((4, 16, num_repeats))
 
 model1 = InstructNet(SBERT(20, train_layers=[]), 128, 1)
 model1.model_name += '_tuned'
-model1.to(device)
+partner_seeds = [3]
+for i, partner_seed in enumerate(partner_seeds): 
+    model1.set_seed(partner_seed)
+    model1.to(device)
+    model1.load_model('_ReLU128_4.11/swap_holdouts/'+task_file)
 
-num_repeats = 10
+    perf, _ = encoder_decoder.test_partner_model(model1, num_repeats=num_repeats)
+    for mode in ['context', 'instructions', 'others']:
+        all_perf_dict[mode][i,...] = perf[mode]
 
-all_perf_dict = {}
-all_perf_dict['instructions'] = np.empty((16, 5, num_repeats))
-all_perf_dict['context'] = np.empty((16, 5, num_repeats))
 
-for i in range(5): 
-    model1.set_seed(i) 
-    for tasks in training_lists_dict['swap_holdouts']: 
-        holdout_file = get_holdout_file(tasks)
-        model1.load_model('_ReLU128_4.11/swap_holdouts/'+holdout_file)
-        perf, _ = encoder_decoder.test_partner_model(model1, num_repeats=num_repeats, tasks=tasks)
-        for mode in ['context', 'instructions']:
-            all_perf_dict[mode][[Task.TASK_LIST.index(tasks[0]), Task.TASK_LIST.index(tasks[1])], i, :] = perf[mode]
 
-np.mean(all_perf_dict['instructions'])
 
 
+np.mean(perf['context'])
 
 
-# encoder_decoder.contexts[0, ...]
 
 
 
-# perf, _ = encoder_decoder.test_partner_model(model1, num_repeats=1)
-# perf
-# perf['context']
 
-# np.mean(perf['instructions'])
 
-# encoder_decoder.plot_partner_performance(perf)
 
 
 
-# fig, axn = plt.subplots(4,4, sharey = True, sharex=True, figsize =(8, 8))
-# for j, task in enumerate(Task.TASK_LIST):
-#     t_set=[1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]
-#     task_perf, instructs = encoder_decoder._partner_model_over_t(model1, task, t_set=t_set)
-#     print(task_perf)
-#     ax = axn.flat[j]
-#     ax.set_ylim(-0.05, 1.05)
-#     ax.set_xlim(-5, 125)
-#     ax.set_title(task, size=6, pad=1)
-#     ax.xaxis.set_tick_params(labelsize=5)
-#     ax.set_xticks(t_set)
-#     ax.yaxis.set_tick_params(labelsize=10)
-#     ax.plot(t_set, task_perf)
 
-# ax.get_xticks()
-# ax.get_xlim()
+def get_all_holdout_partners():
+    num_repeats = 10
+    all_perf_dict = {}
+    all_perf_dict['instructions'] = np.empty((5, 16, 5, num_repeats))
+    all_perf_dict['context'] = np.empty((5, 16, 5, num_repeats))
+    all_perf_dict['others'] = np.empty((5, 16, 5, num_repeats))
 
-# plt.show()
+    for seed in range(5):
+        sm_model.set_seed(seed)
+        sm_model.load_model(load_str)
+        rnn_decoder.load_model(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_rnn_decoder_lin_wHoldout')
+        encoder_decoder = EncoderDecoder(sm_model, rnn_decoder)
+        encoder_decoder.init_context_set(task_file, seed)
+        for i in range(5): 
+            model1.set_seed(i) 
+            for tasks in training_lists_dict['swap_holdouts']: 
+                holdout_file = get_holdout_file(tasks)
+                model1.load_model('_ReLU128_4.11/swap_holdouts/'+holdout_file)
+                perf, _ = encoder_decoder.test_partner_model(model1, num_repeats=num_repeats, tasks=tasks)
+                for mode in ['context', 'instructions', 'others']:
+                    all_perf_dict[mode][seed, [Task.TASK_LIST.index(tasks[0]), Task.TASK_LIST.index(tasks[1])], i, :] = perf[mode]
 
-# t_set=[1, 20, 60, 80, 100, 120]
+    return all_perf_dict
 
-
-
-# task_perf
-# sm_perf['Go']
-# plt.plot(task_perf)
-# plt.plot(sm_perf['Go'])
-# plt.show()
-
-
-
-
-# task_file='Go_Anti_DM'
-# seed=0
-# sm_model = config_model('sbertNet_tuned')
-# sm_model.set_seed(seed)
-
-
-
-
-# gpt_decoder=gptDecoder(128)
-# sm_model.to(device)
-# gpt_decoder.to(device)
-# sm_model.eval()
-# gpt_decoder.eval()
-
-# load_str = '_ReLU128_4.11/swap_holdouts/'+task_file
-# sm_model.load_model(load_str)
-# gpt_decoder.load_model(load_str+'/sbertNet_tuned/decoders/seed'+str(seed)+'_gpt_decoder_conv64_wHoldout')
-# encoder_decoder = EncoderDecoder(sm_model, gpt_decoder)
-
-# encoder_decoder.init_context_set(task_file, seed)
-
-# encoder_decoder.contexts.shape
-
-#encoder_decoder.plot_confuse_mat(128, from_contexts=True)
-
-
-# decoded, confuse_mat = encoder_decoder.decode_set(128, from_contexts=True)
-
-# len(decoded['Go']['other'])
-
-# from collections import Counter
-# Counter(decoded['DM']['other'])
-
-# perf, _ = encoder_decoder.test_partner_model(model1, num_repeats=5)
-
-# encoder_decoder.plot_partner_performance(perf)
-
-# np.mean(perf['instructions'])
-
-# dict(zip(Task.TASK_LIST, np.mean(perf['instructions'], axis=1)))
-
-
-
-# from collections import Counter
-# Counter(decoded['DM']['other'])
-
-
-
-# encoder_decoder.decoder.psoftmax=PenalizedSoftmax(theta=1.2)
-
-
-# tokenized = gpt_decoder.tokenizer('To be or not to be? That is', return_tensors='pt')
-# gpt = gpt_decoder.gpt
-# gpt.to('cpu')
-# out_ids = gpt.generate(**tokenized)
-# gpt_decoder.tokenizer.batch_decode(out_ids)
-
-
-
-
-
-
-# np.min(np.mean(perf['instructions'], axis=1))
-
-# encoder_decoder.plot_partner_performance(perf)
-
-# decoder_rnn = DecoderRNN(128, conv_out_channels=64).to(device)
-# decoder_rnn.load_state_dict(torch.load('decoderRNN_ANTIDM.pt'))
-
-
-# encoder = EncoderDecoder(model1, decoder_rnn)
-
-# for task in 
-# encoder.init_context_set('Multitask', 0)
-
-# decoded_dict, _ = encoder.decode_set(64)
-
-
-
-# import seaborn as sns
-# import matplotlib.pyplot as plt
-
-# def plot_heatmap(tens, index=0): 
-#     sns.heatmap(tens[index, ...].T.detach().numpy())
-#     plt.show()
-
-# conv1 = nn.Conv1d(128, 1, 5, 1, padding=2)
-
-
-# conv2 = nn.Conv1d(64, 32, 5, 1, padding=2)
-# conv3 = nn.Conv1d(32, 12, 11, 3, padding=5)
-
-
-# conv1 = nn.Conv1d(128, 1, 5, 1, padding=2)
-# model = nn.Sequential(conv1, nn.ReLU())
-
-
-# task = 'DM'
-# ins, _, _, _, _ = construct_batch(task, 64)
-# instructions = sm_model.get_task_info(64, task)
-
-# _, sm_hidden = sm_model(torch.Tensor(ins), instructions)
-
-# sm_decoder = SMDecoder()
-
-# sm_decoder(sm_hidden).
-
-# out = model(sm_hidden.transpose(1,2))
-
-# out.shape
-# torch.max(out, dim=1).values
-
-# sns.heatmap(sm_hidden[0, ...].detach().numpy())
-# plt.show()
-# plot_heatmap(out, index=5)
+pickle.dump(all_perf_dict, open(load_str+'/sbertNet_tuned/decoders/+all_holdout_perf', 'wb'))
 
 
