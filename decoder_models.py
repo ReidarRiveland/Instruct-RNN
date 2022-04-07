@@ -11,7 +11,7 @@ from model_analysis import reduce_rep
 from plotting import plot_rep_scatter
 from utils import sort_vocab, isCorrect, inv_train_instruct_dict, count_vocab, training_lists_dict, get_holdout_file
 from task import Task, construct_batch
-from jit_GRU import CustomGRU
+from script_gru import CustomGRU
 from context_trainer import ContextTrainer
 from data import TaskDataSet
 import torch.optim as optim
@@ -675,8 +675,8 @@ encoder_decoder.init_context_set(task_file, seed)
 
 
 
-from rnn_models import InstructNet
-from nlp_models import SBERT
+from multitasking_models.sensorimotor_models import InstructNet
+from multitasking_models.language_models import SBERT
 num_repeats=3
 all_perf_dict = {}
 all_perf_dict['instructions'] = np.empty((4, 16, num_repeats))

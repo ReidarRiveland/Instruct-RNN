@@ -15,8 +15,8 @@ from data import TaskDataSet
 from utils import get_holdout_file, isCorrect, train_instruct_dict, training_lists_dict, get_holdout_file, all_swaps, tuning_check, all_models
 from model_analysis import task_eval, get_instruct_reps, get_model_performance
 
-from rnn_models import SimpleNet, InstructNet
-from nlp_models import BERT, SBERT, GPT, BoW, GPTNeo
+from multitasking_models.sensorimotor_models import SimpleNet, InstructNet
+from multitasking_models.language_models import BERT, SBERT, GPT, BoW, GPTNeo
 import torch.nn as nn
 
 import itertools
@@ -25,7 +25,6 @@ import sys
 import copy
 
 device = torch.device(0)
-
 
 
 
@@ -65,7 +64,7 @@ ALL_MODEL_PARAMS = {
                     'langModel': GPT,
                     'model_name': 'gptNet_tuned',
                     'langModel_params': {'out_dim': 20, 'train_layers': []},
-                    'tune_opt_params': {'init_lr':1e-4, 'init_lang_lr': 1e-4, 'exp_gamma':0.95, 'step_gamma': 0.2}
+                    'tune_opt_params': {'init_lr':1e-4, 'init_lang_lr': 1e-5, 'exp_gamma':0.95, 'step_gamma': 0.2}
                 },
 
     'gptNet': {'model': InstructNet, 
@@ -168,22 +167,21 @@ def train_model(model, streamer, epochs, optimizer, scheduler, step_params, test
         streamer.shuffle_stream_order()
         for j, data in enumerate(streamer.stream_batch()): 
             ins, tar, mask, tar_dir, task_type = data
-            
 
             optimizer.zero_grad()
 
             task_info = model.get_task_info(batch_len, task_type)
             out, _ = model(ins.to(device), instruction=task_info)
 
-            loss = masked_MSE_Loss(out,tar.to(device), mask.to(device)) 
+            loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
             loss.backward()
-
             torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
             optimizer.step()
 
             frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
             model._loss_data_dict[task_type].append(loss.item())
             model._correct_data_dict[task_type].append(frac_correct)
+
             if j%50 == 0:
                 print(task_type)
                 print(j, ':', model.model_name, ":", "{:.2e}".format(loss.item()))
@@ -278,7 +276,6 @@ def train_model_set(model_configs, model_file, save_bool):
         if model.model_name=='simpleNet' or model.model_name=='bowNet':
             checkpoint=np.inf
 
-    
         opt = init_optimizer(model, 0.001)
         sch = optim.lr_scheduler.ExponentialLR(opt, 0.95)
         step_params = {'milestones':[eps-10, eps-2, eps-1], 'gamma': 0.5}
@@ -315,7 +312,6 @@ def tune_model_set(model_configs, model_file, save_bool):
 
         if holdouts == ['Multitask']: eps = 15
         else: eps = 10
-        
         
         is_tuned = tune_model(model, holdouts, eps, holdout_file)
         print('Model Tune= '+str(is_tuned))

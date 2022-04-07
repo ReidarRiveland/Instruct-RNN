@@ -40,7 +40,6 @@ class scriptGRUCell(jit.ScriptModule):
 
         return h_new
 
-
 class scriptGRULayer(jit.ScriptModule):
     def __init__(self, cell, *cell_args):
         super(scriptGRULayer, self).__init__()
@@ -60,12 +59,11 @@ def init_stacked_GRU(num_layers, layer, first_layer_args, other_layer_args):
                                            for _ in range(num_layers - 1)]
     return nn.ModuleList(layers)
 
-class CustomGRU(jit.ScriptModule):
-    # Necessary for iterating through self.layers and dropout support
+class ScriptGRU(jit.ScriptModule):
     __constants__ = ['num_layers']
 
     def __init__(self, input_dim, hidden_dim, num_layers, activ_func, batch_first = True):
-        super(CustomGRU, self).__init__()
+        super(ScriptGRU, self).__init__()
         self.layers = init_stacked_GRU(num_layers, scriptGRULayer, 
                                         [scriptGRUCell, input_dim, hidden_dim, activ_func],
                                         [scriptGRUCell, hidden_dim, hidden_dim, activ_func])        

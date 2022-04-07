@@ -10,8 +10,8 @@ from numpy.core.fromnumeric import size, var
 from numpy.lib.function_base import append
 from numpy.ma import cos
 import transformers
-from nlp_models import GPT, SBERT, BERT
-from rnn_models import InstructNet, SimpleNet
+from multitasking_models.language_models import GPT, SBERT, BERT
+from multitasking_models.sensorimotor_models import InstructNet, SimpleNet
 from utils import train_instruct_dict
 from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_layer_sim_scores, get_hid_var_group_resp, get_hid_var_resp, get_all_CCGP
 import numpy as np

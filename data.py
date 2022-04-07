@@ -1,9 +1,9 @@
 import numpy as np
 import torch
-from task import Task, construct_batch
+from task import Task
+
 task_list = Task.TASK_LIST
 default_task_dict = dict.fromkeys(Task.TASK_LIST, 1/len(Task.TASK_LIST))
-
 
 class TaskDataSet(): 
     def __init__(self, data_folder='training_data', batch_len=128, num_batches=500, task_ratio_dict = None, holdouts=[]): 

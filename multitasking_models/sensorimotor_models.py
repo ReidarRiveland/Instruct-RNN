@@ -9,7 +9,7 @@ from collections import defaultdict
 
 import pandas as pd
 import pickle
-from jit_GRU import CustomGRU
+from script_gru import ScriptGRU
 from utils import get_input_rule, get_instructions
 
 
@@ -27,10 +27,7 @@ class BaseNet(nn.Module):
         self.__seed_num_str__ = None
         self.__hiddenInitValue__ = 0.1
 
-        if self.activ_func != 'elman': 
-            self.recurrent_units = CustomGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
-        else: 
-            self.recurrent_units = nn.RNN(self.in_dim, hid_dim, self.num_layers, nonlinearity = 'relu', batch_first=True)
+        self.recurrent_units = ScriptGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
         self.sensory_motor_outs = nn.Sequential(nn.Linear(hid_dim, self.out_dim), nn.Sigmoid())
 
         self.__weights_init__()
@@ -52,9 +49,7 @@ class BaseNet(nn.Module):
 
     def forward(self, x, task_info, t=120): 
         h0 = self.__initHidden__(x.shape[0])
-        #task_info_block = torch.rand(task_info.shape[0], t, task_info.shape[1])*0.05
         task_info_block = task_info.unsqueeze(1).repeat(1, t, 1)
-
         rnn_ins = torch.cat((task_info_block, x.type(torch.float32)), 2)
         rnn_hid, _ = self.recurrent_units(rnn_ins, h0)
         out = self.sensory_motor_outs(rnn_hid)
@@ -63,6 +58,9 @@ class BaseNet(nn.Module):
     def freeze_weights(self): 
         for p in self.parameters(): 
             p.requires_grad=False
+
+    def reset_weights(self): 
+        self.__weights_init__()
 
     def save_training_data(self, foldername): 
         pickle.dump(self._correct_data_dict, open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_correct', 'wb'))
@@ -95,6 +93,10 @@ class BaseNet(nn.Module):
     def set_seed(self, seed_num): 
         self.__seed_num_str__ = 'seed'+str(seed_num)
 
+    def to(self, cuda_device): 
+        super().to(cuda_device)
+        self.__device__ = cuda_device
+
 class SimpleNet(BaseNet):
     def __init__(self, hid_dim, num_layers, activ_func=torch.relu, instruct_mode='', use_ortho_rules=True):
         self.model_name = 'simpleNet'
@@ -109,11 +111,7 @@ class SimpleNet(BaseNet):
 
     def to(self, cuda_device): 
         super().to(cuda_device)
-        self.__device__ = cuda_device
         self.rule_transform = self.rule_transform.to(cuda_device)
-
-    def reset_weights(self): 
-        self.__weights_init__()
 
     def get_task_info(self, batch_len, task_type): 
         return get_input_rule(batch_len, task_type, self.instruct_mode).to(self.__device__)
@@ -132,7 +130,6 @@ class InstructNet(BaseNet):
 
     def to(self, cuda_device): 
         super().to(cuda_device)
-        self.__device__ = cuda_device
         self.langModel.__device__ = cuda_device
         
     def reset_weights(self):
