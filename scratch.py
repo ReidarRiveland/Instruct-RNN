@@ -28,6 +28,9 @@ from transformers import CLIPTokenizer, GPT2Tokenizer, GPT2LMHeadModel
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 model = GPT2LMHeadModel.from_pretrained("gpt2")
 
+model.__dict__
+model.config.n_embd
+
 model.lm_head.state_dict()['weight'].shape
 
 inputs = tokenizer("Hello, my dog is cute", return_tensors="pt")
@@ -69,6 +72,8 @@ from transformers import CLIPTokenizer, CLIPTextModel
 
 model = CLIPTextModel.from_pretrained("openai/clip-vit-base-patch32")
 tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
+
+model.config
 
 inputs = tokenizer(["a photo of a cat", "a photo of a dog"], padding=True, return_tensors="pt")
 
