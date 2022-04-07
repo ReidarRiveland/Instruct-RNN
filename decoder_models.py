@@ -735,6 +735,19 @@ def get_all_holdout_partners():
 
     return all_perf_dict
 
-pickle.dump(all_perf_dict, open(load_str+'/sbertNet_tuned/decoders/+all_holdout_perf', 'wb'))
+#pickle.dump(all_perf_dict, open(load_str+'/sbertNet_tuned/decoders/+all_holdout_perf', 'wb'))
 
 
+all_perf_dict = pickle.load(open(load_str+'/sbertNet_tuned/decoders/+all_holdout_perf', 'rb'))
+
+
+from plotting import plot_trained_performance
+np.mean(all_perf_dict['instructions'], axis=(0, -1))
+
+
+to_plot_dict = {}
+for mode in ['instructions', 'context']:
+    to_plot_dict[mode]=np.mean(all_perf_dict[mode], axis=(2, 3)).T
+
+
+encoder_decoder.plot_partner_performance(to_plot_dict)

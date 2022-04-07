@@ -22,6 +22,18 @@ import torch
 
 from task import Task, make_test_trials
 
+import torch
+from transformers import CLIPTokenizer, GPT2Tokenizer, GPT2LMHeadModel
+
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+model = GPT2LMHeadModel.from_pretrained("gpt2")
+
+model.lm_head.state_dict()['weight'].shape
+
+inputs = tokenizer("Hello, my dog is cute", return_tensors="pt")
+outputs = model(**inputs, labels=inputs["input_ids"])
+loss = outputs.loss
+logits = outputs.logits
 
 
 cur_sentences = "Hello, my dog is"
@@ -35,3 +47,34 @@ for i in range(20):
     cur_sentences+=append_word[0]
 
 cur_sentences
+
+from PIL import Image
+import requests
+from transformers import CLIPTokenizer, CLIPModel
+
+model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
+
+
+
+url = "http://images.cocodataset.org/val2017/000000039769.jpg"
+image = Image.open(requests.get(url, stream=True).raw)
+
+instruct = tokenizer(['go in the direction of stimulus with greatest strength'], return_tensors='pt')
+
+model.get_text_features(**instruct).shape
+
+
+from transformers import CLIPTokenizer, CLIPTextModel
+
+model = CLIPTextModel.from_pretrained("openai/clip-vit-base-patch32")
+tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
+
+inputs = tokenizer(["a photo of a cat", "a photo of a dog"], padding=True, return_tensors="pt")
+
+model
+
+outputs = model(**inputs)
+last_hidden_state = outputs.last_hidden_state
+pooled_output = outputs.pooler_output  # pooled (EOS token) states
+pooled_output.shape

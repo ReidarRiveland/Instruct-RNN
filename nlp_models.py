@@ -4,7 +4,6 @@ from numpy.lib import utils
 import torch
 import torch.nn as nn
 
-from sentence_transformers import SentenceTransformer, models
 from transformers import GPT2Model, GPT2Tokenizer
 from transformers import BertModel, BertTokenizer
 from transformers import GPTNeoModel
