@@ -18,7 +18,7 @@ plot_k_shot_learning(all_models, '_ReLU128_4.11/swap_holdouts')
 #Figure 1
 data_dict = plot_task_curves('_ReLU128_4.11/swap_holdouts', all_models[::-1],'correct', )
 
-data_dict = plot_task_curves('_ReLU128_4.11/swap_holdouts', ['sbertNet_tuned', 'sbertNet', 'bowNet'],'correct')
+data_dict = plot_task_curves('_ReLU128_4.11/swap_holdouts', ['simpleNet'],'correct')
 
 
 data_dict = plot_task_curves('_ReLU128_4.11/swap_holdouts', all_models[::-1],'correct')
@@ -40,20 +40,12 @@ np.mean(data_dict[model_name][''][0, :, 1, 0])
 
 plot_trained_performance(zero_shot_dict)
 
-from task import DM
-
-trials = DM('MultiDM', 100)
-
-trials.plot_trial(0)
 
 all_val_perf = pickle.load(open(foldername+'/Multitask/val_perf_dict', 'rb'))
 del all_val_perf['simpleNet']
-
-for key in all_val_perf.keys(): 
-    all_val_perf[key] = all_val_perf[key]-1
+plot_trained_performance(all_val_perf)
 
 
-plot_val_performance(all_val_perf)
 
 #Figure 2
 data_dict = plot_avg_curves('_ReLU128_4.11/swap_holdouts', all_models[::-1],'correct', split_axes=True, plot_swaps=True)
@@ -238,16 +230,26 @@ plot_hid_traj(hid_reps, 'COMP', [0, 1], [0], [0], s=5)
 
 
 
+from model_analysis import get_instruct_reps
+from utils import task_swaps_map
+
+plot_list = [('Anti Go', 'Go'), ('Anti DM', 'DM'), ('COMP2', 'COMP'), ('DMC', 'Delay')]
+
+model = config_model('gptNet_tuned')
+
+for task, group in plot_list:     
+    holdout_task = task
+    task_group = group
+    seed = 0
+
+    task_file = task_swaps_map[holdout_task]
+
+    model.set_seed(seed)
+    model.load_model('_ReLU128_4.11/swap_holdouts/'+task_file)
+
+    lang_reps = get_instruct_reps(model.langModel, train_instruct_dict, depth='12', swapped_tasks=[holdout_task])
+    reduced, _ = reduce_rep(lang_reps)
+    plot_rep_scatter(reduced,  Task.TASK_GROUP_DICT[task_group], swapped_tasks=[holdout_task] )
 
 
-
-
-
-holdout_task = 'DMC'
-sbert_tuned_anti_go = config_model('bertNet')
-task_file = task_swaps_map[holdout_task]
-
-sbert_tuned_anti_go.set_seed(0)
-sbert_tuned_anti_go.load_model('_ReLU128_4.11/swap_holdouts/'+task_file)
-
-make_rep_scatter(sbert_tuned_anti_go, task_to_plot = Task.TASK_GROUP_DICT['Delay'], swapped_tasks=[holdout_task])
+#make_rep_scatter(sbert_tuned_anti_go, task_to_plot = Task.TASK_GROUP_DICT['Delay'], swapped_tasks=[holdout_task])

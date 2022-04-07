@@ -11,6 +11,9 @@ task_list = Task.TASK_LIST
 swapped_task_list = Task.SWAPPED_TASK_LIST
 tuning_dirs = Task.TUNING_DIRS
 
+from collections import Counter
+
+
 train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict2', 'rb'))
 
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict2', 'rb'))
@@ -48,8 +51,6 @@ task_swaps_map = {'Go': 'Go_Anti_DM',
                 'Multitask':'Multitask'}
 
 all_swaps = list(set(task_swaps_map.values()))
-
-all_swaps
 
 task_colors = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT Go':'orange',
                         'DM':'Red', 'Anti DM':'Green', 'MultiDM':'Blue', 'Anti MultiDM':'goldenrod', 
@@ -148,6 +149,12 @@ def sort_vocab():
     all_sentences = list(itertools.chain.from_iterable(combined_instruct.values()))
     sorted_vocab = sorted(list(set(' '.join(all_sentences).split(' '))))
     return sorted_vocab
+
+def count_vocab(): 
+    combined_instruct= {key: list(train_instruct_dict[key]) for key in train_instruct_dict}
+    all_sentences = list(itertools.chain.from_iterable(combined_instruct.values()))
+    counts = Counter(list(itertools.chain.from_iterable([sentence.split() for sentence in all_sentences])))
+    return counts, sorted(counts.keys())
 
 def get_instructions(batch_size, task_type, instruct_mode):
         assert instruct_mode in ['', 'swap', 'shuffled', 'validation']

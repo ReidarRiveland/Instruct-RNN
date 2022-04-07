@@ -4,12 +4,11 @@ from numpy.lib import utils
 import torch
 import torch.nn as nn
 
-from sentence_transformers import SentenceTransformer, models
 from transformers import GPT2Model, GPT2Tokenizer
 from transformers import BertModel, BertTokenizer
+from transformers import GPTNeoModel
 
 from utils import sort_vocab
-
 
 class InstructionEmbedder(nn.Module): 
     def __init__(self, intermediate_lang_dim, out_dim, output_nonlinearity): 
@@ -27,8 +26,8 @@ class InstructionEmbedder(nn.Module):
 
 class TransformerEmbedder(InstructionEmbedder): 
     SET_TRAIN_LAYER_LIST = ['proj_out', 'pooler', 'ln_f']
-    def __init__(self, out_dim,  reducer, train_layers, output_nonlinearity): 
-        super().__init__(768, out_dim, output_nonlinearity)
+    def __init__(self, out_dim,  reducer, train_layers, output_nonlinearity, d_model): 
+        super().__init__(d_model, out_dim, output_nonlinearity)
         self.reducer = reducer
         self.train_layers = train_layers
 
@@ -56,12 +55,11 @@ class TransformerEmbedder(InstructionEmbedder):
 
 class BERT(TransformerEmbedder):
     def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
-        super().__init__(out_dim, reducer, train_layers, output_nonlinearity)
+        super().__init__(out_dim, reducer, train_layers, output_nonlinearity, 768)
         self.embedder_name = 'bert'
         self.transformer = BertModel.from_pretrained('bert-base-uncased', output_hidden_states=True)
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.init_train_layers()
-
 
 class SBERT(BERT): 
     def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
@@ -78,13 +76,21 @@ class SBERT(BERT):
 
 class GPT(TransformerEmbedder): 
     def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
-        super().__init__(out_dim,  reducer,  train_layers, output_nonlinearity)
+        super().__init__(out_dim,  reducer,  train_layers, output_nonlinearity, 768)
         self.embedder_name = 'gpt'
         self.transformer = GPT2Model.from_pretrained('gpt2', output_hidden_states=True)
         self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.init_train_layers()
 
+class GPTNeo(TransformerEmbedder): 
+    def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
+        super().__init__(out_dim,  reducer,  train_layers, output_nonlinearity, 2048)
+        self.embedder_name = 'gpt'
+        self.transformer = GPTNeoModel.from_pretrained("EleutherAI/gpt-neo-1.3B", output_hidden_states=True)
+        self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.init_train_layers()
 
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()
@@ -106,3 +112,5 @@ class BoW(InstructionEmbedder):
         freq_tensor = torch.stack(tuple(map(self.make_freq_tensor, x))).to(self.__device__)
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
+
+

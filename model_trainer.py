@@ -16,7 +16,7 @@ from utils import get_holdout_file, isCorrect, train_instruct_dict, training_lis
 from model_analysis import task_eval, get_instruct_reps, get_model_performance
 
 from rnn_models import SimpleNet, InstructNet
-from nlp_models import BERT, SBERT, GPT, BoW
+from nlp_models import BERT, SBERT, GPT, BoW, GPTNeo
 import torch.nn as nn
 
 import itertools
@@ -27,8 +27,6 @@ import copy
 device = torch.device(0)
 
 
-torch.cuda.is_available()
-torch.cuda.get_device_name(device)
 
 
 model_file = '_ReLU128_4.11'
@@ -73,6 +71,12 @@ ALL_MODEL_PARAMS = {
     'gptNet': {'model': InstructNet, 
                 'langModel': GPT,
                 'model_name': 'gptNet',
+                'langModel_params': {'out_dim': 20, 'train_layers': []}, 
+                },
+
+    'gptNeoNet': {'model': InstructNet, 
+                'langModel': GPTNeo,
+                'model_name': 'gptNeoNet',
                 'langModel_params': {'out_dim': 20, 'train_layers': []}, 
                 },
     
@@ -136,7 +140,6 @@ def masked_MSE_Loss(nn_out, nn_target, mask):
     avg_applied = torch.mean(torch.mean(mask_applied, 2), 1)
     return torch.mean(avg_applied)
 
-
 def train_model(model, streamer, epochs, optimizer, scheduler, step_params, testing=False, tuning =False, checkpoint_for_tuning=np.inf): 
     model.to(device)
     model.train()
@@ -170,7 +173,7 @@ def train_model(model, streamer, epochs, optimizer, scheduler, step_params, test
             optimizer.zero_grad()
 
             task_info = model.get_task_info(batch_len, task_type)
-            out, _ = model(task_info, ins.to(device))
+            out, _ = model(ins.to(device), instruction=task_info)
 
             loss = masked_MSE_Loss(out,tar.to(device), mask.to(device)) 
             loss.backward()
@@ -250,12 +253,11 @@ def test_model(model, holdouts_test, foldername, repeats=5, holdout_type = 'sing
 
     return correct_perf, loss_perf
 
-
 def train_model_set(model_configs, model_file, save_bool):
     inspection_list = []
     for config in model_configs:      
         model_params_key, seed_num, holdouts = config
-        #torch.manual_seed(seed_num)
+        torch.manual_seed(seed_num)
         holdout_file = get_holdout_file(holdouts)
 
         print(config)
@@ -380,7 +382,7 @@ def check_model_set(to_check):
 if __name__ == "__main__":
 
     #train_mode = str(sys.argv[1])
-    train_mode = 'test'
+    train_mode = 'train'
     
     print('Mode: ' + train_mode + '\n')
 
@@ -408,7 +410,9 @@ if __name__ == "__main__":
         print(inspection_list)
 
     if train_mode =='train': 
-        to_train = [('gptNet', 0, ['Multitask'])]        
+        #to_train = [('gptNeoNet', 0, ['Multitask'])]     
+        to_train = list(itertools.product(['gptNeoNet'], [0, 1, 2, 3, 4] , [['Multitask']]))
+   
         print(to_train)
         print(len(to_train))
         inspection_list = train_model_set(to_train, model_file, save_bool=True)
