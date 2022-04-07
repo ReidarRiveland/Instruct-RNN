@@ -14,9 +14,9 @@ tuning_dirs = Task.TUNING_DIRS
 from collections import Counter
 
 
-train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict2', 'rb'))
+train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict', 'rb'))
 
-test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict2', 'rb'))
+test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict', 'rb'))
 
 inv_train_instruct_dict = inv_train_instruct_dict = dict(zip(list(itertools.chain(*[list(instructions) for instructions in train_instruct_dict.values()])), 
                                             list(itertools.chain(*[[task]*15 for task in Task.TASK_LIST]))))

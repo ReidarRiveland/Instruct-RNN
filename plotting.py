@@ -716,8 +716,8 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, num_repeats = 1
 
 
 if __name__ == "__main__":
-    from nlp_models import SBERT, BERT
-    from rnn_models import InstructNet, SimpleNet
+    from multitasking_models.language_models import SBERT, BERT
+    from multitasking_models.sensorimotor_models import InstructNet, SimpleNet
     from utils import train_instruct_dict
     from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_sim_scores, get_hid_var_group_resp
     import numpy as np

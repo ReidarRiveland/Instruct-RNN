@@ -1,3 +1,4 @@
+from pyexpat import model
 import numpy as np
 import torch
 from torch._C import device
@@ -14,38 +15,32 @@ from utils import get_input_rule, get_instructions
 
 
 class BaseNet(nn.Module): 
-    def __init__(self, in_dim, hid_dim, num_layers, activ_func, instruct_mode):
+    def __init__(self, config):
         super(BaseNet, self).__init__()
-        self.instruct_mode = instruct_mode
-        self.in_dim = in_dim
-        self.out_dim = 33
-        self.hid_dim = hid_dim
-        self.num_layers = num_layers
-        self.activ_func = activ_func
-        self._loss_data_dict = defaultdict(list)
-        self._correct_data_dict = defaultdict(list)
-        self.__seed_num_str__ = None
-        self.__hiddenInitValue__ = 0.1
+        for name, value in config.__dict__.items(): 
+            setattr(self, name, value)
 
-        self.recurrent_units = ScriptGRU(self.in_dim, hid_dim, self.num_layers, activ_func = activ_func, batch_first=True)
-        self.sensory_motor_outs = nn.Sequential(nn.Linear(hid_dim, self.out_dim), nn.Sigmoid())
+        if self.rnn_activ_func == 'relu':
+            self._activ_func = torch.relu
 
-        self.__weights_init__()
+        self.recurrent_units = ScriptGRU(self.rnn_in_dim, 
+                                        self.rnn_hidden_dim, 
+                                        self.rnn_layers, 
+                                        activ_func = self._activ_func, 
+                                        batch_first=True)
+
+        self.sensory_motor_outs = nn.Sequential(
+                                    nn.Linear(self.rnn_hidden_dim, self.sensorimotor_out_dim), 
+                                    nn.Sigmoid())
+
+        self.recurrent_units.__weights_init__()
         self.__device__ = torch.device('cpu')
 
-    def __weights_init__(self):
-        for n, p in self.named_parameters():
-            if 'weight_ih' in n:
-                for ih in p.chunk(3, 0):
-                    torch.nn.init.normal_(ih, std = 1/np.sqrt(self.in_dim))
-            elif 'weight_hh' in n:
-                for hh in p.chunk(3, 0):
-                    hh.data.copy_(torch.eye(self.hid_dim)*0.5)
-            elif 'W_out' in n:
-                torch.nn.init.normal_(p, std = 0.4/np.sqrt(self.hid_dim))
+        self.foldername=None
 
     def __initHidden__(self, batch_size):
-        return torch.full((self.num_layers, batch_size, self.hid_dim), self.__hiddenInitValue__, device=self.__device__.type)
+        return torch.full((self.num_layers, batch_size, self.hid_dim), 
+                self.hiddenInitValue, device=self.__device__.type)
 
     def forward(self, x, task_info, t=120): 
         h0 = self.__initHidden__(x.shape[0])
@@ -59,55 +54,36 @@ class BaseNet(nn.Module):
         for p in self.parameters(): 
             p.requires_grad=False
 
-    def reset_weights(self): 
-        self.__weights_init__()
+    def set_file_path(self, foldername, seed_num): 
+        self.seed_num = seed_num
+        self.seed_num_str = 'seed'+str(seed_num)
+        self.foldername = foldername
+        self.data_file_path = foldername+'/'+self.model_name+'/'+self.seed_num_str
+        self.model_file_path = foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.seed_num_str+'.pt'
 
-    def save_training_data(self, foldername): 
-        pickle.dump(self._correct_data_dict, open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_correct', 'wb'))
-        pickle.dump(self._loss_data_dict, open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_loss', 'wb'))
+    def save_training_data(self): 
+        pickle.dump(self._correct_data_dict, open(self.file_path+'_training_correct', 'wb'))
+        pickle.dump(self._loss_data_dict, open(self.file_path+'_training_loss', 'wb'))
 
-    def save_model(self, foldername): 
-        torch.save(self.state_dict(), foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.__seed_num_str__+'.pt')
+    def save_model(self): 
+        torch.save(self.state_dict(), self.model_file_path)
 
-    def load_training_data(self, foldername): 
-        self._correct_data_dict = pickle.load(open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_correct', 'rb'))
-        self._loss_data_dict = pickle.load(open(foldername+'/'+self.model_name+'/'+self.__seed_num_str__+'_training_loss', 'rb'))
-
-    def load_model(self, foldername): 
-        f_name = foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.__seed_num_str__+'.pt'
-        self.load_state_dict(torch.load(f_name, map_location='cpu'))
-
-        # try: 
-        #     self.load_state_dict(torch.load(f_name, map_location='cpu'))
-        # except RuntimeError:
-        #     self.load_state_dict(self.langModel._convert_state_dict_format(f_name))
-    
-    def check_model_training(self, threshold, duration): 
-        latest_perf = np.array([task_perf[-duration:] for task_perf in self._correct_data_dict.values()])
-        return np.all(latest_perf>threshold)
+    def load_model(self): 
+        self.load_state_dict(torch.load(self.model_file_path, map_location='cpu'))
 
     def reset_training_data(self): 
         self._loss_data_dict = defaultdict(list)
         self._correct_data_dict = defaultdict(list)
-
-    def set_seed(self, seed_num): 
-        self.__seed_num_str__ = 'seed'+str(seed_num)
 
     def to(self, cuda_device): 
         super().to(cuda_device)
         self.__device__ = cuda_device
 
 class SimpleNet(BaseNet):
-    def __init__(self, hid_dim, num_layers, activ_func=torch.relu, instruct_mode='', use_ortho_rules=True):
-        self.model_name = 'simpleNet'
-        if use_ortho_rules:
-            super().__init__(85, hid_dim, num_layers, activ_func, instruct_mode)
-            ortho_rules = pickle.load(open('ortho_rule_vecs', 'rb'))
-            self.rule_transform = torch.Tensor(ortho_rules)
-        else:
-            super().__init__(81, hid_dim, num_layers, activ_func, instruct_mode)
-            self.rule_transform = torch.diag(torch.ones(16))
-        self.to(self.__device__)
+    def __init__(self, config):
+        super().__init__(config)
+        ortho_rules = pickle.load(open('ortho_rule_vecs', 'rb'))
+        self.rule_transform = torch.Tensor(ortho_rules)
 
     def to(self, cuda_device): 
         super().to(cuda_device)
@@ -117,33 +93,27 @@ class SimpleNet(BaseNet):
         return get_input_rule(batch_len, task_type, self.instruct_mode).to(self.__device__)
 
     def forward(self, x, task_rule):
-        if self.instruct_mode != 'masked': 
-            task_rule = torch.matmul(task_rule, self.rule_transform)
+        task_rule = torch.matmul(task_rule, self.rule_transform)
         outs, rnn_hid = super().forward(task_rule, x)
         return outs, rnn_hid
 
 class InstructNet(BaseNet): 
-    def __init__(self, langModel, hid_dim, num_layers, activ_func = torch.relu, instruct_mode=''): 
-        super().__init__(langModel.out_dim +65, hid_dim, num_layers, activ_func, instruct_mode)
+    def __init__(self, config): 
+        super().__init__(config)
         self.langModel = langModel
         self.model_name = self.langModel.embedder_name + 'Net' 
 
     def to(self, cuda_device): 
         super().to(cuda_device)
         self.langModel.__device__ = cuda_device
-        
-    def reset_weights(self):
-        super().__weights_init__()
-        self.langModel.__init__(self.langModel.out_dim)
 
     def get_task_info(self, batch_len, task_type): 
         return get_instructions(batch_len, task_type, self.instruct_mode)
 
     def forward(self, x, instruction = None, context = None):
         assert instruction is not None or context is not None, 'must have instruction or context input'
-        if instruction is not None: 
-            info_embedded = self.langModel(instruction)
-        else: 
-            info_embedded = context
+        if instruction is not None: info_embedded = self.langModel(instruction)
+        else: info_embedded = context
+
         outs, rnn_hid = super().forward(x, info_embedded)
         return outs, rnn_hid

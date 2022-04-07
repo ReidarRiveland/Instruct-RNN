@@ -72,6 +72,17 @@ class ScriptGRU(jit.ScriptModule):
         self.batch_first = batch_first
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
+    
+    def __weights_init__(self):
+        for n, p in self.named_parameters():
+            if 'weight_ih' in n:
+                for ih in p.chunk(3, 0):
+                    torch.nn.init.normal_(ih, std = 1/torch.sqrt(torch.tensor(self.input_dim)))
+            elif 'weight_hh' in n:
+                for hh in p.chunk(3, 0):
+                    hh.data.copy_(torch.eye(self.hidden_dim)*0.5)
+            elif 'W_out' in n:
+                torch.nn.init.normal_(p, std = 0.4/torch.sqrt(torch.tensor(self.hidden_dim)))
 
     @jit.script_method
     def forward(self, input, layers_hx):

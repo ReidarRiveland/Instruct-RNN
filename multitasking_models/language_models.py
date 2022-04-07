@@ -10,37 +10,37 @@ from transformers import GPTNeoModel
 
 from utils import sort_vocab
 
+
 class InstructionEmbedder(nn.Module): 
-    def __init__(self, intermediate_lang_dim, out_dim, output_nonlinearity): 
+    def __init__(self, config): 
         super(InstructionEmbedder, self).__init__()
+        self.config=config
+        for name, value in config.__dict__.items(): 
+            setattr(self, name, value)
+
         self.__device__ = 'cpu'
+    
+        if self.LM_output_nonlinearity == 'relu': 
+            self._output_nonlinearity = nn.ReLU()
+        
+        if self.LM_reducer == 'mean': 
+            self._reducer = torch.mean
 
-        self.intermediate_lang_dim = intermediate_lang_dim
-        self.out_dim = out_dim
-        self.output_nonlinearity = output_nonlinearity
+    def __init_proj_out__(self): 
+        self.proj_out = nn.Sequential(
+            nn.Linear(self.intermediate_lang_dim, self.LM_out_dim), 
+            self._output_nonlinearity)
 
-        try: 
-            self.proj_out = nn.Sequential(nn.Linear(self.intermediate_lang_dim, self.out_dim), self.output_nonlinearity)
-        except TypeError: 
-            self.proj_out = nn.Identity()
-
-class TransformerEmbedder(InstructionEmbedder): 
-    SET_TRAIN_LAYER_LIST = ['proj_out', 'pooler', 'ln_f']
-    def __init__(self, out_dim,  reducer, train_layers, output_nonlinearity, d_model): 
-        super().__init__(d_model, out_dim, output_nonlinearity)
-        self.reducer = reducer
-        self.train_layers = train_layers
-
-    def init_train_layers(self): 
-        if len(self.train_layers)>0: 
-            tmp_train_layers = self.train_layers+self.SET_TRAIN_LAYER_LIST
-        else: 
-            tmp_train_layers = ['proj_out']
+    def __init_train_layers__(self): 
         for n,p in self.named_parameters(): 
-            if any([layer in n for layer in tmp_train_layers]):
+            if any([layer in n for layer in self.LM_train_layers]):
                 p.requires_grad=True
             else: 
                 p.requires_grad=False
+
+class TransformerEmbedder(InstructionEmbedder): 
+    def __init__(self, config): 
+        super().__init__(config)
 
     def forward_transformer(self, x): 
         tokens = self.tokenizer(x, return_tensors='pt', padding=True)
@@ -54,17 +54,17 @@ class TransformerEmbedder(InstructionEmbedder):
         return self.proj_out(self.forward_transformer(x)[0])
 
 class BERT(TransformerEmbedder):
-    def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
-        super().__init__(out_dim, reducer, train_layers, output_nonlinearity, 768)
-        self.embedder_name = 'bert'
-        self.transformer = BertModel.from_pretrained('bert-base-uncased', output_hidden_states=True)
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        self.init_train_layers()
+    def __init__(self, config): 
+        super().__init__(config)
+        self.transformer = BertModel.from_pretrained(self.LM_load_str, output_hidden_states=True)
+        self.tokenizer = BertTokenizer.from_pretrained(self.LM_load_str)
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.__init_proj_out__()
+        self.__init_train_layers__()
 
 class SBERT(BERT): 
-    def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
-        super().__init__(out_dim, reducer, train_layers, output_nonlinearity)
-        self.embedder_name = 'sbert'
+    def __init__(self, config): 
+        super().__init__(config)
         self.transformer.load_state_dict(self._convert_state_dict_format('sbert_raw.pt'))
 
     def _convert_state_dict_format(self, state_dict_file): 
@@ -75,18 +75,18 @@ class SBERT(BERT):
         return sbert_state_dict
 
 class GPT(TransformerEmbedder): 
-    def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
-        super().__init__(out_dim,  reducer,  train_layers, output_nonlinearity, 768)
-        self.embedder_name = 'gpt'
-        self.transformer = GPT2Model.from_pretrained('gpt2', output_hidden_states=True)
+    def __init__(self, config): 
+        super().__init__(config)
+        self.transformer = GPT2Model.from_pretrained(self.LM_load_str, output_hidden_states=True)
         self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        self.intermediate_lang_dim = self.transformer.config.n_embd
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.init_train_layers()
+        self.__init_proj_out__()
+        self.__init_train_layers__()
 
 class GPTNeo(TransformerEmbedder): 
-    def __init__(self, out_dim, reducer=torch.mean, train_layers = [], output_nonlinearity = nn.ReLU()): 
-        super().__init__(out_dim,  reducer,  train_layers, output_nonlinearity, 2048)
-        self.embedder_name = 'gpt'
+    def __init__(self, config): 
+        super().__init__(config)
         self.transformer = GPTNeoModel.from_pretrained("EleutherAI/gpt-neo-1.3B", output_hidden_states=True)
         self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -94,13 +94,11 @@ class GPTNeo(TransformerEmbedder):
 
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()
-    def __init__(self, out_dim =  20, output_nonlinearity=nn.ReLU()): 
-        super().__init__(len(self.VOCAB), out_dim, output_nonlinearity)
-        if out_dim == None: 
+    def __init__(self, config): 
+        super().__init__(config)
+        if self.LM_out_dim == None: 
             self.out_dim=len(self.VOCAB)
         
-        self.embedder_name = 'bow'
-
     def make_freq_tensor(self, instruct): 
         out_vec = torch.zeros(len(self.VOCAB))
         for word in instruct.split():
@@ -112,5 +110,4 @@ class BoW(InstructionEmbedder):
         freq_tensor = torch.stack(tuple(map(self.make_freq_tensor, x))).to(self.__device__)
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
-
 
