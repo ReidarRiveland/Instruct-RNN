@@ -22,8 +22,6 @@ inv_train_instruct_dict = inv_train_instruct_dict = dict(zip(list(itertools.chai
                                             list(itertools.chain(*[[task]*15 for task in Task.TASK_LIST]))))
 
 
-all_models = ['sbertNet_tuned', 'sbertNet', 'bertNet_tuned', 'bertNet', 'gptNet_tuned', 'gptNet', 'bowNet', 'simpleNet']
-
 training_lists_dict={
 'single_holdouts' :  [[item] for item in Task.TASK_LIST.copy()+['Multitask']],
 'dual_holdouts' : [['RT Go', 'Anti Go'], ['Anti MultiDM', 'DM'], ['COMP1', 'MultiCOMP2'], ['DMC', 'DNMS']],
@@ -252,13 +250,11 @@ def get_input_rule(batch_size, task_type, instruct_mode, lang_dim = None):
     
     return torch.Tensor(task_rule)
 
-def tuning_check(model, holdouts): 
-    if holdouts == ['Multitask']: min_tuned_len = 1600
-    else: min_tuned_len = 1150
-    data_dict = model._correct_data_dict
-    example_data = list(data_dict.values())[0]
-    tried_tuning = len(example_data) > min_tuned_len
-    return tried_tuning
+def get_task_info(self, batch_len, task_type, is_instruct): 
+    if is_instruct: 
+        return get_instructions(batch_len, task_type, self.instruct_mode)
+    else: 
+        return get_input_rule(batch_len, task_type, self.instruct_mode).to(self.__device__)
 
 
 def load_holdout_data(foldername, model_list): 
