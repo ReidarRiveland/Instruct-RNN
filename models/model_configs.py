@@ -1,7 +1,6 @@
 from task import Task
-from models.language_models import InstructionEmbedder, GPT, BERT, SBERT
-from models.sensorimotor_models import InstructNet, RuleNet
-from attrs import define, field, frozen
+from models.language_models import InstructionEmbedder
+from attrs import define, field
 
 
 SENSORY_INPUT_DIM = Task.INPUT_DIM

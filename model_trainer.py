@@ -9,12 +9,17 @@ from utils import get_holdout_file, isCorrect, training_lists_dict, get_holdout_
 import itertools
 import pickle
 import copy
+from collections import defaultdict
+import tqdm
 from attrs import define, asdict
 
 device = torch.device(0)
 
 EXP_FILE = '_ReLU128_4.11'
 holdout_type = 'swap_holdouts'
+
+import datetime
+datetime.datetime.now().strftime('Date/Time: %Y-%m-%d; %H:%M:%S')
 
 def masked_MSE_Loss(nn_out, nn_target, mask):
     """MSE loss (averaged over features then time) function with special weighting mask that prioritizes loss in response epoch 
@@ -34,6 +39,7 @@ def masked_MSE_Loss(nn_out, nn_target, mask):
 @define
 class TrainerConfig(): 
     file_path: str
+    random_seed: int
     mode: str ##train, tune, or test
     total_epochs: int = 50
     min_run_epochs: int = 50
@@ -43,22 +49,35 @@ class TrainerConfig():
     set_single_task: str = None
 
     lr: float = 0.001
-    lang_lr: float = np.nan
+    lang_lr: float = None
     weight_decay: float = 0.0
 
-    scheduler: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
+    scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
     scheduler_args: dict = {'gamma': 0.95}
 
     save_for_tuning_epoch: int = None
     checker_threshold: float = 0.95
 
 class Trainer(): 
-    def __init__(self, training_config): 
-        self.config = training_config
+    def __init__(self, training_config=None, from_checkpoint=None): 
+        assert not training_config is None and from_checkpoint is None, \
+            'trainer must be initialized from training_config or from a checkpoint'
+
+        if from_checkpoint is not None: 
+            checkpoint_attrs = pickle.load(open(from_checkpoint, 'rb'))
+            for name, value in checkpoint_attrs.items(): 
+                setattr(self, name, value)
+        else: 
+            self.config = training_config
+            self.cur_epoch = 0 
+            self.cur_step = 0
+            self.correct_data = defaultdict(list)
+            self.loss_data = defaultdict(list)
+
         for name, value in asdict(self.config, recurse=False).items(): 
             setattr(self, name, value)
 
-    def __init_streamer__(self):
+    def init_streamer(self):
         self.streamer = TaskDataSet(self.batch_len, 
                         self.num_batches, 
                         self.holdouts, 
@@ -66,7 +85,7 @@ class Trainer():
 
     def init_optimizer(self, model, optim_alg=optim.Adam):
         if model._is_instruct:
-            if langLR is np.nan: langLR = self.lr 
+            if langLR is None: langLR = self.lr 
             optimizer = optim_alg([
                     {'params' : model.recurrent_units.parameters()},
                     {'params' : model.sensory_motor_outs.parameters()},
@@ -75,58 +94,86 @@ class Trainer():
         else: 
             optimizer = optim_alg(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         self.optimizer = optimizer
+        self.scheduler = self.scheduler_class(**self.scheduler_args)
 
-    @staticmethod
-    def check_model_training(self, data, threshold, duration, epoch): 
-        latest_perf = np.array([task_perf[-duration:] for task_perf in data.values()])
-        threshold_reached = np.all(latest_perf>threshold)
-        min_run_reached = (epoch >= self.min_run_epoch -1)
+    def check_model_training(self, duration=5): 
+        latest_perf = np.array([task_perf[-duration:] for task_perf in self.correct_data_dict.values()])
+        threshold_reached = np.all(latest_perf>self.checker_threshold)
+        min_run_reached = (self.cur_epoch >= self.min_run_epoch -1)
         return threshold_reached and min_run_reached
 
     def _checkpoint_for_tuning(model): 
         model_for_tuning = copy.deepcopy(model)
         model_for_tuning.model_name += '_FOR_TUNING'
-        print('model checkpointed')
 
-    def train_model(self, model): 
+    def log_step(self, task_type, frac_correct, loss): 
+        self.correct_data_dict[task_type].append(frac_correct)
+        self.loss_data_dict[task_type].append(loss)
+    
+    def print_training_status(self):
+        print('Training Step:' + self.cur_step)
+        print('Performance:')
+        for task in self.correct_data_dict.keys():
+            print((task, self.correct_data_dict[task][-1]), sep=' ', end='', flush=True)
+
+        print('Loss:')
+        for task in self.loss_data_dict.keys():
+            print((task, "{:.2e}".format(self.loss_data_dict[task][-1])), sep=' ', end='', flush=True)
+
+    def record_session_data(self): 
+        record_attrs = ['config', 'optimizer', 'scheduler', 'cur_epoch', 'cur_step', 'correct_data', 'loss_data']
+        checkpoint_attrs = {}
+        for attr in record_attrs: 
+            checkpoint_attrs[attr]=getattr(trainer, attr)
+        pickle.dump(self.file_path, open(checkpoint_attrs, 'wb'))
+
+    def train(self, model): 
         model.to(device)
         model.train()
-        optimizer = self.init_optimizer(model)
-        if not self.mode == 'tune' and model._is_instruct: 
-                model.langModel.eval()
+        self.init_streamer()
 
-        for i in range(self.epochs):
-            if i == self.save_for_tuning:
+        try: 
+            self.scheduler.get_lr()
+        except AttributeError: 
+            self.init_optimizer(model)
+
+        if not self.mode == 'tune' and model._is_instruct: 
+            model.langModel.eval()
+
+        for self.cur_epoch in tqdm(range(self.epochs)):
+            if self.cur_epoch == self.save_for_tuning:
                 self._checkpoint_for_tuning(model)
 
             self.streamer.shuffle_stream_order()
-            for j, data in enumerate(self.streamer.stream_batch()): 
+            for self.cur_step, data in enumerate(self.streamer.stream_batch()): 
                 ins, tar, mask, tar_dir, task_type = data
-                optimizer.zero_grad()
+                self.optimizer.zero_grad()
                 task_info = model.get_task_info(self.batch_len, task_type)
                 out, _ = model(ins.to(device), instruction=task_info)
                 loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
                 loss.backward()
                 torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
-                optimizer.step()
+                self.optimizer.step()
 
                 frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
+                self.log_step(task_type, frac_correct, loss.item())
 
-                ###put this in logger
-                model._loss_data_dict[task_type].append(loss.item())
-                model._correct_data_dict[task_type].append(frac_correct)
+                if self.cur_step%50 == 0:
+                    self.record_session_data()
+                    model.save_model(...+'checkpoint')
 
-                if j%50 == 0:
-                    print(task_type)
-                    print(j, ':', model.model_name, ":", "{:.2e}".format(loss.item()))
-                    print('Frac Correct ' + str(frac_correct) + '\n')
-                    print(model.check_model_training(0.95, 1))
+                is_trained = self.check_model_training()
+                if is_trained: 
+                    self.record_session_data()
+                    model.save_model()
+                    return is_trained
 
-                threshold_reached = self.check_model_training(self.checker_threshold, 5)
-                if self.check_model_training(self.checker_threshold, 5, i): 
-                    return model.check_model_training(0.95, 5), None
+            if self.scheduler is not None: self.scheduler.step()  
 
-            if self.scheduler is not None: self.scheduler.step()    
+trainerConfig = TrainerConfig(file_path='None', random_seed=0, mode='test')
+trainer=Trainer(trainerConfig)
+
+
 
 
 
@@ -135,9 +182,9 @@ class Trainer():
 def tune_model(model, holdouts, epochs, holdout_file): 
     if 'tuned' not in model.model_name: model.model_name = model.model_name+'_tuned'
 
-    model.load_model(model_file+'/'+holdout_type+'/'+holdout_file)
-    model.load_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
-    print('model loaded:'+model_file+'/'+holdout_type+'/'+holdout_file+'\n')
+    model.load_model(EXP_FILE+'/'+holdout_type+'/'+holdout_file)
+    model.load_training_data(EXP_FILE+'/'+holdout_type+'/'+holdout_file)
+    print('model loaded:'+EXP_FILE+'/'+holdout_type+'/'+holdout_file+'\n')
     model.langModel.train_layers=['11', '10', '9']
     model.langModel.init_train_layers()
     
@@ -185,7 +232,7 @@ def test_model(model, holdouts_test, foldername, repeats=5, holdout_type = 'sing
 
     return correct_perf, loss_perf
 
-def train_model_set(model_configs, model_file, save_bool):
+def train_model_set(model_configs, EXP_FILE, save_bool):
     inspection_list = []
     for config in model_configs:      
         model_params_key, seed_num, holdouts = config
@@ -218,11 +265,11 @@ def train_model_set(model_configs, model_file, save_bool):
         is_trained=True
         if is_trained and save_bool:
             print('Model Trained '+str(is_trained))
-            model.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
-            model.save_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
+            model.save_model(EXP_FILE+'/'+holdout_type+'/'+holdout_file)
+            model.save_training_data(EXP_FILE+'/'+holdout_type+'/'+holdout_file)
             try: 
-                model_for_tuning.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
-                model_for_tuning.save_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
+                model_for_tuning.save_model(EXP_FILE+'/'+holdout_type+'/'+holdout_file)
+                model_for_tuning.save_training_data(EXP_FILE+'/'+holdout_type+'/'+holdout_file)
                 print('Model for tuning saved')
             except AttributeError:
                 print('Model for Tuning not saves, model type: ' + str(type(model_for_tuning)))
@@ -233,7 +280,7 @@ def train_model_set(model_configs, model_file, save_bool):
 
     return inspection_list
     
-def tune_model_set(model_configs, model_file, save_bool):                
+def tune_model_set(model_configs, EXP_FILE, save_bool):                
     inspection_list = []
     for config in model_configs: 
         model_params_key, seed_num, holdouts = config
@@ -255,8 +302,8 @@ def tune_model_set(model_configs, model_file, save_bool):
             continue
 
         if is_tuned and save_bool: 
-            model.save_model(model_file+'/'+holdout_type+'/'+holdout_file)
-            model.save_training_data(model_file+'/'+holdout_type+'/'+holdout_file)
+            model.save_model(EXP_FILE+'/'+holdout_type+'/'+holdout_file)
+            model.save_training_data(EXP_FILE+'/'+holdout_type+'/'+holdout_file)
             print('model saved!')
         elif not is_tuned: 
             inspection_list.append(config)
@@ -267,7 +314,7 @@ def tune_model_set(model_configs, model_file, save_bool):
 
     return inspection_list        
 
-def test_model_set(model_configs, model_file, save_bool):
+def test_model_set(model_configs, EXP_FILE, save_bool):
     for config in model_configs: 
         print(config)
         instruct_mode, model_params_key, seed_num, holdouts = config
@@ -278,7 +325,7 @@ def test_model_set(model_configs, model_file, save_bool):
         model.model_name 
         model.to(device)
 
-        test_model(model, holdouts, repeats=5, foldername= model_file, holdout_type = holdout_type, save=save_bool)
+        test_model(model, holdouts, repeats=5, foldername= EXP_FILE, holdout_type = holdout_type, save=save_bool)
 
 if __name__ == "__main__":
 
@@ -296,7 +343,7 @@ if __name__ == "__main__":
         #to_test = list(itertools.product(['', 'swap'], ['bertNet_tuned'], [1, 2, 3, 4], training_lists_dict['swap_holdouts']))
         print(to_test)
 
-        inspection_list = test_model_set(to_test, model_file, save_bool=True)
+        inspection_list = test_model_set(to_test, EXP_FILE, save_bool=True)
         print(inspection_list)
 
     if train_mode == 'fine_tune': 
@@ -307,7 +354,7 @@ if __name__ == "__main__":
 
 
         print(to_tune)
-        inspection_list = tune_model_set(to_tune, model_file)
+        inspection_list = tune_model_set(to_tune, EXP_FILE)
         print(inspection_list)
 
     if train_mode =='train': 
@@ -316,7 +363,7 @@ if __name__ == "__main__":
    
         print(to_train)
         print(len(to_train))
-        inspection_list = train_model_set(to_train, model_file, save_bool=True)
+        inspection_list = train_model_set(to_train, EXP_FILE, save_bool=True)
         print(inspection_list)
 
 
