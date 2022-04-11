@@ -3,17 +3,21 @@ import torch
 from task import Task
 
 task_list = Task.TASK_LIST
-default_task_dict = dict.fromkeys(Task.TASK_LIST, 1/len(Task.TASK_LIST))
 
-class TaskDataSet(): 
-    def __init__(self, data_folder='training_data', batch_len=128, num_batches=500, task_ratio_dict = None, holdouts=[]): 
+class TaskDataSet():
+    DEFAULT_TASK_DICT = dict.fromkeys(Task.TASK_LIST, 1/len(Task.TASK_LIST)) 
+    def __init__(self, batch_len=128, num_batches=500, holdouts=[], set_single_task = None): 
         __len__ = num_batches
         self.batch_len = batch_len
         self.num_batches = num_batches
-        self.data_folder = data_folder
-        if task_ratio_dict is None: self.task_ratio_dict = default_task_dict.copy()
-        else: self.task_ratio_dict=task_ratio_dict
+        self.data_folder = 'training_data'
         self.holdouts = holdouts
+
+        if set_single_task is None: 
+            self.task_ratio_dict = self.DEFAULT_TASK_DICT.copy()
+        else: 
+            assert not bool(holdouts), 'cannot have holdouts and set a single task'
+            self.task_ratio_dict={set_single_task:1}
 
         self.trial_types = None
         self.stream_order = None
@@ -22,7 +26,6 @@ class TaskDataSet():
         self.__make_memmaps__()
         self.__init_task_distribution__()
         self.in_data, self.tar_data, self.mask_data, self.tar_dirs = self.__populate_data__()
-
         self.shuffle_stream_order()
 
     def data_to_device(self, device): 
