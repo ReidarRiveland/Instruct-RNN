@@ -1,5 +1,5 @@
 from xml.parsers.expat import model
-from models.language_models import GPT, BERT, SBERT, GPTNeo, BoW
+from models.language_models import GPT, BERT, SBERT, GPTNeo, BoW, CLIP
 from models.sensorimotor_models import RuleNet, InstructNet
 from models.model_configs import RuleModelConfig, InstructModelConfig, LMConfig
 
@@ -74,6 +74,30 @@ class SBERTNet_tuned(InstructNet):
 
     def __init__(self, config=DEFAULT_CONFIG): 
         super().__init__(config)
+
+class CLIPNet(InstructNet):
+    DEFAULT_CONFIG = InstructModelConfig(model_name = 'clipNet', 
+                        LM_class=CLIP, 
+                        LM_config=LMConfig(
+                                LM_load_str = 'openai/clip-vit-base-patch32',
+                                LM_train_layers=[])
+                                )
+
+    def __init__(self, config=DEFAULT_CONFIG): 
+        super().__init__(config)
+        
+
+class CLIPNet_tuned(InstructNet):
+    DEFAULT_CONFIG = InstructModelConfig(model_name = 'clipNet_tuned', 
+                        LM_class=CLIP, 
+                        LM_config=LMConfig(
+                                LM_load_str = 'openai/clip-vit-base-patch32',
+                                LM_train_layers=['9', '10', '11', 'pooler'])
+                                )
+
+    def __init__(self, config=DEFAULT_CONFIG): 
+        super().__init__(config)
+        
         
 class BoWNet(InstructNet):
     DEFAULT_CONFIG = InstructModelConfig(model_name = 'bowNet', 

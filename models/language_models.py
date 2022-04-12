@@ -6,6 +6,7 @@ import torch.nn as nn
 from attrs import asdict
 
 from transformers import GPT2Model, GPT2Tokenizer
+from transformers import CLIPTokenizer, CLIPTextModel
 from transformers import BertModel, BertTokenizer
 from transformers import GPTNeoModel
 
@@ -91,6 +92,16 @@ class GPT(TransformerEmbedder):
         self.transformer = GPT2Model.from_pretrained(self.LM_load_str, output_hidden_states=True)
         self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self.LM_intermediate_lang_dim = self.transformer.config.n_embd
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.set_train_layers(self.LM_train_layers)
+        self.__init_proj_out__()
+
+class CLIP(TransformerEmbedder): 
+    def __init__(self, config): 
+        super().__init__(config)
+        self.transformer = CLIPTextModel.from_pretrained(self.LM_load_str)
+        self.tokenizer = CLIPTokenizer.from_pretrained(self.LM_load_str)
+        self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
