@@ -10,8 +10,7 @@ from numpy.core.fromnumeric import size, var
 from numpy.lib.function_base import append
 from numpy.ma import cos
 import transformers
-from multitasking_models.language_models import GPT, SBERT, BERT
-from multitasking_models.sensorimotor_models import InstructNet, SimpleNet
+
 from utils import train_instruct_dict
 from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_layer_sim_scores, get_hid_var_group_resp, get_hid_var_resp, get_all_CCGP
 import numpy as np
@@ -79,7 +78,30 @@ inputs = tokenizer(["a photo of a cat", "a photo of a dog"], padding=True, retur
 
 model
 
-outputs = model(**inputs)
-last_hidden_state = outputs.last_hidden_state
+outputs = model(**inputs, output_hidden_states=True)
+last_hidden_state = outputs.hidden_states
+
+outputs.hidden_states[3].shape
+last_hidden_state.shape
 pooled_output = outputs.pooler_output  # pooled (EOS token) states
-pooled_output.shape
+pooled_output.unsqueeze(0)[0].shape
+
+
+from models.full_models import CLIPNet, BERTNet_tuned, GPTNet
+from utils import task_swaps_map
+from model_analysis import get_model_performance
+
+gptNet = GPTNet()
+EXP_FILE = '13.4models/swap_holdouts'
+holdouts = task_swaps_map['Go']
+gptNet.load_model(EXP_FILE+'/'+holdouts+'/gptNet', suffix='_seed0_CHECKPOINT')
+perf = get_model_performance(gptNet, 1)
+
+
+
+from transformers import BertTokenizer, BertForPreTraining
+import torch
+
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+model = BertForPreTraining.from_pretrained("bert-base-uncased")
+model.state_dict()['cls.seq_relationship.weight'].shape
