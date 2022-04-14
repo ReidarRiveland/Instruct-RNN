@@ -16,15 +16,17 @@ class HoldoutDataFrame():
     def __post_init__(self):
         self.load_data()
 
-    def get_0_shot(self, task): 
-        return self.data[:, task, 0]
+    def get_k_shot(self, k, task=None): 
+        if task is None: 
+            return self.data[:, :, k]
+        else: 
+            return self.data[:,Task.TASK_LIST.index(task),k]
 
     def get_seed(self, seed: int): 
         return self.data[seed, ...]
 
     def get_task(self, task:str): 
-        index = Task.TASK_LIST.index(task)
-        return self.data[:, index, :]
+        return self.data[:, Task.TASK_LIST.index(task), :]
 
     def load_data(self): 
         data = np.empty((5, len(Task.TASK_LIST), 100)) #seeds, task, num_batches        
@@ -40,7 +42,15 @@ class HoldoutDataFrame():
         super().__setattr__('data', data)
         
 
-gptNet_holdout_data  = HoldoutDataFrame('_ReLU128_4.11/swap_holdouts', 'gptNet', 'correct')
+gptNet_holdout_data  = HoldoutDataFrame('_ReLU128_4.11/swap_holdouts', 'sbertNet_tuned', 'correct')
+
+np.mean(gptNet_holdout_data.get_k_shot(0))
+
+holdout_data = gptNet_holdout_data.data
+
+np.mean(holdout_data[:, :, 0])
+
+np.mean(holdout_data[:, :, 0])
 
 np.mean(gptNet_holdout_data.get_())
 
