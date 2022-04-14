@@ -1,3 +1,4 @@
+from sqlalchemy import over
 import torch
 from torch import optim
 import numpy as np
@@ -54,7 +55,7 @@ class TrainerConfig():
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
     scheduler_args: dict = {'gamma': 0.95}
 
-    save_for_tuning_epoch: int = None
+    save_for_tuning_epoch: int = 30
     checker_threshold: float = 0.95
     step_last_lr: bool = True
 
@@ -197,30 +198,37 @@ class Trainer():
         warnings.warn('Model has not reach specified performance threshold during training')
         return False
 
-####NEED TO HANDLE RANDOM SEEDING PROPERLY
-def train_model_set(model_names, seeds=range(5), all_holdouts=training_lists_dict['swap_holdouts']+['Multitask']): 
+def check_already_trained(file_name, seed): 
+    try: 
+        pickle.load(open(file_name+'/seed'+str(seed)+'_training_correct', 'rb'))
+        return True
+    except FileNotFoundError:
+        return False
+
+def train_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_config_kwargs): 
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
             for holdouts in all_holdouts: 
-
-                if 'Multitask' in holdouts: epochs, save_for_tuning_epoch = 55, 45
-                else: epochs, save_for_tuning_epoch = 35, 30
-
+                file_name = EXP_FILE+'/'+get_holdout_file_name(holdouts)+'/'+model_name
+                
+                if check_already_trained(file_name, seed) and not overwrite:
+                    print('Model at ' + file_name + ' for seed '+str(seed)+' aleady trained')
+                    continue 
+                
                 model = make_default_model(model_name)
-                trainer_config = TrainerConfig(EXP_FILE+'/'+get_holdout_file_name(holdouts)+'/'+model.model_name, 
-                                                    random_seed=seed, holdouts=holdouts, epochs = epochs, 
-                                                    save_for_tuning_epoch=save_for_tuning_epoch)
+                trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
                 trainer = Trainer(trainer_config)
                 is_trained = trainer.train(model)
-
                 if not is_trained: inspection_list.append((model.model_name, seed))
+                del model
 
+    return inspection_list
 
 
 #save training data when checkpointing!
-train_model_set(['gptNeoNet', 'clipNet'])            
+train_model_set(['gptNeoNet', 'clipNet'], range(5), training_lists_dict['swap_holdouts'])            
 
 
 
