@@ -7,7 +7,7 @@ from transformers import CLIPTokenizer, CLIPTextModel
 from transformers import BertModel, BertTokenizer
 from transformers import GPTNeoForCausalLM
 
-from utils.utils import sort_vocab
+from utils.task_info_utils import sort_vocab
 
 class InstructionEmbedder(nn.Module): 
     def __init__(self, config): 

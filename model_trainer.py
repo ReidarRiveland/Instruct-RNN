@@ -5,7 +5,9 @@ from yaml import warnings
 
 from models.full_models import make_default_model
 from dataset import TaskDataSet
-from utils.utils import get_holdout_file_name, isCorrect, get_task_info, training_lists_dict
+from task import isCorrect
+from utils.utils import get_holdout_file_name, training_lists_dict
+from utils.task_info_utils import get_task_info
 
 import pickle
 import copy
@@ -184,7 +186,7 @@ class Trainer():
                     self._record_session(model, mode='CHECKPOINT')
                     self._print_training_status(task_type)
 
-                if self.check_model_training():
+                if self._check_model_training():
                     self._record_session(model, mode='FINAL')
                     return True
 

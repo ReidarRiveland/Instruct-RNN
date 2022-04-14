@@ -3,12 +3,12 @@ import torch
 import numpy as np
 
 from utils.utils import task_swaps_map
+from utils.task_info_utils import train_instruct_dict, get_task_info
 
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.stats import spearmanr
 
-from task import Task, construct_batch, make_test_trials
-from utils.utils import isCorrect, train_instruct_dict, get_task_info
+from task import Task, construct_batch, make_test_trials, isCorrect
 
 task_list = Task.TASK_LIST
 swapped_task_list = Task.SWAPPED_TASK_LIST

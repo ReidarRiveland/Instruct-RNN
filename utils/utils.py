@@ -1,17 +1,7 @@
-from functools import reduce
-import numpy as np
-import pickle
-from numpy.linalg import norm
-
-import torch
-import itertools
-
 from task import Task
 task_list = Task.TASK_LIST
 swapped_task_list = Task.SWAPPED_TASK_LIST
 tuning_dirs = Task.TUNING_DIRS
-
-from collections import Counter
 
 training_lists_dict={
 'single_holdouts' :  [[item] for item in Task.TASK_LIST.copy()+['Multitask']],
@@ -56,87 +46,3 @@ def get_holdout_file_name(holdouts):
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) 
-
-
-def load_holdout_data(foldername, model_list): 
-    #for each model name in the dict entry 
-    data_dict = dict.fromkeys(model_list)
-
-    for model_name in model_list: 
-        model_data_dict = {}
-        for mode in ['swap', '']:
-            holdout_data = np.empty((2, 5, len(Task.TASK_LIST), 100))
-            #training_data = np.empty((len(seeds), 4, 100))
-
-            for i in range(5):
-                seed_name = 'seed' + str(i)
-
-                for j, task in enumerate(task_list):
-                    holdout_file = task.replace(' ', '_')
-                    task_file = task_swaps_map[task]
-                    holdout_file += '_'
-
-                    try:
-                        holdout_data[0, i, j, :] = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+mode+holdout_file+seed_name+'_holdout_correct', 'rb'))
-                        holdout_data[1, i, j, :] = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+mode+holdout_file+seed_name+'_holdout_loss', 'rb'))
-                    except FileNotFoundError: 
-                        print('No training data for '+ model_name + ' '+seed_name+' '+mode+task)
-                        #print(foldername+'/'+task_file+'/'+model_name+'/'+holdout_file+seed_name)
-                        continue 
-            model_data_dict[mode] = holdout_data
-        data_dict[model_name] = model_data_dict
-    return data_dict
-
-def load_training_data(foldername, model_list): 
-    #for each model name in the dict entry 
-    data_dict = dict.fromkeys(model_list)
-
-    for model_name in model_list: 
-        training_data = np.full((2, 5, len(all_swaps), len(task_list), 2000), np.NaN)
-        for i in range(5):
-            seed_name = 'seed' + str(i)
-            for j, task_file in enumerate(all_swaps+['Multitask']):
-                try:
-                    correct_dict = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+seed_name+'_training_correct', 'rb'))
-                    loss_dict = pickle.load(open(foldername+'/'+task_file+'/'+model_name+'/'+seed_name+'_training_loss', 'rb'))
-                except FileNotFoundError: 
-                    print('No folder for '+ foldername+'/'+task_file+'/'+model_name+'/'+seed_name)
-                    continue
-
-                for k, task in enumerate(task_list): 
-                    try:
-                        num_examples = len(correct_dict[task])
-                        training_data[0, i, j, k,:num_examples] = correct_dict[task]
-                        training_data[1, i, j, k, :num_examples] = loss_dict[task]
-                    except: 
-                        print('No training data for '+ model_name + ' '+seed_name+' '+task)
-                        print(foldername+'/'+task_file+'/'+model_name+'/'+seed_name)
-                        continue 
-        data_dict[model_name] = training_data
-    return data_dict
-
-def load_context_training_data(foldername, model_list, train_mode=''): 
-    #for each model name in the dict entry 
-    data_dict = dict.fromkeys(model_list)
-
-    for model_name in model_list: 
-        training_data = np.full((2, 5, len(all_swaps)+1, len(task_list), 20000), np.NaN)
-        for i in range(5):
-            seed_name = 'seed' + str(i)
-            for j, task_file in enumerate(all_swaps+['Multitask']):
-                file_prefix = foldername+'/'+task_file+'/'+model_name+'/contexts/'+seed_name+'/'
-
-                for k, task in enumerate(task_list): 
-
-                    try:
-                        correct_dict = pickle.load(open(file_prefix+task+'_'+train_mode+'context_correct_data20', 'rb'))
-                        loss_dict = pickle.load(open(file_prefix+task+'_'+train_mode+'context_loss_data20', 'rb'))
-                        num_examples = len(correct_dict[task])
-                        training_data[0, i, j, k,:num_examples] = correct_dict[task]
-                        training_data[1, i, j, k, :num_examples] = loss_dict[task]
-                    except FileNotFoundError: 
-                        print('No training data for '+ model_name + ' '+seed_name+' '+task)
-                        print(foldername+'/'+task_file+'/'+model_name+'/'+seed_name)
-                        continue 
-        data_dict[model_name] = training_data
-    return data_dict
