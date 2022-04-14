@@ -1,6 +1,6 @@
 from sqlalchemy import over
 import torch
-from torch import optim
+from torch import Tensor, optim
 import numpy as np
 from yaml import warnings
 
@@ -22,7 +22,7 @@ device = torch.device(0)
 
 EXP_FILE = '13.4models/swap_holdouts'
 
-def masked_MSE_Loss(nn_out, nn_target, mask):
+def masked_MSE_Loss(nn_out: Tensor, nn_target: Tensor, mask: Tensor):
     """MSE loss (averaged over features then time) function with special weighting mask that prioritizes loss in response epoch 
     Args:      
         nn_out (Tensor): output tensor of neural network model; shape: (batch_num, seq_len, features)
@@ -48,6 +48,7 @@ class TrainerConfig():
     holdouts: list = []
     set_single_task: str = None
 
+    optim_alg: optim = optim.Adam
     lr: float = 0.001
     lang_lr: float = None
     weight_decay: float = 0.0
@@ -60,7 +61,7 @@ class TrainerConfig():
     step_last_lr: bool = True
 
 class Trainer(): 
-    def __init__(self, training_config=None, from_checkpoint_dict=None): 
+    def __init__(self, training_config:TrainerConfig=None, from_checkpoint_dict:dict=None): 
         assert not training_config is None and from_checkpoint_dict is None, \
             'trainer must be initialized from training_config or from a checkpoint'
 
@@ -77,7 +78,6 @@ class Trainer():
         for name, value in asdict(self.config, recurse=False).items(): 
             setattr(self, name, value)
 
-        torch.manual_seed(self.random_seed)
         self.seed_suffix = 'seed'+str(self.random_seed)
 
     def _init_streamer(self):
@@ -86,16 +86,16 @@ class Trainer():
                         self.holdouts, 
                         self.set_single_task)
 
-    def _init_optimizer(self, model, optim_alg=optim.Adam):
+    def _init_optimizer(self, model):
         if model.is_instruct:
             if self.lang_lr is None: langLR = self.lr 
-            optimizer = optim_alg([
+            optimizer = self.optim_alg([
                     {'params' : model.recurrent_units.parameters()},
                     {'params' : model.sensory_motor_outs.parameters()},
                     {'params' : model.langModel.parameters(), 'lr': langLR}
                 ], lr=self.lr, weight_decay=self.weight_decay)
         else: 
-            optimizer = optim_alg(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+            optimizer = self.optim_alg(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
 
         self.optimizer = optimizer
         self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
@@ -120,7 +120,6 @@ class Trainer():
         print('\n MODEL SAVED FOR TUNING')
 
     def _record_session(self, model, mode='CHECKPOINT'): 
-        assert mode in ['CHECKPOINT', 'FINAL']
         record_attrs = ['config', 'optimizer', 'scheduler', 'cur_epoch', 'cur_step', 'correct_data', 'loss_data']
         checkpoint_attrs = {}
         for attr in record_attrs: 
