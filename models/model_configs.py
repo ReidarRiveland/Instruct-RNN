@@ -34,7 +34,7 @@ class InstructModelConfig(BaseModelConfig):
     @_rnn_in_dim.default
     def _set_rnn_in_dim(self):
         return self.LM_config.LM_out_dim + SENSORY_INPUT_DIM
-    _is_instruct: bool = True
+    is_instruct: bool = True
 
 @define
 class RuleModelConfig(BaseModelConfig): 
@@ -44,7 +44,7 @@ class RuleModelConfig(BaseModelConfig):
     @_rnn_in_dim.default
     def _set_rnn_in_dim(self):
             return self._rule_dim + SENSORY_INPUT_DIM
-    _is_instruct: bool = False
+    is_instruct: bool = False
 
 
 

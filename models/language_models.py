@@ -1,16 +1,13 @@
-from typing import OrderedDict
-from matplotlib.pyplot import get
-from numpy.lib import utils
 import torch
 import torch.nn as nn
 from attrs import asdict
 
-from transformers import GPT2Model, GPT2Tokenizer
+from transformers import GPT2Model, GPT2Tokenizer, GPTNeoForCausalLM
 from transformers import CLIPTokenizer, CLIPTextModel
 from transformers import BertModel, BertTokenizer
-from transformers import GPTNeoModel
+from transformers import GPTNeoForCausalLM
 
-from utils import sort_vocab
+from utils.utils import sort_vocab
 
 class InstructionEmbedder(nn.Module): 
     def __init__(self, config): 
@@ -45,13 +42,16 @@ class TransformerEmbedder(InstructionEmbedder):
     def __init__(self, config): 
         super().__init__(config)
 
-    def forward_transformer(self, x): 
+    def tokens_to_tensor(self, x):
         tokens = self.tokenizer(x, return_tensors='pt', padding=True)
         for key, value in tokens.items():
             tokens[key] = value.to(self.__device__)
+        return tokens
 
+    def forward_transformer(self, x): 
+        tokens = self.tokens_to_tensor(x)
         trans_out = self.transformer(**tokens)
-        return self.reducer(trans_out.last_hidden_state, dim=1), trans_out[2]
+        return self._reducer(trans_out.last_hidden_state, dim=1), trans_out[2]
 
     def forward(self, x): 
         return self.proj_out(self.forward_transformer(x)[0])
@@ -63,7 +63,7 @@ class BERT(TransformerEmbedder):
         self.tokenizer = BertTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
         ###USING EOS BUT NOT INITIALIZAED?
-        self.tokenizer.pad_token = self.tokenizer.eos_token
+        #self.tokenizer.pad_token = self.tokenizer.eos_token
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
@@ -73,7 +73,7 @@ class SBERT(TransformerEmbedder):
         self.transformer = BertModel.from_pretrained('bert-base-uncased', output_hidden_states=True)
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
-        self.tokenizer.pad_token = self.tokenizer.eos_token
+        #self.tokenizer.pad_token = self.tokenizer.eos_token
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
@@ -102,15 +102,21 @@ class CLIP(TransformerEmbedder):
         self.transformer = CLIPTextModel.from_pretrained(self.LM_load_str)
         self.tokenizer = CLIPTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
-        self.tokenizer.pad_token = self.tokenizer.eos_token
+        #self.tokenizer.pad_token = self.tokenizer.eos_token
+        self._reducer = None
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
+
+    def forward_transformer(self, x):
+        tokens = self.tokens_to_tensor(x)
+        trans_out = self.transformer(**tokens, output_hidden_states=True)
+        return trans_out.pooler_output, trans_out.hidden_states
 
 class GPTNeo(TransformerEmbedder): 
     def __init__(self, config): 
         super().__init__(config)
-        self.transformer = GPTNeoModel.from_pretrained("EleutherAI/gpt-neo-1.3B", output_hidden_states=True)
-        self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        self.transformer = GPTNeoForCausalLM.from_pretrained(self.LM_load_str, output_hidden_states=True).transformer
+        self.tokenizer = GPT2Tokenizer.from_pretrained("EleutherAI/gpt-neo-1.3B")
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.set_train_layers(self.LM_train_layers)
@@ -135,6 +141,5 @@ class BoW(InstructionEmbedder):
         freq_tensor = torch.stack(tuple(map(self.make_freq_tensor, x))).to(self.__device__)
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
-
 
 

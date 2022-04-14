@@ -11,10 +11,10 @@ from numpy.lib.function_base import append
 from numpy.ma import cos
 import transformers
 
-from utils import train_instruct_dict
+from utils.utils import train_instruct_dict
 from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_layer_sim_scores, get_hid_var_group_resp, get_hid_var_resp, get_all_CCGP
 import numpy as np
-from utils import train_instruct_dict, task_swaps_map, all_models
+from utils.utils import train_instruct_dict, task_swaps_map, all_models
 from task import DM
 from plotting import plot_RDM, plot_rep_scatter, plot_CCGP_scores, plot_model_response, plot_hid_traj_quiver, plot_dPCA, plot_neural_resp, plot_trained_performance, plot_tuning_curve
 import torch
@@ -88,15 +88,15 @@ pooled_output.unsqueeze(0)[0].shape
 
 
 from models.full_models import CLIPNet, BERTNet_tuned, GPTNet
-from utils import task_swaps_map
+from utils.utils import task_swaps_map
 from model_analysis import get_model_performance
 
 gptNet = GPTNet()
 EXP_FILE = '13.4models/swap_holdouts'
-holdouts = task_swaps_map['Go']
-gptNet.load_model(EXP_FILE+'/'+holdouts+'/gptNet', suffix='_seed0_CHECKPOINT')
+holdouts = task_swaps_map['Anti RT Go']
+gptNet.load_model(EXP_FILE+'/'+holdouts+'/gptNet', suffix='_seed0')
 perf = get_model_performance(gptNet, 1)
-
+perf
 
 
 from transformers import BertTokenizer, BertForPreTraining

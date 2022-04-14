@@ -2,7 +2,7 @@ import itertools
 from model_trainer import config_model
 import numpy as np
 import torch.optim as optim
-from utils import task_swaps_map, training_lists_dict
+from utils.utils import task_swaps_map, training_lists_dict
 from task import Task
 from data import TaskDataSet
 from decoder_models import DecoderRNN, gptDecoder

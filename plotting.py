@@ -12,7 +12,7 @@ task_list = Task.TASK_LIST
 task_group_dict = Task.TASK_GROUP_DICT
 
 from model_analysis import get_hid_var_resp
-from utils import isCorrect, train_instruct_dict, test_instruct_dict, two_line_instruct, task_swaps_map, task_colors, MODEL_STYLE_DICT, all_swaps, load_training_data, load_holdout_data, all_models, load_context_training_data
+from utils.utils import isCorrect, train_instruct_dict, test_instruct_dict, two_line_instruct, task_swaps_map, task_colors, MODEL_STYLE_DICT, all_swaps, load_training_data, load_holdout_data, all_models, load_context_training_data
 
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
@@ -718,10 +718,10 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, num_repeats = 1
 if __name__ == "__main__":
     from multitasking_models.language_models import SBERT, BERT
     from multitasking_models.sensorimotor_models import InstructNet, SimpleNet
-    from utils import train_instruct_dict
+    from utils.utils import train_instruct_dict
     from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_sim_scores, get_hid_var_group_resp
     import numpy as np
-    from utils import train_instruct_dict, task_swaps_map
+    from utils.utils import train_instruct_dict, task_swaps_map
     from task import DM
 
 

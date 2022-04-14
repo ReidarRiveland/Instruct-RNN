@@ -1,7 +1,7 @@
 import numpy as np
 
 from plotting import plot_RDM, plot_avg_curves, plot_k_shot_learning, plot_model_response, plot_task_curves, plot_trained_performance, plot_rep_scatter, plot_tuning_curve, plot_neural_resp, plot_CCGP_scores, plot_hid_traj, plot_val_performance, plot_RDM
-from utils import all_models, task_swaps_map, train_instruct_dict, test_instruct_dict
+from utils.utils import all_models, task_swaps_map, train_instruct_dict, test_instruct_dict
 
 from model_trainer import config_model
 from model_analysis import get_layer_sim_scores, get_model_performance, get_multitask_val_performance, get_task_reps, reduce_rep, get_instruct_reps, get_hid_var_group_resp
@@ -231,7 +231,7 @@ plot_hid_traj(hid_reps, 'COMP', [0, 1], [0], [0], s=5)
 
 
 from model_analysis import get_instruct_reps
-from utils import task_swaps_map
+from utils.utils import task_swaps_map
 
 plot_list = [('Anti Go', 'Go'), ('Anti DM', 'DM'), ('COMP2', 'COMP'), ('DMC', 'Delay')]
 

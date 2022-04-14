@@ -1,6 +1,6 @@
 import numpy as np
 
-from utils import isCorrect, get_holdout_file, training_lists_dict, all_swaps, train_instruct_dict
+from utils.utils import isCorrect, get_holdout_file, training_lists_dict, all_swaps, train_instruct_dict
 from model_trainer import masked_MSE_Loss, config_model, ALL_MODEL_PARAMS
 from data import TaskDataSet
 from task import Task

@@ -1,22 +1,14 @@
-import enum
 from matplotlib.pyplot import axis
-import scipy
 import torch
 import numpy as np
-from torch._C import device
-from torch.nn.modules import transformer
-from torch.random import seed
-from utils import task_swaps_map
 
-from sklearn import svm, metrics
+from utils.utils import task_swaps_map
+
 from sklearn.metrics.pairwise import cosine_similarity
-from scipy.spatial.distance import dice
 from scipy.stats import spearmanr
 
 from task import Task, construct_batch, make_test_trials
-from data import TaskDataSet
-from utils import isCorrect, train_instruct_dict
-from data import TaskDataSet
+from utils.utils import isCorrect, train_instruct_dict, get_task_info
 
 task_list = Task.TASK_LIST
 swapped_task_list = Task.SWAPPED_TASK_LIST
@@ -25,10 +17,11 @@ task_group_dict = Task.TASK_GROUP_DICT
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
+
 def task_eval(model, task, batch_size): 
     ins, targets, _, target_dirs, _ = construct_batch(task, batch_size)
-    task_info = model.get_task_info(batch_size, task)
-    out, _ = model(task_info, torch.Tensor(ins).to(model.__device__))
+    task_info = get_task_info(batch_size, task, model.is_instruct)
+    out, _ = model(torch.Tensor(ins).to(model.__device__), task_info)
     return np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
 def get_model_performance(model, num_batches): 
@@ -248,7 +241,7 @@ if __name__ == "__main__":
 
     from model_trainer import config_model
     import pickle
-    from utils import all_models
+    from utils.utils import all_models
     model_file = '_ReLU128_4.11'
 
     ###GET ALL MODEL CCGPs###

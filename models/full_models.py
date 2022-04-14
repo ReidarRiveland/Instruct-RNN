@@ -1,9 +1,14 @@
-from xml.parsers.expat import model
 from models.language_models import GPT, BERT, SBERT, GPTNeo, BoW, CLIP
 from models.sensorimotor_models import RuleNet, InstructNet
 from models.model_configs import RuleModelConfig, InstructModelConfig, LMConfig
 
-_all_models = ['sbertNet_tuned', 'sbertNet', 'bertNet_tuned', 'bertNet', 'gptNet_tuned', 'gptNet', 'bowNet', 'simpleNet']
+_all_models = ['clipNet', 'clipNet_tuned', 
+            'sbertNet_tuned', 'sbertNet', 
+            'bertNet_tuned', 'bertNet', 
+            'gptNet_tuned', 'gptNet', 
+            'gptNeoNet', 'gptNeoNet_tuned', 
+            'bowNet', 
+            'simpleNet']
 
 class SimpleNet(RuleNet):
     DEFAULT_CONFIG = RuleModelConfig(model_name = 'simpleNet')
@@ -75,6 +80,30 @@ class SBERTNet_tuned(InstructNet):
     def __init__(self, config=DEFAULT_CONFIG): 
         super().__init__(config)
 
+class GPTNeoNet(InstructNet):
+    DEFAULT_CONFIG = InstructModelConfig(model_name = 'gptNeoNet', 
+                        LM_class=GPTNeo, 
+                        LM_config=LMConfig(
+                                LM_load_str = "EleutherAI/gpt-neo-1.3B",
+                                LM_train_layers=[])
+                                )
+
+    def __init__(self, config=DEFAULT_CONFIG): 
+        super().__init__(config)
+        
+
+class GPTNeoNet_tuned(InstructNet):
+    DEFAULT_CONFIG = InstructModelConfig(model_name = 'gptNeoNet_tuned', 
+                        LM_class=GPTNeo, 
+                        LM_config=LMConfig(
+                                LM_load_str = "EleutherAI/gpt-neo-1.3B",
+                                LM_train_layers=['21', '22', '23', 'ln_f'])
+                                )
+
+    def __init__(self, config=DEFAULT_CONFIG): 
+        super().__init__(config)
+        
+
 class CLIPNet(InstructNet):
     DEFAULT_CONFIG = InstructModelConfig(model_name = 'clipNet', 
                         LM_class=CLIP, 
@@ -127,6 +156,14 @@ def make_default_model(model_str):
         return SBERTNet()
     if model_str == 'sbertNet_tuned': 
         return SBERTNet_tuned()
+    if model_str == 'gptNeoNet': 
+        return GPTNeoNet()
+    if model_str == 'gptNeoNet_tuned': 
+        return GPTNeoNet_tuned()
+    if model_str == 'clipNet': 
+        return CLIPNet()
+    if model_str == 'clipNet_tuned': 
+        return CLIPNet_tuned()
     if model_str == 'bowNet': 
         return BoWNet()
 

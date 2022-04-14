@@ -1,17 +1,8 @@
-from pyexpat import model
-import numpy as np
 import torch
-from torch._C import device
 import torch.nn as nn
-import numpy as np
-from task import Task
-
-from collections import defaultdict
 from attrs import asdict
-
-import pandas as pd
 import pickle
-from script_gru import ScriptGRU
+from models.script_gru import ScriptGRU
 
 class BaseNet(nn.Module): 
     def __init__(self, config):
@@ -36,11 +27,9 @@ class BaseNet(nn.Module):
         self.recurrent_units.__weights_init__()
         self.__device__ = torch.device('cpu')
 
-        self.foldername=None
-
     def __initHidden__(self, batch_size):
-        return torch.full((self.num_layers, batch_size, self.hid_dim), 
-                self.hiddenInitValue, device=self.__device__.type)
+        return torch.full((self.rnn_layers, batch_size, self.rnn_hidden_dim), 
+                self.rnn_hiddenInitValue, device=self.__device__.type)
 
     def forward(self, x, task_info, t=120): 
         h0 = self.__initHidden__(x.shape[0])
@@ -54,26 +43,14 @@ class BaseNet(nn.Module):
         for p in self.parameters(): 
             p.requires_grad=False
 
-    def set_file_path(self, foldername, seed_num): 
-        self.seed_num = seed_num
-        self.seed_num_str = 'seed'+str(seed_num)
-        self.foldername = foldername
-        self.data_file_path = foldername+'/'+self.model_name+'/'+self.seed_num_str
-        self.model_file_path = foldername+'/'+self.model_name+'/'+self.model_name+'_'+self.seed_num_str+'.pt'
+    def save_model(self, file_path, suffix=''): 
+        torch.save(self.state_dict(),
+            file_path+'/'+self.model_name+suffix+'.pt')
 
-    def save_training_data(self): 
-        pickle.dump(self._correct_data_dict, open(self.file_path+'_training_correct', 'wb'))
-        pickle.dump(self._loss_data_dict, open(self.file_path+'_training_loss', 'wb'))
-
-    def save_model(self): 
-        torch.save(self.state_dict(), self.model_file_path)
-
-    def load_model(self): 
-        self.load_state_dict(torch.load(self.model_file_path, map_location='cpu'))
-
-    def reset_training_data(self): 
-        self._loss_data_dict = defaultdict(list)
-        self._correct_data_dict = defaultdict(list)
+    def load_model(self, file_path, suffix=''): 
+        self.load_state_dict(torch.load(
+            file_path+'/'+self.model_name+suffix+'.pt', 
+            map_location='cpu'))
 
     def to(self, cuda_device): 
         super().to(cuda_device)

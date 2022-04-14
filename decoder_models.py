@@ -6,12 +6,12 @@ from torch.distributions.utils import logits_to_probs
 from torch.nn.modules.pooling import MaxPool1d
 from transformers.utils.dummy_pt_objects import Conv1D
 from model_trainer import config_model
-from utils import train_instruct_dict
+from utils.utils import train_instruct_dict
 from model_analysis import reduce_rep
 from plotting import plot_rep_scatter
-from utils import sort_vocab, isCorrect, inv_train_instruct_dict, count_vocab, training_lists_dict, get_holdout_file
+from utils.utils import sort_vocab, isCorrect, inv_train_instruct_dict, count_vocab, training_lists_dict, get_holdout_file
 from task import Task, construct_batch
-from script_gru import CustomGRU
+from models.script_gru import CustomGRU
 from context_trainer import ContextTrainer
 from data import TaskDataSet
 import torch.optim as optim
