@@ -5,6 +5,7 @@ import numpy as np
 from yaml import warnings
 
 from models.full_models import make_default_model
+from base_trainer import BaseTrainer, masked_MSE_Loss
 from dataset import TaskDataSet
 from task import isCorrect
 from utils.utils import get_holdout_file_name, training_lists_dict
@@ -12,30 +13,14 @@ from utils.task_info_utils import get_task_info
 
 import pickle
 import copy
-from collections import defaultdict
 from tqdm import tqdm
-from attrs import define, asdict
+from attrs import define
 import os
 import warnings
 
 device = torch.device(0)
 
 EXP_FILE = '13.4models/swap_holdouts'
-
-def masked_MSE_Loss(nn_out: Tensor, nn_target: Tensor, mask: Tensor):
-    """MSE loss (averaged over features then time) function with special weighting mask that prioritizes loss in response epoch 
-    Args:      
-        nn_out (Tensor): output tensor of neural network model; shape: (batch_num, seq_len, features)
-        nn_target (Tensor): batch supervised target responses for neural network response; shape: (batch_num, seq_len, features)
-        mask (Tensor): masks of weights for loss; shape: (batch_num, seq_len, features)
-    
-    Returns:
-        Tensor: weighted loss of neural network response; shape: (1x1)
-    """
-
-    mask_applied = torch.mul(torch.pow((nn_out - nn_target), 2), mask)
-    avg_applied = torch.mean(torch.mean(mask_applied, 2), 1)
-    return torch.mean(avg_applied)
 
 @define
 class TrainerConfig(): 
@@ -46,7 +31,6 @@ class TrainerConfig():
     batch_len: int = 128
     num_batches: int = 500
     holdouts: list = []
-    set_single_task: str = None
 
     optim_alg: optim = optim.Adam
     lr: float = 0.001
@@ -60,31 +44,28 @@ class TrainerConfig():
     checker_threshold: float = 0.95
     step_last_lr: bool = True
 
-class Trainer(): 
+class ModelTrainer(BaseTrainer): 
     def __init__(self, training_config:TrainerConfig=None, from_checkpoint_dict:dict=None): 
-        assert not training_config is None and from_checkpoint_dict is None, \
-            'trainer must be initialized from training_config or from a checkpoint'
+        super().__init__(training_config, from_checkpoint_dict)
 
-        if from_checkpoint_dict is not None: 
-            for name, value in from_checkpoint_dict.items(): 
-                setattr(self, name, value)
-        else: 
-            self.config = training_config
-            self.cur_epoch = 0 
-            self.cur_step = 0
-            self.correct_data = defaultdict(list)
-            self.loss_data = defaultdict(list)
+    def _record_session(self, model, mode='CHECKPOINT'): 
+        checkpoint_attrs = super()._record_session()
+        if mode == 'CHECKPOINT':
+            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+'_CHECKPOINT_attrs', 'wb'))
+            model.save_model(self.file_path, suffix='_'+self.seed_suffix+'_CHECKPOINT')
 
-        for name, value in asdict(self.config, recurse=False).items(): 
-            setattr(self, name, value)
-
-        self.seed_suffix = 'seed'+str(self.random_seed)
+        if mode=='FINAL': 
+            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+'_attrs', 'wb'))
+            os.remove(self.file_path+'/'+self.model_file_path+'_CHECKPOINT_attrs')
+            pickle.dump(self.loss_data, open(self.file_path+'/'+self.seed_suffix+'_training_loss', 'wb'))
+            pickle.dump(self.correct_data, open(self.file_path+'/'+self.seed_suffix+'_training_correct', 'wb'))
+            model.save_model(self.file_path, suffix='_'+self.seed_suffix)
+            os.remove(self.file_path+'/'+model.model_name+'_'+self.seed_suffix+'_CHECKPOINT.pt')
 
     def _init_streamer(self):
         self.streamer = TaskDataSet(self.batch_len, 
                         self.num_batches, 
-                        self.holdouts, 
-                        self.set_single_task)
+                        self.holdouts)
 
     def _init_optimizer(self, model):
         if model.is_instruct:
@@ -102,51 +83,12 @@ class Trainer():
         self.step_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, 
                             milestones=[self.epochs-5, self.epochs-2, self.epochs-1], gamma=0.25)
 
-    def _check_model_training(self, duration=3): 
-        min_run_elapsed = (self.cur_epoch >= self.min_run_epochs) or \
-                            (self.cur_epoch == self.min_run_epochs-1 and self.cur_step == self.num_batches-1)
-        if min_run_elapsed: 
-            latest_perf = np.array([task_perf[-duration:] for task_perf in self.correct_data.values()])
-            threshold_reached = np.all(latest_perf>self.checker_threshold)
-            return threshold_reached 
-        else: 
-            return False
-
     def _save_for_tuning(self, model): 
         model_for_tuning = copy.deepcopy(model)
         cur_data_dict = {'correct_data': self.correct_data, 'loss_data': self.loss_data}
         pickle.dump(cur_data_dict, open(self.file_path+'/'+self.seed_suffix+'training_data_FOR_TUNING', 'wb'))
         model_for_tuning.save_model(self.file_path, suffix='_'+self.seed_suffix+'_FOR_TUNING')
         print('\n MODEL SAVED FOR TUNING')
-
-    def _record_session(self, model, mode='CHECKPOINT'): 
-        record_attrs = ['config', 'optimizer', 'scheduler', 'cur_epoch', 'cur_step', 'correct_data', 'loss_data']
-        checkpoint_attrs = {}
-        for attr in record_attrs: 
-            checkpoint_attrs[attr]=getattr(self, attr)
-
-        if mode == 'CHECKPOINT':
-            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+'_CHECKPOINT_attrs', 'wb'))
-            model.save_model(self.file_path, suffix='_'+self.seed_suffix+'_CHECKPOINT')
-
-        if mode=='FINAL': 
-            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+'_attrs', 'wb'))
-            os.remove(self.file_path+'/'+self.model_file_path+'_CHECKPOINT_attrs')
-            pickle.dump(self.loss_data, open(self.file_path+'/'+self.seed_suffix+'_training_loss', 'wb'))
-            pickle.dump(self.correct_data, open(self.file_path+'/'+self.seed_suffix+'_training_correct', 'wb'))
-            model.save_model(self.file_path, suffix='_'+self.seed_suffix)
-            os.remove(self.file_path+'/'+model.model_name+'_'+self.seed_suffix+'_CHECKPOINT.pt')
-
-    def _log_step(self, task_type, frac_correct, loss): 
-        self.correct_data[task_type].append(frac_correct)
-        self.loss_data[task_type].append(loss)
-    
-    def _print_training_status(self, task_type):
-        print('\n Training Step: ' + str(self.cur_step)+
-                ' ----- Task Type: '+task_type+
-                ' ----- Performance: ' + str(self.correct_data[task_type][-1])+
-                ' ----- Loss: ' + "{:.3e}".format(self.loss_data[task_type][-1])
-                )
 
     def train(self, model, is_tuning=False): 
         model.to(device)
@@ -218,9 +160,10 @@ def train_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_c
                 
                 model = make_default_model(model_name)
                 trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
-                trainer = Trainer(trainer_config)
+                trainer = ModelTrainer(trainer_config)
                 is_trained = trainer.train(model)
                 if not is_trained: inspection_list.append((model.model_name, seed))
+                del trainer
                 del model
 
     return inspection_list

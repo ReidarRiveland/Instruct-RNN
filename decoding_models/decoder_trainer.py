@@ -4,8 +4,8 @@ import numpy as np
 import torch.optim as optim
 from utils.utils import task_swaps_map, training_lists_dict
 from task import Task
-from data import TaskDataSet
-from decoder_models import DecoderRNN, gptDecoder
+from dataset import TaskDataSet
+from decoding_models.decoder_models import DecoderRNN, gptDecoder
 import pickle
 
 import torch
@@ -45,9 +45,6 @@ def train_rnn_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_
             target_instruct = sm_model.get_task_info(batch_size, task_type)
 
             target_tensor = decoder.tokenizer(target_instruct).to(device)
-
-            
-
             _, sm_hidden = sm_model.forward(ins.to(device), target_instruct)
 
             opt.zero_grad()
@@ -114,87 +111,6 @@ def train_rnn_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_
     return loss_list, teacher_loss_list
 
 
-
-def train_gpt_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=None): 
-    data_streamer = TaskDataSet(batch_len = 64, num_batches = 800, holdouts=holdout_tasks)
-
-    criterion = nn.NLLLoss(reduction='none')
-    teacher_forcing_ratio = init_teacher_forcing_ratio
-    loss_list = []
-    teacher_loss_list = []
-    batch_size=64
-
-    for i in range(epochs): 
-        print('Epoch: ' + str(i)+'\n')
-        
-        for j, data in enumerate(data_streamer.stream_batch()): 
-            use_teacher_forcing = True if np.random.random() < teacher_forcing_ratio else False
-            
-            ins, tar, _, tar_dir, task_type = data
-
-            target_instruct = sm_model.get_task_info(batch_size, task_type)
-
-            pad_len = max([len(instruct.split(' ')) for instruct in target_instruct])+3
-            # if type(rnn_decoder) is DecoderRNN: 
-            # else: token_kargs = 
-            tokenized_targets = decoder.tokenizer(target_instruct, padding= 'max_length', return_tensors='pt')
-            target_ids = tokenized_targets.input_ids
-
-            _, sm_hidden = sm_model.forward(ins.to(device), target_instruct)
-
-            opt.zero_grad()
-
-            if use_teacher_forcing:
-                decoded_indices = torch.Tensor([]).to(device)
-                decoder_loss = 0
-                past_keys = None
-                # Teacher forcing: Feed the target as the next input
-                for di in range(pad_len-1):
-                    mask = tokenized_targets.attention_mask[:, :di+1]
-                    outputs = decoder._base_forward(sm_hidden.to(device), input_ids=target_ids[:, di].unsqueeze(1).to(device), past_keys=past_keys)
-                    #get words for last sentence in the batch
-                    logits = outputs.logits
-                    past_keys = outputs.past_key_values
-                    scores = decoder.softmax(logits)
-                    last_logits = logits[:, -1, :]
-                    input_ids = decoder.draw_next(last_logits, decoded_indices)
-                    decoded_indices = torch.cat((decoded_indices, input_ids), dim=1)
-
-                    decoder_loss += criterion(scores[:, -1, :], target_ids[:, di].to(device))
-
-                loss=torch.mean(decoder_loss)/pad_len
-                teacher_loss_list.append(loss.item()/pad_len)
-            else:
-                # Without teacher forcing: use its own predictions as the next input
-                scores, decoded_indices = decoder(sm_hidden.to(device))
-                seq_loss = criterion(scores.transpose(1, 2), target_ids.to(device))
-                loss = torch.mean(seq_loss)/pad_len
-                decoder.loss_list.append(loss.item()/pad_len)
-
-            loss.backward()
-            opt.step()
-
-            if j%50==0: 
-                decoded_sentence = decoder.tokenizer.batch_decode(decoded_indices.int())[-1]
-                print('Decoder Loss: ' + str(loss.item()/pad_len))
-                #print('Task Loss: ' + str(task_loss.item()/pad_len))
-                print('Teacher Forcing:' + str(use_teacher_forcing))
-
-                print('target instruction: ' + target_instruct[-1])
-                try:
-                    eos_index = decoded_sentence.index(decoder.tokenizer.eos_token)
-                except ValueError: 
-                    eos_index = -1
-                decoded_sentence = decoded_sentence[:eos_index]
-                print('decoded instruction: ' + decoded_sentence + '\n')
-                
-        sch.step()
-        teacher_forcing_ratio -= init_teacher_forcing_ratio/epochs
-
-    return loss_list, teacher_loss_list
-
-
-
 def train_decoder_set(config, decoder_type='rnn'): 
 # decoder_type = 'rnn'
 # #config=(0, 'sbertNet_tuned', training_lists_dict['swap_holdouts'][0])
@@ -219,37 +135,20 @@ def train_decoder_set(config, decoder_type='rnn'):
 
         task_file = task_swaps_map[tasks[0]]
         filename = model_file + task_file+'/'+ model_name 
-        # try: 
-        #     pickle.load(open(filename+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str+'_loss_list', 'rb'))
-        #     print(filename+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str+'   already trained')
-        # except FileNotFoundError:
 
         sm_model = config_model(model_name)
         sm_model.set_seed(seed) 
         sm_model.load_model(model_file + task_file)
         sm_model.to(device)
 
-        if decoder_type == 'rnn': 
-            #decoder= DecoderRNN(128, langModel=sm_model.langModel)
-            decoder= DecoderRNN(64, drop_p = 0.1, langModel=None)
-            trainer= train_rnn_decoder
-            decoder_optimizer = optim.Adam([
-                #{'params' : decoder.embedding.parameters()},
-                {'params' : decoder.gru.parameters()},
-                {'params' : decoder.out.parameters()},
-                {'params' : decoder.embedding.parameters()},
-                {'params' : decoder.sm_decoder.parameters(), 'lr': 1e-4}
-            ], lr=1e-4, weight_decay=0.0)
-        else: 
-            decoder= gptDecoder()
-            trainer= train_gpt_decoder
-            decoder_optimizer = optim.Adam([
-                {'params' : decoder.gpt.parameters()},
-                {'params' : decoder.sm_decoder.parameters(), 'lr': 1e-4}
-            ], lr=1e-6, weight_decay=0.0)
-        decoder.train()
-        decoder.to(device)
-        #decoder_rnn.load_model(filename+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str)
+        decoder= DecoderRNN(64, drop_p = 0.1, langModel=None)
+        decoder_optimizer = optim.Adam([
+            #{'params' : decoder.embedding.parameters()},
+            {'params' : decoder.gru.parameters()},
+            {'params' : decoder.out.parameters()},
+            {'params' : decoder.embedding.parameters()},
+            {'params' : decoder.sm_decoder.parameters(), 'lr': 1e-4}
+        ], lr=1e-4, weight_decay=0.0)
 
 
 

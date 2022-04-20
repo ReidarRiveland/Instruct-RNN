@@ -1,9 +1,7 @@
 import numpy as np
 
 from plotting import plot_RDM, plot_avg_curves, plot_k_shot_learning, plot_model_response, plot_task_curves, plot_trained_performance, plot_rep_scatter, plot_tuning_curve, plot_neural_resp, plot_CCGP_scores, plot_hid_traj, plot_val_performance, plot_RDM
-from utils.utils import all_models, task_swaps_map, train_instruct_dict, test_instruct_dict
-
-from model_trainer import config_model
+from utils.task_info_utils import train_instruct_dict, test_instruct_dict
 from model_analysis import get_layer_sim_scores, get_model_performance, get_multitask_val_performance, get_task_reps, reduce_rep, get_instruct_reps, get_hid_var_group_resp
 import pickle
 from task import Task
@@ -55,6 +53,7 @@ data_dict = plot_avg_curves('_ReLU128_4.11/swap_holdouts', all_models[::-1],'cor
 
 
 #Figure 3
+from task import Task
 def make_rep_scatter(model, task_to_plot=Task.TASK_GROUP_DICT['Go'], swapped_tasks = []): 
     model_reps, _ = get_task_reps(model, epoch='stim_start', swapped_tasks=swapped_tasks)
     reduced_reps, _ = reduce_rep(model_reps)
@@ -179,22 +178,7 @@ plot_tuning_curve(sbert_tuned_dms, Task.TASK_GROUP_DICT['Delay'], var_of_instere
 #COMP COMPARISON
 
 
-task_file = task_swaps_map['COMP2']
-sbert_tuned_comp = config_model('sbertNet_tuned')
-sbert_tuned_comp.set_seed(4)
-sbert_comp = config_model('sbertNet')
-sbert_comp.set_seed(4)
 
-sbert_tuned_comp.load_model('_ReLU128_4.11/swap_holdouts/'+task_file)
-
-sbert_comp.load_model('_ReLU128_4.11/swap_holdouts/'+task_file)
-
-tuned_sim_scores = get_layer_sim_scores(sbert_tuned_comp, task_file, foldername, use_cos_sim=True)
-plot_RDM(np.mean(tuned_sim_scores, axis=0), 'lang', cmap='Blues')
-
-
-untuned_sim_scores = get_layer_sim_scores(sbert_comp, task_file, foldername, use_cos_sim=True)
-plot_RDM(np.mean(untuned_sim_scores, axis=0), 'lang', cmap='Blues')
 
 
 #use actual directions
@@ -253,3 +237,46 @@ for task, group in plot_list:
 
 
 #make_rep_scatter(sbert_tuned_anti_go, task_to_plot = Task.TASK_GROUP_DICT['Delay'], swapped_tasks=[holdout_task])
+
+
+
+from models.full_models import make_default_model
+from model_analysis import get_layer_sim_scores
+import seaborn as sns
+import matplotlib.pyplot as plt
+from task import Task
+
+def plot_RDM(sim_scores, rep_type, cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', save_file=None):
+    # if rep_type == 'lang': label_buffer = 2
+    # if rep_type == 'task': label_buffer = 8
+    number_reps=sim_scores.shape[1]
+
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(10, 8))
+    sns.heatmap(sim_scores, yticklabels = '', xticklabels= '', 
+                        cmap=cmap, vmin=0, vmax=1, ax=axn, cbar_kws={'label': '1-r'})
+
+    for i, task in enumerate(Task.TASK_LIST):
+        plt.text(-2, number_reps/2+number_reps*i, task, ha='right', size=8, fontweight='bold')
+        plt.text(number_reps/2+number_reps*i, number_reps*16, task, va='top', rotation='vertical', size=8, fontweight='bold')
+    plt.title(plot_title, fontweight='bold', fontsize=12)
+
+    if save_file is not None: 
+        plt.savefig(save_file, dpi=400)
+
+    plt.show()
+    
+
+
+def plot_lang_RDM(model, layer):    
+    sim_scores = get_layer_sim_scores(model, layer)
+    plot_RDM(sim_scores, 'lang', cmap='Greens')
+
+
+from models.full_models import make_default_model
+from plotting import make_rep_
+exp_file = '_ReLU128_4.11/swap_holdouts/Multitask'
+
+sbert_tuned = make_default_model('sbertNet_tuned')
+sbert_tuned.load_model(exp_file+'/sbertNet_tuned', suffix='_seed0')
+make_rep_scatter(sbert_tuned)
+

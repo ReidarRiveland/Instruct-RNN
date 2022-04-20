@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from attrs import asdict
 import pickle
-from models.script_gru import ScriptGRU
+from script_gru import ScriptGRU
 
 class BaseNet(nn.Module): 
     def __init__(self, config):

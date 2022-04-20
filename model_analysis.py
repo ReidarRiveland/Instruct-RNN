@@ -52,7 +52,7 @@ def get_instruct_reps(langModel, instruct_dict, depth='full', swapped_tasks = []
     if depth.isnumeric(): 
         #assert hasattr(langModel, 'transformer'), 'language model must be transformer to evaluate a that depth'
         rep_dim = 768
-    else: rep_dim = langModel.out_dim 
+    else: rep_dim = langModel.LM_out_dim 
     instruct_reps = torch.empty(len(instruct_dict.keys())+len(swapped_tasks), len(list(instruct_dict.values())[0]), rep_dim)
     with torch.no_grad():      
         for i, task in enumerate(list(instruct_dict.keys())+swapped_tasks):
@@ -139,34 +139,23 @@ def reduce_rep(reps, dim=2, reduction_method='PCA'):
 
     return embedded.reshape(reps.shape[0], reps.shape[1], dim), explained_variance
 
-def get_layer_sim_scores(model, holdout_file, model_file, rep_depth='12', use_cos_sim=False, seeds=range(5)): 
+def get_layer_sim_scores(model, rep_depth='12'): 
     if rep_depth.isnumeric(): 
-        rep_dim = model.langModel.intermediate_lang_dim
-        number_reps=15
+        rep_dim = model.langModel.LM_intermediate_lang_dim
     if rep_depth =='full': 
         rep_dim = 20
-        number_reps=15
     
     if rep_depth == 'task': 
         rep_dim = 128
-        number_reps=100
     
-    all_sim_scores = np.empty((len(seeds), 16*number_reps, 16*number_reps), dtype=np.float64)
-    for i, seed in enumerate(seeds): 
-        model.set_seed(seed) 
-        model.load_model(model_file+'/'+holdout_file)
-        if rep_depth == 'task': 
-            reps, _ = get_task_reps(model)
-        if rep_depth == 'full' or rep_depth.isnumeric(): 
-            reps = get_instruct_reps(model.langModel, train_instruct_dict, depth=rep_depth)
-        if use_cos_sim:
-            sim_scores = 1-cosine_similarity(reps.reshape(-1, rep_dim))
-        else: 
-            #sim_scores = 1-np.corrcoef(reps.reshape(-1, rep_dim))
-            sim_scores = 1-spearmanr(reps.reshape(-1, rep_dim))
-        all_sim_scores[i, :, :] = sim_scores
+    if rep_depth == 'task': 
+        reps, _ = get_task_reps(model)
+    if rep_depth == 'full' or rep_depth.isnumeric(): 
+        reps = get_instruct_reps(model.langModel, train_instruct_dict, depth=rep_depth)
 
-    return all_sim_scores
+    sim_scores = 1-cosine_similarity(reps.reshape(-1, rep_dim))
+    
+    return sim_scores
 
 
 def get_CCGP(reps): 

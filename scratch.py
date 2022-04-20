@@ -1,7 +1,7 @@
 from collections import defaultdict
 from math import inf
 import pickle
-from model_trainer import config_model
+from models.model_trainer import config_model
 from re import I
 from matplotlib.cbook import flatten
 
@@ -87,14 +87,14 @@ pooled_output = outputs.pooler_output  # pooled (EOS token) states
 pooled_output.unsqueeze(0)[0].shape
 
 
-from models.full_models import CLIPNet, BERTNet_tuned, GPTNet
+from models.full_models import CLIPNet, BERTNet_tuned, GPTNeoNet
 from utils.utils import task_swaps_map
 from model_analysis import get_model_performance
 
-gptNet = GPTNet()
+gptNet = GPTNeoNet()
 EXP_FILE = '13.4models/swap_holdouts'
-holdouts = task_swaps_map['Anti RT Go']
-gptNet.load_model(EXP_FILE+'/'+holdouts+'/gptNet', suffix='_seed0')
+holdouts = task_swaps_map['RT Go']
+gptNet.load_model(EXP_FILE+'/'+holdouts+'/gptNeoNet', suffix='_seed0')
 perf = get_model_performance(gptNet, 1)
 perf
 

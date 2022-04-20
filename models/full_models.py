@@ -70,7 +70,7 @@ class SBERTNet(InstructNet):
         super().__init__(config)
 
 class SBERTNet_tuned(InstructNet):
-    DEFAULT_CONFIG = InstructModelConfig(model_name = 'sbertNet', 
+    DEFAULT_CONFIG = InstructModelConfig(model_name = 'sbertNet_tuned', 
                         LM_class=SBERT, 
                         LM_config=LMConfig(
                                 LM_load_str = 'sbert_raw.pt',

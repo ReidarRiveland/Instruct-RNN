@@ -7,12 +7,14 @@ from scipy.ndimage.measurements import label
 from torch.nn.modules.container import T
 from torch.random import seed
 from model_analysis import get_hid_var_group_resp, get_hid_var_resp, get_model_performance, get_instruct_reps
-from task import Comp, Task, make_test_trials, construct_batch
+from task import Comp, Task, make_test_trials, construct_batch, isCorrect
 task_list = Task.TASK_LIST
 task_group_dict = Task.TASK_GROUP_DICT
 
 from model_analysis import get_hid_var_resp
-from utils.utils import isCorrect, train_instruct_dict, test_instruct_dict, two_line_instruct, task_swaps_map, task_colors, MODEL_STYLE_DICT, all_swaps, load_training_data, load_holdout_data, all_models, load_context_training_data
+from utils.utils import task_swaps_map, task_colors, MODEL_STYLE_DICT, all_swaps
+from utils.task_info_utils import train_instruct_dict, test_instruct_dict
+
 
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
@@ -559,7 +561,6 @@ def plot_RDM(sim_scores, rep_type, cmap=sns.color_palette("rocket_r", as_cmap=Tr
     label_buffer=0
     rep_dim = sim_scores.shape[-1]
     number_reps=sim_scores.shape[1]
-    
 
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(10, 8))
     sns.heatmap(sim_scores, yticklabels = '', xticklabels= '', 
