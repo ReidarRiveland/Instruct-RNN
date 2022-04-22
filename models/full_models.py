@@ -15,6 +15,11 @@ class SimpleNet(RuleNet):
     def __init__(self, config=DEFAULT_CONFIG): 
         super().__init__(config)
 
+class SimpleNetPlus(RuleNet):
+    DEFAULT_CONFIG = RuleModelConfig(model_name = 'simpleNet', add_rule_encoder=True)
+    def __init__(self, config=DEFAULT_CONFIG): 
+        super().__init__(config)
+
 class GPTNet(InstructNet):
     DEFAULT_CONFIG = InstructModelConfig(model_name = 'gptNet', 
                         LM_class=GPT, 
@@ -30,6 +35,27 @@ class GPTNet_tuned(InstructNet):
                         LM_class=GPT, 
                         LM_config=LMConfig(
                                 LM_load_str = 'gpt2',
+                                LM_train_layers=['9', '10', '11', 'ln_f'])
+                                )
+
+    def __init__(self, config=DEFAULT_CONFIG): 
+        super().__init__(config)
+
+class GPTXLNet(InstructNet):
+    DEFAULT_CONFIG = InstructModelConfig(model_name = 'gptNetXL', 
+                        LM_class=GPT, 
+                        LM_config=LMConfig(
+                                    LM_load_str = 'gpt2-xl',
+                                    LM_train_layers=[])
+                                    )
+    def __init__(self, config=DEFAULT_CONFIG): 
+        super().__init__(config)
+
+class GPTXLNet_tuned(InstructNet):
+    DEFAULT_CONFIG = InstructModelConfig(model_name = 'gptNetXL_tuned', 
+                        LM_class=GPT, 
+                        LM_config=LMConfig(
+                                LM_load_str = 'gpt2-xl',
                                 LM_train_layers=['9', '10', '11', 'ln_f'])
                                 )
 
@@ -90,8 +116,8 @@ class GPTNeoNet(InstructNet):
 
     def __init__(self, config=DEFAULT_CONFIG): 
         super().__init__(config)
-        
 
+        
 class GPTNeoNet_tuned(InstructNet):
     DEFAULT_CONFIG = InstructModelConfig(model_name = 'gptNeoNet_tuned', 
                         LM_class=GPTNeo, 

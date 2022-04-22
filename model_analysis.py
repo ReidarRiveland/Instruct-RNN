@@ -3,7 +3,7 @@ import torch
 import numpy as np
 
 from utils.utils import task_swaps_map
-from utils.task_info_utils import train_instruct_dict, get_task_info
+from utils.task_info_utils import train_instruct_dict, get_task_info, get_instruction_dict
 
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.stats import spearmanr
@@ -47,45 +47,41 @@ def get_multitask_val_performance(model, foldername, seeds=np.array(range(5))):
         performance[seed, :] = perf
     return performance
 
-def get_instruct_reps(langModel, instruct_dict, depth='full', swapped_tasks = []):
-    #langModel.eval()
+def get_instruct_reps(langModel, depth='full', instruct_mode=None):
     if depth.isnumeric(): 
-        #assert hasattr(langModel, 'transformer'), 'language model must be transformer to evaluate a that depth'
         rep_dim = 768
-    else: rep_dim = langModel.LM_out_dim 
-    instruct_reps = torch.empty(len(instruct_dict.keys())+len(swapped_tasks), len(list(instruct_dict.values())[0]), rep_dim)
+    else: 
+        rep_dim = langModel.LM_out_dim 
+
+    instruct_dict = get_instruction_dict(instruct_mode)
+    instruct_reps = torch.empty(len(instruct_dict.keys()), len(list(instruct_dict.values())[0]), rep_dim)
+    
     with torch.no_grad():      
-        for i, task in enumerate(list(instruct_dict.keys())+swapped_tasks):
-
-            if i >= len(instruct_dict.keys()): 
-                instructions = instruct_dict[swapped_task_list[task_list.index(task)]]
-            else: 
-                instructions = instruct_dict[task]    
-
+        for i, task in enumerate(list(instruct_dict.keys())):
+            
+            instructions = instruct_dict[task]    
             if depth == 'full': 
                 out_rep = langModel(list(instructions))
-
             elif depth.isnumeric(): 
                 out_rep = torch.mean(langModel.forward_transformer(list(instructions))[1][int(depth)], dim=1)
             instruct_reps[i, :, :] = out_rep
+
     return instruct_reps.cpu().numpy().astype(np.float64)
 
-
-def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, swapped_tasks = []):
+def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, instruct_mode=None, contexts=None):
     assert epoch in ['stim', 'prep', 'stim_start'] or epoch.isnumeric(), "entered invalid epoch: %r" %epoch
-    assert model.instruct_mode == '', "use swapped task argument to evaluate tasks under alternative instruct_modes"
     model.eval()
     with torch.no_grad(): 
-        task_reps = np.empty((len(task_list)+len(swapped_tasks), num_trials, model.hid_dim))
-        performance_array = np.empty((len(task_list)+len(swapped_tasks), num_trials))
+        task_reps = np.empty((len(task_list), num_trials, model.rnn_hidden_dim))
 
-        for i, task in enumerate(Task.TASK_LIST+swapped_tasks): 
-            if i >= len(Task.TASK_LIST): 
-                model.instruct_mode = 'swap'
-            ins, targets, _, target_dirs, _ =  construct_batch(task, num_trials)
+        for i, task in enumerate(Task.TASK_LIST): 
+            ins, targets, _, _, _ =  construct_batch(task, num_trials)
 
-            task_info = model.get_task_info(num_trials, task)
-            out, hid = model(task_info, torch.Tensor(ins).to(model.__device__))
+            if contexts is not None: 
+                _, hid = model(torch.Tensor(ins).to(model.__device__), context=contexts[i, ...])
+            else: 
+                task_info = get_task_info(num_trials, task, model.is_instruct, instruct_mode=instruct_mode)
+                _, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
 
             hid = hid.cpu().numpy()
             for j in range(num_trials): 
@@ -94,35 +90,9 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
                 if epoch == 'stim_start': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]+stim_start_buffer
                 if epoch == 'prep': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]-1
                 task_reps[i, j, :] = hid[j, epoch_index, :]
-            model.instruct_mode = ''
-            performance_array[i, ...] = isCorrect(out, torch.Tensor(targets), target_dirs)
-    return task_reps.astype(np.float64), performance_array
 
-def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None): 
-    model.eval()
-    with torch.no_grad(): 
-        num_trials = trials.inputs.shape[0]
-        total_neuron_response = np.empty((num_repeats, num_trials, 120, 128))
-        for i in range(num_repeats): 
-            if task_info is None or 'simpleNet' in model.model_name: task_info = model.get_task_info(num_trials, task)
-            _, hid = model(task_info, torch.Tensor(trials.inputs).to(model.__device__))
-            hid = hid.cpu().numpy()
-            total_neuron_response[i, :, :, :] = hid
-        mean_neural_response = np.mean(total_neuron_response, axis=0)
-    return total_neuron_response, mean_neural_response
+    return task_reps.astype(np.float64)
 
-def get_hid_var_group_resp(model, task_group, var_of_insterest, swapped_tasks = [], mod=0, num_trials=1, sigma_in = 0.05): 
-    if task_group == 'Go': assert var_of_insterest in ['direction', 'strength']
-    if task_group == 'DM': assert var_of_insterest in ['diff_direction', 'diff_strength']
-    task_group_hid_traj = np.empty((4+len(swapped_tasks), 15, num_trials, 120, 128))
-    for i, task in enumerate(task_group_dict[task_group]+swapped_tasks): 
-        trials, vars = make_test_trials(task, var_of_insterest, mod, num_trials=num_trials, sigma_in=sigma_in)
-        if i>=4: task_instructs = Task.SWAPPED_TASK_LIST[task_list.index(task)]
-        else: task_instructs = task
-        for j, instruct in enumerate(train_instruct_dict[task_instructs]): 
-            _, hid_mean = get_hid_var_resp(model, task, trials, num_repeats=3, task_info=[instruct]*num_trials)
-            task_group_hid_traj[i, j,  ...] = hid_mean
-    return task_group_hid_traj
 
 def reduce_rep(reps, dim=2, reduction_method='PCA'): 
     if reduction_method == 'PCA': 
@@ -157,6 +127,31 @@ def get_layer_sim_scores(model, rep_depth='12'):
     
     return sim_scores
 
+def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None): 
+    model.eval()
+    with torch.no_grad(): 
+        num_trials = trials.inputs.shape[0]
+        total_neuron_response = np.empty((num_repeats, num_trials, 120, 128))
+        for i in range(num_repeats): 
+            if task_info is None or 'simpleNet' in model.model_name: task_info = model.get_task_info(num_trials, task)
+            _, hid = model(task_info, torch.Tensor(trials.inputs).to(model.__device__))
+            hid = hid.cpu().numpy()
+            total_neuron_response[i, :, :, :] = hid
+        mean_neural_response = np.mean(total_neuron_response, axis=0)
+    return total_neuron_response, mean_neural_response
+
+def get_hid_var_group_resp(model, task_group, var_of_insterest, swapped_tasks = [], mod=0, num_trials=1, sigma_in = 0.05): 
+    if task_group == 'Go': assert var_of_insterest in ['direction', 'strength']
+    if task_group == 'DM': assert var_of_insterest in ['diff_direction', 'diff_strength']
+    task_group_hid_traj = np.empty((4+len(swapped_tasks), 15, num_trials, 120, 128))
+    for i, task in enumerate(task_group_dict[task_group]+swapped_tasks): 
+        trials, vars = make_test_trials(task, var_of_insterest, mod, num_trials=num_trials, sigma_in=sigma_in)
+        if i>=4: task_instructs = Task.SWAPPED_TASK_LIST[task_list.index(task)]
+        else: task_instructs = task
+        for j, instruct in enumerate(train_instruct_dict[task_instructs]): 
+            _, hid_mean = get_hid_var_resp(model, task, trials, num_repeats=3, task_info=[instruct]*num_trials)
+            task_group_hid_traj[i, j,  ...] = hid_mean
+    return task_group_hid_traj
 
 def get_CCGP(reps): 
     num_trials = reps.shape[1]

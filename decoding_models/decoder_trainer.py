@@ -7,6 +7,7 @@ from task import Task
 from dataset import TaskDataSet
 from decoding_models.decoder_models import DecoderRNN, gptDecoder
 import pickle
+from attrs import define, asdict
 
 import torch
 import torch.nn as nn
@@ -14,6 +15,31 @@ import torch.nn as nn
 torch.cuda.is_available()
 
 device = torch.device(0)
+
+
+@define 
+class DecoderTrainerConfig(): 
+    file_path: str
+    random_seed: int
+
+    epochs: int = 60
+    min_run_epochs: int = 20
+    batch_len: int = 128
+    num_batches: int = 500
+
+    optim_alg: optim = optim.Adam
+    lr: float = 0.001
+    weight_decay: float = 0.0
+
+    scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
+    scheduler_args: dict = {'gamma': 0.999999999}
+
+    teacher_forcing_ratio = 
+    step_last_lr: bool = True
+
+class DecoderTrainer(): 
+
+    def train(self, sm_model, decoder): 
 
 def train_rnn_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=[]): 
     data_streamer = TaskDataSet(batch_len = 64, num_batches = 1000, holdouts=holdout_tasks)

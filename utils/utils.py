@@ -4,11 +4,29 @@ swapped_task_list = Task.SWAPPED_TASK_LIST
 tuning_dirs = Task.TUNING_DIRS
 
 training_lists_dict={
-'single_holdouts' :  [[item] for item in Task.TASK_LIST.copy()+['Multitask']],
-'dual_holdouts' : [['RT Go', 'Anti Go'], ['Anti MultiDM', 'DM'], ['COMP1', 'MultiCOMP2'], ['DMC', 'DNMS']],
-'aligned_holdouts' : [['Anti DM', 'Anti MultiDM'], ['COMP1', 'MultiCOMP1'], ['DMS', 'DNMS'],['Go', 'RT Go']],
-'swap_holdouts' : [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], ['RT Go', 'DNMC'], ['DM', 'MultiCOMP2'], ['MultiDM', 'DNMS'], ['Anti MultiDM', 'COMP1'], ['COMP2', 'DMS'], ['Anti Go', 'MultiCOMP1']]
+'dual_holdouts' : [['RT Go', 'Anti Go'], ['Go',  'Anti RT Go'], 
+                    ['AntiDM', 'MultiDM'], ['Anti MultiDM', 'DM'], 
+                    ['COMP1', 'MultiCOMP2'], ['COMP2', 'MultiCOMP1'], 
+                    ['DMS', 'DNMC'], ['DMC', 'DNMS']],
+
+'aligned_holdouts' : [['RT Go', 'Anti RT Go'],['Go', 'Anti Go'], 
+                        ['Anti DM', 'DM'], ['Anti MultiDM', 'MultiDM'], 
+                        ['COMP1', 'COMP2'], ['MultiCOMP1', 'MultiCOMP2'],
+                        ['DMS', 'DNMS'], ['DMC', 'DNMC']],
+
+'alt_aligned_holdouts' : [['Go', 'RT Go'],['Anti Go', 'Anti RT Go'], 
+                        ['Anti DM', 'Anti MultiDM'], ['DM', 'MultiDM'], 
+                        ['COMP1', 'MultiCOMP1'], ['COMP2', 'MultiCOMP2'],
+                        ['DMS', 'DMC'], ['DNMS', 'DNMC']],
+
+'swap_holdouts' : [['Go', 'Anti DM'], ['Anti RT Go', 'DMC'], 
+                    ['RT Go', 'DNMC'], ['DM', 'MultiCOMP2'], 
+                    ['MultiDM', 'DNMS'], ['Anti MultiDM', 'COMP1'], 
+                    ['COMP2', 'DMS'], ['Anti Go', 'MultiCOMP1']],
+
+'group_holdouts' : Task.TASK_GROUP_DICT
 }
+
 
 task_swaps_map = {'Go': 'Go_Anti_DM', 
                 'Anti Go': 'Anti_Go_MultiCOMP1', 
@@ -46,3 +64,32 @@ def get_holdout_file_name(holdouts):
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) 
+
+import linecache
+import os
+import tracemalloc
+
+def display_top(snapshot, key_type='lineno', limit=10):
+    snapshot = snapshot.filter_traces((
+        tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
+        tracemalloc.Filter(False, "<unknown>"),
+    ))
+    top_stats = snapshot.statistics(key_type)
+
+    print("Top %s lines" % limit)
+    for index, stat in enumerate(top_stats[:limit], 1):
+        frame = stat.traceback[0]
+        # replace "/path/to/module/file.py" with "module/file.py"
+        filename = os.sep.join(frame.filename.split(os.sep)[-2:])
+        print("#%s: %s:%s: %.1f KiB"
+              % (index, filename, frame.lineno, stat.size / 1024))
+        line = linecache.getline(frame.filename, frame.lineno).strip()
+        if line:
+            print('    %s' % line)
+
+    other = top_stats[limit:]
+    if other:
+        size = sum(stat.size for stat in other)
+        print("%s other: %.1f KiB" % (len(other), size / 1024))
+    total = sum(stat.size for stat in top_stats)
+    print("Total allocated size: %.1f KiB" % (total / 1024))

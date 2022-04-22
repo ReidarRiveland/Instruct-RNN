@@ -19,6 +19,16 @@ device = torch.device(0)
 
 EXP_FILE = '13.4models/swap_holdouts'
 
+class KL_divergence():
+    def __init__(self, rho):
+        self.rho = rho
+
+    def __call__(self, hidden_rep):
+        rho_hat = torch.mean(torch.sigmoid(hidden_rep), 1) # sigmoid because we need the probability distributions
+        rho = torch.tensor([self.rho] * len(rho_hat)).to(device)
+        return torch.sum(rho * torch.log(rho/rho_hat) + (1 - rho) * torch.log((1 - rho)/(1 - rho_hat)))
+
+
 @define 
 class ContextTrainerConfig(): 
     file_path: str
@@ -44,6 +54,9 @@ class ContextTrainerConfig():
 class ContextTrainer(BaseTrainer): 
     def __init__(self, context_training_config: ContextTrainerConfig = None, from_checkpoint_dict:dict = None): 
         super().__init__(context_training_config, from_checkpoint_dict)
+    
+        if self.sparsity_prior is not None: 
+            self.KL_loss = KL_divergence(self.sparsity_prior)
 
     def _record_session(self, contexts, task):
         checkpoint_attrs = super()._record_session()
@@ -68,7 +81,8 @@ class ContextTrainer(BaseTrainer):
         model.to(device)
         model.freeze_weights()
         model.eval()
-        self.streamer = TaskDataSet(self.batch_len, 
+        self.streamer = TaskDataSet(True, 
+                        self.batch_len, 
                         self.num_batches,
                         set_single_task=task)
         contexts = self._init_contexts()
@@ -88,6 +102,8 @@ class ContextTrainer(BaseTrainer):
                 self.optimizer.zero_grad()
                 out, _ = model(ins.to(device), context=contexts)
                 loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
+                if self.activity_prior is not None: 
+                    loss += self.KL_loss(contexts)
                 loss.backward()
                 torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
                 self.optimizer.step()
@@ -131,6 +147,10 @@ def train_context_set(model_names, seeds, holdouts_folder, overwrite=False, **tr
                 del model
 
     return inspection_list
+
+
+
+
 
 
 if __name__ == "__main__":

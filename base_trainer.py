@@ -23,18 +23,18 @@ def masked_MSE_Loss(nn_out: Tensor, nn_target: Tensor, mask: Tensor):
 
 class BaseTrainer(ABC): 
     def __init__(self, config, from_checkpoint_dict): 
-        assert not config is None and from_checkpoint_dict is None, \
+        assert not (config is None and from_checkpoint_dict is None), \
             'trainer must be initialized from training_config or from a checkpoint'
+
+        self.config = config
+        self.cur_epoch = 0 
+        self.cur_step = 0
+        self.correct_data = defaultdict(list)
+        self.loss_data = defaultdict(list)
 
         if from_checkpoint_dict is not None: 
             for name, value in from_checkpoint_dict.items(): 
                 setattr(self, name, value)
-        else: 
-            self.config = config
-            self.cur_epoch = 0 
-            self.cur_step = 0
-            self.correct_data = defaultdict(list)
-            self.loss_data = defaultdict(list)
 
         for name, value in asdict(self.config, recurse=False).items(): 
             setattr(self, name, value)

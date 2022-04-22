@@ -31,10 +31,17 @@ class BaseNet(nn.Module):
         return torch.full((self.rnn_layers, batch_size, self.rnn_hidden_dim), 
                 self.rnn_hiddenInitValue, device=self.__device__.type)
 
-    def forward(self, x, task_info, t=120): 
+    def expand_info(self, task_info, duration, onset): 
+        task_info_block = torch.zeros((task_info.shape[0], 120, task_info.shape[-1]))
+        task_info = task_info.unsqueeze(1).repeat(1, duration, 1)
+        task_info_block[:, onset:onset+duration, :] = task_info
+        return task_info_block
+
+
+    def forward(self, x, task_info, info_duration=120, info_onset=0): 
         h0 = self.__initHidden__(x.shape[0])
-        task_info_block = task_info.unsqueeze(1).repeat(1, t, 1)
-        rnn_ins = torch.cat((task_info_block, x.type(torch.float32)), 2)
+        task_info_block = self.expand_info(task_info, info_duration, info_onset)
+        rnn_ins = torch.cat((task_info_block.to(self.__device__), x.type(torch.float32)), 2)
         rnn_hid, _ = self.recurrent_units(rnn_ins, h0)
         out = self.sensory_motor_outs(rnn_hid)
         return out, rnn_hid
@@ -61,9 +68,20 @@ class RuleNet(BaseNet):
         super().__init__(config)
         ortho_rules = pickle.load(open('ortho_rule_vecs', 'rb'))
         self.rule_transform = torch.Tensor(ortho_rules)
+        if self.add_rule_encoder: 
+            self.rule_encoder = nn.Sequential(
+                nn.Linear(20, 128), 
+                nn.ReLU(), 
+                nn.Linear(128, 128),
+                nn.ReLU(), 
+                nn.Linear(128, 20),
+                nn.ReLU()
+            )
+        else: 
+            self.rule_encoder = nn.Identity()
 
     def forward(self, x, task_rule):
-        task_rule = torch.matmul(task_rule, self.rule_transform)
+        task_rule = self.rule_encoder(torch.matmul(task_rule, self.rule_transform))
         outs, rnn_hid = super().forward(task_rule, x)
         return outs, rnn_hid
 

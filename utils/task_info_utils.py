@@ -8,7 +8,6 @@ from collections import Counter
 swapped_task_list = Task.SWAPPED_TASK_LIST
 task_list = Task.TASK_LIST
 
-
 train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict', 'rb'))
 
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict', 'rb'))
@@ -34,16 +33,27 @@ def shuffle_instruction(instruct):
     instruct = ' '.join(list(shuffled))
     return instruct
 
+def get_instruction_dict(instruct_mode): 
+    assert instruct_mode in [None, 'swap', 'shuffled', 'validation']
+    if instruct_mode == 'swap': 
+        swap_dict = {}
+        for task in Task.TASK_LIST: 
+            swap_dict[task] = train_instruct_dict[Task.get_swap(task)]
+
+    elif instruct_mode == 'shuffled': 
+        shuffle_dict = {}
+        for task in Task.TASK_LIST: 
+            shuffled_instructs = [shuffle_instruction(instruct) for instruct in train_instruct_dict[task]]
+            shuffle_dict[task] = shuffled_instructs
+
+    elif instruct_mode == 'validation': 
+        return test_instruct_dict
+
+    else: 
+        return train_instruct_dict
+
 def get_instructions(batch_size, task_type, instruct_mode):
-        assert instruct_mode in [None, 'swap', 'shuffled', 'validation']
-
-        if instruct_mode == 'swap': 
-            instruct_dict = dict(zip(swapped_task_list, train_instruct_dict.values()))
-        elif instruct_mode == 'validation': 
-            instruct_dict = test_instruct_dict
-        else: 
-            instruct_dict = train_instruct_dict
-
+        instruct_dict = get_instruction_dict(instruct_mode = instruct_mode)
         instructs = np.random.choice(instruct_dict[task_type], size=batch_size)
         if instruct_mode == 'shuffled': 
             instructs = list(map(shuffle_instruction, instructs))

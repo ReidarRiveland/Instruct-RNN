@@ -87,16 +87,27 @@ pooled_output = outputs.pooler_output  # pooled (EOS token) states
 pooled_output.unsqueeze(0)[0].shape
 
 
-from models.full_models import CLIPNet, BERTNet_tuned, GPTNeoNet
-from utils.utils import task_swaps_map
-from model_analysis import get_model_performance
+from models.full_models import GPTNeoNet
+from utils.utils import task_swaps_map, training_lists_dict
+from model_analysis import get_model_performance, task_eval
+import numpy as np
+from task import Task
 
 gptNet = GPTNeoNet()
 EXP_FILE = '13.4models/swap_holdouts'
-holdouts = task_swaps_map['RT Go']
-gptNet.load_model(EXP_FILE+'/'+holdouts+'/gptNeoNet', suffix='_seed0')
-perf = get_model_performance(gptNet, 1)
-perf
+perf = np.zeros((16))
+for tasks in training_lists_dict['swap_holdouts']: 
+    holdouts = task_swaps_map[tasks[0]]
+    gptNet.load_model(EXP_FILE+'/'+holdouts+'/gptNeoNet', suffix='_seed0')
+    for task in tasks: 
+        print(task)
+        perf[Task.TASK_LIST.index(task)] = task_eval(gptNet, task, 128)
+    
+np.mean(perf)
+
+
+from utils.utils import display_memory
+display_memory()
 
 
 from transformers import BertTokenizer, BertForPreTraining

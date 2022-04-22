@@ -38,6 +38,7 @@ class InstructModelConfig(BaseModelConfig):
 
 @define
 class RuleModelConfig(BaseModelConfig): 
+    add_rule_encoder: bool = False
     _rule_dim: int = 20
 
     _rnn_in_dim: int = field(kw_only=True)
@@ -45,6 +46,7 @@ class RuleModelConfig(BaseModelConfig):
     def _set_rnn_in_dim(self):
             return self._rule_dim + SENSORY_INPUT_DIM
     is_instruct: bool = False
+
 
 
 

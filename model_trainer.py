@@ -17,6 +17,7 @@ from tqdm import tqdm
 from attrs import define
 import os
 import warnings
+import gc
 
 device = torch.device(0)
 
@@ -63,7 +64,8 @@ class ModelTrainer(BaseTrainer):
             os.remove(self.file_path+'/'+model.model_name+'_'+self.seed_suffix+'_CHECKPOINT.pt')
 
     def _init_streamer(self):
-        self.streamer = TaskDataSet(self.batch_len, 
+        self.streamer = TaskDataSet(True, 
+                        self.batch_len, 
                         self.num_batches, 
                         self.holdouts)
 
@@ -162,15 +164,69 @@ def train_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_c
                 trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
                 trainer = ModelTrainer(trainer_config)
                 is_trained = trainer.train(model)
-                if not is_trained: inspection_list.append((model.model_name, seed))
+                if not is_trained: inspection_list.append((model.model_name, seed, holdouts))
                 del trainer
                 del model
+                gc.collect()
+
+    return inspection_list
+
+def tune_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_config_kwargs): 
+    inspection_list = []
+    for seed in seeds: 
+        torch.manual_seed(seed)
+        for model_name in model_names: 
+            for holdouts in all_holdouts: 
+                file_name = EXP_FILE+'/'+get_holdout_file_name(holdouts)+'/'+model_name
+                
+                if check_already_trained(file_name, seed) and not overwrite:
+                    print('Model at ' + file_name + ' for seed '+str(seed)+' aleady trained')
+                    continue 
+                
+                model = make_default_model(model_name)
+                model.load_model(file_name+'/'+model_name, suffix='_seed'+str(seed)+'_FOR_TUNING')
+                training_data_checkpoint = pickle.load(open(file_name+'/seed'+str(seed)+'training_data_FOR_TUNING', 'rb'))
+                tuning_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
+                trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
+                is_trained = trainer.train(model)
+                if not is_trained: inspection_list.append((model.model_name, seed, holdouts))
+                del trainer
+                del model
+                gc.collect()
 
     return inspection_list
 
 
+def test_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_config_kwargs): 
+    inspection_list = []
+    for seed in seeds: 
+        torch.manual_seed(seed)
+        for model_name in model_names: 
+            for holdouts in all_holdouts: 
+                file_name = EXP_FILE+'/'+get_holdout_file_name(holdouts)+'/'+model_name
+                
+                if check_already_trained(file_name, seed) and not overwrite:
+                    print('Model at ' + file_name + ' for seed '+str(seed)+' aleady trained')
+                    continue 
+                
+                model = make_default_model(model_name)
+                model.load_model(file_name+'/'+model_name, suffix='_seed'+str(seed)+'_FOR_TUNING')
+                training_data_checkpoint = pickle.load(open(file_name+'/seed'+str(seed)+'training_data_FOR_TUNING', 'rb'))
+                tuning_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
+                trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
+                is_trained = trainer.train(model)
+                if not is_trained: inspection_list.append((model.model_name, seed, holdouts))
+                del trainer
+                del model
+                gc.collect()
+
+    return inspection_list
+
+
+
+
 #save training data when checkpointing!
-train_model_set(['gptNeoNet', 'clipNet'], range(5), training_lists_dict['swap_holdouts'])            
+train_model_set(['sbertNet', 'bertNet', 'gptNet'], range(5), training_lists_dict['swap_holdouts'])            
 
 
 

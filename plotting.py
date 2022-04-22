@@ -347,11 +347,6 @@ def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_a
     ax.scatter(np.mean(reps_to_plot, axis=1)[:, 0], np.mean(reps_to_plot, axis=1)[:, 1], c = [task_colors[task] for task in tasks_to_plot], s=20, marker='D', edgecolors='white')
 
 
-    for i, indices in enumerate(annotate_tuples): 
-        task_index, instruct_index = indices 
-        plt.annotate(str(1+instruct_index)+'. '+two_line_instruct(train_instruct_dict[tasks_to_plot[task_index]][instruct_index]), xy=(flattened_reduced[int(instruct_index+(task_index*15)), 0], flattened_reduced[int(instruct_index+(task_index*15)), 1]), 
-                    xytext=annotate_args[i], size = 6, arrowprops=dict(arrowstyle='->'), textcoords = 'offset points')
-
     plt.xlabel("PC 1", fontsize = 12)
     plt.ylabel("PC 2", fontsize = 12)
     Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in tasks_to_plot]
@@ -555,11 +550,9 @@ def plot_dPCA(model, tasks, swapped_tasks=[]):
     plt.show()
 
 
-def plot_RDM(sim_scores, rep_type, cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', use_avg_reps = False, save_file=None):
+def plot_RDM(sim_scores, rep_type, cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', save_file=None):
     # if rep_type == 'lang': label_buffer = 2
     # if rep_type == 'task': label_buffer = 8
-    label_buffer=0
-    rep_dim = sim_scores.shape[-1]
     number_reps=sim_scores.shape[1]
 
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(10, 8))
@@ -567,14 +560,16 @@ def plot_RDM(sim_scores, rep_type, cmap=sns.color_palette("rocket_r", as_cmap=Tr
                         cmap=cmap, vmin=0, vmax=1, ax=axn, cbar_kws={'label': '1-r'})
 
     for i, task in enumerate(Task.TASK_LIST):
-        plt.text(-2, label_buffer+number_reps/2+number_reps*i, task, ha='right', size=8, fontweight='bold')
-        plt.text(-label_buffer + number_reps/2+number_reps*i, number_reps*16, task, va='top', rotation='vertical', size=8, fontweight='bold')
+        plt.text(-2, number_reps/2+number_reps*i, task, ha='right', size=8, fontweight='bold')
+        plt.text(number_reps/2+number_reps*i, number_reps*16, task, va='top', rotation='vertical', size=8, fontweight='bold')
     plt.title(plot_title, fontweight='bold', fontsize=12)
 
     if save_file is not None: 
-        plt.savefig('figs/'+save_file, dpi=600)
+        plt.savefig(save_file, dpi=400)
 
     plt.show()
+    
+
     
 
 def plot_tuning_curve(model, tasks, task_variable, unit, mod, times, num_repeats =10, swapped_task = None, save_file=None): 

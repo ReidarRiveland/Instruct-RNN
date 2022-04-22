@@ -30,6 +30,10 @@ class Task():
     OUTPUT_DIM = STIM_DIM + 1
     DELTA_T = 20
 
+    @staticmethod
+    def get_swap(task): 
+        return Task.SWAPPED_TASK_LIST[Task.TASK_LIST.index(task)]
+
     def __init__(self, num_trials, intervals, sigma_in): 
         self.sigma_in = sigma_in
         self.num_trials = num_trials
@@ -451,7 +455,7 @@ class DM(Task):
         trial_tars = self.targets[trial_index, :, :].T
         self._plot_trial(trial_ins, trial_tars, self.task_type)
 
-def construct_batch(task_type, num):
+def construct_batch(task_type, num, return_tensor=False):
     assert task_type in Task.TASK_LIST, "entered invalid task type"
     if task_type == 'Go':
         trial = Go('Go', num)
@@ -485,7 +489,19 @@ def construct_batch(task_type, num):
         trial = Delay('DMC', num)
     if task_type == 'DNMC': 
         trial = Delay('DNMC', num)
-    return (trial.inputs.astype(np.float32), trial.targets.astype(np.float32), trial.masks.astype(int), trial.target_dirs.astype(np.float32), Task.TASK_LIST.index(task_type))
+
+    if return_tensor: 
+        return (torch.tensor(trial.inputs), 
+                torch.tensor(trial.targets), 
+                torch.tensor(trial.masks), 
+                torch.tensor(trial.target_dirs), 
+                task_type)
+    else:
+        return (trial.inputs.astype(np.float32), 
+                trial.targets.astype(np.float32), 
+                trial.masks.astype(int), 
+                trial.target_dirs.astype(np.float32), 
+                task_type)
 
 def build_training_data(foldername):
     for task in Task.TASK_LIST: 
