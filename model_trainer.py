@@ -21,7 +21,7 @@ import gc
 
 device = torch.device(0)
 
-EXP_FILE = '13.4models/swap_holdouts'
+EXP_FILE ='_ReLU128_4.11/aligned_holdouts'
 
 @define
 class TrainerConfig(): 
@@ -63,6 +63,14 @@ class ModelTrainer(BaseTrainer):
             model.save_model(self.file_path, suffix='_'+self.seed_suffix)
             os.remove(self.file_path+'/'+model.model_name+'_'+self.seed_suffix+'_CHECKPOINT.pt')
 
+        if mode=='TESTING': 
+            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+'_attrs', 'wb'))
+            os.remove(self.file_path+'/'+self.model_file_path+'_CHECKPOINT_attrs')
+            pickle.dump(self.loss_data, open(self.file_path+'/'+self.seed_suffix+'_training_loss', 'wb'))
+            pickle.dump(self.correct_data, open(self.file_path+'/'+self.seed_suffix+'_training_correct', 'wb'))
+            model.save_model(self.file_path, suffix='_'+self.seed_suffix)
+            os.remove(self.file_path+'/'+model.model_name+'_'+self.seed_suffix+'_CHECKPOINT.pt')
+
     def _init_streamer(self):
         self.streamer = TaskDataSet(True, 
                         self.batch_len, 
@@ -92,7 +100,7 @@ class ModelTrainer(BaseTrainer):
         model_for_tuning.save_model(self.file_path, suffix='_'+self.seed_suffix+'_FOR_TUNING')
         print('\n MODEL SAVED FOR TUNING')
 
-    def train(self, model, is_tuning=False): 
+    def train(self, model, is_tuning=False, is_testing=False): 
         model.to(device)
         model.train()
         self._init_streamer()
@@ -109,7 +117,7 @@ class ModelTrainer(BaseTrainer):
             self._init_optimizer(model)
 
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
-            if self.cur_epoch == self.save_for_tuning_epoch:
+            if self.cur_epoch == self.save_for_tuning_epoch and model.is_instruct:
                 self._save_for_tuning(model)
 
             self.streamer.shuffle_stream_order()
@@ -117,7 +125,7 @@ class ModelTrainer(BaseTrainer):
                 ins, tar, mask, tar_dir, task_type = data
                 self.optimizer.zero_grad()
                 task_info = get_task_info(self.batch_len, task_type, model.is_instruct)
-                out, _ = model(ins.to(device), instruction=task_info)
+                out, _ = model(ins.to(device), task_info)
                 loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
                 loss.backward()
                 torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
@@ -126,20 +134,23 @@ class ModelTrainer(BaseTrainer):
                 frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
                 self._log_step(task_type, frac_correct, loss.item())
 
-                if self.cur_step%50 == 0:
+                if self.cur_step%50 == 0 and not is_testing:
                     self._record_session(model, mode='CHECKPOINT')
                     self._print_training_status(task_type)
 
-                if self._check_model_training():
+                if self._check_model_training() and not is_testing:
                     self._record_session(model, mode='FINAL')
                     return True
+
 
             if self.scheduler is not None: self.scheduler.step()  
             if self.step_last_lr: self.step_scheduler.step()
 
-
-        warnings.warn('Model has not reach specified performance threshold during training')
-        return False
+        if is_testing:
+            self._record_session(model, mode='TESTING')
+        else:
+            warnings.warn('Model has not reach specified performance threshold during training')
+            return False
 
 def check_already_trained(file_name, seed): 
     try: 
@@ -184,11 +195,11 @@ def tune_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_co
                     continue 
                 
                 model = make_default_model(model_name)
-                model.load_model(file_name+'/'+model_name, suffix='_seed'+str(seed)+'_FOR_TUNING')
+                model.load_model(file_name+'/'+model_name.strip('_tuned'), suffix='_seed'+str(seed)+'_FOR_TUNING')
                 training_data_checkpoint = pickle.load(open(file_name+'/seed'+str(seed)+'training_data_FOR_TUNING', 'rb'))
                 tuning_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
                 trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
-                is_trained = trainer.train(model)
+                is_trained = trainer.train(model, is_tuning=True)
                 if not is_trained: inspection_list.append((model.model_name, seed, holdouts))
                 del trainer
                 del model
@@ -210,11 +221,10 @@ def test_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_co
                     continue 
                 
                 model = make_default_model(model_name)
-                model.load_model(file_name+'/'+model_name, suffix='_seed'+str(seed)+'_FOR_TUNING')
-                training_data_checkpoint = pickle.load(open(file_name+'/seed'+str(seed)+'training_data_FOR_TUNING', 'rb'))
+                model.load_model(file_name+'/'+model_name, suffix='_seed'+str(seed))
                 tuning_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
-                trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
-                is_trained = trainer.train(model)
+                trainer = ModelTrainer(tuning_config)
+                is_trained = trainer.train(model, is_testing=True)
                 if not is_trained: inspection_list.append((model.model_name, seed, holdouts))
                 del trainer
                 del model
@@ -226,7 +236,7 @@ def test_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_co
 
 
 #save training data when checkpointing!
-train_model_set(['sbertNet', 'bertNet', 'gptNet'], range(5), training_lists_dict['swap_holdouts'])            
+train_model_set(['sbertNet', 'bertNet', 'gptNet', 'simpleNet', 'simpleNetPlus'], range(5), training_lists_dict['aligned_holdouts'])            
 
 
 

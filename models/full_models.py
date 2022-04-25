@@ -8,7 +8,7 @@ _all_models = ['clipNet', 'clipNet_tuned',
             'gptNet_tuned', 'gptNet', 
             'gptNeoNet', 'gptNeoNet_tuned', 
             'bowNet', 
-            'simpleNet']
+            'simpleNet', 'simpleNetPlus']
 
 class SimpleNet(RuleNet):
     DEFAULT_CONFIG = RuleModelConfig(model_name = 'simpleNet')
@@ -16,7 +16,7 @@ class SimpleNet(RuleNet):
         super().__init__(config)
 
 class SimpleNetPlus(RuleNet):
-    DEFAULT_CONFIG = RuleModelConfig(model_name = 'simpleNet', add_rule_encoder=True)
+    DEFAULT_CONFIG = RuleModelConfig(model_name = 'simpleNetPlus', add_rule_encoder=True)
     def __init__(self, config=DEFAULT_CONFIG): 
         super().__init__(config)
 
@@ -41,7 +41,7 @@ class GPTNet_tuned(InstructNet):
     def __init__(self, config=DEFAULT_CONFIG): 
         super().__init__(config)
 
-class GPTXLNet(InstructNet):
+class GPTNetXL(InstructNet):
     DEFAULT_CONFIG = InstructModelConfig(model_name = 'gptNetXL', 
                         LM_class=GPT, 
                         LM_config=LMConfig(
@@ -51,7 +51,7 @@ class GPTXLNet(InstructNet):
     def __init__(self, config=DEFAULT_CONFIG): 
         super().__init__(config)
 
-class GPTXLNet_tuned(InstructNet):
+class GPTNetXL_tuned(InstructNet):
     DEFAULT_CONFIG = InstructModelConfig(model_name = 'gptNetXL_tuned', 
                         LM_class=GPT, 
                         LM_config=LMConfig(
@@ -170,6 +170,8 @@ def make_default_model(model_str):
     assert model_str in _all_models, 'invalid model name'
     if model_str == 'simpleNet':
         return SimpleNet()
+    if model_str == 'simpleNetPlus':
+        return SimpleNetPlus()
     if model_str == 'gptNet': 
         return GPTNet()
     if model_str == 'gptNet_tuned': 
@@ -182,6 +184,10 @@ def make_default_model(model_str):
         return SBERTNet()
     if model_str == 'sbertNet_tuned': 
         return SBERTNet_tuned()
+    if model_str == 'gptNetXL':
+        return GPTNetXL()
+    if model_str == 'gptNetXL_tuned':
+        return GPTNetXL_tuned()
     if model_str == 'gptNeoNet': 
         return GPTNeoNet()
     if model_str == 'gptNeoNet_tuned': 
