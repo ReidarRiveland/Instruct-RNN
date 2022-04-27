@@ -121,7 +121,7 @@ def get_layer_sim_scores(model, rep_depth='12'):
     if rep_depth == 'task': 
         reps, _ = get_task_reps(model)
     if rep_depth == 'full' or rep_depth.isnumeric(): 
-        reps = get_instruct_reps(model.langModel, train_instruct_dict, depth=rep_depth)
+        reps = get_instruct_reps(model.langModel, depth=rep_depth)
 
     sim_scores = 1-cosine_similarity(reps.reshape(-1, rep_dim))
     

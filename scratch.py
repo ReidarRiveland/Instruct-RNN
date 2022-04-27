@@ -87,26 +87,40 @@ pooled_output = outputs.pooler_output  # pooled (EOS token) states
 pooled_output.unsqueeze(0)[0].shape
 
 
-from models.full_models import SBERTNet, SimpleNetPlus
+from models.full_models import SBERTNet, SimpleNetPlus, SBERTNet_tuned
 from utils.utils import task_swaps_map, training_lists_dict, get_holdout_file_name
-from model_analysis import get_model_performance, task_eval
+from model_analysis import get_model_performance, task_eval, get_layer_sim_scores
 import numpy as np
 from task import Task
 
-simpleNetPlus = SimpleNetPlus()
+sbertNet = SBERTNet()
 
-for n,p in simpleNetPlus.named_parameters(): 
-    if p.requires_grad: print(n)
-
-gptNet = SBERTNet()
 
 EXP_FILE = '_ReLU128_4.11/aligned_holdouts'
-perf = np.zeros((16))
-holdouts = get_holdout_file_name(['RT Go', 'Anti RT Go'])
-gptNet.load_model(EXP_FILE+'/'+holdouts+'/sbertNet', suffix='_seed0')
-perf = get_model_performance(gptNet, 1)
+sbertNet_tuned = SBERTNet_tuned()
+sbertNet = SBERTNet()
+holdouts_file = get_holdout_file_name(training_lists_dict['aligned_holdouts'][0])
+sbertNet_tuned.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet_tuned', suffix='_seed0')
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet', suffix='_seed0')
 
-perf
+
+sim_scores = get_layer_sim_scores(sbertNet_tuned)
+sbert_sim_scores = get_layer_sim_scores(sbertNet)
+
+from plotting import plot_RDM
+
+plot_RDM(sim_scores, rep_type='lang')
+plot_RDM(sbert_sim_scores, rep_type='lang')
+
+perf = np.zeros((16))
+for tasks in training_lists_dict['aligned_holdouts']:
+    holdouts_file = get_holdout_file_name(tasks)
+    sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet', suffix='_seed0')
+    for task in tasks: 
+        frac_correct = task_eval(sbertNet, task, 128)
+        perf[Task.TASK_LIST.index(task)] = frac_correct
+
+np.mean(perf)
 
 from utils.utils import display_memory
 display_memory()

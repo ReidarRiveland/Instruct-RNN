@@ -29,7 +29,7 @@ class BaseNet(nn.Module):
 
     def __initHidden__(self, batch_size):
         return torch.full((self.rnn_layers, batch_size, self.rnn_hidden_dim), 
-                self.rnn_hiddenInitValue, device=self.__device__.type)
+                self.rnn_hiddenInitValue, device=torch.device(self.__device__))
 
     def expand_info(self, task_info, duration, onset): 
         task_info_block = torch.zeros((task_info.shape[0], 120, task_info.shape[-1]))

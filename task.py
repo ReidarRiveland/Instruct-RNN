@@ -579,7 +579,7 @@ def make_test_trials(task_type, task_variable, mod, num_trials=100, sigma_in = 0
 
 def gpu_to_np(t):
     """removes tensor from gpu and converts to np.array""" 
-    if t.get_device() == 0: 
+    if t.get_device() >= 0: 
         t = t.detach().to('cpu').numpy()
     elif t.get_device() == -1: 
         t = t.detach().numpy()

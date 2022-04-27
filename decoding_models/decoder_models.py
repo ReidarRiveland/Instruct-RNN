@@ -1,4 +1,4 @@
-from decoding_models.context_trainer import ContextTrainer
+from context_trainer import ContextTrainer
 from model_trainer import config_model
 from utils.utils import train_instruct_dict
 from model_analysis import reduce_rep
@@ -6,7 +6,7 @@ from plotting import plot_rep_scatter
 from utils.utils import isCorrect, inv_train_instruct_dict, count_vocab, training_lists_dict, get_holdout_file
 from task import Task, construct_batch
 from script_gru import ScriptGRU
-from decoding_models.context_trainer import ContextTrainer
+from context_trainer import ContextTrainer
 from dataset import TaskDataSet
 import torch.optim as optim
 

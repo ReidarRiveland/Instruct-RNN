@@ -18,6 +18,7 @@ from attrs import define
 import os
 import warnings
 import gc
+from copy import copy
 
 device = torch.device(0)
 
@@ -80,6 +81,7 @@ class ModelTrainer(BaseTrainer):
     def _init_optimizer(self, model):
         if model.is_instruct:
             if self.lang_lr is None: langLR = self.lr 
+            else: langLR = self.lang_lr
             optimizer = self.optim_alg([
                     {'params' : model.recurrent_units.parameters()},
                     {'params' : model.sensory_motor_outs.parameters()},
@@ -99,6 +101,8 @@ class ModelTrainer(BaseTrainer):
         pickle.dump(cur_data_dict, open(self.file_path+'/'+self.seed_suffix+'training_data_FOR_TUNING', 'wb'))
         model_for_tuning.save_model(self.file_path, suffix='_'+self.seed_suffix+'_FOR_TUNING')
         print('\n MODEL SAVED FOR TUNING')
+
+####BREAK UP INTO TRAIN, TUNE, TEST?
 
     def train(self, model, is_tuning=False, is_testing=False): 
         model.to(device)
@@ -142,7 +146,6 @@ class ModelTrainer(BaseTrainer):
                     self._record_session(model, mode='FINAL')
                     return True
 
-
             if self.scheduler is not None: self.scheduler.step()  
             if self.step_last_lr: self.step_scheduler.step()
 
@@ -155,6 +158,7 @@ class ModelTrainer(BaseTrainer):
 def check_already_trained(file_name, seed): 
     try: 
         pickle.load(open(file_name+'/seed'+str(seed)+'_training_correct', 'rb'))
+        print('\n Model at ' + file_name + ' for seed '+str(seed)+' aleady trained')
         return True
     except FileNotFoundError:
         return False
@@ -168,7 +172,6 @@ def train_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_c
                 file_name = EXP_FILE+'/'+get_holdout_file_name(holdouts)+'/'+model_name
                 
                 if check_already_trained(file_name, seed) and not overwrite:
-                    print('Model at ' + file_name + ' for seed '+str(seed)+' aleady trained')
                     continue 
                 
                 model = make_default_model(model_name)
@@ -187,20 +190,37 @@ def tune_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_co
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
+            assert '_tuned' in model_name
             for holdouts in all_holdouts: 
-                file_name = EXP_FILE+'/'+get_holdout_file_name(holdouts)+'/'+model_name
+                untuned_model_name = model_name.replace('_tuned', '')
+                file_name = EXP_FILE+'/'+get_holdout_file_name(holdouts)
                 
-                if check_already_trained(file_name, seed) and not overwrite:
-                    print('Model at ' + file_name + ' for seed '+str(seed)+' aleady trained')
+                if check_already_trained(file_name+'/'+model_name, seed) and not overwrite:
                     continue 
                 
+                
+                for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
+                            untuned_model_name+'_seed'+str(seed)+'_FOR_TUNING.pt'
+                for_tuning_data_path = file_name+'/'+untuned_model_name+\
+                            '/seed'+str(seed)+'training_data_FOR_TUNING'
+            
                 model = make_default_model(model_name)
-                model.load_model(file_name+'/'+model_name.strip('_tuned'), suffix='_seed'+str(seed)+'_FOR_TUNING')
-                training_data_checkpoint = pickle.load(open(file_name+'/seed'+str(seed)+'training_data_FOR_TUNING', 'rb'))
-                tuning_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
+                model.load_state_dict(torch.load(for_tuning_model_path))
+                training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
+                tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, 
+                                                epochs=10, min_run_epochs=5, lr=1e-4, lang_lr=1e-5,
+                                                save_for_tuning_epoch=np.nan, 
+                                                **train_config_kwargs)
                 trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
                 is_trained = trainer.train(model, is_tuning=True)
-                if not is_trained: inspection_list.append((model.model_name, seed, holdouts))
+
+                if not is_trained: 
+                    inspection_list.append((model.model_name, seed, holdouts))
+                else: 
+                    os.remove(for_tuning_model_path)
+                    os.remove(for_tuning_data_path)
+
+
                 del trainer
                 del model
                 gc.collect()
@@ -234,12 +254,8 @@ def test_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_co
 
 
 
-
 #save training data when checkpointing!
-train_model_set(['sbertNet', 'bertNet', 'gptNet', 'simpleNet', 'simpleNetPlus'], range(5), training_lists_dict['aligned_holdouts'])            
-
-
-
+tune_model_set(['sbertNet_tuned', 'bertNet_tuned', 'gptNet_tuned'], [0], training_lists_dict['aligned_holdouts'])            
 
 
 

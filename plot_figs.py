@@ -313,19 +313,19 @@ def plot_lang_vs_context(model, contexts, tasks_to_plot, mode='task'):
 def load_contexts(model_name, seed):
     all_contexts = np.empty((16, 128, 20))
     for i, task in enumerate(Task.TASK_LIST): 
-        filename = exp_file+'/'+model_name+'/contexts/seed'+str(seed)+task+'supervised_context_vecs20'
+        filename = exp_file+'/'+model_name+'/contexts/seed'+str(seed)+task+'_supervised_context_vecs20'
         task_contexts = pickle.load(open(filename, 'rb'))
         all_contexts[i, ...]=task_contexts[:128, :]
     return all_contexts
 
 
 model_name = 'sbertNet_tuned'
-seed = 0
+seed = 1
 contexts = load_contexts(model_name, seed)
 model = make_default_model(model_name)
 model.load_model(exp_file+'/'+model_name, suffix='_seed'+str(seed))
 
-plot_lang_vs_context(model, contexts, Task.TASK_GROUP_DICT['Delay'], mode='task')
+plot_lang_vs_context(model, contexts, Task.TASK_GROUP_DICT['Go'], mode='task')
 
 
 #Figure 3

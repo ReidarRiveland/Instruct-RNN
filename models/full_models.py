@@ -6,6 +6,8 @@ _all_models = ['clipNet', 'clipNet_tuned',
             'sbertNet_tuned', 'sbertNet', 
             'bertNet_tuned', 'bertNet', 
             'gptNet_tuned', 'gptNet', 
+            'gptNetXL_tuned', 'gptNetXL', 
+
             'gptNeoNet', 'gptNeoNet_tuned', 
             'bowNet', 
             'simpleNet', 'simpleNetPlus']
