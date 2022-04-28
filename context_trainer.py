@@ -1,5 +1,5 @@
 from matplotlib.style import context
-from utils.utils import training_lists_dict
+from utils.utils import get_holdout_file_name, training_lists_dict
 from models.full_models import make_default_model
 from base_trainer import masked_MSE_Loss, BaseTrainer
 from dataset import TaskDataSet
@@ -184,9 +184,10 @@ def train_context_set(model_names, seeds, holdouts_folders, as_batch = False, ta
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
-        for holdouts_folder in holdouts_folders:
+        for holdouts in holdouts_folders:
+            holdouts_file = get_holdout_file_name(holdouts)
             for model_name in model_names: 
-                file_name = EXP_FILE+'/'+holdouts_folder+'/'+model_name+'/contexts'
+                file_name = EXP_FILE+'/'+holdouts_file+'/'+model_name+'/contexts'
 
                 model = make_default_model(model_name)
                 for task in tasks: 
@@ -204,16 +205,17 @@ def train_context_set(model_names, seeds, holdouts_folders, as_batch = False, ta
         return inspection_list
 
 if __name__ == "__main__":
-    ##TEST BY BATCH WITH NEW INITIALIZATION AND CLIP!!!
+    #TEST BY BATCH WITH NEW INITIALIZATION AND CLIP!!!
     # train_context_set(['sbertNet_tuned'], 
     #                     [0], 
-    #                     ['Go_Anti_DM'], 
+    #                     training_lists_dict['swap_holdouts'],
+    #                     as_batch=True,  
     #                     tasks = Task.TASK_LIST, 
-    #                     batch_len = 64, lr=0.04, min_run_epochs=2, epochs=5, step_last_lr=False)
+    #                     batch_len = 128, lr=0.04, min_run_epochs=10, epochs=20, step_last_lr=True)
 
     train_context_set(['sbertNet_tuned'], 
                         [0], 
-                        ['MultiDM_DNMS'], 
+                        training_lists_dict['swap_holdouts'],
                         as_batch=False,  
-                        batch_len = 64, lr=0.08, min_run_epochs=3, epochs=5, step_last_lr=False)
+                        batch_len = 64, lr=0.02, min_run_epochs=3, epochs=8, step_last_lr=False)
 
