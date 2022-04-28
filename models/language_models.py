@@ -42,6 +42,10 @@ class TransformerEmbedder(InstructionEmbedder):
     def __init__(self, config): 
         super().__init__(config)
 
+    def freeze_transformer(self):
+        for p in self.transformer.parameters():
+            p.requires_grad = False
+
     def tokens_to_tensor(self, x):
         tokens = self.tokenizer(x, return_tensors='pt', padding=True)
         for key, value in tokens.items():
