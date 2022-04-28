@@ -2,17 +2,20 @@ from dataclasses import dataclass
 import pickle
 
 from attr import frozen
+from torch import arange
 from task import Task
 import numpy as np
-from utils.utils import task_swaps_map, all_swaps
+from utils.utils import task_swaps_map, all_swaps, training_lists_dict, get_holdout_file_name
 
 @dataclass(frozen=True)
 class HoldoutDataFrame(): 
     file_path: str
+    exp_type: str 
     model_name: str
     perf_type: str
-
     mode: str = ''
+    seeds: range = range(5)
+
     def __post_init__(self):
         self.load_data()
 
@@ -29,16 +32,18 @@ class HoldoutDataFrame():
         return self.data[:, Task.TASK_LIST.index(task), :]
 
     def load_data(self): 
-        data = np.empty((5, len(Task.TASK_LIST), 100)) #seeds, task, num_batches        
-        for i in range(5):
+        data = np.full((5, len(Task.TASK_LIST), 100), np.nan) #seeds, task, num_batches        
+        for i in self.seeds:
             seed_name = 'seed' + str(i)
-            for j, task in enumerate(Task.TASK_LIST):
-                task_file = task_swaps_map[task]
-                load_path = self.file_path+'/'+task_file+'/'+self.model_name+'/'+self.mode+task.replace(' ', '_')+'_'+seed_name
-                try:
-                    data[i, j, :] = pickle.load(open(load_path+'_holdout_' + self.perf_type, 'rb'))
-                except FileNotFoundError: 
-                    print('No holdout data for '+ load_path)
+            for tasks in training_lists_dict[self.exp_type]:
+                holdout_file = get_holdout_file_name(tasks)
+                for task in tasks: 
+                    load_path = self.file_path+'/'+self.exp_type+'/'+holdout_file+'/'+self.model_name+'/'\
+                                    +self.mode+task.replace(' ', '_')+'_'+seed_name
+                    try:
+                        data[i, Task.TASK_LIST.index(task), :] = pickle.load(open(load_path+'_holdout_' + self.perf_type, 'rb'))[task]
+                    except FileNotFoundError: 
+                        print('No holdout data for '+ load_path)
         super().__setattr__('data', data)
 
 @dataclass(frozen=True)

@@ -1,11 +1,13 @@
 # import numpy as np
 
-# from plotting import plot_RDM, plot_avg_curves, plot_k_shot_learning, plot_model_response, plot_task_curves, plot_trained_performance, plot_rep_scatter, plot_tuning_curve, plot_neural_resp, plot_CCGP_scores, plot_hid_traj, plot_val_performance, plot_RDM
+from plotting import plot_RDM, plot_avg_curves, plot_k_shot_learning, plot_model_response, plot_task_curves, plot_trained_performance, plot_rep_scatter, plot_tuning_curve, plot_neural_resp, plot_CCGP_scores, plot_hid_traj, plot_val_performance, plot_RDM
 # from utils.task_info_utils import train_instruct_dict, test_instruct_dict
 # from model_analysis import get_layer_sim_scores, get_model_performance, get_multitask_val_performance, get_task_reps, reduce_rep, get_instruct_reps, get_hid_var_group_resp
 # import pickle
 # from task import Task
 
+plot_avg_curves('_ReLU128_4.11', ['sbertNet_tuned', 'sbertNet', 'bertNet_tuned', 'bertNet', 'gptNet_tuned', 'gptNet', 'simpleNet', 'simpleNetPlus'], 
+                'aligned_holdouts', seeds=range(1))
 
 # foldername = '_ReLU128_4.11/swap_holdouts'
 
@@ -268,7 +270,7 @@ import matplotlib.patches as mpatches
 from matplotlib import colors, cm, markers, use 
 from matplotlib.lines import Line2D
 
-exp_file = '_ReLU128_4.11/swap_holdouts/Multitask'
+exp_file = '_ReLU128_4.11/swap_holdouts/Go_Anti_DM'
 
 def _rep_scatter(reps_reduced, task, ax, **scatter_kwargs): 
     task_reps = reps_reduced[Task.TASK_LIST.index(task), ...]
@@ -320,12 +322,12 @@ def load_contexts(model_name, seed):
 
 
 model_name = 'sbertNet_tuned'
-seed = 1
+seed = 0
 contexts = load_contexts(model_name, seed)
 model = make_default_model(model_name)
 model.load_model(exp_file+'/'+model_name, suffix='_seed'+str(seed))
 
-plot_lang_vs_context(model, contexts, Task.TASK_GROUP_DICT['Go'], mode='task')
+plot_lang_vs_context(model, contexts, Task.TASK_GROUP_DICT['DM'], mode='lang')
 
 
 #Figure 3

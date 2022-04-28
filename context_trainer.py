@@ -175,12 +175,12 @@ class ContextTrainer(BaseTrainer):
 def check_already_trained(file_name, seed, task): 
     try: 
         pickle.load(open(file_name+'/seed'+str(seed)+task+'_supervised_context_vecs20', 'rb'))
-        print('\n Model at ' + file_name + ' for seed '+str(seed)+' aleady trained')
+        print('\n Model at ' + file_name + ' for seed '+str(seed)+' and task '+task+' aleady trained')
         return True
     except FileNotFoundError:
         return False
 
-def train_context_set(model_names, seeds, holdouts_folders, tasks = Task.TASK_LIST, overwrite=False, **train_config_kwargs): 
+def train_context_set(model_names, seeds, holdouts_folders, as_batch = False, tasks = Task.TASK_LIST, overwrite=False, **train_config_kwargs): 
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
@@ -196,7 +196,7 @@ def train_context_set(model_names, seeds, holdouts_folders, tasks = Task.TASK_LI
                         print('\n TRAINING CONTEXTS at ' + file_name + '\n')
                         trainer_config = ContextTrainerConfig(file_name, seed, **train_config_kwargs)
                         trainer = ContextTrainer(trainer_config)
-                        is_trained = trainer.train(model, task, as_batch=False)
+                        is_trained = trainer.train(model, task, as_batch=as_batch)
                         if not is_trained: inspection_list.append((model.model_name, seed))
 
                 del model
@@ -204,9 +204,16 @@ def train_context_set(model_names, seeds, holdouts_folders, tasks = Task.TASK_LI
         return inspection_list
 
 if __name__ == "__main__":
+    ##TEST BY BATCH WITH NEW INITIALIZATION AND CLIP!!!
+    # train_context_set(['sbertNet_tuned'], 
+    #                     [0], 
+    #                     ['Go_Anti_DM'], 
+    #                     tasks = Task.TASK_LIST, 
+    #                     batch_len = 64, lr=0.04, min_run_epochs=2, epochs=5, step_last_lr=False)
+
     train_context_set(['sbertNet_tuned'], 
                         [0], 
-                        ['Go_Anti_DM'], 
-                        tasks = Task.TASK_LIST, 
-                        batch_len = 64, lr=0.04, min_run_epochs=2, epochs=8, step_last_lr=False)
+                        ['MultiDM_DNMS'], 
+                        as_batch=False,  
+                        batch_len = 64, lr=0.08, min_run_epochs=3, epochs=5, step_last_lr=False)
 

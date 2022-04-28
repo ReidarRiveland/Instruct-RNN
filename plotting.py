@@ -7,6 +7,7 @@ from scipy.ndimage.measurements import label
 from torch.nn.modules.container import T
 from torch.random import seed
 from model_analysis import get_hid_var_group_resp, get_hid_var_resp, get_model_performance, get_instruct_reps
+from perfDataFrame import HoldoutDataFrame
 from task import Comp, Task, make_test_trials, construct_batch, isCorrect
 task_list = Task.TASK_LIST
 task_group_dict = Task.TASK_GROUP_DICT
@@ -50,10 +51,7 @@ def _plot_performance_curve(avg_perf, all_perf, plt_ax, model_name, plt_args):
         plt_ax.plot(avg_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], markeredgewidth=0.25, **plt_args)
 
 
-def plot_avg_curves(foldername, model_list, correct_or_loss='correct', plot_swaps = False, seeds=np.array(range(5)), split_axes=False):
-    data_dict = load_holdout_data(foldername, model_list)
-    if correct_or_loss == 'correct': data_type_index = 0
-    else: data_type_index = 1
+def plot_avg_curves(foldername, model_list, exp_type, perf_type='correct', plot_swaps = False, seeds=np.array(range(5)), split_axes=False):
 
     if split_axes: 
         inset1_lims = (-1, 10)
@@ -91,15 +89,15 @@ def plot_avg_curves(foldername, model_list, correct_or_loss='correct', plot_swap
     plt_args={'linewidth' : 1.2, 'linestyle' : '-', 'alpha':1, 'markersize':4, 'markevery':5}
 
     for model_name in model_list:
-        data = data_dict[model_name][''][data_type_index, seeds, ...]
+        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type, seeds=seeds)
+        print(data.data)
         plt_args['linestyle'] = '-'
-        _plot_performance_curve(np.mean(data, axis = (0, 1)), np.mean(data, axis = 1), axn, model_name, plt_args=plt_args)
-        #_plot_performance_curve(np.mean(data, axis = (0, 1)), None, axn, model_name, plt_args=plt_args)
+        _plot_performance_curve(np.nanmean(data.data, axis = (0, 1)), np.nanmean(data.data, axis = 1), axn, model_name, plt_args=plt_args)
 
-        if plot_swaps:
-            swap_data = data_dict[model_name]['swap'][data_type_index, seeds, ...]
-            plt_args['linestyle'] = '--'
-            _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, axn, model_name, plt_args=plt_args)
+        # if plot_swaps:
+        #     swap_data = data_dict[model_name]['swap'][data_type_index, seeds, ...]
+        #     plt_args['linestyle'] = '--'
+        #     _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, axn, model_name, plt_args=plt_args)
 
         if split_axes:
             plt_args['linestyle'] = '-'
@@ -109,7 +107,6 @@ def plot_avg_curves(foldername, model_list, correct_or_loss='correct', plot_swap
                 _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, ax2, model_name, plt_args=plt_args)
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.7, 0.48), title='Models', title_fontsize = 'small', fontsize='x-small')
     plt.show()
-    return data_dict
 
 def plot_task_curves(foldername, model_list, correct_or_loss='correct', train_folder=None, seeds=np.array(range(5)), plot_contexts=None, plot_swaps=False):
     if train_folder is None: 

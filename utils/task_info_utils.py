@@ -109,7 +109,7 @@ def swap_input_rule(batch_size, task_type):
     swapped_one_hot = one_hot_input_rule(batch_size, swapped_task_list[index])
     return swapped_one_hot
 
-def get_input_rule(batch_size, task_type, instruct_mode, lang_dim = None): 
+def get_input_rule(batch_size, task_type, instruct_mode): 
     if instruct_mode == 'swap': 
         task_rule = swap_input_rule(batch_size, task_type)
     elif instruct_mode == 'comp': 
