@@ -97,7 +97,10 @@ class InstructNet(BaseNet):
     def forward(self, x, instruction = None, context = None):
         assert instruction is not None or context is not None, 'must have instruction or context input'
         if instruction is not None: info_embedded = self.langModel(instruction)
-        else: info_embedded = context
+        elif context.shape[-1] == self.langModel.LM_intermediate_lang_dim:
+            info_embedded = self.langModel.proj_out(context)
+        else:
+            info_embedded = context
 
         outs, rnn_hid = super().forward(x, info_embedded)
         return outs, rnn_hid

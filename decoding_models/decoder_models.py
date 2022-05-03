@@ -1,10 +1,9 @@
 from context_trainer import ContextTrainer
-from model_trainer import config_model
-from utils.utils import train_instruct_dict
+from utils.task_info_utils import train_instruct_dict, inv_train_instruct_dict, count_vocab, get_instructions
 from model_analysis import reduce_rep
 from plotting import plot_rep_scatter
-from utils.utils import isCorrect, inv_train_instruct_dict, count_vocab, training_lists_dict, get_holdout_file
-from task import Task, construct_batch
+from utils.utils import  training_lists_dict, get_holdout_file_name
+from task import Task, isCorrect, construct_batch
 from script_gru import ScriptGRU
 from context_trainer import ContextTrainer
 from dataset import TaskDataSet
@@ -195,15 +194,16 @@ class EncoderDecoder(nn.Module):
 
         self.init_context_set(task_file, seed)
 
-    def init_context_set(self, task_file, seed):
-        all_contexts = np.empty((16, 128, 20))
+    def init_context_set(self, task_file, seed, context_dim):
+        all_contexts = np.empty((16, 128, context_dim))
         for i, task in enumerate(Task.TASK_LIST):
             try: 
                 #need an underscore
-                filename = self.load_foldername+'/'+task_file+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+task+'supervised_context_vecs20'
+                filename = self.load_foldername+'/'+task_file+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+task+'_supervised_context_vecs'+str(context_dim)
                 task_contexts = pickle.load(open(filename, 'rb'))
                 all_contexts[i, ...]=task_contexts[:128, :]
             except FileNotFoundError: 
+                print(filename)
                 print('no contexts for '+task+' for model file '+task_file)
 
         self.contexts = all_contexts
@@ -222,7 +222,7 @@ class EncoderDecoder(nn.Module):
                     task_info = torch.Tensor(self.contexts[task_index, ...]).to(self.sm_model.__device__)
                     _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), context=task_info)
                 else: 
-                    task_info = self.sm_model.get_task_info(num_trials, task)
+                    task_info = get_instructions(num_trials, task, None)
                     _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), task_info)
                 
                 decoded_sentences = self.decoder.decode_sentence(sm_hidden[:,0:t, :]) 

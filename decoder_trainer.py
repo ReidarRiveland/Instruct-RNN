@@ -1,13 +1,14 @@
 import itertools
-from model_trainer import config_model
 import numpy as np
 import torch.optim as optim
-from utils.utils import task_swaps_map, training_lists_dict
+from utils.utils import task_swaps_map, training_lists_dict, get_holdout_file_name
+from utils.task_info_utils import get_instructions
 from task import Task
 from dataset import TaskDataSet
-from decoding_models.decoder_models import DecoderRNN, gptDecoder
+from decoding_models.decoder_models import DecoderRNN
 import pickle
 from attrs import define, asdict
+from models.full_models import make_default_model
 
 import torch
 import torch.nn as nn
@@ -34,12 +35,9 @@ class DecoderTrainerConfig():
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
     scheduler_args: dict = {'gamma': 0.999999999}
 
-    teacher_forcing_ratio = 
     step_last_lr: bool = True
 
-class DecoderTrainer(): 
 
-    def train(self, sm_model, decoder): 
 
 def train_rnn_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_ratio, holdout_tasks=[]): 
     data_streamer = TaskDataSet(batch_len = 64, num_batches = 1000, holdouts=holdout_tasks)
@@ -68,7 +66,7 @@ def train_rnn_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_
 
             decoder_loss=0
 
-            target_instruct = sm_model.get_task_info(batch_size, task_type)
+            target_instruct = get_instructions(batch_size, task_type, None)
 
             target_tensor = decoder.tokenizer(target_instruct).to(device)
             _, sm_hidden = sm_model.forward(ins.to(device), target_instruct)
@@ -78,10 +76,7 @@ def train_rnn_decoder(sm_model, decoder, opt, sch, epochs, init_teacher_forcing_
             if use_teacher_forcing:
                 
                 decoder_input = torch.tensor([[decoder.tokenizer.sos_token_id]*batch_size]).to(device)
-                if decoder.langModel is not None: 
-                    input_token_tensor = decoder.tokenizer(target_instruct, use_langModel=True).to(device)
-                else: 
-                    input_token_tensor  =  target_tensor
+                input_token_tensor  =  target_tensor
                     
                 decoded_sentence = []
                 # Teacher forcing: Feed the target as the next input
@@ -145,7 +140,7 @@ def train_decoder_set(config, decoder_type='rnn'):
 
     model_file = '_ReLU128_4.11/swap_holdouts/'
     seed, model_name, tasks = config 
-    for holdout_train in [True]:
+    for holdout_train in [False, True]:
         # if tasks == ['Multitask'] and holdout_train == True:
         #     continue
 
@@ -159,15 +154,15 @@ def train_decoder_set(config, decoder_type='rnn'):
 
         print(seed, tasks, holdout_str, holdouts)
 
-        task_file = task_swaps_map[tasks[0]]
+        task_file = get_holdout_file_name(tasks)
         filename = model_file + task_file+'/'+ model_name 
 
-        sm_model = config_model(model_name)
-        sm_model.set_seed(seed) 
-        sm_model.load_model(model_file + task_file)
+        sm_model = make_default_model(model_name)
+        sm_model.load_model(filename, suffix='_seed'+str(seed))
         sm_model.to(device)
 
-        decoder= DecoderRNN(64, drop_p = 0.1, langModel=None)
+        decoder= DecoderRNN(64, drop_p = 0.1)
+        decoder.to(device)
         decoder_optimizer = optim.Adam([
             #{'params' : decoder.embedding.parameters()},
             {'params' : decoder.gru.parameters()},
@@ -183,15 +178,15 @@ def train_decoder_set(config, decoder_type='rnn'):
             if p.requires_grad: print(n)
 
 
-        trainer(sm_model, decoder, decoder_optimizer, sch, 80, 0.5, holdout_tasks=holdouts)
+        train_rnn_decoder(sm_model, decoder, decoder_optimizer, sch, 100, 0.5, holdout_tasks=holdouts)
         decoder.save_model(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_lin'+holdout_str)
         decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_lin'+holdout_str)
 
 
-
-seeds = [1, 2,3,4]
+from utils.utils import training_lists_dict
+seeds = [0]
 model_file = '_ReLU128_4.11/swap_holdouts/'
-to_train = list(itertools.product(seeds, ['sbertNet_tuned'], [['Multitask']]))
+to_train = list(itertools.product(seeds, ['sbertNet_tuned'], training_lists_dict['swap_holdouts']))
 for config in to_train: 
     train_decoder_set(config, decoder_type='rnn')
 

@@ -296,7 +296,10 @@ def plot_lang_vs_context(model, contexts, tasks_to_plot, mode='task'):
         context_reps_reduced = reduced[0:16, ...]
         wInstruct_reps_reduced = reduced[16:,...]
     elif mode == 'lang': 
-        wInstruct_reps = get_instruct_reps(model.langModel)
+        if contexts.shape[-1] == 20: depth='full'
+        else: depth = '12'
+
+        wInstruct_reps = get_instruct_reps(model.langModel, depth=depth)
         modulo = contexts.shape[1]-contexts.shape[1]%wInstruct_reps.shape[1]
         context_reps = contexts[:, :modulo, :].reshape(-1, wInstruct_reps.shape[1], wInstruct_reps.shape[-1])
         reduced, _ = reduce_rep(np.concatenate((context_reps, wInstruct_reps)))
@@ -313,9 +316,9 @@ def plot_lang_vs_context(model, contexts, tasks_to_plot, mode='task'):
     plt.show()
 
 def load_contexts(model_name, seed):
-    all_contexts = np.empty((16, 128, 20))
+    all_contexts = np.empty((16, 128, 768))
     for i, task in enumerate(Task.TASK_LIST): 
-        filename = exp_file+'/'+model_name+'/contexts/seed'+str(seed)+task+'_supervised_context_vecs20'
+        filename = exp_file+'/'+model_name+'/contexts/seed'+str(seed)+task+'_supervised_context_vecs768'
         task_contexts = pickle.load(open(filename, 'rb'))
         all_contexts[i, ...]=task_contexts[:128, :]
     return all_contexts
@@ -327,7 +330,7 @@ contexts = load_contexts(model_name, seed)
 model = make_default_model(model_name)
 model.load_model(exp_file+'/'+model_name, suffix='_seed'+str(seed))
 
-plot_lang_vs_context(model, contexts, Task.TASK_GROUP_DICT['DM'], mode='lang')
+plot_lang_vs_context(model, contexts, Task.TASK_GROUP_DICT['Go'], mode='lang')
 
 
 #Figure 3

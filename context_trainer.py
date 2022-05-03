@@ -1,3 +1,4 @@
+from random import uniform
 from matplotlib.style import context
 from utils.utils import get_holdout_file_name, training_lists_dict
 from models.full_models import make_default_model
@@ -49,7 +50,7 @@ class ContextTrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.95}
+    scheduler_args: dict = {'gamma': 0.99}
     sparsity_prior: float = None
     sparsity_weight: float = 1
 
@@ -90,7 +91,9 @@ class ContextTrainer(BaseTrainer):
         print(status_str)
 
     def _init_contexts(self, batch_len): 
-        context = nn.Parameter(torch.relu(torch.randn((batch_len, self.context_dim), device=device))+1e-3)
+        #context = nn.Parameter(torch.randn((batch_len, self.context_dim), device=device))
+        context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
+        nn.init.uniform_(context, a=-0.2, b=0.2)
         return context
     
     def _init_optimizer(self, context):
@@ -115,7 +118,8 @@ class ContextTrainer(BaseTrainer):
                 ins, tar, mask, tar_dir, task_type = data
                 self.optimizer.zero_grad()
                 if contexts.shape[0]==1: 
-                    in_contexts = contexts.repeat(self.batch_len, 1).clamp(min=0.0)
+                    #in_contexts = contexts.repeat(self.batch_len, 1).clamp(min=0.0)
+                    in_contexts = contexts.repeat(self.batch_len, 1)
                 else: 
                     in_contexts = contexts.clamp(min=0.0)
 
@@ -132,7 +136,6 @@ class ContextTrainer(BaseTrainer):
                     self._log_step(task_type, frac_correct, loss.item())
 
                 loss.backward()
-                torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
                 self.optimizer.step()
 
                 if self.cur_step%50 == 0:
@@ -172,15 +175,15 @@ class ContextTrainer(BaseTrainer):
             self._record_session(all_contexts, task)                
 
 
-def check_already_trained(file_name, seed, task): 
+def check_already_trained(file_name, seed, task, context_dim): 
     try: 
-        pickle.load(open(file_name+'/seed'+str(seed)+task+'_supervised_context_vecs20', 'rb'))
+        pickle.load(open(file_name+'/seed'+str(seed)+task+'_supervised_context_vecs'+str(context_dim), 'rb'))
         print('\n Model at ' + file_name + ' for seed '+str(seed)+' and task '+task+' aleady trained')
         return True
     except FileNotFoundError:
         return False
 
-def train_context_set(model_names, seeds, holdouts_folders, as_batch = False, tasks = Task.TASK_LIST, overwrite=False, **train_config_kwargs): 
+def train_context_set(model_names, seeds, holdouts_folders, context_dim, as_batch = False, tasks = Task.TASK_LIST, overwrite=False, **train_config_kwargs): 
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
@@ -191,11 +194,11 @@ def train_context_set(model_names, seeds, holdouts_folders, as_batch = False, ta
 
                 model = make_default_model(model_name)
                 for task in tasks: 
-                    if check_already_trained(file_name, seed, task) and not overwrite:
+                    if not overwrite and check_already_trained(file_name, seed, task, context_dim):
                         continue 
                     else:        
-                        print('\n TRAINING CONTEXTS at ' + file_name + '\n')
-                        trainer_config = ContextTrainerConfig(file_name, seed, **train_config_kwargs)
+                        print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ '\n')
+                        trainer_config = ContextTrainerConfig(file_name, seed, context_dim = context_dim, **train_config_kwargs)
                         trainer = ContextTrainer(trainer_config)
                         is_trained = trainer.train(model, task, as_batch=as_batch)
                         if not is_trained: inspection_list.append((model.model_name, seed))
@@ -205,17 +208,18 @@ def train_context_set(model_names, seeds, holdouts_folders, as_batch = False, ta
         return inspection_list
 
 if __name__ == "__main__":
-    #TEST BY BATCH WITH NEW INITIALIZATION AND CLIP!!!
+    ##TEST BY BATCH WITH NEW INITIALIZATION AND CLIP!!!
     # train_context_set(['sbertNet_tuned'], 
     #                     [0], 
-    #                     training_lists_dict['swap_holdouts'],
+    #                     training_lists_dict['swap_holdouts'][::-1],
+    #                     768, 
     #                     as_batch=True,  
-    #                     tasks = Task.TASK_LIST, 
-    #                     batch_len = 128, lr=0.04, min_run_epochs=10, epochs=20, step_last_lr=True)
+    #                     batch_len = 128, lr=0.005, min_run_epochs=10, epochs=20, step_last_lr=True, checker_threshold=0.98)
 
     train_context_set(['sbertNet_tuned'], 
                         [0], 
-                        training_lists_dict['swap_holdouts'],
+                        training_lists_dict['swap_holdouts'][::-1],
+                        768, 
                         as_batch=False,  
-                        batch_len = 64, lr=0.02, min_run_epochs=3, epochs=8, step_last_lr=False)
+                        batch_len = 64, lr=0.008, min_run_epochs=2, epochs=5, step_last_lr=False)
 
