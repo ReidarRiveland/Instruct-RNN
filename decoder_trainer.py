@@ -100,7 +100,7 @@ class DecoderTrainer():
             pickle.dump(checkpoint_attrs, open(path+'_attrs'+holdouts_suffix, 'wb'))
             os.remove(path+'_CHECKPOINT_attrs'+holdouts_suffix)
             decoder.save_model(path+holdouts_suffix)
-            os.remove(path+'_CHECKPOINT'+holdouts_suffix)
+            os.remove(path+'_CHECKPOINT'+holdouts_suffix+'.pt')
 
 
     def _init_streamer(self):
