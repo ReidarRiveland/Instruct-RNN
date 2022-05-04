@@ -24,7 +24,6 @@ class BaseNet(nn.Module):
                                     nn.Linear(self.rnn_hidden_dim, self._sensorimotor_out_dim), 
                                     nn.Sigmoid())
 
-        self.recurrent_units.__weights_init__()
         self.__device__ = torch.device('cpu')
 
     def __initHidden__(self, batch_size):

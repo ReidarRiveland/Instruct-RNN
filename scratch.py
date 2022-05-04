@@ -87,33 +87,33 @@
 # pooled_output.unsqueeze(0)[0].shape
 
 
-# from models.full_models import SBERTNet, SimpleNetPlus, SBERTNet_tuned
-# from utils.utils import task_swaps_map, training_lists_dict, get_holdout_file_name
-# from model_analysis import get_model_performance, task_eval, get_layer_sim_scores, reduce_rep
-# import numpy as np
-# from task import Task
-# from utils.task_info_utils import get_input_rule
-# import torch
+from models.full_models import SBERTNet, SimpleNetPlus, SBERTNet_tuned
+from utils.utils import task_swaps_map, training_lists_dict, get_holdout_file_name
+from model_analysis import get_model_performance, task_eval, get_layer_sim_scores, reduce_rep
+import numpy as np
+from task import Task
+from utils.task_info_utils import get_input_rule
+import torch
 
-# EXP_FILE = '_ReLU128_4.11/aligned_holdouts'
-# simpleNetPlus = SimpleNetPlus()
-# holdouts_file = get_holdout_file_name(training_lists_dict['aligned_holdouts'][-1])
-# simpleNetPlus.load_model(EXP_FILE+'/'+holdouts_file+'/simpleNetPlus', suffix='_seed0')
+EXP_FILE = '_ReLU128_4.11/aligned_holdouts'
+simpleNetPlus = SimpleNetPlus()
+holdouts_file = get_holdout_file_name(training_lists_dict['aligned_holdouts'][-1])
+simpleNetPlus.load_model(EXP_FILE+'/'+holdouts_file+'/simpleNetPlus', suffix='_seed0')
 
-# simpleNetPlus_context = np.empty((16, 20))
+simpleNetPlus_context = np.empty((16, 20))
 
 
-# simpleNetPlus.eval()
-# with torch.no_grad():
-#     for i, task in enumerate(Task.TASK_LIST): 
-#         rule = get_input_rule(1, task, None)
-#         simpleNetPlus_context[i, :]=simpleNetPlus.rule_encoder(torch.matmul(rule, simpleNetPlus.rule_transform))
+simpleNetPlus.eval()
+with torch.no_grad():
+    for i, task in enumerate(Task.TASK_LIST): 
+        rule = get_input_rule(1, task, None)
+        simpleNetPlus_context[i, :]=simpleNetPlus.rule_encoder(torch.matmul(rule, simpleNetPlus.rule_transform))
 
-# simpleNetPlus_context = np.expand_dims(simpleNetPlus_context, 1)
+simpleNetPlus_context = np.expand_dims(simpleNetPlus_context, 1)
 
-# reps_reduced, _ = reduce_rep(simpleNetPlus_context)
-# from plotting import plot_rep_scatter
-# plot_rep_scatter(reps_reduced, Task.TASK_GROUP_DICT['COMP'], s=100)
+reps_reduced, _ = reduce_rep(simpleNetPlus_context)
+from plotting import plot_rep_scatter
+plot_rep_scatter(reps_reduced, Task.TASK_GROUP_DICT['Delay'], s=100)
 
 
 

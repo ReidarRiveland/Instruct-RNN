@@ -23,15 +23,6 @@ device = torch.device(0)
 
 EXP_FILE = '_ReLU128_4.11/swap_holdouts'
 
-class KL_divergence():
-    def __init__(self, rho):
-        self.rho = rho
-
-    def __call__(self, hidden_rep):
-        rho_hat = torch.mean(torch.sigmoid(hidden_rep), 1) # sigmoid because we need the probability distributions
-        rho = torch.tensor([self.rho] * len(rho_hat)).to(device)
-        return torch.sum(rho * torch.log(rho/rho_hat) + (1 - rho) * torch.log((1 - rho)/(1 - rho_hat)))
-
 @define 
 class ContextTrainerConfig(): 
     file_path: str
@@ -44,6 +35,7 @@ class ContextTrainerConfig():
     min_run_epochs: int = 5
     batch_len: int = 128
     num_batches: int = 500
+    stream_data: bool = False
 
     optim_alg: optim = optim.Adam
     lr: float = 0.1
@@ -51,8 +43,6 @@ class ContextTrainerConfig():
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
     scheduler_args: dict = {'gamma': 0.99}
-    sparsity_prior: float = None
-    sparsity_weight: float = 1
 
     checker_threshold: float = 0.95
     step_last_lr: bool = False
@@ -60,10 +50,6 @@ class ContextTrainerConfig():
 class ContextTrainer(BaseTrainer): 
     def __init__(self, context_training_config: ContextTrainerConfig = None, from_checkpoint_dict:dict = None): 
         super().__init__(context_training_config, from_checkpoint_dict)
-        if self.sparsity_prior is not None: 
-            self.KL_loss = KL_divergence(self.sparsity_prior)
-            self.sparsity_loss_data = defaultdict(list)
-            self.task_loss_data = defaultdict(list)
 
     def _record_session(self, contexts, task):
         checkpoint_attrs = super()._record_session()
@@ -83,17 +69,12 @@ class ContextTrainer(BaseTrainer):
                 ' ----- Task Type: '+task_type+\
                 ' ----- Performance: ' + str(self.correct_data[task_type][-1])+\
                 ' ----- Loss: ' + "{:.3e}".format(self.loss_data[task_type][-1])
-        
-        if self.sparsity_prior is not None: 
-            status_str += ' ----- Task Loss: ' + "{:.3e}".format(self.task_loss_data[task_type][-1])+\
-                    ' ----- Sparsity Loss: ' + "{:.3e}".format(self.sparsity_loss_data[task_type][-1])
-
         print(status_str)
 
     def _init_contexts(self, batch_len): 
         #context = nn.Parameter(torch.randn((batch_len, self.context_dim), device=device))
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        nn.init.uniform_(context, a=-0.2, b=0.2)
+        nn.init.uniform_(context, a=-0.1, b=0.1)
         return context
     
     def _init_optimizer(self, context):
@@ -127,13 +108,8 @@ class ContextTrainer(BaseTrainer):
                 task_loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
                 frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
 
-                if self.sparsity_prior is not None: 
-                    sparsity_loss = self.KL_loss(contexts)*self.sparsity_weight
-                    loss = sparsity_loss + task_loss
-                    self._log_step(task_type, frac_correct, loss.item(), task_loss.item(), sparsity_loss.item())
-                else: 
-                    loss = task_loss
-                    self._log_step(task_type, frac_correct, loss.item())
+                loss = task_loss
+                self._log_step(task_type, frac_correct, loss.item())
 
                 loss.backward()
                 self.optimizer.step()
@@ -151,7 +127,7 @@ class ContextTrainer(BaseTrainer):
         return False
     
     def train(self, model, task, as_batch=True):
-        self.streamer = TaskDataSet(False, 
+        self.streamer = TaskDataSet(self.stream_data, 
                 self.batch_len, 
                 self.num_batches,
                 set_single_task=task)
@@ -163,6 +139,7 @@ class ContextTrainer(BaseTrainer):
             if is_trained: 
                 self._record_session(contexts, task)
             return is_trained
+
         else: 
             all_contexts = torch.empty((self.num_contexts, self.context_dim))
             for i in range(self.num_contexts): 
@@ -221,5 +198,5 @@ if __name__ == "__main__":
                         training_lists_dict['swap_holdouts'][::-1],
                         768, 
                         as_batch=False,  
-                        batch_len = 64, lr=0.008, min_run_epochs=2, epochs=5, step_last_lr=False)
+                        batch_len = 64, lr=0.005, min_run_epochs=1, epochs=5, step_last_lr=False)
 

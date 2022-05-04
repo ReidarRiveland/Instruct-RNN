@@ -1,10 +1,8 @@
-import itertools
 from json import decoder
 import numpy as np
 import torch.optim as optim
 from utils.utils import training_lists_dict, get_holdout_file_name
 from utils.task_info_utils import get_instructions
-from task import Task
 from dataset import TaskDataSet
 from decoding_models.decoder_models import DecoderRNN
 from attrs import define, asdict
@@ -13,13 +11,12 @@ from tqdm import tqdm
 import pickle
 import os
 
-
 import torch
 import torch.nn as nn
 
-torch.cuda.is_available()
-
 device = torch.device(0)
+
+EXP_FILE = '_ReLU128_4.11/swap_holdouts'
 
 
 @define 
@@ -27,10 +24,11 @@ class DecoderTrainerConfig():
     file_path: str
     random_seed: int
 
-    epochs: int = 100
+    epochs: int = 80
     batch_len: int = 64
     num_batches: int = 1000
-    holdouts = []
+    stream_data: bool = False
+    holdouts: list = []
 
     optim_alg: optim = optim.Adam
     lr: float = 1e-4
@@ -39,7 +37,8 @@ class DecoderTrainerConfig():
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
     scheduler_args: dict = {'gamma': 0.999999999}
 
-    init_teaching_forcing_ratio = 0.5
+    init_teacher_forcing_ratio: float = 0.5
+    
 
 class DecoderTrainer():
     def __init__(self, config:DecoderTrainerConfig=None, from_checkpoint_dict:dict=None): 
@@ -48,7 +47,6 @@ class DecoderTrainer():
         self.cur_step = 0
         self.teacher_loss_data = []
         self.loss_data = []
-        self.seed_suffix = '_seed'+str(self.seed)
 
         if from_checkpoint_dict is not None: 
             for name, value in from_checkpoint_dict.items(): 
@@ -57,10 +55,13 @@ class DecoderTrainer():
         for name, value in asdict(self.config, recurse=False).items(): 
             setattr(self, name, value)
 
+        self.seed_suffix = 'seed'+str(self.random_seed)
+
+
     def _print_progress(self, decoder_loss, use_teacher_forcing, 
                                 decoded_sentence, target_instruct): 
         print('Teacher forcing: ' + str(use_teacher_forcing))
-        print('Decoder Loss: ' + str(decoder_loss.item()/self.pad_len))
+        print('Decoder Loss: ' + str(decoder_loss/self.pad_len))
 
         print('target instruction: ' + target_instruct[-1])
         if use_teacher_forcing:
@@ -78,23 +79,28 @@ class DecoderTrainer():
         else: 
             self.loss_data.append(loss)
 
-    def _record_session(self, mode):
-        record_attrs = ['config', 'optimizer', 'scheduler', 'cur_epoch', 'cur_step', 'teacher_loss_data', 'loss_data']
+    def _record_session(self, decoder, mode):
+        record_attrs = ['config', 'decoder_optimizer', 'scheduler', 'cur_epoch', 'cur_step', 'teacher_loss_data', 'loss_data']
         checkpoint_attrs = {}
         for attr in record_attrs: 
             checkpoint_attrs[attr]=getattr(self, attr)
 
-        if mode == 'CHECKPOINT':
-            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+self.seed_suffix+'_CHECKPOINT_attrs', 'wb'))
-            self.decoder.save_model(self.file_path, suffix='_'+self.seed_suffix+'_CHECKPOINT')
+        with_holdouts = bool(self.holdouts)
+        if with_holdouts: 
+            holdouts_suffix = '_wHoldout'
+        else: 
+            holdouts_suffix = ''
+
+        path = self.file_path+'/'+decoder.decoder_name+'_'+self.seed_suffix
+        if mode == 'CHECKPOINT':    
+            pickle.dump(checkpoint_attrs, open(path+'_CHECKPOINT_attrs'+holdouts_suffix, 'wb'))
+            decoder.save_model(path+'_CHECKPOINT'+holdouts_suffix)
 
         if mode=='FINAL': 
-            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+self.seed_suffix+'_attrs', 'wb'))
-            os.remove(self.file_path+'/'+self.model_file_path+self.seed_suffix+'_CHECKPOINT_attrs')
-            pickle.dump(self.loss_data, open(self.file_path+'/'+self.seed_suffix+'_training_loss', 'wb'))
-            pickle.dump(self.correct_data, open(self.file_path+'/'+self.seed_suffix+'_training_correct', 'wb'))
-            decoder.save_model(self.file_path, suffix='_'+self.seed_suffix)
-            os.remove(self.file_path+'/'+decoder.model_name+'_'+self.seed_suffix+'_CHECKPOINT.pt')
+            pickle.dump(checkpoint_attrs, open(path+'_attrs'+holdouts_suffix, 'wb'))
+            os.remove(path+'_CHECKPOINT_attrs'+holdouts_suffix)
+            decoder.save_model(path+holdouts_suffix)
+            os.remove(path+'_CHECKPOINT'+holdouts_suffix)
 
 
     def _init_streamer(self):
@@ -102,7 +108,7 @@ class DecoderTrainer():
                         self.batch_len, 
                         self.num_batches, 
                         self.holdouts, 
-                        self.set_single_task)
+                        None)
 
     def _init_optimizer(self, decoder):
         self.decoder_optimizer = self.optim_alg([
@@ -117,6 +123,9 @@ class DecoderTrainer():
         criterion = nn.NLLLoss(reduction='mean')
         teacher_forcing_ratio = self.init_teacher_forcing_ratio
         self.pad_len  = decoder.tokenizer.pad_len 
+         
+        self._init_streamer()
+        self._init_optimizer(decoder)
 
         for i in tqdm(range(self.epochs), desc='epochs'): 
             print('Epoch: ' + str(i)+'\n')
@@ -125,7 +134,7 @@ class DecoderTrainer():
                 decoder_loss=0
 
                 use_teacher_forcing = True if np.random.random() < teacher_forcing_ratio else False
-                target_instruct = get_instructions(self.batch_size, task_type, None)
+                target_instruct = get_instructions(self.batch_len, task_type, None)
 
                 target_tensor = decoder.tokenizer(target_instruct).to(device)
                 _, sm_hidden = sm_model.forward(ins.to(device), target_instruct)
@@ -133,7 +142,7 @@ class DecoderTrainer():
                 self.decoder_optimizer.zero_grad()
 
                 if use_teacher_forcing:
-                    decoder_input = torch.tensor([[decoder.tokenizer.sos_token_id]*self.batch_size]).to(device)
+                    decoder_input = torch.tensor([[decoder.tokenizer.sos_token_id]*self.batch_len]).to(device)
                     input_token_tensor  =  target_tensor
                     decoded_sentence = []
                     # Teacher forcing: Feed the target as the next input
@@ -165,70 +174,54 @@ class DecoderTrainer():
                 if j%50==0: 
                     self._print_progress(loss.item(), use_teacher_forcing, 
                                 decoded_sentence, target_instruct)
+                    self._record_session(decoder, 'CHECKPOINT')
                     
             self.scheduler.step()
             teacher_forcing_ratio -= self.init_teacher_forcing_ratio/self.epochs
             print('Teacher Force Ratio: ' + str(teacher_forcing_ratio))
+        self._record_session(decoder, 'FINAL')
 
-def check_decoder_trained():
+def check_decoder_trained(file_name, seed, use_holdouts): 
+    if use_holdouts: 
+        holdouts_suffix = '_wHoldout'
+    else: 
+        holdouts_suffix = ''
 
+    try: 
+        pickle.load(open(file_name+'/rnn_decoder_seed'+str(seed)+holdouts_suffix+'_attrs', 'rb'))
+        print('\n Model at ' + file_name + ' for seed '+str(seed)+' and holdouts ' + str(use_holdouts) +' aleady trained')
+        return True
+    except FileNotFoundError:
+        return False
 
-def train_decoder_set(config, decoder_type='rnn'): 
-# decoder_type = 'rnn'
-# #config=(0, 'sbertNet_tuned', training_lists_dict['swap_holdouts'][0])
-# config=(0, 'sbertNet_tuned', ['Multitask'])
-# #config=(0, 'sbertNet_tuned', ['Go', 'Anti DM'])
+def train_decoder_set(model_names, seeds, holdouts_folders, use_holdouts = False, overwrite=False, **train_config_kwargs): 
+    for seed in seeds: 
+        torch.manual_seed(seed)
+        for holdouts in holdouts_folders:
+            holdouts_file = get_holdout_file_name(holdouts)
+            for model_name in model_names: 
+                file_name = EXP_FILE+'/'+holdouts_file+'/'+model_name
 
-    model_file = '_ReLU128_4.11/swap_holdouts/'
-    seed, model_name, tasks = config 
-    for holdout_train in [False, True]:
-        # if tasks == ['Multitask'] and holdout_train == True:
-        #     continue
+                if not overwrite and check_decoder_trained(file_name+'/decoders', seed, use_holdouts):
+                    continue 
+                else:  
+                    print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts)+  '\n')
+                    model = make_default_model(model_name)   
+                    model.load_model(file_name, suffix='_seed'+str(seed))
+                    model.to(device)
 
-        if holdout_train: 
-            holdout_str = '_wHoldout'
-            holdouts=tasks
-        else: 
-            holdout_str = ''
-            holdouts = []
+                    decoder = DecoderRNN(64)
+                    decoder.to(device)
 
+                    trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, **train_config_kwargs)
+                    trainer = DecoderTrainer(trainer_config)
+                    trainer.train(model, decoder)
 
-        print(seed, tasks, holdout_str, holdouts)
+                del model
+                del decoder
 
-        task_file = get_holdout_file_name(tasks)
-        filename = model_file + task_file+'/'+ model_name 
+  
 
-        sm_model = make_default_model(model_name)
-        sm_model.load_model(filename, suffix='_seed'+str(seed))
-        sm_model.to(device)
-
-        decoder= DecoderRNN(64, drop_p = 0.1)
-        decoder.to(device)
-        decoder_optimizer = optim.Adam([
-            #{'params' : decoder.embedding.parameters()},
-            {'params' : decoder.gru.parameters()},
-            {'params' : decoder.out.parameters()},
-            {'params' : decoder.embedding.parameters()},
-            {'params' : decoder.sm_decoder.parameters(), 'lr': 1e-4}
-        ], lr=1e-4, weight_decay=0.0)
-
-
-
-        sch = optim.lr_scheduler.ExponentialLR(decoder_optimizer, 0.99, verbose=False)
-        for n, p in decoder.named_parameters(): 
-            if p.requires_grad: print(n)
-
-
-        train_rnn_decoder(sm_model, decoder, decoder_optimizer, sch, 100, 0.5, holdout_tasks=holdouts)
-        decoder.save_model(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_lin'+holdout_str)
-        decoder.save_model_data(filename+'/decoders/seed'+str(seed)+'_'+decoder_type+'_decoder_lin'+holdout_str)
-
-
-from utils.utils import training_lists_dict
-seeds = [0]
-model_file = '_ReLU128_4.11/swap_holdouts/'
-to_train = list(itertools.product(seeds, ['sbertNet_tuned'], training_lists_dict['swap_holdouts']))
-for config in to_train: 
-    train_decoder_set(config, decoder_type='rnn')
+train_decoder_set(['sbertNet_tuned'], [0], training_lists_dict['swap_holdouts'])
 
 

@@ -72,6 +72,7 @@ class ScriptGRU(jit.ScriptModule):
         self.batch_first = batch_first
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
+        self.__weights_init__()
     
     def __weights_init__(self):
         for n, p in self.named_parameters():
