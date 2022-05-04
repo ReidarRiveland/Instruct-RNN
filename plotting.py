@@ -7,12 +7,15 @@ from scipy.ndimage.measurements import label
 from torch.nn.modules.container import T
 from torch.random import seed
 from model_analysis import get_hid_var_group_resp, get_hid_var_resp, get_model_performance, get_instruct_reps
-from task import Comp, Task, make_test_trials, construct_batch
+from perfDataFrame import HoldoutDataFrame
+from task import Comp, Task, make_test_trials, construct_batch, isCorrect
 task_list = Task.TASK_LIST
 task_group_dict = Task.TASK_GROUP_DICT
 
 from model_analysis import get_hid_var_resp
-from utils import isCorrect, train_instruct_dict, test_instruct_dict, two_line_instruct, task_swaps_map, task_colors, MODEL_STYLE_DICT, all_swaps, load_training_data, load_holdout_data, all_models, load_context_training_data
+from utils.utils import task_swaps_map, task_colors, MODEL_STYLE_DICT, all_swaps
+from utils.task_info_utils import train_instruct_dict, test_instruct_dict
+
 
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
@@ -48,10 +51,7 @@ def _plot_performance_curve(avg_perf, all_perf, plt_ax, model_name, plt_args):
         plt_ax.plot(avg_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], markeredgewidth=0.25, **plt_args)
 
 
-def plot_avg_curves(foldername, model_list, correct_or_loss='correct', plot_swaps = False, seeds=np.array(range(5)), split_axes=False):
-    data_dict = load_holdout_data(foldername, model_list)
-    if correct_or_loss == 'correct': data_type_index = 0
-    else: data_type_index = 1
+def plot_avg_curves(foldername, model_list, exp_type, perf_type='correct', plot_swaps = False, seeds=np.array(range(5)), split_axes=False):
 
     if split_axes: 
         inset1_lims = (-1, 10)
@@ -89,15 +89,15 @@ def plot_avg_curves(foldername, model_list, correct_or_loss='correct', plot_swap
     plt_args={'linewidth' : 1.2, 'linestyle' : '-', 'alpha':1, 'markersize':4, 'markevery':5}
 
     for model_name in model_list:
-        data = data_dict[model_name][''][data_type_index, seeds, ...]
+        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type, seeds=seeds)
+        print(data.data)
         plt_args['linestyle'] = '-'
-        _plot_performance_curve(np.mean(data, axis = (0, 1)), np.mean(data, axis = 1), axn, model_name, plt_args=plt_args)
-        #_plot_performance_curve(np.mean(data, axis = (0, 1)), None, axn, model_name, plt_args=plt_args)
+        _plot_performance_curve(np.nanmean(data.data, axis = (0, 1)), np.nanmean(data.data, axis = 1), axn, model_name, plt_args=plt_args)
 
-        if plot_swaps:
-            swap_data = data_dict[model_name]['swap'][data_type_index, seeds, ...]
-            plt_args['linestyle'] = '--'
-            _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, axn, model_name, plt_args=plt_args)
+        # if plot_swaps:
+        #     swap_data = data_dict[model_name]['swap'][data_type_index, seeds, ...]
+        #     plt_args['linestyle'] = '--'
+        #     _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, axn, model_name, plt_args=plt_args)
 
         if split_axes:
             plt_args['linestyle'] = '-'
@@ -107,7 +107,6 @@ def plot_avg_curves(foldername, model_list, correct_or_loss='correct', plot_swap
                 _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, ax2, model_name, plt_args=plt_args)
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.7, 0.48), title='Models', title_fontsize = 'small', fontsize='x-small')
     plt.show()
-    return data_dict
 
 def plot_task_curves(foldername, model_list, correct_or_loss='correct', train_folder=None, seeds=np.array(range(5)), plot_contexts=None, plot_swaps=False):
     if train_folder is None: 
@@ -345,11 +344,6 @@ def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_a
     ax.scatter(np.mean(reps_to_plot, axis=1)[:, 0], np.mean(reps_to_plot, axis=1)[:, 1], c = [task_colors[task] for task in tasks_to_plot], s=20, marker='D', edgecolors='white')
 
 
-    for i, indices in enumerate(annotate_tuples): 
-        task_index, instruct_index = indices 
-        plt.annotate(str(1+instruct_index)+'. '+two_line_instruct(train_instruct_dict[tasks_to_plot[task_index]][instruct_index]), xy=(flattened_reduced[int(instruct_index+(task_index*15)), 0], flattened_reduced[int(instruct_index+(task_index*15)), 1]), 
-                    xytext=annotate_args[i], size = 6, arrowprops=dict(arrowstyle='->'), textcoords = 'offset points')
-
     plt.xlabel("PC 1", fontsize = 12)
     plt.ylabel("PC 2", fontsize = 12)
     Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in tasks_to_plot]
@@ -553,27 +547,26 @@ def plot_dPCA(model, tasks, swapped_tasks=[]):
     plt.show()
 
 
-def plot_RDM(sim_scores, rep_type, cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', use_avg_reps = False, save_file=None):
+def plot_RDM(sim_scores, rep_type, cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', save_file=None):
     # if rep_type == 'lang': label_buffer = 2
     # if rep_type == 'task': label_buffer = 8
-    label_buffer=0
-    rep_dim = sim_scores.shape[-1]
     number_reps=sim_scores.shape[1]
-    
 
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(10, 8))
     sns.heatmap(sim_scores, yticklabels = '', xticklabels= '', 
                         cmap=cmap, vmin=0, vmax=1, ax=axn, cbar_kws={'label': '1-r'})
 
     for i, task in enumerate(Task.TASK_LIST):
-        plt.text(-2, label_buffer+number_reps/2+number_reps*i, task, ha='right', size=8, fontweight='bold')
-        plt.text(-label_buffer + number_reps/2+number_reps*i, number_reps*16, task, va='top', rotation='vertical', size=8, fontweight='bold')
+        plt.text(-2, number_reps/2+number_reps*i, task, ha='right', size=8, fontweight='bold')
+        plt.text(number_reps/2+number_reps*i, number_reps*16, task, va='top', rotation='vertical', size=8, fontweight='bold')
     plt.title(plot_title, fontweight='bold', fontsize=12)
 
     if save_file is not None: 
-        plt.savefig('figs/'+save_file, dpi=600)
+        plt.savefig(save_file, dpi=400)
 
     plt.show()
+    
+
     
 
 def plot_tuning_curve(model, tasks, task_variable, unit, mod, times, num_repeats =10, swapped_task = None, save_file=None): 
@@ -716,12 +709,12 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, num_repeats = 1
 
 
 if __name__ == "__main__":
-    from nlp_models import SBERT, BERT
-    from rnn_models import InstructNet, SimpleNet
-    from utils import train_instruct_dict
+    from multitasking_models.language_models import SBERT, BERT
+    from multitasking_models.sensorimotor_models import InstructNet, SimpleNet
+    from utils.utils import train_instruct_dict
     from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_sim_scores, get_hid_var_group_resp
     import numpy as np
-    from utils import train_instruct_dict, task_swaps_map
+    from utils.utils import train_instruct_dict, task_swaps_map
     from task import DM
 
 

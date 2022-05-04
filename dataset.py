@@ -1,19 +1,24 @@
 import numpy as np
 import torch
 from task import Task, construct_batch
+
 task_list = Task.TASK_LIST
-default_task_dict = dict.fromkeys(Task.TASK_LIST, 1/len(Task.TASK_LIST))
 
-
-class TaskDataSet(): 
-    def __init__(self, data_folder='training_data', batch_len=128, num_batches=500, task_ratio_dict = None, holdouts=[]): 
+class TaskDataSet():
+    DEFAULT_TASK_DICT = dict.fromkeys(Task.TASK_LIST, 1/len(Task.TASK_LIST)) 
+    def __init__(self, stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None): 
         __len__ = num_batches
+        self.stream = stream
         self.batch_len = batch_len
         self.num_batches = num_batches
-        self.data_folder = data_folder
-        if task_ratio_dict is None: self.task_ratio_dict = default_task_dict.copy()
-        else: self.task_ratio_dict=task_ratio_dict
+        self.data_folder = 'training_data'
         self.holdouts = holdouts
+
+        if set_single_task is None: 
+            self.task_ratio_dict = self.DEFAULT_TASK_DICT.copy()
+        else: 
+            assert not bool(holdouts), 'cannot have holdouts and set a single task'
+            self.task_ratio_dict={set_single_task:1}
 
         self.trial_types = None
         self.stream_order = None
@@ -21,8 +26,8 @@ class TaskDataSet():
 
         self.__make_memmaps__()
         self.__init_task_distribution__()
-        self.in_data, self.tar_data, self.mask_data, self.tar_dirs = self.__populate_data__()
-
+        if not stream: 
+            self.in_data, self.tar_data, self.mask_data, self.tar_dirs = self.__populate_data__()
         self.shuffle_stream_order()
 
     def data_to_device(self, device): 
@@ -76,4 +81,7 @@ class TaskDataSet():
 
     def stream_batch(self): 
         for i in self.stream_order: 
-            yield self.in_data[i, ...], self.tar_data[i, ...], self.mask_data[i, ...], self.tar_dirs[i, ...], self.trial_types[i]
+            if not self.stream: 
+                yield self.in_data[i, ...], self.tar_data[i, ...], self.mask_data[i, ...], self.tar_dirs[i, ...], self.trial_types[i]
+            else:
+                yield construct_batch(self.trial_types[i], self.batch_len, return_tensor=True)
