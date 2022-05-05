@@ -1,7 +1,7 @@
 from utils.task_info_utils import train_instruct_dict, count_vocab
 from model_analysis import reduce_rep
 from plotting import plot_rep_scatter
-from task import Task
+from tasks import Task
 from script_gru import ScriptGRU
 
 from torch.distributions import Categorical

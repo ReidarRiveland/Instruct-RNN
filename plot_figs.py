@@ -258,7 +258,7 @@ from models.full_models import make_default_model
 from model_analysis import get_layer_sim_scores
 import seaborn as sns
 import matplotlib.pyplot as plt
-from task import Task
+from tasks import Task
 from model_analysis import get_task_reps, reduce_rep, get_instruct_reps
 from plotting import plot_rep_scatter
 import pickle
@@ -334,7 +334,7 @@ plot_lang_vs_context(model, contexts, Task.TASK_GROUP_DICT['Go'], mode='lang')
 
 
 #Figure 3
-from task import Task
+from tasks import Task
 def make_rep_scatter(model, task_to_plot=Task.TASK_GROUP_DICT['Go'], swapped_tasks = []): 
     model_reps, _ = get_task_reps(model, epoch='stim_start', swapped_tasks=swapped_tasks)
     reduced_reps, _ = reduce_rep(model_reps)

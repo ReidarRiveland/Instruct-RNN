@@ -3,7 +3,7 @@ import pickle
 
 from attr import frozen
 from torch import arange
-from task import Task
+from tasks import Task
 import numpy as np
 from utils.utils import task_swaps_map, all_swaps, training_lists_dict, get_holdout_file_name
 

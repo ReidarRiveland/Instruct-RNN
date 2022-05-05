@@ -7,7 +7,7 @@ from yaml import warnings
 from models.full_models import make_default_model
 from base_trainer import BaseTrainer, masked_MSE_Loss
 from dataset import TaskDataSet
-from task import isCorrect
+from tasks import isCorrect
 from utils.utils import get_holdout_file_name, training_lists_dict
 from utils.task_info_utils import get_task_info
 

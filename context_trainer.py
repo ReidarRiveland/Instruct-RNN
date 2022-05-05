@@ -4,7 +4,7 @@ from utils.utils import get_holdout_file_name, training_lists_dict
 from models.full_models import make_default_model
 from base_trainer import masked_MSE_Loss, BaseTrainer
 from dataset import TaskDataSet
-from task import Task, isCorrect
+from tasks import Task, isCorrect
 import warnings
 
 import torch

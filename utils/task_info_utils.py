@@ -1,7 +1,7 @@
 import numpy as np
 import pickle
 import itertools
-from task import Task
+from tasks import Task
 import torch
 
 from collections import Counter

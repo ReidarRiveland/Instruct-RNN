@@ -1,4 +1,4 @@
-from task import Task
+from tasks import Task
 task_list = Task.TASK_LIST
 swapped_task_list = Task.SWAPPED_TASK_LIST
 tuning_dirs = Task.TUNING_DIRS

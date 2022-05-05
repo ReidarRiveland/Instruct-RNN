@@ -1,4 +1,4 @@
-from task import Task
+from tasks import Task
 from models.language_models import InstructionEmbedder
 from attrs import define, field
 

@@ -91,7 +91,7 @@ from models.full_models import SBERTNet, SimpleNetPlus, SBERTNet_tuned
 from utils.utils import task_swaps_map, training_lists_dict, get_holdout_file_name
 from model_analysis import get_model_performance, task_eval, get_layer_sim_scores, reduce_rep
 import numpy as np
-from task import Task
+from tasks import Task
 from utils.task_info_utils import get_input_rule
 import torch
 

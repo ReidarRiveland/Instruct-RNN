@@ -5,7 +5,7 @@ import numpy as np
 import pickle
 import itertools
 
-from task import Task, construct_batch, isCorrect
+from tasks import Task, construct_batch, isCorrect
 from collections import defaultdict
 from utils.task_info_utils import inv_train_instruct_dict, get_instructions
 

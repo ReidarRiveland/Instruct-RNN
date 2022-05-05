@@ -8,7 +8,7 @@ from torch.nn.modules.container import T
 from torch.random import seed
 from model_analysis import get_hid_var_group_resp, get_hid_var_resp, get_model_performance, get_instruct_reps
 from perfDataFrame import HoldoutDataFrame
-from task import Comp, Task, make_test_trials, construct_batch, isCorrect
+from tasks import Comp, Task, make_test_trials, construct_batch, isCorrect
 task_list = Task.TASK_LIST
 task_group_dict = Task.TASK_GROUP_DICT
 
@@ -715,7 +715,7 @@ if __name__ == "__main__":
     from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_sim_scores, get_hid_var_group_resp
     import numpy as np
     from utils.utils import train_instruct_dict, task_swaps_map
-    from task import DM
+    from tasks import DM
 
 
 
