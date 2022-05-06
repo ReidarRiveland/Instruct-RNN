@@ -1,4 +1,4 @@
-from tasks import Task
+from tasks import TASK_LIST
 from models.language_models import InstructionEmbedder
 from attrs import define, field
 from task_factory import INPUT_DIM, OUTPUT_DIM
@@ -39,7 +39,7 @@ class InstructModelConfig(BaseModelConfig):
 @define
 class RuleModelConfig(BaseModelConfig): 
     add_rule_encoder: bool = False
-    rule_dim: int = 36
+    rule_dim: int = 20
 
     _rnn_in_dim: int = field(kw_only=True)
     @_rnn_in_dim.default

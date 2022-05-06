@@ -266,5 +266,8 @@ if __name__ == "__main__":
     # test_model_set(['sbertNet_tuned', 'bertNet_tuned', 'gptNet_tuned', 'sbertNet', \
     #                 'bertNet', 'gptNet', 'simpleNet', 'simpleNetPlus'], 
     #     [0], training_lists_dict['aligned_holdouts'])            
+    torch.autograd.set_detect_anomaly(True)
+
+
     train_model_set(['simpleNet'],  
         [0], [['Multitask']], stream_data=True)     

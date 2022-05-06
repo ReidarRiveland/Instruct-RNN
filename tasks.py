@@ -5,14 +5,15 @@ import torch
 import task_factory
 
 TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go', 
-            'Go_Mod1', 'Anti_Go_Mod1', 'Go_Mod2', 'Anti_Go_Mod2',
-            'Order1', 'Order2',
-            'DM', 'Anti_DM', 'RT_DM', 'Anti_RT_DM', 
+            # 'Go_Mod1', 'Anti_Go_Mod1', 'Go_Mod2', 'Anti_Go_Mod2',
+            # 'Order1', 'Order2',
+            'DM', 'Anti_DM', 
+            #'RT_DM', 'Anti_RT_DM', 
             'MultiDM', 'Anti_MultiDM', 
-            'DelayDM', 'Anti_DelayDM', 'DelayMultiDM', 'Anti_DelayMultiDM',
-            'DM_Mod1', 'Anti_DM_Mod1', 'DM_Mod2', 'Anti_DM_Mod2',
+            #'DelayDM', 'Anti_DelayDM', 'DelayMultiDM', 'Anti_DelayMultiDM',
+            #'DM_Mod1', 'Anti_DM_Mod1', 'DM_Mod2', 'Anti_DM_Mod2',
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
-            'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
+            #'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
 SWAPPED_TASK_LIST = ['Anti DM', 'MultiCOMP1', 'DNMC', 'DMC', 'MultiCOMP2', 'Go', 'DNMS', 'COMP1', 'Anti MultiDM', 'DMS', 'Anti Go', 'DM', 'COMP2', 'MultiDM', 'Anti RT Go', 'RT Go']
@@ -441,7 +442,9 @@ def construct_trials(task_type, num_trials, noise = 0.05, return_tensor=False):
         trial = DMC(num_trials, noise=noise)
     if task_type == 'DNMC': 
         trial = DNMC(num_trials, noise=noise)
-
+    if np.isnan(trial.inputs).any(): raise ValueError
+    if np.isnan(trial.targets).any(): raise ValueError
+    if np.isnan(trial.masks).any(): raise ValueError
     if return_tensor: 
         return (torch.tensor(trial.inputs), 
                 torch.tensor(trial.targets), 
@@ -454,3 +457,6 @@ def construct_trials(task_type, num_trials, noise = 0.05, return_tensor=False):
                 trial.masks.astype(int), 
                 trial.target_dirs.astype(np.float32), 
                 task_type)
+
+    
+

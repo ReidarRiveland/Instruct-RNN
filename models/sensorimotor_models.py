@@ -3,6 +3,7 @@ import torch.nn as nn
 from attrs import asdict
 import pickle
 from script_gru import ScriptGRU
+from tasks import TASK_LIST
 
 class BaseNet(nn.Module): 
     def __init__(self, config):
@@ -36,7 +37,6 @@ class BaseNet(nn.Module):
         task_info_block[:, onset:onset+duration, :] = task_info
         return task_info_block
 
-
     def forward(self, x, task_info, info_duration=120, info_onset=0): 
         h0 = self.__initHidden__(x.shape[0])
         task_info_block = self.expand_info(task_info, info_duration, info_onset)
@@ -65,7 +65,7 @@ class BaseNet(nn.Module):
 class RuleNet(BaseNet):
     def __init__(self, config):
         super().__init__(config)
-        ortho_rules = pickle.load(open('ortho_rule_vecs36', 'rb'))
+        ortho_rules = pickle.load(open('ortho_rule_vecs', 'rb'))
         self.rule_transform = torch.Tensor(ortho_rules)
         if self.add_rule_encoder: 
             self.rule_encoder = nn.Sequential(

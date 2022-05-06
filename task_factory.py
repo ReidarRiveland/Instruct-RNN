@@ -184,9 +184,9 @@ def go_factory(num_trials, dir_chooser, mod, multi=False):
         else:
             direction = np.random.uniform(0, 2*np.pi)
             base_strength = np.random.uniform(1.0, 1.2)    
-            mod = np.random.choice([0, 1])
-            conditions_arr[mod, 0, :, i] = [direction, base_strength]
-            conditions_arr[((mod+1)%2), 0, :, i] = np.NaN
+            tmp_mod = np.random.choice([0, 1])
+            conditions_arr[tmp_mod, 0, :, i] = [direction, base_strength]
+            conditions_arr[((tmp_mod+1)%2), 0, :, i] = np.NaN
     target_dirs = _set_go_target_dirs(conditions_arr, dir_chooser, mod)
     return conditions_arr, target_dirs
 
