@@ -22,9 +22,9 @@ class TaskDataSet():
         self.stream_order = None
         self.memmap_dict = {}
 
-        self.__make_memmaps__()
         self.__init_task_distribution__()
         if not stream: 
+            self.__make_memmaps__()
             self.in_data, self.tar_data, self.mask_data, self.tar_dirs = self.__populate_data__()
         self.shuffle_stream_order()
 

@@ -7,12 +7,12 @@ import task_factory
 TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go', 
             'Go_Mod1', 'Anti_Go_Mod1', 'Go_Mod2', 'Anti_Go_Mod2',
             'Order1', 'Order2',
-            'DM', 'Anti DM', 'RT_DM', 'Anti_RT_DM', 
+            'DM', 'Anti_DM', 'RT_DM', 'Anti_RT_DM', 
             'MultiDM', 'Anti_MultiDM', 
             'DelayDM', 'Anti_DelayDM', 'DelayMultiDM', 'Anti_DelayMultiDM',
             'DM_Mod1', 'Anti_DM_Mod1', 'DM_Mod2', 'Anti_DM_Mod2',
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
-            'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COM2_Mod2',
+            'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
 SWAPPED_TASK_LIST = ['Anti DM', 'MultiCOMP1', 'DNMC', 'DMC', 'MultiCOMP2', 'Go', 'DNMS', 'COMP1', 'Anti MultiDM', 'DMS', 'Anti Go', 'DM', 'COMP2', 'MultiDM', 'Anti RT Go', 'RT Go']
@@ -368,7 +368,7 @@ class DNMC(Task):
  
 
 def construct_trials(task_type, num_trials, noise = 0.05, return_tensor=False):
-    assert task_type in Task.TASK_LIST, "entered invalid task type"
+    assert task_type in TASK_LIST, "entered invalid task type"
     if task_type == 'Go':
         trial = Go(num_trials, noise=noise)
     if task_type == 'RT_Go':
@@ -403,8 +403,12 @@ def construct_trials(task_type, num_trials, noise = 0.05, return_tensor=False):
         trial = AntiMultiDM(num_trials, noise=noise)
     if task_type == 'DelayDM': 
         trial = DelayDM(num_trials, noise=noise)
-    if task_type == 'DelayAntiDM': 
+    if task_type == 'Anti_DelayDM': 
         trial = DelayAntiDM(num_trials, noise=noise)
+    if task_type == 'DelayMultiDM': 
+        trial = DelayMultiDM(num_trials, noise=noise)
+    if task_type == 'Anti_DelayMultiDM': 
+        trial = DelayAntiMultiDM(num_trials, noise=noise)
     if task_type == 'DM_Mod1': 
         trial = DMMod1(num_trials, noise=noise)
     if task_type == 'DM_Mod2': 

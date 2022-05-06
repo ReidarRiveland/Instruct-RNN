@@ -38,12 +38,12 @@ def get_instruction_dict(instruct_mode):
     assert instruct_mode in [None, 'swap', 'shuffled', 'validation']
     if instruct_mode == 'swap': 
         swap_dict = {}
-        for task in Task.TASK_LIST: 
+        for task in TASK_LIST: 
             swap_dict[task] = train_instruct_dict[Task.get_swap(task)]
 
     elif instruct_mode == 'shuffled': 
         shuffle_dict = {}
-        for task in Task.TASK_LIST: 
+        for task in TASK_LIST: 
             shuffled_instructs = [shuffle_instruction(instruct) for instruct in train_instruct_dict[task]]
             shuffle_dict[task] = shuffled_instructs
 
@@ -63,8 +63,8 @@ def get_instructions(batch_size, task_type, instruct_mode):
 
 def one_hot_input_rule(batch_size, task_type, shuffled=False): 
     if shuffled: index = Task.SHUFFLED_TASK_LIST.index(task_type) 
-    else: index = Task.TASK_LIST.index(task_type)
-    one_hot = np.zeros((1, len(Task.TASK_LIST)))
+    else: index = TASK_LIST.index(task_type)
+    one_hot = np.zeros((1, len(TASK_LIST)))
     one_hot[:,index] = 1
     one_hot= np.repeat(one_hot, batch_size, axis=0)
     return one_hot

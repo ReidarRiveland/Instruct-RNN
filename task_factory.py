@@ -239,10 +239,11 @@ def _dual_stim_factory(num_trials, multi):
             conditions_arr[mod, :, 0, i] = np.array(directions)
             conditions_arr[mod, :, 1, i] = strengths
             conditions_arr[((mod+1)%2), :, :, i] = np.NaN
+    return conditions_arr
 
 def order_factory(num_trials, respond_stim, multi=False):
     conditions_arr = _dual_stim_factory(num_trials, multi=multi)
-    target_dirs = _set_order_target_dirs(num_trials, respond_stim)
+    target_dirs = _set_order_target_dirs(conditions_arr, respond_stim)
     return conditions_arr, target_dirs
 
 def dm_factory(num_trials, str_chooser, mod, multi=False):
@@ -257,7 +258,7 @@ def _set_comp_strs(pos_str, neg_str, req_resp, resp_stim):
         strs = np.array([neg_str, pos_str])
     return strs
 
-def comp_factory(num_trials, respond_stim, mod, multi=False):
+def comp_factory(num_trials, resp_stim, mod, multi=False):
     #mod, stim, dir_strengths, num_trials
     conditions_arr = np.empty((2, 2, 2, num_trials))
     target_dirs = np.empty(num_trials)
@@ -271,9 +272,9 @@ def comp_factory(num_trials, respond_stim, mod, multi=False):
         directions = _draw_ortho_dirs()
         requires_response = requires_response_list.pop()
 
-        if requires_response and respond_stim==1:
+        if requires_response and resp_stim==1:
             target_dirs[i] = directions[0]
-        elif requires_response and respond_stim==2: 
+        elif requires_response and resp_stim==2: 
             target_dirs[i] = directions[1]
         else: 
             target_dirs[i] = None
@@ -295,7 +296,7 @@ def comp_factory(num_trials, respond_stim, mod, multi=False):
             positive_index = argmax(candidate_strs)
             positive_strength = tmp_strengths[:, positive_index]
             negative_strength = tmp_strengths[:, (positive_index+1)%2]
-            strs = _set_comp_strs(positive_strength, negative_strength, requires_response, respond_stim)
+            strs = _set_comp_strs(positive_strength, negative_strength, requires_response, resp_stim)
             conditions_arr[:, :, 0, i] = np.array([directions, directions])
             conditions_arr[:, :, 1, i] = strs.T
 
@@ -304,7 +305,7 @@ def comp_factory(num_trials, respond_stim, mod, multi=False):
             coh = np.random.choice([0.1, 0.15, 0.2])
             positive_strength = base_strength + coh
             negative_strength = base_strength - coh
-            strs = _set_comp_strs(positive_strength, negative_strength, requires_response, respond_stim)
+            strs = _set_comp_strs(positive_strength, negative_strength, requires_response, resp_stim)
             mod = np.random.choice([0, 1])
             conditions_arr[mod, :, 0, i] = np.array([directions])
             conditions_arr[mod, :, 1, i] = strs

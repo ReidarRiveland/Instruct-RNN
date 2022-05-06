@@ -21,13 +21,13 @@ from copy import copy
 
 device = torch.device(0)
 
-EXP_FILE ='_ReLU128_4.11/aligned_holdouts'
+EXP_FILE ='5.5models'
 
 @define
 class TrainerConfig(): 
     file_path: str
     random_seed: int
-    epochs: int = 35
+    epochs: int = 60
     min_run_epochs: int = 35
     batch_len: int = 64
     num_batches: int = 800
@@ -267,4 +267,4 @@ if __name__ == "__main__":
     #                 'bertNet', 'gptNet', 'simpleNet', 'simpleNetPlus'], 
     #     [0], training_lists_dict['aligned_holdouts'])            
     train_model_set(['simpleNet'],  
-        [0], [['Multitask']])     
+        [0], [['Multitask']], stream_data=True)     
