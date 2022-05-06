@@ -1,7 +1,7 @@
-from tasks import Task
-task_list = Task.TASK_LIST
-swapped_task_list = Task.SWAPPED_TASK_LIST
-tuning_dirs = Task.TUNING_DIRS
+from tasks import TASK_LIST
+from task_factory import TUNING_DIRS
+task_list = TASK_LIST
+tuning_dirs = TUNING_DIRS
 
 training_lists_dict={
 'dual_holdouts' : [['RT Go', 'Anti Go'], ['Go',  'Anti RT Go'], 
@@ -24,7 +24,6 @@ training_lists_dict={
                     ['MultiDM', 'DNMS'], ['Anti MultiDM', 'COMP1'], 
                     ['COMP2', 'DMS'], ['Anti Go', 'MultiCOMP1']],
 
-'group_holdouts' : Task.TASK_GROUP_DICT
 }
 
 

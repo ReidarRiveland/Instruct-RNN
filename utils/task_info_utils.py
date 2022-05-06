@@ -3,17 +3,18 @@ import pickle
 import itertools
 from tasks import Task
 import torch
+from tasks import TASK_LIST
 
 from collections import Counter
-swapped_task_list = Task.SWAPPED_TASK_LIST
-task_list = Task.TASK_LIST
+#swapped_task_list = Task.SWAPPED_TASK_LIST
+task_list = TASK_LIST
 
 train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict', 'rb'))
 
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict', 'rb'))
 
 inv_train_instruct_dict = inv_train_instruct_dict = dict(zip(list(itertools.chain(*[list(instructions) for instructions in train_instruct_dict.values()])), 
-                                            list(itertools.chain(*[[task]*15 for task in Task.TASK_LIST]))))
+                                            list(itertools.chain(*[[task]*15 for task in TASK_LIST]))))
 
 def sort_vocab(): 
     combined_instruct= {key: list(train_instruct_dict[key]) + list(test_instruct_dict[key]) for key in train_instruct_dict}
@@ -104,15 +105,15 @@ def comp_input_rule(batch_size, task_type):
 
     return comp_vec
 
-def swap_input_rule(batch_size, task_type): 
-    index = Task.TASK_LIST.index(task_type)
-    swapped_one_hot = one_hot_input_rule(batch_size, swapped_task_list[index])
-    return swapped_one_hot
+# def swap_input_rule(batch_size, task_type): 
+#     index = Task.TASK_LIST.index(task_type)
+#     swapped_one_hot = one_hot_input_rule(batch_size, swapped_task_list[index])
+#     return swapped_one_hot
 
 def get_input_rule(batch_size, task_type, instruct_mode): 
-    if instruct_mode == 'swap': 
-        task_rule = swap_input_rule(batch_size, task_type)
-    elif instruct_mode == 'comp': 
+    # if instruct_mode == 'swap': 
+    #     task_rule = swap_input_rule(batch_size, task_type)
+    if instruct_mode == 'comp': 
         task_rule = comp_input_rule(batch_size, task_type)
     elif instruct_mode == 'masked': 
         task_rule = np.zeros((batch_size, 20))

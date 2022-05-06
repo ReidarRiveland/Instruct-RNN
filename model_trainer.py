@@ -1,4 +1,3 @@
-from sqlalchemy import over
 import torch
 from torch import Tensor, optim
 import numpy as np
@@ -7,7 +6,7 @@ from yaml import warnings
 from models.full_models import make_default_model
 from base_trainer import BaseTrainer, masked_MSE_Loss
 from dataset import TaskDataSet
-from tasks import isCorrect
+from task_criteria import isCorrect
 from utils.utils import get_holdout_file_name, training_lists_dict
 from utils.task_info_utils import get_task_info
 
@@ -30,8 +29,8 @@ class TrainerConfig():
     random_seed: int
     epochs: int = 35
     min_run_epochs: int = 35
-    batch_len: int = 128
-    num_batches: int = 500
+    batch_len: int = 64
+    num_batches: int = 800
     holdouts: list = []
     set_single_task: str = None
     stream_data: bool = False
@@ -264,6 +263,8 @@ def test_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_co
 if __name__ == "__main__":
 
 #save training data when checkpointing!
-    test_model_set(['sbertNet_tuned', 'bertNet_tuned', 'gptNet_tuned', 'sbertNet', \
-                    'bertNet', 'gptNet', 'simpleNet', 'simpleNetPlus'], 
-        [0], training_lists_dict['aligned_holdouts'])            
+    # test_model_set(['sbertNet_tuned', 'bertNet_tuned', 'gptNet_tuned', 'sbertNet', \
+    #                 'bertNet', 'gptNet', 'simpleNet', 'simpleNetPlus'], 
+    #     [0], training_lists_dict['aligned_holdouts'])            
+    train_model_set(['simpleNet'],  
+        [0], [['Multitask']])     

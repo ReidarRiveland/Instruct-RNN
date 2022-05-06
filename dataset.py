@@ -2,10 +2,8 @@ import numpy as np
 import torch
 from tasks import TASK_LIST, construct_trials
 
-task_list = TASK_LIST
-
 class TaskDataSet():
-    DEFAULT_TASK_DICT = dict.fromkeys(Task.TASK_LIST, 1/len(Task.TASK_LIST)) 
+    DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
     def __init__(self, stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None): 
         __len__ = num_batches
         self.stream = stream
@@ -84,11 +82,11 @@ class TaskDataSet():
             if not self.stream: 
                 yield self.in_data[i, ...], self.tar_data[i, ...], self.mask_data[i, ...], self.tar_dirs[i, ...], self.trial_types[i]
             else:
-                yield construct_batch(self.trial_types[i], self.batch_len, return_tensor=True)
+                yield construct_trials(self.trial_types[i], self.batch_len, return_tensor=True)
 
 
 def build_training_data(foldername):
-    for task in Task.TASK_LIST: 
+    for task in TASK_LIST: 
         print(task)
         task_file = task.replace(' ', '_')
         input_data, target_data, masks_data, target_dirs, trial_indices = construct_trials(task, 8000)

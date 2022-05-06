@@ -65,15 +65,15 @@ class BaseNet(nn.Module):
 class RuleNet(BaseNet):
     def __init__(self, config):
         super().__init__(config)
-        ortho_rules = pickle.load(open('ortho_rule_vecs', 'rb'))
+        ortho_rules = pickle.load(open('ortho_rule_vecs36', 'rb'))
         self.rule_transform = torch.Tensor(ortho_rules)
         if self.add_rule_encoder: 
             self.rule_encoder = nn.Sequential(
-                nn.Linear(20, 128), 
+                nn.Linear(self.rule_dim, 128), 
                 nn.ReLU(), 
                 nn.Linear(128, 128),
                 nn.ReLU(), 
-                nn.Linear(128, 20),
+                nn.Linear(128, self.rule_dim),
                 nn.ReLU()
             )
         else: 
