@@ -10,7 +10,7 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
             'Order1', 'Order2',
             'DM', 'Anti_DM', 
             'RT_DM', 'Anti_RT_DM', 
-            'ConDM', 'Anti_ConDM', 'MultiConDM', 'Anti_MultiConDM'
+            'ConDM', 'Anti_ConDM', 'ConMultiDM', 'Anti_ConMultiDM',
             'MultiDM', 'Anti_MultiDM', 
             'DelayDM', 'Anti_DelayDM', 'DelayMultiDM', 'Anti_DelayMultiDM',
             'DM_Mod1', 'Anti_DM_Mod1', 'DM_Mod2', 'Anti_DM_Mod2',
@@ -26,8 +26,10 @@ TASK_GROUP_DICT = {'Go': ['Go', 'Anti Go', 'RT Go', 'Anti RT Go'],
 
 class Task(): 
     def __init__(self, num_trials, noise, factory, **factory_kwargs):
+        if noise is None: 
+            noise = np.random.uniform(0.1, 0.25)
         self.factory = factory(num_trials, noise, **factory_kwargs)
-
+        self.target_dirs = self.factory.target_dirs
         self.inputs = self.factory.make_trial_inputs()
         self.targets = self.factory.make_trial_targets()
         self.masks = self.factory.make_loss_mask()
@@ -41,39 +43,37 @@ class Go(Task):
                         )
         self.task_type = 'Go'
 
-Go(128)
 
 class AntiGo(Task): 
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.go_factory, 
-                        mod = None, 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
                         dir_chooser = task_factory.choose_anti
                         )
         self.task_type = 'Anti_Go'
 
 class RTGo(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'RT', noise,
-                        task_factory.go_factory, 
-                        mod = None, 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing = 'RT',
                         dir_chooser = task_factory.choose_pro
                         )
         self.task_type = 'RT_Go'
 
 class AntiRTGo(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'RT', noise,
-                        task_factory.go_factory, 
-                        mod = None, 
-                        dir_chooser = task_factory.choose_pro
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing = 'RT',
+                        dir_chooser = task_factory.choose_anti
                         )
         self.task_type = 'Anti_RT_Go'
 
 class GoMod1(Task): 
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.go_factory, 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
                         mod = 0, 
                         dir_chooser = task_factory.choose_pro
                         )
@@ -81,8 +81,8 @@ class GoMod1(Task):
 
 class GoMod2(Task): 
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.go_factory, 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
                         mod = 1, 
                         dir_chooser = task_factory.choose_pro
                         )
@@ -90,8 +90,8 @@ class GoMod2(Task):
 
 class AntiGoMod1(Task): 
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.go_factory, 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
                         mod = 0, 
                         dir_chooser = task_factory.choose_anti
                         )
@@ -99,8 +99,8 @@ class AntiGoMod1(Task):
 
 class AntiGoMod2(Task): 
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.go_factory, 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
                         mod = 1, 
                         dir_chooser = task_factory.choose_anti
                         )
@@ -108,106 +108,105 @@ class AntiGoMod2(Task):
 
 class Order1(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.order_factory, 
-                        respond_stim = 1, 
+        super().__init__(num_trials, noise,
+                        task_factory.OrderFactory, 
+                        resp_stim=1
                         )
         self.task_type = 'Order1'
 
 class Order2(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.order_factory, 
-                        respond_stim = 2, 
+        super().__init__(num_trials, noise,
+                        task_factory.OrderFactory, 
+                        resp_stim=2
                         )
         self.task_type = 'Order2'
 
 class DM(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.dm_factory, 
-                        mod = None, 
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
                         str_chooser = np.argmax,
                         )
         self.task_type = 'DM'
 
 class AntiDM(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.dm_factory, 
-                        mod = None, 
-                        str_chooser = np.argmin
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmin,
                         )
         self.task_type = 'Anti_DM'
 
 
 class ConDM(Task):
     def __init__(self, num_trials, noise=None):
-        noise = np.random.uniform(0.01, 0.4) 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.con_dm_factory, 
-                        noise = noise,
-                        mod = None, 
+        noise = np.random.uniform(0.2, 0.6)
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
                         str_chooser = np.argmax,
+                        conf_threshold = 1
                         )
         self.task_type = 'ConDM'
 
 class ConAntiDM(Task):
     def __init__(self, num_trials, noise=None): 
-        noise = np.random.uniform(0.01, 0.4) 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.con_dm_factory, 
-                        noise = noise,
-                        mod = None, 
-                        str_chooser = np.argmin
+        noise = np.random.uniform(0.2, 0.6)
+
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmin,
+                        conf_threshold = 1
                         )
         self.task_type = 'Anti_ConDM'
 
 class ConMultiDM(Task):
+    noise = np.random.uniform(0.2, 0.6)
+
     def __init__(self, num_trials, noise=None): 
-        noise = np.random.uniform(0.01, 0.4) 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.con_dm_factory, 
-                        noise = noise,
-                        mod = None, 
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
                         str_chooser = np.argmax,
+                        multi=True,
+                        conf_threshold = 1
                         )
         self.task_type = 'ConMultiDM'
 
 class ConAntiMultiDM(Task):
+    noise = np.random.uniform(0.2, 0.6)
+
     def __init__(self, num_trials, noise=None): 
         noise = np.random.uniform(0.01, 0.4) 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.con_dm_factory, 
-                        noise = noise,
-                        mod = None, 
-                        str_chooser = np.argmin
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmin,
+                        multi=True,
+                        conf_threshold = 1
                         )
         self.task_type = 'Anti_ConMultiDM'
 
 class RTDM(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'RT', noise,
-                        task_factory.dm_factory, 
-                        mod = None, 
-                        str_chooser = np.argmax
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmax,
+                        timing = 'RT'
                         )
         self.task_type = 'RT_DM'
 
 class AntiRTDM(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'RT', noise,
-                        task_factory.dm_factory, 
-                        mod = None, 
-                        str_chooser = np.argmin
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmin,
+                        timing = 'RT'
                         )
         self.task_type = 'Anti_RT_DM'
 
 class MultiDM(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.dm_factory, 
-                        mod = None, 
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
                         str_chooser = np.argmax,
                         multi=True
                         )
@@ -215,195 +214,181 @@ class MultiDM(Task):
 
 class AntiMultiDM(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.dm_factory, 
-                        mod = None, 
-                        str_chooser = np.argmax,
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmin,
                         multi=True
                         )
         self.task_type = 'Anti_MultiDM'
 
 class DelayDM(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.dm_factory, 
-                        mod = None, 
-                        str_chooser = np.argmax
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmax,
+                        timing='delay'
                         )
         self.task_type = 'DelayDM'
 
 class DelayAntiDM(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.dm_factory, 
-                        mod = None, 
-                        str_chooser = np.argmin
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmin,
+                        timing='delay'
                         )
         self.task_type = 'Anti_DelayDM'
 
 class DelayMultiDM(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.dm_factory, 
-                        mod = None, 
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
                         str_chooser = np.argmax,
+                        timing='delay',
                         multi=True
                         )
         self.task_type = 'DelayMultiDM'
 
 class DelayAntiMultiDM(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.dm_factory, 
-                        mod = None, 
-                        str_chooser = np.argmax,
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmin,
+                        timing='delay',
                         multi=True
                         )
         self.task_type = 'Anti_DelayMultiDM'
 
 class DMMod1(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.dm_factory, 
-                        mod = 0, 
-                        str_chooser = np.argmax, 
-                        multi=True
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmax,
+                        mod=0
                         )
         self.task_type = 'DM_Mod1'
 
 class DMMod2(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.dm_factory, 
-                        mod = 1, 
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
                         str_chooser = np.argmax,
-                        multi=True
+                        mod=1
                         )
         self.task_type = 'DM_Mod2'
         
 class AntiDMMod1(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.dm_factory, 
-                        mod = 0, 
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
                         str_chooser = np.argmin,
-                        multi=True
+                        mod=0
                         )
         self.task_type = 'Anti_DM_Mod1'
 
 class AntiDMMod2(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'full', noise,
-                        task_factory.dm_factory, 
-                        mod = 1, 
-                        str_chooser = np.argmin, 
-                        multi=True
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmin,
+                        mod=1
                         )
         self.task_type = 'Anti_DM_Mod2'
 
 class COMP1(Task): 
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.comp_factory, 
-                        mod = None, 
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
                         resp_stim = 1
                         )
         self.task_type = 'COMP1'
 
 class COMP2(Task): 
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.comp_factory, 
-                        mod = None, 
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
                         resp_stim = 2
                         )
         self.task_type = 'COMP2'
 
 class MultiCOMP1(Task): 
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.comp_factory, 
-                        mod = None, 
-                        resp_stim = 1,
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
+                        resp_stim = 1, 
                         multi=True
                         )
         self.task_type = 'MultiCOMP1'
 
 class MultiCOMP2(Task): 
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.comp_factory, 
-                        mod = None, 
-                        resp_stim = 2, 
-                        multi = True
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
+                        resp_stim = 2
                         )
         self.task_type = 'MultiCOMP2'
 
 class COMP1Mod1(Task): 
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.comp_factory, 
-                        mod = 0, 
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
                         resp_stim = 1, 
-                        multi=True
+                        mod=0
                         )
         self.task_type = 'COMP1_Mod1'
 
 class COMP1Mod2(Task): 
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.comp_factory, 
-                        mod = 1, 
-                        resp_stim = 1,
-                        multi=True
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
+                        resp_stim = 1, 
+                        mod=1
                         )
         self.task_type = 'COMP1_Mod2'
 
 class COMP2Mod1(Task): 
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.comp_factory, 
-                        mod = 0, 
-                        resp_stim = 2,
-                        multi=True
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
+                        resp_stim = 2, 
+                        mod=0
                         )
         self.task_type = 'COMP2_Mod1'
 
 class COMP2Mod2(Task): 
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.comp_factory, 
-                        mod = 1, 
-                        resp_stim = 2,
-                        multi=True
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
+                        resp_stim = 2, 
+                        mod=1
                         )
         self.task_type = 'COMP2_Mod2'
 
 class DMS(Task):
     def __init__(self, num_trials, noise=None):
-        super().__init__(num_trials, 'delay',noise,
-                        task_factory.matching_factory,                        
+        super().__init__(num_trials, noise,
+                        task_factory.MatchingFactory,                        
                         matching_task = True, match_type = 'stim')
         self.task_type = 'DMS'
 
 class DNMS(Task):
     def __init__(self, num_trials, noise=None):
-        super().__init__(num_trials, 'delay',noise,
-                        task_factory.matching_factory,                        
+        super().__init__(num_trials, noise,
+                        task_factory.MatchingFactory,                        
                         matching_task = False, match_type = 'stim')
         self.task_type = 'DNMS'
 
 class DMC(Task):
     def __init__(self, num_trials, noise=None):
-        super().__init__(num_trials, 'delay',noise,
-                        task_factory.matching_factory,                        
+        super().__init__(num_trials, noise,
+                        task_factory.MatchingFactory,                        
                         matching_task = True, match_type = 'cat')
         self.task_type = 'DMC'
 
 class DNMC(Task):
     def __init__(self, num_trials, noise=None):
-        super().__init__(num_trials, 'delay', noise,
-                        task_factory.matching_factory,                        
+        super().__init__(num_trials, noise,
+                        task_factory.MatchingFactory,                        
                         matching_task = False, match_type = 'cat')
         self.task_type = 'DNMC'
  
@@ -506,4 +491,8 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
                 trial.target_dirs.astype(np.float32), 
                 task_type)
 
-trials = construct_trials('ConDM', 128)
+
+
+trials = ConAntiDM(128)
+index=12
+task_factory.TaskFactory.plot_trial(trials.inputs[index, ...], trials.targets[index, ...], 'ConDM')

@@ -23,22 +23,22 @@ def _add_noise(array, sigma):
     noise = sigma * np.random.normal(size=array.shape)
     return array+noise
 
+def _draw_ortho_dirs(): 
+    dir1 = np.random.uniform(0, 2*np.pi)
+    dir2 = (dir1+np.pi+np.random.uniform(-np.pi*0.2, np.pi*0.2))%(2*np.pi)
+    return (dir1, dir2)
+
 class TaskFactory(): 
-    def __init__(self, num_trials,  fill_type, noise, intervals):
+    def __init__(self, num_trials, timing, noise, intervals):
         self.num_trials = num_trials
-        self.fill_type = fill_type
+        self.timing = timing
         self.noise = noise
         
         if intervals is not None: 
             self.intervals = intervals
         else: 
-            self.intervals = self.make_intervals
+            self.intervals = self.make_intervals()
                 
-    def _draw_ortho_dirs(self): 
-        dir1 = np.random.uniform(0, 2*np.pi)
-        dir2 = (dir1+np.pi+np.random.uniform(-np.pi*0.2, np.pi*0.2))%(2*np.pi)
-        return (dir1, dir2)
-
     def make_intervals(self): 
         intervals = np.empty((self.num_trials, 5), dtype=tuple)
         for i in range(self.num_trials):
@@ -100,7 +100,7 @@ class TaskFactory():
 
         return rolled_reshaped
 
-    def make_trial_inputs(self, fill_style: str, conditions_arr: np.ndarray, intervals, sigma_in) -> np.ndarray:
+    def make_trial_inputs(self) -> np.ndarray:
         '''
         Creates stimulus activity arrays for given trials of a particular task type 
         Parameters: 
@@ -109,7 +109,7 @@ class TaskFactory():
         Returns: 
             ndarray[num_trials, TRIAL_LEN, INPUT_DIM]: array conditing stimulus inputs for a batch of task trials 
         '''
-        num_trials = conditions_arr.shape[-1]
+        num_trials = self.cond_arr.shape[-1]
         fix = np.ones((num_trials,1)) 
         no_fix = np.zeros((num_trials,1))
         null_stim = np.zeros((num_trials, STIM_DIM*2))
@@ -118,21 +118,21 @@ class TaskFactory():
         stim1 = self._make_activity_vectors(self.cond_arr[:, 0, :, :])
         stim2 = self._make_activity_vectors(self.cond_arr[:, 1, :, :])
 
-        if self.fill_style=='full': 
+        if self.timing=='full': 
                 input_activity_vecs = np.array([np.concatenate((fix, null_stim), 1), np.concatenate((fix, stim1+stim2), 1), np.concatenate((fix, stim1+stim2), 1),  
                                     np.concatenate((fix, stim1+stim2), 1), np.concatenate((no_fix, null_stim), 1)])
 
-        elif fill_style =='RT':
+        elif self.timing =='RT':
             input_activity_vecs = np.array([np.concatenate((fix, null_stim), 1), np.concatenate((fix, null_stim), 1), 
                         np.concatenate((fix, null_stim), 1),  np.concatenate((fix, null_stim), 1), np.concatenate((no_fix, stim1+stim2), 1)])
             
-        elif fill_style == 'delay':
+        elif self.timing == 'delay':
             input_activity_vecs = np.array([np.concatenate((fix, null_stim), 1), np.concatenate((fix, stim1), 1), np.concatenate((fix, null_stim), 1),  
                                 np.concatenate((fix, stim2), 1), np.concatenate((no_fix, null_stim), 1)])
 
-        return _add_noise(self._expand_along_intervals(intervals, input_activity_vecs), self.noise)
+        return _add_noise(self._expand_along_intervals(self.intervals, input_activity_vecs), self.noise)
 
-    def make_loss_mask(self, intervals) -> np.ndarray: 
+    def make_loss_mask(self) -> np.ndarray: 
         '''
         Defines loss mask used during task training where there is a zero weight 
         grace period in the first 5 time steps of the response stimulus followed by 
@@ -155,10 +155,10 @@ class TaskFactory():
             zero_mask = zeros.repeat(zero_per, axis=0)
             go_mask = go_weights.repeat((TRIAL_LEN-(pre_go+zero_per)), axis = 0)
             return np.concatenate((pre_go_mask, zero_mask, go_mask), 0)
-        return np.array(list(map(__make_loss_mask__, intervals)))
+        return np.array(list(map(__make_loss_mask__, self.intervals)))
         
 
-    def make_trial_targets(self, target_dirs: np.array, intervals) -> np.ndarray: 
+    def make_trial_targets(self) -> np.ndarray: 
         '''
         Makes target output activities for a batch of trials
         Parameters:
@@ -166,17 +166,18 @@ class TaskFactory():
         Returns: 
             ndarray[num_trials, TRIAL_LEN, OUTPUT_DIM]: ndarray of target activities for a batch of trials
         '''
-        num_trials = target_dirs.shape[0]
+        num_trials = self.target_dirs.shape[0]
         fix = np.full((num_trials,1), 0.85)
         go = np.full((num_trials,1), 0.05)
-        strengths = np.where(np.isnan(target_dirs), np.zeros_like(target_dirs), np.ones_like(target_dirs))
-        target_conditions = np.expand_dims(np.stack((target_dirs, strengths), axis=1).T, axis=0)
+        strengths = np.where(np.isnan(self.target_dirs), np.zeros_like(self.target_dirs), np.ones_like(self.target_dirs))
+        target_conditions = np.expand_dims(np.stack((self.target_dirs, strengths), axis=1).T, axis=0)
         target_activities = self._make_activity_vectors(target_conditions)
         resp = np.concatenate((go, target_activities+0.05), 1)
         no_resp = np.concatenate((fix, np.full((num_trials, STIM_DIM), 0.05)), 1)
-        trial_target = self._expand_along_intervals(intervals, (no_resp, no_resp, no_resp, no_resp, resp))
+        trial_target = self._expand_along_intervals(self.intervals, (no_resp, no_resp, no_resp, no_resp, resp))
         return trial_target
-
+    
+    @staticmethod
     def plot_trial(ins, tars, task_type):
         ins = ins.T
         tars = tars.T
@@ -204,17 +205,17 @@ class TaskFactory():
 
 class GoFactory(TaskFactory): 
     def __init__(self, num_trials,  noise, dir_chooser,
-                            fill_type= 'full', mod=None, multi=False, 
-                            intervals= None, conditions_arr=None):
-        super().__init__(num_trials, fill_type, noise, intervals)
+                            timing= 'full', mod=None, multi=False, 
+                            intervals= None, cond_arr=None):
+        super().__init__(num_trials, timing, noise, intervals)
+        self.cond_arr = cond_arr
+        self.timing = timing
         self.dir_chooser = dir_chooser
         self.mod = mod
         self.multi = multi
 
-        if conditions_arr is None: 
+        if self.cond_arr is None: 
             self.cond_arr = self._make_cond_arr()
-        else: 
-            self.cond_arr = conditions_arr
 
         self.target_dirs = self._set_target_dirs()
 
@@ -246,171 +247,212 @@ class GoFactory(TaskFactory):
 
         return self.dir_chooser(dirs)
 
-def _set_dm_target_dirs(cond_arr, str_chooser, mod, conf_threshold=None, noise=None): 
-    if np.isnan(cond_arr).any(): 
-        directions = np.nansum(cond_arr[:, :, 0, :], axis=0)
-    else: 
-        directions = cond_arr[0, :, 0, :]
+class DualStimFactory(TaskFactory): 
+    def __init__(self, num_trials,  noise, 
+                    timing, intervals= None):
+        super().__init__(num_trials, timing, noise, intervals)
 
-    if mod is None: 
-        strs = np.nansum(cond_arr[:, :, 1, :], axis=0)
-    else: 
-        strs = cond_arr[mod, :, 1, :]
+    def _make_cond_arr(self):
+        conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
+        for i in range(self.num_trials):
+            directions = _draw_ortho_dirs()
 
-    chosen_str = str_chooser(strs, axis=0)
-    target_dirs = np.where(chosen_str, directions[1, :], directions[0, :])
-    if conf_threshold is not None: 
-        d_prime = abs(np.nansum(cond_arr[:, 0, 1, :]-cond_arr[:, 1, 1, :], axis=0))/noise
-        target_dirs = np.where(d_prime>conf_threshold, target_dirs, np.NaN)
-    return target_dirs
+            if self.multi:    
+                base_strength = np.random.uniform(0.8, 1.2, size=2)
 
-def _set_order_target_dirs(cond_arr, respond_stim):
-    target_dirs = np.nansum(cond_arr[:, respond_stim-1, 0, :], axis=0)
-    return target_dirs
+                redraw = True
+                while redraw: 
+                    coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
+                    if coh[0] != -1*coh[1] and (coh[0] <0 or coh[1] < 0): 
+                        redraw = False
+                
+                strengths = np.array([base_strength + coh, base_strength - coh]).T
+                conditions_arr[:, :, 0, i] = np.array([directions, directions])
+                conditions_arr[:, :, 1, i] = strengths
 
-def _dual_stim_factory(num_trials, multi):        
-    #mod, stim, dir_strengths, num_trials
-    conditions_arr = np.full((2, 2, 2, num_trials), np.NaN)
+            else:
+                mod = np.random.choice([0, 1])
+                base_strength = np.random.uniform(0.8, 1.2)
+                coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
 
-    for i in range(num_trials):
-        directions = _draw_ortho_dirs()
+                strengths = np.array([base_strength+coh, base_strength-coh]).T
+                
+                conditions_arr[mod, :, 0, i] = np.array(directions)
+                conditions_arr[mod, :, 1, i] = strengths
+                conditions_arr[((mod+1)%2), :, :, i] = np.NaN
+        return conditions_arr
 
-        if multi:    
-            base_strength = np.random.uniform(0.8, 1.2, size=2)
+class OrderFactory(DualStimFactory):
+    def __init__(self, num_trials, noise, resp_stim, timing= 'full', 
+                        intervals= None, cond_arr=None):
+        super().__init__(num_trials, noise, timing, intervals)
+        self.multi=False
+        self.cond_arr = cond_arr
+        self.timing = timing
+        self.resp_stim = resp_stim
+        if self.cond_arr is None: 
+            self.cond_arr = self._make_cond_arr()
+        self.target_dirs = self._set_target_dirs()
 
-            redraw = True
-            while redraw: 
-                coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
-                if coh[0] != -1*coh[1] and (coh[0] <0 or coh[1] < 0): 
-                    redraw = False
-            
-            strengths = np.array([base_strength + coh, base_strength - coh]).T
-            conditions_arr[:, :, 0, i] = np.array([directions, directions])
-            conditions_arr[:, :, 1, i] = strengths
+    def _set_target_dirs(self):
+        target_dirs = np.nansum(self.cond_arr[:, self.resp_stim-1, 0, :], axis=0)
+        return target_dirs
 
-        else:
-            mod = np.random.choice([0, 1])
-            base_strength = np.random.uniform(0.8, 1.2)
-            coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
-
-            strengths = np.array([base_strength+coh, base_strength-coh]).T
-            
-            conditions_arr[mod, :, 0, i] = np.array(directions)
-            conditions_arr[mod, :, 1, i] = strengths
-            conditions_arr[((mod+1)%2), :, :, i] = np.NaN
-    return conditions_arr
-
-def order_factory(num_trials, respond_stim, multi=False):
-    conditions_arr = _dual_stim_factory(num_trials, multi=multi)
-    target_dirs = _set_order_target_dirs(conditions_arr, respond_stim)
-    return conditions_arr, target_dirs
-
-def dm_factory(num_trials, str_chooser, mod, multi=False):
-    conditions_arr = _dual_stim_factory(num_trials, multi=multi)
-    target_dirs = _set_dm_target_dirs(conditions_arr, str_chooser, mod)
-    return conditions_arr, target_dirs
-
-
-def con_dm_factory(num_trials, str_chooser, mod, noise, conf_threshold = 0.8, multi=False):
-    conditions_arr = _dual_stim_factory(num_trials, multi=multi)
-    target_dirs = _set_dm_target_dirs(conditions_arr, str_chooser, mod, conf_threshold=conf_threshold, noise=noise)
-    return conditions_arr, target_dirs
+class DMFactory(DualStimFactory):
+    def __init__(self, num_trials,  noise, str_chooser,
+                        timing= 'full', mod=None, multi=False, conf_threshold = None,
+                        intervals= None, cond_arr=None):
+        super().__init__(num_trials, noise, timing, intervals)
+        self.multi = multi
+        self.cond_arr = cond_arr
+        self.timing = timing
+        self.str_chooser = str_chooser
+        self.mod = mod
+        self.conf_threshold = conf_threshold
+        if self.cond_arr is None: 
+            self.cond_arr = self._make_cond_arr()
+        self.target_dirs = self._set_target_dirs()
 
 
-def _set_comp_strs(pos_str, neg_str, req_resp, resp_stim):
-    if (resp_stim==1 and req_resp) or (resp_stim==2 and not req_resp): 
-        strs = np.array([pos_str, neg_str])
-    elif (resp_stim==2 and req_resp) or (resp_stim==1 and not req_resp): 
-        strs = np.array([neg_str, pos_str])
-    return strs
-
-def comp_factory(num_trials, resp_stim, mod, multi=False):
-    #mod, stim, dir_strengths, num_trials
-    conditions_arr = np.full((2, 2, 2, num_trials), np.NaN)
-    target_dirs = np.empty(num_trials)
-    
-    if num_trials >1: 
-        requires_response_list = list(np.random.permutation([True]*int(num_trials/2) + [False] * int(num_trials/2)))
-    else: 
-        requires_response_list = [np.random.choice([True, False])]
-
-    for i in range(num_trials): 
-        directions = _draw_ortho_dirs()
-        requires_response = requires_response_list.pop()
-
-        if requires_response and resp_stim==1:
-            target_dirs[i] = directions[0]
-        elif requires_response and resp_stim==2: 
-            target_dirs[i] = directions[1]
+    def _set_target_dirs(self): 
+        if np.isnan(self.cond_arr).any(): 
+            directions = np.nansum(self.cond_arr[:, :, 0, :], axis=0)
         else: 
-            target_dirs[i] = None
-  
-        if multi: 
-            base_strength = np.random.uniform(0.8, 1.2, size=2)
-            redraw = True
-            while redraw: 
-                coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
-                if coh[0] != -1*coh[1] and (coh[0] <0 or coh[1] < 0): 
-                    redraw = False
-            
-            tmp_strengths = np.array([base_strength + coh, base_strength - coh]).T
-            if mod == None: 
-                candidate_strs = np.sum(tmp_strengths, axis=0)
+            directions = self.cond_arr[0, :, 0, :]
+
+        if self.mod is None: 
+            strs = np.nansum(self.cond_arr[:, :, 1, :], axis=0)
+        else: 
+            strs = self.cond_arr[self.mod, :, 1, :]
+
+        chosen_str = self.str_chooser(strs, axis=0)
+        target_dirs = np.where(chosen_str, directions[1, :], directions[0, :])
+        if self.conf_threshold is not None: 
+            d_prime = abs(np.nansum(self.cond_arr[:, 0, 1, :]-self.cond_arr[:, 1, 1, :], axis=0))/self.noise
+            target_dirs = np.where(d_prime>self.conf_threshold, target_dirs, np.NaN)
+        return target_dirs
+
+class COMPFactory(TaskFactory):
+    def __init__(self, num_trials,  noise, resp_stim,
+                            timing= 'delay', mod=None, multi=False, 
+                            intervals= None, cond_arr=None, target_dirs=None):
+        super().__init__(num_trials, timing, noise, intervals)
+        self.cond_arr = cond_arr
+        self.target_dirs = target_dirs
+        self.timing = timing
+        self.resp_stim = resp_stim
+        self.mod = mod
+        self.multi = multi
+        if self.cond_arr is None and self.target_dirs is None: 
+            self.cond_arr, self.target_dirs = self._make_cond_tar_dirs()
+    
+    def _make_cond_tar_dirs(self): 
+        conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
+        target_dirs = np.empty(self.num_trials)
+        
+        if self.num_trials >1: 
+            requires_response_list = list(np.random.permutation([True]*int(self.num_trials/2) + [False] * int(self.num_trials/2)))
+        else: 
+            requires_response_list = [np.random.choice([True, False])]
+
+        for i in range(self.num_trials): 
+            directions = _draw_ortho_dirs()
+            requires_response = requires_response_list.pop()
+
+            if requires_response and self.resp_stim==1:
+                target_dirs[i] = directions[0]
+            elif requires_response and self.resp_stim==2: 
+                target_dirs[i] = directions[1]
             else: 
-                candidate_strs = tmp_strengths[mod, :]
-
-            positive_index = argmax(candidate_strs)
-            positive_strength = tmp_strengths[:, positive_index]
-            negative_strength = tmp_strengths[:, (positive_index+1)%2]
-            strs = _set_comp_strs(positive_strength, negative_strength, requires_response, resp_stim)
-            conditions_arr[:, :, 0, i] = np.array([directions, directions])
-            conditions_arr[:, :, 1, i] = strs.T
-
-        else: 
-            base_strength = np.random.uniform(0.8, 1.)
-            coh = np.random.choice([0.1, 0.15, 0.2])
-            positive_strength = base_strength + coh
-            negative_strength = base_strength - coh
-            strs = _set_comp_strs(positive_strength, negative_strength, requires_response, resp_stim)
-            mod = np.random.choice([0, 1])
-            conditions_arr[mod, :, 0, i] = np.array([directions])
-            conditions_arr[mod, :, 1, i] = strs
-            conditions_arr[((mod+1)%2), :, :, i] = np.NaN
+                target_dirs[i] = None
     
-    return conditions_arr, target_dirs
+            if self.multi: 
+                base_strength = np.random.uniform(0.8, 1.2, size=2)
+                redraw = True
+                while redraw: 
+                    coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
+                    if coh[0] != -1*coh[1] and (coh[0] <0 or coh[1] < 0): 
+                        redraw = False
+                
+                tmp_strengths = np.array([base_strength + coh, base_strength - coh]).T
+                if self.mod == None: 
+                    candidate_strs = np.sum(tmp_strengths, axis=0)
+                else: 
+                    candidate_strs = tmp_strengths[mod, :]
 
-def matching_factory(num_trials: int, matching_task:bool, match_type: str):
-    #mod, stim, dir_strengths, num_trials
-    conditions_arr = np.full((2, 2, 2, num_trials), np.NaN)
-    target_dirs = np.empty(num_trials)
+                positive_index = argmax(candidate_strs)
+                positive_strength = tmp_strengths[:, positive_index]
+                negative_strength = tmp_strengths[:, (positive_index+1)%2]
+                strs = self._set_comp_strs(positive_strength, negative_strength, requires_response, self.resp_stim)
+                conditions_arr[:, :, 0, i] = np.array([directions, directions])
+                conditions_arr[:, :, 1, i] = strs.T
 
-    if num_trials>1: 
-        match_trial_list = list(np.random.permutation([True]*int(num_trials/2) + [False] * int(num_trials/2)))
-    else: 
-        match_trial_list = [np.random.choice([True, False])]
-
-    for i in range(num_trials): 
-        match_trial = match_trial_list.pop()
-
-        direction1 = np.random.uniform(0, 2*np.pi)
-        if direction1 < np.pi: 
-            cat_range = (0, np.pi)
-        else: cat_range = (np.pi, 2*np.pi)
+            else: 
+                base_strength = np.random.uniform(0.8, 1.)
+                coh = np.random.choice([0.1, 0.15, 0.2])
+                positive_strength = base_strength + coh
+                negative_strength = base_strength - coh
+                strs = self._set_comp_strs(positive_strength, negative_strength, requires_response, self.resp_stim)
+                mod = np.random.choice([0, 1])
+                conditions_arr[mod, :, 0, i] = np.array([directions])
+                conditions_arr[mod, :, 1, i] = strs
+                conditions_arr[((mod+1)%2), :, :, i] = np.NaN
         
-        if match_trial and match_type=='stim': direction2 = direction1
-        elif match_trial and match_type=='cat': direction2 = np.random.uniform(cat_range[0], cat_range[1])
-        elif not match_trial and match_type=='cat': direction2 = (np.random.uniform(cat_range[0]+(np.pi/3), cat_range[1]-(np.pi/3)) + np.pi)%(2*np.pi)
-        else: direction2 = (direction1 + np.random.uniform(np.pi/3, (2*np.pi - np.pi/3)))%(2*np.pi)
-        
-        mod = np.random.choice([0, 1])
-        conditions_arr[mod, :, 0, i] = np.array([direction1, direction2])
-        conditions_arr[mod, :, 1, i] = np.array([1, 1])
-        conditions_arr[((mod+1)%2), :, :, i] = np.NaN
+        return conditions_arr, target_dirs
+    
+    def _set_comp_strs(self, pos_str, neg_str, req_resp, resp_stim):
+        if (resp_stim==1 and req_resp) or (resp_stim==2 and not req_resp): 
+            strs = np.array([pos_str, neg_str])
+        elif (resp_stim==2 and req_resp) or (resp_stim==1 and not req_resp): 
+            strs = np.array([neg_str, pos_str])
+        return strs
 
-        if match_trial and matching_task:
-            target_dirs[i] = direction1
-        elif not match_trial and not matching_task:
-            target_dirs[i] = direction2
-        else: target_dirs[i] = None
-    return conditions_arr, target_dirs
+
+class MatchingFactory(TaskFactory):
+    def __init__(self, num_trials,  noise, matching_task, match_type,
+                            timing= 'delay', intervals= None, cond_arr=None, target_dirs = None):
+        super().__init__(num_trials, timing, noise, intervals)
+        self.timing = timing
+        self.cond_arr = cond_arr
+        self.target_dirs = target_dirs
+
+        self.matching_task = matching_task
+        self.match_type = match_type
+        if self.cond_arr is None and self.target_dirs is None: 
+            self.cond_arr, self.target_dirs = self._make_cond_tar_dirs()
+
+    def _make_cond_tar_dirs(self):
+        #mod, stim, dir_strengths, num_trials
+        conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
+        target_dirs = np.empty(self.num_trials)
+
+        if self.num_trials>1: 
+            match_trial_list = list(np.random.permutation([True]*int(self.num_trials/2) + [False] * int(self.num_trials/2)))
+        else: 
+            match_trial_list = [np.random.choice([True, False])]
+
+        for i in range(self.num_trials): 
+            match_trial = match_trial_list.pop()
+
+            direction1 = np.random.uniform(0, 2*np.pi)
+            if direction1 < np.pi: 
+                cat_range = (0, np.pi)
+            else: cat_range = (np.pi, 2*np.pi)
+            
+            if match_trial and self.match_type=='stim': direction2 = direction1
+            elif match_trial and self.match_type=='cat': direction2 = np.random.uniform(cat_range[0], cat_range[1])
+            elif not match_trial and self.match_type=='cat': direction2 = (np.random.uniform(cat_range[0]+(np.pi/3), cat_range[1]-(np.pi/3)) + np.pi)%(2*np.pi)
+            else: direction2 = (direction1 + np.random.uniform(np.pi/3, (2*np.pi - np.pi/3)))%(2*np.pi)
+            
+            mod = np.random.choice([0, 1])
+            conditions_arr[mod, :, 0, i] = np.array([direction1, direction2])
+            conditions_arr[mod, :, 1, i] = np.array([1, 1])
+            conditions_arr[((mod+1)%2), :, :, i] = np.NaN
+
+            if match_trial and self.matching_task:
+                target_dirs[i] = direction1
+            elif not match_trial and not self.matching_task:
+                target_dirs[i] = direction2
+            else: target_dirs[i] = None
+        return conditions_arr, target_dirs
 
