@@ -85,20 +85,105 @@
 # last_hidden_state.shape
 # pooled_output = outputs.pooler_output  # pooled (EOS token) states
 # pooled_output.unsqueeze(0)[0].shape
-
-
-from models.full_models import SBERTNet, SimpleNetPlus, SBERTNet_tuned
-from utils.utils import task_swaps_map, training_lists_dict, get_holdout_file_name
-from model_analysis import get_model_performance, task_eval, get_layer_sim_scores, reduce_rep
+from task_factory import dm_factory, plot_trial
 import numpy as np
-from tasks import Task
+from tasks import Task, MultiDM, ConDM
+from utils.task_info_utils import get_task_info
+from task_criteria import isCorrect
+from models.full_models import SBERTNet, SimpleNetPlus, SBERTNet_tuned
+
+low_high = (0,1)
+np.random.uniform(*low_high)
+
 from utils.task_info_utils import get_input_rule
+from model_analysis import task_eval
 import torch
 
-EXP_FILE = '_ReLU128_4.11/aligned_holdouts'
-simpleNetPlus = SimpleNetPlus()
-holdouts_file = get_holdout_file_name(training_lists_dict['aligned_holdouts'][-1])
-simpleNetPlus.load_model(EXP_FILE+'/'+holdouts_file+'/simpleNetPlus', suffix='_seed0')
+EXP_FILE = '_ReLU128_4.11/swap_holdouts'
+sbertNet_tuned = SBERTNet_tuned()
+holdouts_file = 'Multitask'
+sbertNet_tuned.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet_tuned', suffix='_seed0')
+
+num_trials = 128
+trials = ConDM(num_trials)
+task_eval(sbertNet_tuned, 'DM', 128, noise=0.25)
+
+repeats = 1
+p_right = np.empty((repeats, num_trials))
+for i in range(repeats): 
+    print(i)
+    task_info = get_task_info(num_trials, 'DM', True)
+    out, _ = sbertNet_tuned(torch.Tensor(trials.inputs).to(sbertNet_tuned.__device__), task_info)
+    p_right[i, :] = isCorrect(out, torch.Tensor(trials.targets), trials.target_dirs)
+
+    #p_right[i, :] = np.where(isCorrect(out, torch.Tensor(trials.targets), target_dirs), diff_strength > 0, diff_strength<=0)
+
+np.std(trials.inputs[0, 60:65], axis=1)
+
+np.mean(p_right)
+abs(np.nansum(trials.conditions_arr[:, 0, 1, :]-trials.conditions_arr[:, 1, 1, :], axis=0)/0.3)>0.8
+
+
+
+
+
+
+
+
+
+
+
+
+num_trials = 65
+conditions_arr = np.full((2, 2, 2, num_trials), np.NaN)
+intervals = np.empty((num_trials, 5), dtype=tuple)
+for i in range(num_trials): 
+    intervals[i, :] = ((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))
+
+directions = np.array([[np.pi/2] * num_trials, [3*np.pi/2] * num_trials])
+
+#directions = np.array([[np.pi/2] * num_trials, [3*np.pi/2] * num_trials])
+fixed_strengths = np.array([1]* num_trials)
+diff_strength = np.linspace(-0.3, 0.3, num=num_trials)
+strengths = np.array([fixed_strengths, fixed_strengths-diff_strength])
+
+target_dirs = np.where([strengths[0, ...] > strengths[1, ...]], directions[0], directions[1]).squeeze()
+
+diff_strength
+
+trials.conditions_arr
+
+np.nansum(trials.conditions_arr[:, 0, 1, :]-trials.conditions_arr[:, 1, 1, :], axis=0)/0.15
+
+mod=1
+conditions_arr[mod, :, 0, : ] = directions
+conditions_arr[mod, :, 1, : ] = strengths
+trials = Task(128, 'full', noise=0.2, conditions_factory = dm_factory, 
+                                    intervals=intervals, target_dirs = target_dirs, conditions_arr=conditions_arr)
+trials.task_type = 'DM'
+np.linspace(-0.3, 0.3, num=num_trials)[32]
+plot_trial(trials.inputs[35, ...], trials.targets[35, ...], 'DM')
+
+
+
+
+import matplotlib.pyplot as plt
+plt.plot(np.linspace(-0.3, 0.3, num=num_trials), np.mean(p_right, axis=0))
+plt.show()
+
+p_right[:, 30]
+
+from plotting import plot_model_response
+plot_model_response(sbertNet_tuned, trials, plotting_index=31)
+
+
+
+
+
+
+
+
+
 
 simpleNetPlus_context = np.empty((16, 20))
 

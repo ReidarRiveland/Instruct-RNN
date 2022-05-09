@@ -80,7 +80,7 @@ class RuleNet(BaseNet):
             self.rule_encoder = nn.Identity()
 
     def forward(self, x, task_rule):
-        task_rule = self.rule_encoder(torch.matmul(task_rule.to(self.__device__), self.rule_transform))
+        #task_rule = self.rule_encoder(torch.matmul(task_rule.to(self.__device__), self.rule_transform))
         outs, rnn_hid = super().forward(x, task_rule)
         return outs, rnn_hid
 

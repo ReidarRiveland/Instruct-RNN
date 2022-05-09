@@ -6,11 +6,9 @@ from numpy.core.numeric import indices
 from scipy.ndimage.measurements import label
 from torch.nn.modules.container import T
 from torch.random import seed
-from model_analysis import get_hid_var_group_resp, get_hid_var_resp, get_model_performance, get_instruct_reps
+from model_analysis import get_hid_var_resp, get_model_performance, get_instruct_reps
 from perfDataFrame import HoldoutDataFrame
-from tasks import Comp, Task, make_test_trials, construct_batch, isCorrect
-task_list = Task.TASK_LIST
-task_group_dict = Task.TASK_GROUP_DICT
+from task_criteria import isCorrect
 
 from model_analysis import get_hid_var_resp
 from utils.utils import task_swaps_map, task_colors, MODEL_STYLE_DICT, all_swaps
@@ -277,10 +275,11 @@ def plot_val_performance(all_perf_dict):
     #plt.legend()
     plt.show()
 
+from task_factory import STIM_DIM
+from utils.task_info_utils import get_task_info
 
 
 def plot_model_response(model, trials, plotting_index = 0, instructions = None, save_file=None):
-    assert isinstance(trials, Task)
     model.eval()
     with torch.no_grad(): 
 
@@ -293,29 +292,29 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
             is_task_instruct = all([instruct in train_instruct_dict or instruct in test_instruct_dict for instruct in instructions])
             if not is_task_instruct: warnings.warn('Not all instructions correspond to given task!')
         else: 
-            task_info = model.get_task_info(ins.shape[0], trials.task_type)
+            task_info = get_task_info(ins.shape[0], trials.task_type, model.is_instruct)
         
-        out, hid = model(task_info, torch.Tensor(ins))
+        out, hid = model(torch.Tensor(ins), task_info)
 
         correct = isCorrect(out, torch.Tensor(tar), trials.target_dirs)[plotting_index]
         out = out.detach().cpu().numpy()[plotting_index, :, :]
         hid = hid.detach().cpu().numpy()[plotting_index, :, :]
 
         try: 
-            task_info_embedding = torch.Tensor(get_instruct_reps(model.langModel, {trials.task_type: task_info}, depth='12')).swapaxes(0, 1)
+            task_info_embedding = torch.Tensor(get_instruct_reps(model.langModel, depth='12', instruct_mode=None)).swapaxes(0, 1)
             task_info_embedding = task_info_embedding.repeat(1, ins.shape[1], 1)
         except: 
             task_info_embedding = torch.matmul(task_info, model.rule_transform).unsqueeze(1).repeat(1, ins.shape[1], 1)
 
         fix = ins[plotting_index, :, 0:1]            
-        mod1 = ins[plotting_index, :, 1:1+Task.STIM_DIM]
-        mod2 = ins[plotting_index, :, 1+Task.STIM_DIM:1+(2*Task.STIM_DIM)]
+        mod1 = ins[plotting_index, :, 1:1+STIM_DIM]
+        mod2 = ins[plotting_index, :, 1+STIM_DIM:1+(2*STIM_DIM)]
 
-        to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, task_info_embedding[plotting_index, 0:119, :].T, tar[plotting_index, :, :].T, out.squeeze().T]
-        gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 2, 5, 5])
-        ylabels = ['fix.', 'mod. 1', 'mod. 2', 'Task Info', 'Target', 'Response']
+        to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, tar[plotting_index, :, :].T, out.squeeze().T]
+        gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 5, 5])
+        ylabels = ['fix.', 'mod. 1', 'mod. 2', 'Target', 'Response']
 
-        fig, axn = plt.subplots(6,1, sharex = True, gridspec_kw=gs_kw, figsize=(4,3))
+        fig, axn = plt.subplots(5,1, sharex = True, gridspec_kw=gs_kw, figsize=(4,3))
         cbar_ax = fig.add_axes([.91, .3, .03, .4])
         for i, ax in enumerate(axn.flat):
             sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1.3, cbar_ax=None if i else cbar_ax)
