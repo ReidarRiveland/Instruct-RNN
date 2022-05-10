@@ -1,10 +1,10 @@
+from logging import exception
 import stat
 from numpy.core.fromnumeric import argmax
 from numpy.lib.twodim_base import tri
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-
 
 STIM_DIM = 32
 TUNING_DIRS = [((2*np.pi*i)/32) for i in range(STIM_DIM)]
@@ -19,9 +19,15 @@ def choose_pro(x):
 def choose_anti(x): 
     return (x + np.pi)%(2*np.pi)
 
-def _add_noise(array, sigma):
-    noise = sigma * np.random.normal(size=array.shape)
-    return array+noise
+def _add_noise(array, noise):
+    if type(noise) is list: 
+        noise_arr = np.empty_like(array)
+        for i, sd in enumerate(noise):
+            noise_arr[i, ...] = sd * np.random.normal(size=array.shape[1:])
+    else: 
+        noise_arr = noise * np.random.normal(size=array.shape)
+    noise_arr[:, :, 0] = 0 
+    return array+noise_arr
 
 def _draw_ortho_dirs(): 
     dir1 = np.random.uniform(0, 2*np.pi)
@@ -300,19 +306,18 @@ class OrderFactory(DualStimFactory):
 
 class DMFactory(DualStimFactory):
     def __init__(self, num_trials,  noise, str_chooser,
-                        timing= 'full', mod=None, multi=False, conf_threshold = None,
+                        timing= 'full', mod=None, multi=False, 
                         intervals= None, cond_arr=None):
         super().__init__(num_trials, noise, timing, intervals)
+
         self.multi = multi
         self.cond_arr = cond_arr
         self.timing = timing
         self.str_chooser = str_chooser
         self.mod = mod
-        self.conf_threshold = conf_threshold
         if self.cond_arr is None: 
             self.cond_arr = self._make_cond_arr()
         self.target_dirs = self._set_target_dirs()
-
 
     def _set_target_dirs(self): 
         if np.isnan(self.cond_arr).any(): 
@@ -327,10 +332,39 @@ class DMFactory(DualStimFactory):
 
         chosen_str = self.str_chooser(strs, axis=0)
         target_dirs = np.where(chosen_str, directions[1, :], directions[0, :])
-        if self.conf_threshold is not None: 
-            d_prime = abs(np.nansum(self.cond_arr[:, 0, 1, :]-self.cond_arr[:, 1, 1, :], axis=0))/self.noise
-            target_dirs = np.where(d_prime>self.conf_threshold, target_dirs, np.NaN)
         return target_dirs
+
+class ConDMFactory(DMFactory): 
+    def __init__(self, num_trials,  noise, str_chooser, conf_threshold = None, **kw_args):
+        self.conf_threshold = conf_threshold
+        super().__init__(num_trials, noise, str_chooser, **kw_args)
+        if self.cond_arr is None: 
+            self.cond_arr = self._make_cond_arr()
+        self.target_dirs = self._set_target_dirs()
+
+    def _set_target_dirs(self):
+        target_dirs = super()._set_target_dirs()
+        self.noise = []
+        if self.multi: 
+            contrast = abs(np.nansum(self.cond_arr[:, 0, 1, :]-self.cond_arr[:, 1, 1, :], axis=0))
+        else: 
+            contrast = abs(np.nansum(self.cond_arr[:, 0, 1, :]-self.cond_arr[:, 1, 1, :], axis=0))
+
+        if self.num_trials >1: 
+            requires_response_list = list(np.random.permutation([True]*int(self.num_trials/2) + [False] * int(self.num_trials/2)))
+        else: 
+            requires_response_list = [np.random.choice([True, False])]
+
+        for i in range(self.num_trials):
+            noise_thresh = contrast[i]/self.conf_threshold
+            if self.multi: noise_thresh /= 2
+            if requires_response_list[i]: 
+                self.noise.append(np.random.uniform(noise_thresh-0.15, noise_thresh-0.1))
+            else: 
+                self.noise.append(np.random.uniform(noise_thresh+0.1, noise_thresh+0.15))
+                target_dirs[i] = np.nan
+        return target_dirs
+        
 
 class COMPFactory(TaskFactory):
     def __init__(self, num_trials,  noise, resp_stim,
@@ -378,7 +412,7 @@ class COMPFactory(TaskFactory):
                 if self.mod == None: 
                     candidate_strs = np.sum(tmp_strengths, axis=0)
                 else: 
-                    candidate_strs = tmp_strengths[mod, :]
+                    candidate_strs = tmp_strengths[self.mod, :]
 
                 positive_index = argmax(candidate_strs)
                 positive_strength = tmp_strengths[:, positive_index]

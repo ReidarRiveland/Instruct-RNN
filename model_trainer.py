@@ -271,4 +271,4 @@ if __name__ == "__main__":
 
 
     train_model_set(['simpleNet'],  
-        [0], [['Multitask']], stream_data=True)     
+        [0], [['Multitask']], overwrite=True, stream_data=True)     

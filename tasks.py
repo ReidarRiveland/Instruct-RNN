@@ -27,13 +27,13 @@ TASK_GROUP_DICT = {'Go': ['Go', 'Anti Go', 'RT Go', 'Anti RT Go'],
 class Task(): 
     def __init__(self, num_trials, noise, factory, **factory_kwargs):
         if noise is None: 
-            noise = np.random.uniform(0.1, 0.25)
+            noise = np.random.uniform(0.05, 0.15)
         self.factory = factory(num_trials, noise, **factory_kwargs)
+        self.conditions_arr = self.factory.cond_arr
         self.target_dirs = self.factory.target_dirs
         self.inputs = self.factory.make_trial_inputs()
         self.targets = self.factory.make_trial_targets()
         self.masks = self.factory.make_loss_mask()
-
 
 class Go(Task): 
     def __init__(self, num_trials, noise=None): 
@@ -110,14 +110,16 @@ class Order1(Task):
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.OrderFactory, 
+                        timing = 'delay',
                         resp_stim=1
                         )
         self.task_type = 'Order1'
 
 class Order2(Task):
     def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, noise,
+        super().__init__(num_trials, noise, 
                         task_factory.OrderFactory, 
+                        timing = 'delay',
                         resp_stim=2
                         )
         self.task_type = 'Order2'
@@ -141,9 +143,9 @@ class AntiDM(Task):
 
 class ConDM(Task):
     def __init__(self, num_trials, noise=None):
-        noise = np.random.uniform(0.2, 0.6)
+        noise = np.random.uniform(0.1, 0.4)
         super().__init__(num_trials, noise,
-                        task_factory.DMFactory, 
+                        task_factory.ConDMFactory, 
                         str_chooser = np.argmax,
                         conf_threshold = 1
                         )
@@ -151,21 +153,19 @@ class ConDM(Task):
 
 class ConAntiDM(Task):
     def __init__(self, num_trials, noise=None): 
-        noise = np.random.uniform(0.2, 0.6)
+        noise = np.random.uniform(0.1, 0.4)
 
         super().__init__(num_trials, noise,
-                        task_factory.DMFactory, 
+                        task_factory.ConDMFactory, 
                         str_chooser = np.argmin,
                         conf_threshold = 1
                         )
         self.task_type = 'Anti_ConDM'
 
 class ConMultiDM(Task):
-    noise = np.random.uniform(0.2, 0.6)
-
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
-                        task_factory.DMFactory, 
+                        task_factory.ConDMFactory, 
                         str_chooser = np.argmax,
                         multi=True,
                         conf_threshold = 1
@@ -173,12 +173,10 @@ class ConMultiDM(Task):
         self.task_type = 'ConMultiDM'
 
 class ConAntiMultiDM(Task):
-    noise = np.random.uniform(0.2, 0.6)
-
     def __init__(self, num_trials, noise=None): 
         noise = np.random.uniform(0.01, 0.4) 
         super().__init__(num_trials, noise,
-                        task_factory.DMFactory, 
+                        task_factory.ConDMFactory, 
                         str_chooser = np.argmin,
                         multi=True,
                         conf_threshold = 1
@@ -264,7 +262,8 @@ class DMMod1(Task):
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
-                        mod=0
+                        mod=0, 
+                        multi=True
                         )
         self.task_type = 'DM_Mod1'
 
@@ -273,7 +272,8 @@ class DMMod2(Task):
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
-                        mod=1
+                        mod=1, 
+                        multi=True
                         )
         self.task_type = 'DM_Mod2'
         
@@ -282,7 +282,8 @@ class AntiDMMod1(Task):
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
-                        mod=0
+                        mod=0, 
+                        multi=True
                         )
         self.task_type = 'Anti_DM_Mod1'
 
@@ -291,7 +292,8 @@ class AntiDMMod2(Task):
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
-                        mod=1
+                        mod=1,
+                        multi=True
                         )
         self.task_type = 'Anti_DM_Mod2'
 
@@ -333,7 +335,8 @@ class COMP1Mod1(Task):
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
                         resp_stim = 1, 
-                        mod=0
+                        mod=0, 
+                        multi=True
                         )
         self.task_type = 'COMP1_Mod1'
 
@@ -342,7 +345,8 @@ class COMP1Mod2(Task):
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
                         resp_stim = 1, 
-                        mod=1
+                        mod=1,
+                        multi=True
                         )
         self.task_type = 'COMP1_Mod2'
 
@@ -351,7 +355,8 @@ class COMP2Mod1(Task):
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
                         resp_stim = 2, 
-                        mod=0
+                        mod=0,
+                        multi=True
                         )
         self.task_type = 'COMP2_Mod1'
 
@@ -360,7 +365,8 @@ class COMP2Mod2(Task):
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
                         resp_stim = 2, 
-                        mod=1
+                        mod=1,
+                        multi=True
                         )
         self.task_type = 'COMP2_Mod2'
 
@@ -476,8 +482,6 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
     if task_type == 'DNMC': 
         trial = DNMC(num_trials, noise=noise)
 
- 
-
     if return_tensor: 
         return (torch.tensor(trial.inputs), 
                 torch.tensor(trial.targets), 
@@ -492,7 +496,9 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
                 task_type)
 
 
+# trials = COMP1Mod1(128)
+# trials.target_dirs
+# trials.factory.noise
 
-trials = ConAntiDM(128)
-index=12
-task_factory.TaskFactory.plot_trial(trials.inputs[index, ...], trials.targets[index, ...], 'ConDM')
+# for index in range(2):
+#     task_factory.TaskFactory.plot_trial(trials.inputs[index, ...], trials.targets[index, ...], trials.task_type)

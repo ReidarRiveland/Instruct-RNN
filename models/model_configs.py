@@ -39,7 +39,7 @@ class InstructModelConfig(BaseModelConfig):
 @define
 class RuleModelConfig(BaseModelConfig): 
     add_rule_encoder: bool = False
-    rule_dim: int = 36
+    rule_dim: int = len(TASK_LIST)
 
     _rnn_in_dim: int = field(kw_only=True)
     @_rnn_in_dim.default
