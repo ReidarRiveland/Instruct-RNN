@@ -133,8 +133,37 @@ rich_instruct_dict['Anti_Go_Mod2'] = ('pay attention to the second modality and 
                                     'attend to the second modality and pick the reverse of the presented orientation when directed',
                                     'choose the opposite of the direction of the stimulus presented in the second modality when prompted')
                                 
+rich_instruct_dict['Order1'] = ('Respond in the direction of the initial stimulus', 
+                                'select the first orientation that is presented in the trial', 
+                                'choose the stimulus that is presented first', 
+                                'go in the direction of the initial stimulus', 
+                                'opt for the stimulus that is displayed first in the trial', 
+                                'respond to the earlier stimulus', 
+                                'select the earlier displayed orientation', 
+                                'choose the direction that appears earlier in the trial', 
+                                'go in the direction of the stimulus which is presented first', 
+                                'opt for the orientation that is presented earlier in the trial', 
+                                'select the first stimulus', 
+                                'choose the initial orientation', 
+                                'pick the stimulus which is presented first', 
+                                'select the orientation which appears first', 
+                                'respond to the orientation that is displayed earlier in the trial') 
 
-
+rich_instruct_dict['Order2'] = ('select the second orientation', 
+                                'choose the later stimulus presented in the trial', 
+                                'opt for the stimulus presented second in the trial', 
+                                'respond to the second displayed direction', 
+                                'pick the orientation which appears second', 
+                                'go in the direction of the stimulus presented last', 
+                                'respond to the final stimulus', 
+                                'choose the final orientation', 
+                                'respond to the orientation which appears last in the trial', 
+                                'pick the direction displayed second in the trial', 
+                                'opt for the final displayed direction', 
+                                'select the stimulus which appears later in the trial', 
+                                'choose the last stimulus', 
+                                'pick the direction which is presented later in the trial',
+                                'choose the stimulus that is presented second')
 
 rich_instruct_dict['DM'] = ('respond in the direction of highest intensity', 
                             'choose the strongest stimulus',   
@@ -152,7 +181,7 @@ rich_instruct_dict['DM'] = ('respond in the direction of highest intensity',
                             'respond with the orientation presented with greatest strength',
                             'choose the most intensely displayed orientation')
 
-rich_instruct_dict['Anti DM'] = ('respond in the direction of minimal strength', 
+rich_instruct_dict['Anti_DM'] = ('respond in the direction of minimal strength', 
                                     'choose the weakest stimulus', 
                                     'go in the direction of stimulus with least intensity', 
                                     'select the stimulus presented with the lowest strength', 
@@ -184,7 +213,7 @@ rich_instruct_dict['MultiDM'] = ('respond to the combined greatest value between
                                     'pick the orientation with greatest value combined over modalities',
                                     'pick the orientation presented with highest average intensity')
 
-rich_instruct_dict['Anti MultiDM'] = ('respond in the direction with lowest combined value between two stimuli',
+rich_instruct_dict['Anti_MultiDM'] = ('respond in the direction with lowest combined value between two stimuli',
                                         'select the orientation with least average intensity between two modalities', 
                                         'select the direction with weakest average value between two stimuli', 
                                         'respond in the direction of minimal combined stimulus strength', 
@@ -199,6 +228,35 @@ rich_instruct_dict['Anti MultiDM'] = ('respond in the direction with lowest comb
                                         'choose the stimulus presented with weakest intensity averaged over modalities',
                                         'respond in the direction with minimal strength across both modalities',
                                         'select the direction which has the least combined strength')
+
+
+rich_instruct_dict['ConDM'] = (
+
+rich_instruct_dict['Anti_ConDM'] = (
+
+rich_instruct_dict['ConMultiDM'] = (
+
+rich_instruct_dict['Anti_ConMultiDM'] = (
+
+rich_instruct_dict['RT_DM'] = (    
+
+rich_instruct_dict['Anti_RT_DM'] = (    
+
+rich_instruct_dict['DelayDM'] = (    
+
+rich_instruct_dict['Anti_DelayDM'] = (    
+
+rich_instruct_dict['DelayMultiDM'] = (    
+
+rich_instruct_dict['Anti_DelayMultiDM'] = (  
+
+rich_instruct_dict['DM_Mod1'] = (  
+
+rich_instruct_dict['DM_Mod2'] = (  
+
+rich_instruct_dict['Anti_DM_Mod1'] = (  
+
+rich_instruct_dict['Anti_DM_Mod2'] = (  
 
 
 rich_instruct_dict['COMP1'] = ('if the first stimulus is greater than the second stimulus respond to the first stimulus otherwise do not respond', 
@@ -265,6 +323,13 @@ rich_instruct_dict['MultiCOMP2'] = ('respond in the second direction if it has l
                                         'choose the second direction if it has stronger presentation averaged over modalities than the first direction otherwise do not respond',
                                         'if the final stimulus has higher overall value for both modalities than the initial direction then select the final stimulus otherwise do not respond')
 
+rich_instruct_dict['COMP1_Mod1'] = (  
+
+rich_instruct_dict['COMP1_Mod2'] = (  
+
+rich_instruct_dict['COMP2_Mod1'] = (  
+
+rich_instruct_dict['COMP2_Mod2'] = (  
 
 rich_instruct_dict['DMS'] = ('if the first and the second stimuli match then respond with that orientation otherwise do not respond', 
                             'if the same directions are displayed then respond to the stimuli otherwise do not respond', 
