@@ -6,10 +6,9 @@ import torch
 from tasks import TASK_LIST
 
 from collections import Counter
-#swapped_task_list = Task.SWAPPED_TASK_LIST
 task_list = TASK_LIST
 
-train_instruct_dict = pickle.load(open('Instructions/train_instruct_dict', 'rb'))
+train_instruct_dict = pickle.load(open('Instructions/5.11train_instruct_dict', 'rb'))
 
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict', 'rb'))
 
@@ -17,7 +16,8 @@ inv_train_instruct_dict = inv_train_instruct_dict = dict(zip(list(itertools.chai
                                             list(itertools.chain(*[[task]*15 for task in TASK_LIST]))))
 
 def sort_vocab(): 
-    combined_instruct= {key: list(train_instruct_dict[key]) + list(test_instruct_dict[key]) for key in train_instruct_dict}
+    #combined_instruct= {key: list(train_instruct_dict[key]) + list(test_instruct_dict[key]) for key in train_instruct_dict}
+    combined_instruct= {key: list(train_instruct_dict[key]) for key in train_instruct_dict}
     all_sentences = list(itertools.chain.from_iterable(combined_instruct.values()))
     sorted_vocab = sorted(list(set(' '.join(all_sentences).split(' '))))
     return sorted_vocab

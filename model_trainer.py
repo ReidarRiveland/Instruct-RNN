@@ -54,16 +54,16 @@ class ModelTrainer(BaseTrainer):
     def _record_session(self, model, mode='CHECKPOINT'): 
         checkpoint_attrs = super()._record_session()
         if mode == 'CHECKPOINT':
-            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+self.seed_suffix+'_CHECKPOINT_attrs', 'wb'))
+            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+'_CHECKPOINT_attrs', 'wb'))
             model.save_model(self.file_path, suffix='_'+self.seed_suffix+'_CHECKPOINT')
 
         if mode=='FINAL': 
-            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+self.seed_suffix+'_attrs', 'wb'))
-            os.remove(self.file_path+'/'+self.model_file_path+self.seed_suffix+'_CHECKPOINT_attrs')
+            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+'_attrs', 'wb'))
+            os.remove(self.file_path+'/'+self.model_file_path+'_CHECKPOINT_attrs')
             pickle.dump(self.loss_data, open(self.file_path+'/'+self.seed_suffix+'_training_loss', 'wb'))
             pickle.dump(self.correct_data, open(self.file_path+'/'+self.seed_suffix+'_training_correct', 'wb'))
             model.save_model(self.file_path, suffix='_'+self.seed_suffix)
-            os.remove(self.file_path+'/'+model.model_name+'_'+self.seed_suffix+'_CHECKPOINT.pt')
+            os.remove(self.file_path+'/'+self.model_file_path+'_CHECKPOINT.pt')
 
         if mode=='TESTING': 
             task_file_name = self.set_single_task.replace(' ', '_')
@@ -270,5 +270,5 @@ if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(True)
 
 
-    train_model_set(['simpleNet'],  
+    train_model_set(['sbertNet'],  
         [0], [['Multitask']], overwrite=True, stream_data=True)     
