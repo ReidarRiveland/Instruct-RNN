@@ -10,7 +10,7 @@ MOTOR_OUTPUT_DIM = OUTPUT_DIM
 class BaseModelConfig(): 
     model_name: str 
 
-    rnn_hidden_dim: int = 128
+    rnn_hidden_dim: int = 256
     rnn_layers: int = 1
     rnn_hiddenInitValue: int = 0.1
     rnn_activ_func: str = 'relu'
@@ -22,7 +22,7 @@ class LMConfig():
     LM_train_layers: list 
     LM_load_str: str
     LM_reducer: str = 'mean'
-    LM_out_dim: int = 20
+    LM_out_dim: int = 64
     LM_output_nonlinearity: str = 'relu'
 
 @define

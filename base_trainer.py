@@ -26,7 +26,7 @@ class BaseTrainer(ABC):
         assert not (config is None and from_checkpoint_dict is None), \
             'trainer must be initialized from training_config or from a checkpoint'
 
-        self.config = config
+        self.config = asdict(config, recurse=False)
         self.cur_epoch = 0 
         self.cur_step = 0
         self.correct_data = defaultdict(list)
@@ -36,7 +36,7 @@ class BaseTrainer(ABC):
             for name, value in from_checkpoint_dict.items(): 
                 setattr(self, name, value)
 
-        for name, value in asdict(self.config, recurse=False).items(): 
+        for name, value in self.config.items(): 
             setattr(self, name, value)
 
         self.seed_suffix = 'seed'+str(self.random_seed)

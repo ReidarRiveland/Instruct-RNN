@@ -211,3 +211,16 @@ EXP_FILE = '_ReLU128_4.11'
 data = HoldoutDataFrame(EXP_FILE, 'aligned_holdouts', 'sbertNet_tuned', 'correct', seeds=range(1))
 data.data
 mean(data.get_k_shot(0)[0])
+
+
+import pickle
+data = pickle.load(open('5.5models/Multitask/sbertNet/seed0_training_correct', 'rb'))
+
+import matplotlib.pyplot as plt
+
+from tasks import TASK_LIST
+
+for task in TASK_LIST[14:]: 
+    plt.plot(data[task])
+    plt.title(task)
+    plt.show()

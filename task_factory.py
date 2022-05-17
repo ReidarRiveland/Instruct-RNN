@@ -48,10 +48,10 @@ class TaskFactory():
     def make_intervals(self): 
         intervals = np.empty((self.num_trials, 5), dtype=tuple)
         for i in range(self.num_trials):
-            T_go = (int(TRIAL_LEN - np.floor(np.random.uniform(300, 600)/DELTA_T)), TRIAL_LEN)
-            T_stim2 = (int(T_go[0]-np.floor(np.random.uniform(300, 600)/DELTA_T)), T_go[0])
-            T_delay = (int(T_stim2[0]-np.floor(np.random.uniform(300, 600)/DELTA_T)), T_stim2[0])
-            T_stim1 = (int(T_delay[0]-np.floor(np.random.uniform(300, 600)/DELTA_T)), T_delay[0])
+            T_go = (int(TRIAL_LEN - np.floor(np.random.uniform(300, 400)/DELTA_T)), TRIAL_LEN)
+            T_stim2 = (int(T_go[0]-np.floor(np.random.uniform(500, 800)/DELTA_T)), T_go[0])
+            T_delay = (int(T_stim2[0]-np.floor(np.random.uniform(200, 400)/DELTA_T)), T_stim2[0])
+            T_stim1 = (int(T_delay[0]-np.floor(np.random.uniform(500, 800)/DELTA_T)), T_delay[0])
             T_fix = (0, T_stim1[0])
             intervals[i] = (T_fix, T_stim1, T_delay, T_stim2, T_go)
         return intervals

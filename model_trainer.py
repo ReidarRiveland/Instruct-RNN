@@ -17,7 +17,6 @@ from attrs import define
 import os
 import warnings
 import gc
-from copy import copy
 
 device = torch.device(0)
 
@@ -27,10 +26,10 @@ EXP_FILE ='5.5models'
 class TrainerConfig(): 
     file_path: str
     random_seed: int
-    epochs: int = 60
+    epochs: int = 100
     min_run_epochs: int = 35
     batch_len: int = 64
-    num_batches: int = 800
+    num_batches: int = 1000
     holdouts: list = []
     set_single_task: str = None
     stream_data: bool = False
@@ -270,5 +269,5 @@ if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(True)
 
 
-    train_model_set(['sbertNet'],  
+    train_model_set(['gptNet'],  
         [0], [['Multitask']], overwrite=True, stream_data=True)     

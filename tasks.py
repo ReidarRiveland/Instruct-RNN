@@ -7,16 +7,28 @@ import task_factory
 TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go', 
             
             'Go_Mod1', 'Anti_Go_Mod1', 'Go_Mod2', 'Anti_Go_Mod2',
+
             'Order1', 'Order2',
+
             'DM', 'Anti_DM', 
+
             'RT_DM', 'Anti_RT_DM', 
+
             'ConDM', 'Anti_ConDM', 'ConMultiDM', 'Anti_ConMultiDM',
+            
             'MultiDM', 'Anti_MultiDM', 
+
             'DelayDM', 'Anti_DelayDM', 'DelayMultiDM', 'Anti_DelayMultiDM',
+
             'DM_Mod1', 'Anti_DM_Mod1', 'DM_Mod2', 'Anti_DM_Mod2',
+
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
+
             'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
+
             'DMS', 'DNMS', 'DMC', 'DNMC']
+
+HOLDOUTS_LIST = [['Anti_Go', 'Go_Mod1', 'RT_DM', 'Anti_ConMultiDM', 'DM_Mod2', 'COMP1', 'COMP2_Mod1']]
 
 SWAPPED_TASK_LIST = ['Anti DM', 'MultiCOMP1', 'DNMC', 'DMC', 'MultiCOMP2', 'Go', 'DNMS', 'COMP1', 'Anti MultiDM', 'DMS', 'Anti Go', 'DM', 'COMP2', 'MultiDM', 'Anti RT Go', 'RT Go']
 TASK_GROUP_DICT = {'Go': ['Go', 'Anti Go', 'RT Go', 'Anti RT Go'],
@@ -27,7 +39,7 @@ TASK_GROUP_DICT = {'Go': ['Go', 'Anti Go', 'RT Go', 'Anti RT Go'],
 class Task(): 
     def __init__(self, num_trials, noise, factory, **factory_kwargs):
         if noise is None: 
-            noise = np.random.uniform(0.05, 0.15)
+            noise = np.random.uniform(0.05, 0.1)
         self.factory = factory(num_trials, noise, **factory_kwargs)
         self.conditions_arr = self.factory.cond_arr
         self.target_dirs = self.factory.target_dirs
@@ -326,7 +338,8 @@ class MultiCOMP2(Task):
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
-                        resp_stim = 2
+                        resp_stim = 2,
+                        multi=True
                         )
         self.task_type = 'MultiCOMP2'
 
@@ -496,7 +509,7 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
                 task_type)
 
 
-# trials = COMP1Mod1(128)
+# trials = MultiCOMP2(128)
 # trials.target_dirs
 # trials.factory.noise
 
