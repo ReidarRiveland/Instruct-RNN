@@ -1,3 +1,4 @@
+import itertools
 from lib2to3.pytree import Base
 import numpy as np
 from sklearn import multiclass
@@ -25,6 +26,20 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
             #'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
 
             'DMS', 'DNMS', 'DMC', 'DNMC']
+
+SWAP_LIST = [('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
+                ('Anti_Go', 'MultiDM', 'Anti_DelayDM', 'RT_DM'), 
+                ('RT_Go', 'DM_Mod1', 'DMC', 'Anti_ConMultiDM'),
+                ('Anti_RT_Go', 'DM', 'Anti_DM_Mod2', 'Order1'), 
+                ('Go_Mod1', 'Anti_RT_DM', 'MultiCOMP1', 'DNMC'), 
+                ('Anti_Go_Mod1', 'DMS', 'DelayDM', 'MultiCOMP2'), 
+                ('Anti_Go_Mod2', 'ConDM', 'Anti_DelayMultiDM',  'Order2'),
+                ('Anti_DM', 'COMP1_Mod1', 'COMP2', 'DelayMultiDM'),
+                ('Anti_DM_Mod1', 'ConMultiDM', 'Anti_MultiDM', 'COMP1' )
+                ]
+SWAP_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST))
+
+
 
 # SWAP_LIST = [('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
 #                 ('Anti_Go', 'MultiDM', 'Anti_DelayDM', 'COMP2_Mod1'), 
