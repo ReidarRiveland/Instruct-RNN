@@ -214,7 +214,7 @@ mean(data.get_k_shot(0)[0])
 
 
 import pickle
-data = pickle.load(open('5.5models/Multitask/sbertNet/seed0_training_correct', 'rb'))
+data = pickle.load(open('5.5models/Multitask/gptNet/gptNet_seed0_CHECKPOINT_attrs', 'rb'))
 
 import matplotlib.pyplot as plt
 
@@ -224,3 +224,13 @@ for task in TASK_LIST[14:]:
     plt.plot(data[task])
     plt.title(task)
     plt.show()
+
+from tasks import TASK_LIST
+DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
+
+numer = np.ones(len(TASK_LIST))
+TASK_LIST[TASK_LIST.index('MultiCOMP1'):TASK_LIST.index('COMP2_Mod2')+1]
+numer[TASK_LIST.index('MultiCOMP1'):TASK_LIST.index('COMP2_Mod2')+1]=2
+HARD_TASK_DICT = dict(zip(TASK_LIST, (1/len(TASK_LIST))*numer))
+
+HARD_TASK_DICT

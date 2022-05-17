@@ -28,7 +28,30 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
 
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
-HOLDOUTS_LIST = [['Anti_Go', 'Go_Mod1', 'RT_DM', 'Anti_ConMultiDM', 'DM_Mod2', 'COMP1', 'COMP2_Mod1']]
+SWAP_LIST = [('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
+                ('Anti_Go', 'MultiDM', 'Anti_DelayDM', 'COMP2_Mod1'), 
+                ('RT_Go', 'Anti_Go_Mod1', 'DMC', 'Anti_ConMultiDM'),
+                ('Anti_RT_Go', 'DM', 'Anti_ConDM', 'Order1'), 
+                ('Go_Mod1', 'Anti_RT_DM', 'MultiCOMP1', 'DNMC'), 
+                ('Anti_Go_Mod1', 'DMS', 'DelayDM', 'COMP2_Mod2'), 
+                ('Anti_Go_Mod2', 'ConDM', 'Anti_DelayMultiDM',  'Order2'),
+                ('Anti_DM', 'COMP1_Mod1', 'COMP2', 'DelayMultiDM'),
+                ('Anti_DM_Mod1', 'ConMultiDM', 'Anti_MultiDM', 'COMP1' ),
+                ('Anti_DM_Mod2', 'DM_Mod1', 'MultiCOMP2', 'RT_DM')]
+SWAP_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST))
+
+ALIGNED_LIST = [('Go', 'Anti Go', 'COMP1', 'COMP2'),
+                ('RT_Go', 'Anti_RT_Go', 'DelayDM', 'Anti_DelayDM'), 
+                ('COMP1_Mod1', 'COMP2_Mod1', 'ConDM', 'Anti_ConDM'),
+                ('DMS', 'DNMS', 'DelayMultiDM', 'Anti_DelayMultiDM'), 
+                ('DMC', 'DNMC', 'DM_Mod1', 'Anti_DM_Mod1'),
+                ('RT_DM', 'Anti_RT_DM', 'Order1', 'Order2'),
+                ('ConMultiDM', 'Anti_ConMultiDM', 'COMP1_Mod2', 'COMP2_Mod2') 
+                ('DM_Mod2', 'Anti_DM_Mod2', ),
+                ('MultiDM', 'Anti_MultiDM', 'Go_Mod2', 'Anti_Go_Mod2'), 
+                ('DM', 'Anti_DM')]
+
+
 
 SWAPPED_TASK_LIST = ['Anti DM', 'MultiCOMP1', 'DNMC', 'DMC', 'MultiCOMP2', 'Go', 'DNMS', 'COMP1', 'Anti MultiDM', 'DMS', 'Anti Go', 'DM', 'COMP2', 'MultiDM', 'Anti RT Go', 'RT Go']
 TASK_GROUP_DICT = {'Go': ['Go', 'Anti Go', 'RT Go', 'Anti RT Go'],
@@ -509,7 +532,7 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
                 task_type)
 
 
-# trials = MultiCOMP2(128)
+# trials = COMP2Mod2(128)
 # trials.target_dirs
 # trials.factory.noise
 
