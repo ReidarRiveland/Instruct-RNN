@@ -5,10 +5,10 @@ from tasks import TASK_LIST, construct_trials
 class TaskDataSet():
     DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
 
-    numer = np.ones(len(TASK_LIST))
-    TASK_LIST[TASK_LIST.index('MultiCOMP1'):TASK_LIST.index('COMP2_Mod2')+1]
-    numer[TASK_LIST.index('MultiCOMP1'):TASK_LIST.index('COMP2_Mod2')+1]=1.2
-    HARD_TASK_DICT = dict(zip(TASK_LIST, (1/len(TASK_LIST))*numer))
+    # numer = np.ones(len(TASK_LIST))
+    # TASK_LIST[TASK_LIST.index('MultiCOMP1'):TASK_LIST.index('COMP2_Mod2')+1]
+    # numer[TASK_LIST.index('MultiCOMP1'):TASK_LIST.index('COMP2_Mod2')+1]=1.2
+    # HARD_TASK_DICT = dict(zip(TASK_LIST, (1/len(TASK_LIST))*numer))
 
     def __init__(self, stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None): 
         __len__ = num_batches
@@ -19,7 +19,7 @@ class TaskDataSet():
         self.holdouts = holdouts
 
         if set_single_task is None: 
-            self.task_ratio_dict = self.HARD_TASK_DICT.copy()
+            self.task_ratio_dict = self.DEFAULT_TASK_DICT.copy()
         else: 
             assert not bool(holdouts), 'cannot have holdouts and set a single task'
             self.task_ratio_dict={set_single_task:1}
