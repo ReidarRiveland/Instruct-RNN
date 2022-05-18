@@ -85,24 +85,30 @@
 # last_hidden_state.shape
 # pooled_output = outputs.pooler_output  # pooled (EOS token) states
 # pooled_output.unsqueeze(0)[0].shape
-from task_factory import dm_factory, plot_trial
 import numpy as np
-from tasks import Task, MultiDM, ConDM
 from utils.task_info_utils import get_task_info
 from task_criteria import isCorrect
 from models.full_models import SBERTNet, SimpleNetPlus, SBERTNet_tuned
+from model_analysis import get_model_performance, get_task_reps, reduce_rep
+from tasks import TASK_LIST, SWAPS
 
-low_high = (0,1)
-np.random.uniform(*low_high)
 
-from utils.task_info_utils import get_input_rule
-from model_analysis import task_eval
-import torch
+list(SWAPS)
 
-EXP_FILE = '_ReLU128_4.11/swap_holdouts'
-sbertNet_tuned = SBERTNet_tuned()
-holdouts_file = 'Multitask'
-sbertNet_tuned.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet_tuned', suffix='_seed0')
+EXP_FILE = '5.5models/swap_holdouts'
+sbertNet = SBERTNet()
+holdouts_file = 'swap4'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet', suffix='_seed0')
+
+perf = get_model_performance(sbertNet)
+list(zip(TASK_LIST, perf))
+
+resp = get_task_reps(sbertNet)
+reps_reduced, _ = reduce_rep(resp)
+
+
+
+
 
 num_trials = 128
 trials = ConDM(num_trials)

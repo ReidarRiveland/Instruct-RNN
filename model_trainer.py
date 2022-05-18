@@ -174,12 +174,12 @@ def check_already_tested(file_name, seed, task):
         return False
 
 
-def train_model_set(model_names, seeds, holdout_dict, overwrite=False, **train_config_kwargs): 
+def train_model_set(model_names, seeds, holdout_list, overwrite=False, **train_config_kwargs): 
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
-            for label, holdouts in holdout_dict.items(): 
+            for label, holdouts in holdout_list: 
                 file_name = EXP_FILE+'/'+label+'/'+model_name
                 
                 if check_already_trained(file_name, seed) and not overwrite:
@@ -196,16 +196,16 @@ def train_model_set(model_names, seeds, holdout_dict, overwrite=False, **train_c
 
     return inspection_list
 
-def tune_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_config_kwargs): 
+def tune_model_set(model_names, seeds, holdout_list, overwrite=False, **train_config_kwargs): 
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
             assert '_tuned' in model_name
 
-            for holdouts in all_holdouts: 
+            for label, holdouts in holdout_list: 
                 untuned_model_name = model_name.replace('_tuned', '')
-                file_name = EXP_FILE+'/'+get_holdout_file_name(holdouts)
+                file_name = EXP_FILE+'/'+label
                 
                 if check_already_trained(file_name+'/'+model_name, seed) and not overwrite:
                     continue 
@@ -267,7 +267,9 @@ if __name__ == "__main__":
     #                 'bertNet', 'gptNet', 'simpleNet', 'simpleNetPlus'], 
     #     [0], training_lists_dict['aligned_holdouts'])            
     torch.autograd.set_detect_anomaly(True)
-    from tasks import SWAP_DICT
+    from tasks import SWAPS
 
-    train_model_set(['sbertNet'],  
-        [0], SWAP_DICT, overwrite=False, stream_data=True)     
+    # train_model_set(['sbertNet'],  
+    #     [0], SWAP_DICT, overwrite=False, stream_data=True)     
+    tune_model_set(['sbertNet_tuned'],  
+        [0], list(SWAPS), overwrite=False, stream_data=True)     

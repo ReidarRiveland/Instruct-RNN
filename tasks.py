@@ -10,7 +10,7 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
             
             'Go_Mod1', 'Anti_Go_Mod1', 'Go_Mod2', 'Anti_Go_Mod2',
 
-            'Order1', 'Order2',
+            'Order1', 'Order2', 
 
             'DM', 'Anti_DM', 'MultiDM', 'Anti_MultiDM', 
 
@@ -38,8 +38,9 @@ SWAP_LIST = [('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
                 ('Anti_DM', 'Go_Mod2', 'COMP2', 'DelayMultiDM'),
                 ('Anti_DM_Mod1', 'ConMultiDM', 'Anti_MultiDM', 'COMP1' )
                 ]
-SWAP_DICT = OrderedDict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST))
-SWAP_DICT
+SWAPS = zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST)
+
+
 # SWAP_LIST = [('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
 #                 ('Anti_Go', 'MultiDM', 'Anti_DelayDM', 'COMP2_Mod1'), 
 #                 ('RT_Go', 'Anti_Go_Mod1', 'DMC', 'Anti_ConMultiDM'),
@@ -122,7 +123,8 @@ class GoMod1(Task):
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         mod = 0, 
-                        dir_chooser = task_factory.choose_pro
+                        dir_chooser = task_factory.choose_pro, 
+                        multi=True
                         )
         self.task_type = 'Go_Mod1'
 
@@ -131,7 +133,8 @@ class GoMod2(Task):
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         mod = 1, 
-                        dir_chooser = task_factory.choose_pro
+                        dir_chooser = task_factory.choose_pro,
+                        multi=True
                         )
         self.task_type = 'Go_Mod2'
 
@@ -140,7 +143,8 @@ class AntiGoMod1(Task):
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         mod = 0, 
-                        dir_chooser = task_factory.choose_anti
+                        dir_chooser = task_factory.choose_anti, 
+                        multi=True
                         )
         self.task_type = 'Anti_Go_Mod1'
 
@@ -149,7 +153,8 @@ class AntiGoMod2(Task):
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         mod = 1, 
-                        dir_chooser = task_factory.choose_anti
+                        dir_chooser = task_factory.choose_anti, 
+                        multi=True
                         )
         self.task_type = 'Anti_Go_Mod2'
 
@@ -544,9 +549,9 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
                 task_type)
 
 
-# trials = COMP2Mod2(128)
-# trials.target_dirs
-# trials.factory.noise
+trials = GoMod1(128)
+trials.target_dirs
+trials.factory.noise
 
-# for index in range(2):
-#     task_factory.TaskFactory.plot_trial(trials.inputs[index, ...], trials.targets[index, ...], trials.task_type)
+for index in range(2):
+    task_factory.TaskFactory.plot_trial(trials.inputs[index, ...], trials.targets[index, ...], trials.task_type)
