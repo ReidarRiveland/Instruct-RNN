@@ -4,6 +4,7 @@ import numpy as np
 from sklearn import multiclass
 import torch
 import task_factory
+from collections import OrderedDict
 
 TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go', 
             
@@ -34,13 +35,11 @@ SWAP_LIST = [('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
                 ('Go_Mod1', 'Anti_RT_DM', 'MultiCOMP1', 'DNMC'), 
                 ('Anti_Go_Mod1', 'DMS', 'DelayDM', 'MultiCOMP2'), 
                 ('Anti_Go_Mod2', 'ConDM', 'Anti_DelayMultiDM',  'Order2'),
-                ('Anti_DM', 'COMP1_Mod1', 'COMP2', 'DelayMultiDM'),
+                ('Anti_DM', 'Go_Mod2', 'COMP2', 'DelayMultiDM'),
                 ('Anti_DM_Mod1', 'ConMultiDM', 'Anti_MultiDM', 'COMP1' )
                 ]
-SWAP_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST))
-
-
-
+SWAP_DICT = OrderedDict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST))
+SWAP_DICT
 # SWAP_LIST = [('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
 #                 ('Anti_Go', 'MultiDM', 'Anti_DelayDM', 'COMP2_Mod1'), 
 #                 ('RT_Go', 'Anti_Go_Mod1', 'DMC', 'Anti_ConMultiDM'),

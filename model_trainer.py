@@ -20,7 +20,7 @@ import gc
 
 device = torch.device(0)
 
-EXP_FILE ='5.5models'
+EXP_FILE ='5.5models/swap_holdouts'
 
 @define
 class TrainerConfig(): 
@@ -161,6 +161,7 @@ def check_already_trained(file_name, seed):
         print('\n Model at ' + file_name + ' for seed '+str(seed)+' aleady trained')
         return True
     except FileNotFoundError:
+        print('\n Training at ' + file_name + ' at seed '+str(seed))
         return False
 
 def check_already_tested(file_name, seed, task):
@@ -173,14 +174,13 @@ def check_already_tested(file_name, seed, task):
         return False
 
 
-
-def train_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_config_kwargs): 
+def train_model_set(model_names, seeds, holdout_dict, overwrite=False, **train_config_kwargs): 
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
-            for holdouts in all_holdouts: 
-                file_name = EXP_FILE+'/'+get_holdout_file_name(holdouts)+'/'+model_name
+            for label, holdouts in holdout_dict.items(): 
+                file_name = EXP_FILE+'/'+label+'/'+model_name
                 
                 if check_already_trained(file_name, seed) and not overwrite:
                     continue 
@@ -267,7 +267,7 @@ if __name__ == "__main__":
     #                 'bertNet', 'gptNet', 'simpleNet', 'simpleNetPlus'], 
     #     [0], training_lists_dict['aligned_holdouts'])            
     torch.autograd.set_detect_anomaly(True)
+    from tasks import SWAP_DICT
 
-
-    train_model_set(['gptNet'],  
-        [0], [['Multitask']], overwrite=True, stream_data=True)     
+    train_model_set(['sbertNet'],  
+        [0], SWAP_DICT, overwrite=False, stream_data=True)     
