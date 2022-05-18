@@ -387,8 +387,6 @@ train_instruct_dict['Anti_DelayMultiDM'] = ('maintain both directions in memory 
                                             'remember both directions and pick the stimulus with lowest combined strength over both modalities',
                                             'remember each stimulus and respond in the direction which is presented with minimal strength averaged over both modalities')
 
-
-
 train_instruct_dict['DM_Mod1'] = ('select the strongest direction in the first modality', 
                                 'choose the most intense stimulus that appears in the first modality', 
                                 'attend to the first modality and select the orientation displayed with highest intensity', 
