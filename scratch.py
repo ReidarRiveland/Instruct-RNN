@@ -90,17 +90,46 @@ from utils.task_info_utils import get_task_info
 from task_criteria import isCorrect
 from models.full_models import SBERTNet, SimpleNetPlus, SBERTNet_tuned, GPTNet
 from model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
-from tasks import TASK_LIST, SWAPS
+from tasks import TASK_LIST, SWAPS, GoMod2
+from plotting import plot_model_response
 
 
-list(SWAPS)
+
 
 EXP_FILE = '5.5models/swap_holdouts'
-sbertNet = SBERTNet()
+sbertNet = SBERTNet_tuned()
 holdouts_file = 'swap0'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet', suffix='_seed0')
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet_tuned', suffix='_seed0')
 
-task_eval(sbertNet, 'DM_Mod2', 128)
+repeats = []
+for _ in range(5):
+    perf = task_eval(sbertNet, 'Anti_DM_Mod2', 128, 
+            instructions=['only take the second modality into account and select the weakest stimulus']*128)
+    repeats.append(perf)
+
+np.mean(repeats)
+
+from tasks import DMMod2, Order1
+
+ins, targets, _, target_dirs, _ = construct_trials('Go_Mod2', 128, None)
+
+task_info = get_task_info(128, 'DM_Mod1', sbertNet.is_instruct)
+
+task_info
+
+RT MOD
+
+task_info
+trials = DMMod2(128)
+plot_model_response(sbertNet, trials, 0)
+
+
+
+
+
+from tasks import AntiDMMod2
+trials = AntiDMMod2(128)
+trials.num_trials
 
 perf = get_model_performance(sbertNet)
 

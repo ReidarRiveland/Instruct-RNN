@@ -3,14 +3,16 @@ from lib2to3.pytree import Base
 import numpy as np
 from sklearn import multiclass
 import torch
-import task_factory
+import task_factory as task_factory
 from collections import OrderedDict
 
 TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go', 
             
             'Go_Mod1', 'Anti_Go_Mod1', 'Go_Mod2', 'Anti_Go_Mod2',
 
-            'Order1', 'Order2', 
+            #'Order1', 'Order2', 
+
+            'DelayGo', 'Anti_DelayGo',
 
             'DM', 'Anti_DM', 'MultiDM', 'Anti_MultiDM', 
 
@@ -21,6 +23,8 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
             'DelayDM', 'Anti_DelayDM', 'DelayMultiDM', 'Anti_DelayMultiDM',
 
             'DM_Mod1', 'Anti_DM_Mod1', 'DM_Mod2', 'Anti_DM_Mod2',
+            
+            'RT_DM_Mod1', 'Anti_RT_DM_Mod1', 'RT_DM_Mod2', 'Anti_RT_DM_Mod2', 
 
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
 
@@ -29,7 +33,9 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
 SWAP_LIST = [('Anti_RT_Go', 'DM', 'Anti_DM_Mod2', 'Order1'), 
+                ('Anti_DM', 'Go_Mod2', 'COMP2', 'DelayMultiDM'),
                 ('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
+                ('RT_Go', 'DM_Mod1', 'DMC', 'Anti_ConMultiDM'),
                 ('Anti_Go', 'MultiDM', 'Anti_DelayDM', 'RT_DM'), 
                 ('RT_Go', 'DM_Mod1', 'DMC', 'Anti_ConMultiDM'),
                 ('Go_Mod1', 'Anti_RT_DM', 'MultiCOMP1', 'DNMC'), 
@@ -38,6 +44,7 @@ SWAP_LIST = [('Anti_RT_Go', 'DM', 'Anti_DM_Mod2', 'Order1'),
                 ('Anti_DM', 'Go_Mod2', 'COMP2', 'DelayMultiDM'),
                 ('Anti_DM_Mod1', 'ConMultiDM', 'Anti_MultiDM', 'COMP1' )
                 ]
+
 SWAPS = zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST)
 
 
@@ -76,6 +83,8 @@ class Task():
     def __init__(self, num_trials, noise, factory, **factory_kwargs):
         if noise is None: 
             noise = np.random.uniform(0.05, 0.1)
+        self.num_trials = num_trials
+        self.noise = noise
         self.factory = factory(num_trials, noise, **factory_kwargs)
         self.conditions_arr = self.factory.cond_arr
         self.target_dirs = self.factory.target_dirs
@@ -99,6 +108,25 @@ class AntiGo(Task):
                         dir_chooser = task_factory.choose_anti
                         )
         self.task_type = 'Anti_Go'
+
+class DelayGo(Task): 
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing='delay', 
+                        dir_chooser = task_factory.choose_pro
+                        )
+        self.task_type = 'DelayGo'
+
+class AntiDelayGo(Task): 
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing='delay', 
+                        dir_chooser = task_factory.choose_anti
+                        )
+        self.task_type = 'Anti_DelayGo'
+
 
 class RTGo(Task):
     def __init__(self, num_trials, noise=None): 
@@ -349,6 +377,50 @@ class AntiDMMod2(Task):
                         )
         self.task_type = 'Anti_DM_Mod2'
 
+class RTDMMod1(Task):
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmax,
+                        timing='RT',
+                        mod=0,
+                        multi=True
+                        )
+        self.task_type = 'RT_DM_Mod1'
+
+class RTDMMod2(Task):
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmax,
+                        timing='RT',
+                        mod=1,
+                        multi=True
+                        )
+        self.task_type = 'RT_DM_Mod2'
+
+class AntiRTDMMod1(Task):
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmin,
+                        timing='RT',
+                        mod=0,
+                        multi=True
+                        )
+        self.task_type = 'Anti_RT_DM_Mod1'
+
+class AntiRTDMMod2(Task):
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmin,
+                        timing='RT',
+                        mod=1,
+                        multi=True
+                        )
+        self.task_type = 'Anti_RT_DM_Mod2'
+
 class COMP1(Task): 
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
@@ -383,45 +455,6 @@ class MultiCOMP2(Task):
                         )
         self.task_type = 'MultiCOMP2'
 
-class COMP1Mod1(Task): 
-    def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, noise,
-                        task_factory.COMPFactory, 
-                        resp_stim = 1, 
-                        mod=0, 
-                        multi=True
-                        )
-        self.task_type = 'COMP1_Mod1'
-
-class COMP1Mod2(Task): 
-    def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, noise,
-                        task_factory.COMPFactory, 
-                        resp_stim = 1, 
-                        mod=1,
-                        multi=True
-                        )
-        self.task_type = 'COMP1_Mod2'
-
-class COMP2Mod1(Task): 
-    def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, noise,
-                        task_factory.COMPFactory, 
-                        resp_stim = 2, 
-                        mod=0,
-                        multi=True
-                        )
-        self.task_type = 'COMP2_Mod1'
-
-class COMP2Mod2(Task): 
-    def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, noise,
-                        task_factory.COMPFactory, 
-                        resp_stim = 2, 
-                        mod=1,
-                        multi=True
-                        )
-        self.task_type = 'COMP2_Mod2'
 
 class DMS(Task):
     def __init__(self, num_trials, noise=None):
@@ -461,18 +494,21 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
         trial = AntiGo(num_trials, noise=noise)
     if task_type == 'Anti_RT_Go':
         trial = AntiRTGo(num_trials, noise=noise)
+
+    if task_type == 'DelayGo': 
+        trial = DelayGo(num_trials, noise=noise)
+    if task_type == 'Anti_DelayGo': 
+        trial = AntiDelayGo(num_trials, noise=noise)
+
     if task_type == 'Go_Mod1':
         trial = GoMod1(num_trials, noise=noise)
     if task_type == 'Go_Mod2':
-        trial = GoMod1(num_trials, noise=noise)
+        trial = GoMod2(num_trials, noise=noise)
     if task_type == 'Anti_Go_Mod1':
         trial = AntiGoMod1(num_trials, noise=noise)
     if task_type == 'Anti_Go_Mod2':
         trial = AntiGoMod2(num_trials, noise=noise)
-    if task_type == 'Order1': 
-        trial = Order1(num_trials, noise=noise)
-    if task_type == 'Order2': 
-        trial = Order2(num_trials, noise=noise)
+
     if task_type == 'DM':
         trial = DM(num_trials, noise=noise)
     if task_type == 'Anti_DM': 
@@ -485,6 +521,7 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
         trial = ConMultiDM(num_trials, noise=noise)
     if task_type == 'Anti_ConMultiDM': 
         trial = ConAntiMultiDM(num_trials, noise=noise)
+
     if task_type == 'RT_DM':
         trial = RTDM(num_trials, noise=noise)
     if task_type == 'Anti_RT_DM': 
@@ -509,6 +546,16 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
         trial = AntiDMMod1(num_trials, noise=noise)
     if task_type == 'Anti_DM_Mod2': 
         trial = AntiDMMod2(num_trials, noise=noise)
+
+    if task_type == 'RT_DM_Mod1': 
+        trial = RTDMMod1(num_trials, noise=noise)
+    if task_type == 'RT_DM_Mod2': 
+        trial = RTDMMod2(num_trials, noise=noise)
+    if task_type == 'Anti_RT_DM_Mod1': 
+        trial = AntiRTDMMod1(num_trials, noise=noise)
+    if task_type == 'Anti_RT_DM_Mod2': 
+        trial = AntiRTDMMod2(num_trials, noise=noise)
+
     if task_type == 'COMP1': 
         trial = COMP1(num_trials, noise=noise)
     if task_type == 'COMP2': 
@@ -517,14 +564,6 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
         trial = MultiCOMP1(num_trials, noise=noise)
     if task_type == 'MultiCOMP2': 
         trial = MultiCOMP2(num_trials, noise=noise)
-    if task_type == 'COMP1_Mod1': 
-        trial = COMP1Mod1(num_trials, noise=noise)
-    if task_type == 'COMP1_Mod2': 
-        trial = COMP1Mod2(num_trials, noise=noise)
-    if task_type == 'COMP2_Mod1': 
-        trial = COMP2Mod1(num_trials, noise=noise)
-    if task_type == 'COMP2_Mod2': 
-        trial = COMP2Mod2(num_trials, noise=noise)
     if task_type == 'DMS': 
         trial = DMS(num_trials, noise=noise)
     if task_type == 'DNMS': 
@@ -548,15 +587,14 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
                 TASK_LIST.index(task_type))
 
 
-# trials = AntiDMMod2(1)
+trials = DelayGo(1)
 # trials.factory.mod
 
 # trials.conditions_arr[1, :, 1, 0]
 # trials.conditions_arr[1, :, 0, 0]
 # trials.target_dirs[0]
 
-
-# inputs, targets, _, _, task_type = construct_trials('Anti_DM_Mod2', 128)
-# for index in range(5):
-#     task_factory.TaskFactory.plot_trial(inputs[index, ...], targets[index, ...], task_type)
+inputs, targets, _, _, task_index = construct_trials('Anti_RT_DM_Mod1', 128)
+for index in range(5):
+    task_factory.TaskFactory.plot_trial(inputs[index, ...], targets[index, ...], TASK_LIST[task_index])
 

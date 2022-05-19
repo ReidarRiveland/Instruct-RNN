@@ -131,7 +131,7 @@ class TaskFactory():
 
         elif self.timing =='RT':
             input_activity_vecs = np.array([np.concatenate((fix, null_stim), 1), np.concatenate((fix, null_stim), 1), 
-                        np.concatenate((fix, null_stim), 1),  np.concatenate((fix, null_stim), 1), np.concatenate((no_fix, stim1+stim2), 1)])
+                        np.concatenate((fix, null_stim), 1),  np.concatenate((fix, null_stim), 1), np.concatenate((fix, stim1+stim2), 1)])
             
         elif self.timing == 'delay':
             input_activity_vecs = np.array([np.concatenate((fix, null_stim), 1), np.concatenate((fix, stim1), 1), np.concatenate((fix, null_stim), 1),  
@@ -256,10 +256,105 @@ class GoFactory(TaskFactory):
 
         return self.dir_chooser(dirs)
 
-class DualStimFactory(TaskFactory): 
-    def __init__(self, num_trials,  noise, 
-                    timing, intervals= None):
+# class DualStimFactory(TaskFactory): 
+#     def __init__(self, num_trials,  noise, 
+#                     timing, intervals= None):
+#         super().__init__(num_trials, timing, noise, intervals)
+
+#     def _make_cond_arr(self):
+#         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
+#         for i in range(self.num_trials):
+#             if self.mod is not None: 
+#                 directions1 = _draw_ortho_dirs()
+#                 directions2 = _draw_ortho_dirs((directions1[0]+np.pi/2)%(2*np.pi))
+#             else:
+#                 directions1 = _draw_ortho_dirs()
+#                 directions2 = directions1
+
+#             if self.multi:    
+#                 base_strength = np.random.uniform(0.8, 1.2, size=2)
+
+#                 redraw = True
+#                 while redraw: 
+#                     coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
+#                     if coh[0] != -1*coh[1] and (coh[0] <0 or coh[1] < 0): 
+#                         redraw = False
+                
+#                 strengths = np.array([base_strength + coh, base_strength - coh]).T
+#                 conditions_arr[:, :, 0, i] = np.array([directions1, directions2])
+#                 conditions_arr[:, :, 1, i] = strengths
+
+#             else:
+#                 mod = np.random.choice([0, 1])
+#                 base_strength = np.random.uniform(0.8, 1.2)
+#                 coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
+
+#                 strengths = np.array([base_strength+coh, base_strength-coh]).T
+                
+#                 conditions_arr[mod, :, 0, i] = np.array(directions1)
+#                 conditions_arr[mod, :, 1, i] = strengths
+#                 conditions_arr[((mod+1)%2), :, :, i] = np.NaN
+#         return conditions_arr
+
+class OrderFactory(TaskFactory):
+    def __init__(self, num_trials, noise, resp_stim, timing= 'full', 
+                        mod=None, intervals= None, cond_arr=None):
         super().__init__(num_trials, timing, noise, intervals)
+        self.multi=False
+        self.mod = mod
+        self.cond_arr = cond_arr
+        self.timing = timing
+        self.resp_stim = resp_stim
+        if self.cond_arr is None: 
+            self.cond_arr = self._make_cond_arr()
+        self.target_dirs = self._set_target_dirs()
+    
+    def _make_cond_arr(self):
+        conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
+        for i in range(self.num_trials):
+            if self.mod is not None: 
+                directions1 = _draw_ortho_dirs()
+                directions2 = _draw_ortho_dirs((directions1[0]+np.pi/2)%(2*np.pi))
+            else:
+                directions1 = _draw_ortho_dirs()
+                directions2 = directions1
+
+            if self.multi:    
+                base_strength = np.random.uniform(0.8, 1.2, size=2)
+
+                strengths = np.array([base_strength, base_strength]).T
+                conditions_arr[:, :, 0, i] = np.array([directions1, directions2])
+                conditions_arr[:, :, 1, i] = strengths
+
+            else:
+                mod = np.random.choice([0, 1])
+                base_strength = np.random.uniform(0.8, 1.2)
+
+                strengths = np.array([base_strength, base_strength]).T
+                
+                conditions_arr[mod, :, 0, i] = np.array(directions1)
+                conditions_arr[mod, :, 1, i] = strengths
+                conditions_arr[((mod+1)%2), :, :, i] = np.NaN
+        return conditions_arr
+
+    def _set_target_dirs(self):
+        target_dirs = np.nansum(self.cond_arr[:, self.resp_stim-1, 0, :], axis=0)
+        return target_dirs
+
+class DMFactory(TaskFactory):
+    def __init__(self, num_trials,  noise, str_chooser,
+                        timing= 'full', mod=None, multi=False, 
+                        intervals= None, cond_arr=None):
+        super().__init__(num_trials, timing, noise, intervals)
+
+        self.multi = multi
+        self.cond_arr = cond_arr
+        self.timing = timing
+        self.str_chooser = str_chooser
+        self.mod = mod
+        if self.cond_arr is None: 
+            self.cond_arr = self._make_cond_arr()
+        self.target_dirs = self._set_target_dirs()
 
     def _make_cond_arr(self):
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
@@ -295,38 +390,6 @@ class DualStimFactory(TaskFactory):
                 conditions_arr[mod, :, 1, i] = strengths
                 conditions_arr[((mod+1)%2), :, :, i] = np.NaN
         return conditions_arr
-
-class OrderFactory(DualStimFactory):
-    def __init__(self, num_trials, noise, resp_stim, timing= 'full', 
-                        mod=None, intervals= None, cond_arr=None):
-        super().__init__(num_trials, noise, timing, intervals)
-        self.multi=False
-        self.mod = mod
-        self.cond_arr = cond_arr
-        self.timing = timing
-        self.resp_stim = resp_stim
-        if self.cond_arr is None: 
-            self.cond_arr = self._make_cond_arr()
-        self.target_dirs = self._set_target_dirs()
-
-    def _set_target_dirs(self):
-        target_dirs = np.nansum(self.cond_arr[:, self.resp_stim-1, 0, :], axis=0)
-        return target_dirs
-
-class DMFactory(DualStimFactory):
-    def __init__(self, num_trials,  noise, str_chooser,
-                        timing= 'full', mod=None, multi=False, 
-                        intervals= None, cond_arr=None):
-        super().__init__(num_trials, noise, timing, intervals)
-
-        self.multi = multi
-        self.cond_arr = cond_arr
-        self.timing = timing
-        self.str_chooser = str_chooser
-        self.mod = mod
-        if self.cond_arr is None: 
-            self.cond_arr = self._make_cond_arr()
-        self.target_dirs = self._set_target_dirs()
 
     def _set_target_dirs(self): 
         if np.isnan(self.cond_arr).any(): 

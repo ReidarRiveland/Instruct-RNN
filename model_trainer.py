@@ -229,9 +229,9 @@ def tune_model_set(model_names, seeds, holdout_list, overwrite=False, **train_co
 
                 if not is_trained: 
                     inspection_list.append((model.model_name, seed, holdouts))
-                else: 
-                    os.remove(for_tuning_model_path)
-                    os.remove(for_tuning_data_path)
+                # else: 
+                #     os.remove(for_tuning_model_path)
+                #     os.remove(for_tuning_data_path)
 
     return inspection_list
 
@@ -271,5 +271,8 @@ if __name__ == "__main__":
 
     # train_model_set(['gptNet'],  
     #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
-    train_model_set(['sbertNet'],  
-        [0], list(SWAPS), overwrite=True, stream_data=False)     
+    # train_model_set(['sbertNet'],  
+    #     [0], list(SWAPS), overwrite=True, stream_data=False)     
+    
+    tune_model_set(['sbertNet_tuned'],  
+        [0], list(SWAPS), overwrite=True, stream_data=True)     

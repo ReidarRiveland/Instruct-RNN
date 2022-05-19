@@ -18,9 +18,12 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 
-def task_eval(model, task, batch_size, noise=None): 
+def task_eval(model, task, batch_size, noise=None, instructions = None): 
     ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, noise)
-    task_info = get_task_info(batch_size, task, model.is_instruct)
+    if instructions is None: 
+        task_info = get_task_info(batch_size, task, model.is_instruct)
+    else: 
+        task_info = instructions
     out, _ = model(torch.Tensor(ins).to(model.__device__), task_info)
     return np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 

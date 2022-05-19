@@ -22,7 +22,7 @@ class LMConfig():
     LM_train_layers: list 
     LM_load_str: str
     LM_reducer: str = 'mean'
-    LM_out_dim: int = 64
+    LM_out_dim: int = 128
     LM_output_nonlinearity: str = 'relu'
 
 @define
