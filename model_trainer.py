@@ -28,8 +28,8 @@ class TrainerConfig():
     random_seed: int
     epochs: int = 100
     min_run_epochs: int = 35
-    batch_len: int = 64
-    num_batches: int = 1000
+    batch_len: int = 32
+    num_batches: int = 1200
     holdouts: list = []
     set_single_task: str = None
     stream_data: bool = False
@@ -152,7 +152,7 @@ class ModelTrainer(BaseTrainer):
         if is_testing:
             self._record_session(model, mode='TESTING')
         else:
-            warnings.warn('Model has not reach specified performance threshold during training')
+            warnings.warn('\n !!! Model has not reach specified performance threshold during training !!! \n')
             return False
 
 def check_already_trained(file_name, seed): 
@@ -173,12 +173,12 @@ def check_already_tested(file_name, seed, task):
     except FileNotFoundError:
         return False
 
-
 def train_model_set(model_names, seeds, holdout_list, overwrite=False, **train_config_kwargs): 
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
+            if '_tuned' in model_name: warnings.warn('\n TUNED MODELS SHOULD BE FINE TUNED USING THE TUNING FUNCTION \n')
             for label, holdouts in holdout_list: 
                 file_name = EXP_FILE+'/'+label+'/'+model_name
                 
@@ -269,7 +269,7 @@ if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(True)
     from tasks import SWAPS
 
-    # train_model_set(['sbertNet'],  
-    #     [0], SWAP_DICT, overwrite=False, stream_data=True)     
-    tune_model_set(['sbertNet_tuned'],  
-        [0], list(SWAPS), overwrite=False, stream_data=True)     
+    # train_model_set(['gptNet'],  
+    #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
+    train_model_set(['sbertNet'],  
+        [0], list(SWAPS), overwrite=True, stream_data=False)     

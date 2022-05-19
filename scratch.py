@@ -88,8 +88,8 @@
 import numpy as np
 from utils.task_info_utils import get_task_info
 from task_criteria import isCorrect
-from models.full_models import SBERTNet, SimpleNetPlus, SBERTNet_tuned
-from model_analysis import get_model_performance, get_task_reps, reduce_rep
+from models.full_models import SBERTNet, SimpleNetPlus, SBERTNet_tuned, GPTNet
+from model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 from tasks import TASK_LIST, SWAPS
 
 
@@ -97,10 +97,14 @@ list(SWAPS)
 
 EXP_FILE = '5.5models/swap_holdouts'
 sbertNet = SBERTNet()
-holdouts_file = 'swap4'
+holdouts_file = 'swap0'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet', suffix='_seed0')
 
+task_eval(sbertNet, 'DM_Mod2', 128)
+
 perf = get_model_performance(sbertNet)
+
+
 list(zip(TASK_LIST, perf))
 
 resp = get_task_reps(sbertNet)

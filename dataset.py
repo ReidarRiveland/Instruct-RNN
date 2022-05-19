@@ -1,6 +1,8 @@
+from genericpath import exists
 import numpy as np
 import torch
 from tasks import TASK_LIST, construct_trials
+import os
 
 class TaskDataSet():
     DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
@@ -15,7 +17,7 @@ class TaskDataSet():
         self.stream = stream
         self.batch_len = batch_len
         self.num_batches = num_batches
-        self.data_folder = 'training_data'
+        self.data_folder = '5.5models/training_data'
         self.holdouts = holdouts
 
         if set_single_task is None: 
@@ -94,10 +96,15 @@ class TaskDataSet():
 def build_training_data(foldername):
     for task in TASK_LIST: 
         print(task)
-        task_file = task.replace(' ', '_')
-        input_data, target_data, masks_data, target_dirs, trial_indices = construct_trials(task, 8000)
-        np.save(foldername+'/training_data/' + task_file+'/input_data', input_data)
-        np.save(foldername+'/training_data/' + task_file+'/target_data', target_data)
-        np.save(foldername+'/training_data/' + task_file+'/masks_data', masks_data)
-        np.save(foldername+'/training_data/' + task_file+'/target_dirs', target_dirs)
-        np.save(foldername+'/training_data/' + task_file+'/type_indices', trial_indices)
+        path = foldername+'/training_data/' + task
+        if os.path.exists(path):
+            pass
+        else: os.makedirs(path)
+        input_data, target_data, masks_data, target_dirs, trial_indices = construct_trials(task, 10000)
+        np.save(path+'/input_data', input_data)
+        np.save(path+'/target_data', target_data)
+        np.save(path+'/masks_data', masks_data)
+        np.save(path +'/target_dirs', target_dirs)
+        np.save(path +'/type_indices', trial_indices)
+
+# build_training_data('5.5models')

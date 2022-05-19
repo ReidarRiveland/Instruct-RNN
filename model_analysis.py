@@ -18,7 +18,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 
-def task_eval(model, task, batch_size, noise=0.05): 
+def task_eval(model, task, batch_size, noise=None): 
     ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, noise)
     task_info = get_task_info(batch_size, task, model.is_instruct)
     out, _ = model(torch.Tensor(ins).to(model.__device__), task_info)

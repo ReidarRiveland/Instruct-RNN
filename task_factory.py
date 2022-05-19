@@ -29,8 +29,9 @@ def _add_noise(array, noise):
     noise_arr[:, :, 0] = 0 
     return array+noise_arr
 
-def _draw_ortho_dirs(): 
-    dir1 = np.random.uniform(0, 2*np.pi)
+def _draw_ortho_dirs(dir1=None): 
+    if dir1 is None: 
+        dir1 = np.random.uniform(0, 2*np.pi)
     dir2 = (dir1+np.pi+np.random.uniform(-np.pi*0.2, np.pi*0.2))%(2*np.pi)
     return (dir1, dir2)
 
@@ -96,7 +97,7 @@ class TaskFactory():
         '''
         mod_dim = mod_dir_str_conditions.shape[0]
         num_trials = mod_dir_str_conditions.shape[-1]
-        centered_dir = np.repeat(np.array([[0.8*np.exp(-0.5*(((8*abs(np.pi-i))/np.pi)**2)) for i in TUNING_DIRS]]), num_trials*2, axis=0)
+        centered_dir = np.repeat(np.array([[0.8*np.exp(-0.5*(((10*abs(np.pi-i))/np.pi)**2)) for i in TUNING_DIRS]]), num_trials*2, axis=0)
         roll = np.nan_to_num(np.floor((mod_dir_str_conditions[: , 0, :]/(2*np.pi))*STIM_DIM)- np.floor(STIM_DIM/2)).astype(int)
         rolled = np.array(list(map(np.roll, centered_dir, np.expand_dims(roll.flatten(), axis=1)))) * np.expand_dims(np.nan_to_num(mod_dir_str_conditions[:, 1, :]).flatten() , axis=1)
         if mod_dim>1: 
@@ -230,7 +231,9 @@ class GoFactory(TaskFactory):
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
         for i in range(self.num_trials):
             if self.multi:    
-                directions = self._draw_ortho_dirs()
+                dir1 = np.random.uniform(0, 2*np.pi)
+                dir2 = (dir1+np.pi/2)%(2*np.pi)
+                directions = (dir1, dir2)
                 base_strength = np.random.uniform(1.0, 1.2, size=2)
                 conditions_arr[0, 0, :, i] = [directions[0], base_strength[0]]
                 conditions_arr[1, 0, :, i] = [directions[1], base_strength[1]]
@@ -261,7 +264,12 @@ class DualStimFactory(TaskFactory):
     def _make_cond_arr(self):
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
         for i in range(self.num_trials):
-            directions = _draw_ortho_dirs()
+            if self.mod is not None: 
+                directions1 = _draw_ortho_dirs()
+                directions2 = _draw_ortho_dirs((directions1[0]+np.pi/2)%(2*np.pi))
+            else:
+                directions1 = _draw_ortho_dirs()
+                directions2 = directions1
 
             if self.multi:    
                 base_strength = np.random.uniform(0.8, 1.2, size=2)
@@ -273,7 +281,7 @@ class DualStimFactory(TaskFactory):
                         redraw = False
                 
                 strengths = np.array([base_strength + coh, base_strength - coh]).T
-                conditions_arr[:, :, 0, i] = np.array([directions, directions])
+                conditions_arr[:, :, 0, i] = np.array([directions1, directions2])
                 conditions_arr[:, :, 1, i] = strengths
 
             else:
@@ -283,16 +291,17 @@ class DualStimFactory(TaskFactory):
 
                 strengths = np.array([base_strength+coh, base_strength-coh]).T
                 
-                conditions_arr[mod, :, 0, i] = np.array(directions)
+                conditions_arr[mod, :, 0, i] = np.array(directions1)
                 conditions_arr[mod, :, 1, i] = strengths
                 conditions_arr[((mod+1)%2), :, :, i] = np.NaN
         return conditions_arr
 
 class OrderFactory(DualStimFactory):
     def __init__(self, num_trials, noise, resp_stim, timing= 'full', 
-                        intervals= None, cond_arr=None):
+                        mod=None, intervals= None, cond_arr=None):
         super().__init__(num_trials, noise, timing, intervals)
         self.multi=False
+        self.mod = mod
         self.cond_arr = cond_arr
         self.timing = timing
         self.resp_stim = resp_stim
@@ -322,6 +331,8 @@ class DMFactory(DualStimFactory):
     def _set_target_dirs(self): 
         if np.isnan(self.cond_arr).any(): 
             directions = np.nansum(self.cond_arr[:, :, 0, :], axis=0)
+        elif self.mod is not None: 
+            directions = self.cond_arr[self.mod, :, 0, :]
         else: 
             directions = self.cond_arr[0, :, 0, :]
 

@@ -28,10 +28,10 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
 
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
-SWAP_LIST = [('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
+SWAP_LIST = [('Anti_RT_Go', 'DM', 'Anti_DM_Mod2', 'Order1'), 
+                ('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
                 ('Anti_Go', 'MultiDM', 'Anti_DelayDM', 'RT_DM'), 
                 ('RT_Go', 'DM_Mod1', 'DMC', 'Anti_ConMultiDM'),
-                ('Anti_RT_Go', 'DM', 'Anti_DM_Mod2', 'Order1'), 
                 ('Go_Mod1', 'Anti_RT_DM', 'MultiCOMP1', 'DNMC'), 
                 ('Anti_Go_Mod1', 'DMS', 'DelayDM', 'MultiCOMP2'), 
                 ('Anti_Go_Mod2', 'ConDM', 'Anti_DelayMultiDM',  'Order2'),
@@ -451,7 +451,6 @@ class DNMC(Task):
                         matching_task = False, match_type = 'cat')
         self.task_type = 'DNMC'
  
-
 def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
     assert task_type in TASK_LIST, "entered invalid task type"
     if task_type == 'Go':
@@ -546,12 +545,18 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
                 trial.targets.astype(np.float32), 
                 trial.masks.astype(int), 
                 trial.target_dirs.astype(np.float32), 
-                task_type)
+                TASK_LIST.index(task_type))
 
 
-trials = GoMod1(128)
-trials.target_dirs
-trials.factory.noise
+# trials = AntiDMMod2(1)
+# trials.factory.mod
 
-for index in range(2):
-    task_factory.TaskFactory.plot_trial(trials.inputs[index, ...], trials.targets[index, ...], trials.task_type)
+# trials.conditions_arr[1, :, 1, 0]
+# trials.conditions_arr[1, :, 0, 0]
+# trials.target_dirs[0]
+
+
+# inputs, targets, _, _, task_type = construct_trials('Anti_DM_Mod2', 128)
+# for index in range(5):
+#     task_factory.TaskFactory.plot_trial(inputs[index, ...], targets[index, ...], task_type)
+
