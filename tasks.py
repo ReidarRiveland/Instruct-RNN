@@ -10,8 +10,6 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
             
             'Go_Mod1', 'Anti_Go_Mod1', 'Go_Mod2', 'Anti_Go_Mod2',
 
-            #'Order1', 'Order2', 
-
             'DelayGo', 'Anti_DelayGo',
 
             'DM', 'Anti_DM', 'MultiDM', 'Anti_MultiDM', 
@@ -28,25 +26,34 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
 
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
 
-            #'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
-
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
-SWAP_LIST = [('Anti_RT_Go', 'DM', 'Anti_DM_Mod2', 'Order1'), 
-                ('Anti_DM', 'Go_Mod2', 'COMP2', 'DelayMultiDM'),
-                ('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
-                ('RT_Go', 'DM_Mod1', 'DMC', 'Anti_ConMultiDM'),
-                ('Anti_Go', 'MultiDM', 'Anti_DelayDM', 'RT_DM'), 
-                ('RT_Go', 'DM_Mod1', 'DMC', 'Anti_ConMultiDM'),
-                ('Go_Mod1', 'Anti_RT_DM', 'MultiCOMP1', 'DNMC'), 
-                ('Anti_Go_Mod1', 'DMS', 'DelayDM', 'MultiCOMP2'), 
-                ('Anti_Go_Mod2', 'ConDM', 'Anti_DelayMultiDM',  'Order2'),
-                ('Anti_DM', 'Go_Mod2', 'COMP2', 'DelayMultiDM'),
-                ('Anti_DM_Mod1', 'ConMultiDM', 'Anti_MultiDM', 'COMP1' )
-                ]
+
+
+SWAP_LIST = [('Anti_ConDM', 'DM_Mod2', 'Anti_RT_Go', 'DelayGo', 'MultiCOMP2'), 
+            ('DelayDM', 'Anti_ConMultiDM', 'RT_DM_Mod2', 'Anti_RT_DM', 'COMP2'), 
+            ('Anti_DM', 'MultiDM', 'Anti_RT_DM_Mod2', 'Go', 'DNMC'), 
+            ('DM', 'Anti_MultiDM', 'RT_DM_Mod1', 'Anti_Go', 'COMP1'), 
+            ('Anti_DelayGo', 'ConDM', 'Anti_DM_Mod1', 'DelayMultiDM', 'DMC'), 
+            ('RT_Go', 'Anti_RT_DM_Mod1', 'ConMultiDM', 'Anti_Go_Mod2', 'MultiCOMP1'),
+            ('Anti_DelayMultiDM', 'RT_DM', 'Anti_Go_Mod1', 'DM_Mod1', 'DNMS'), 
+            ('Go_Mod2', 'Anti_DelayDM', 'Go_Mod1', 'Anti_DM_Mod2', 'DMS')
+            ]
 
 SWAPS = zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST)
 
+# SWAP_LIST = [('Anti_RT_Go', 'DM', 'Anti_DM_Mod2', 'RT_DM_Mod1', 'Delay'), 
+#                 ('Anti_DM', 'Go_Mod2', 'COMP2', 'DelayMultiDM'),
+#                 ('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
+#                 ('RT_Go', 'DM_Mod1', 'DMC', 'Anti_ConMultiDM'),
+#                 ('Anti_Go', 'MultiDM', 'Anti_DelayDM', 'RT_DM'), 
+#                 ('RT_Go', 'DM_Mod1', 'DMC', 'Anti_ConMultiDM'),
+#                 ('Go_Mod1', 'Anti_RT_DM', 'MultiCOMP1', 'DNMC'), 
+#                 ('Anti_Go_Mod1', 'DMS', 'DelayDM', 'MultiCOMP2'), 
+#                 ('Anti_Go_Mod2', 'ConDM', 'Anti_DelayMultiDM',  'Order2'),
+#                 ('Anti_DM', 'Go_Mod2', 'COMP2', 'DelayMultiDM'),
+#                 ('Anti_DM_Mod1', 'ConMultiDM', 'Anti_MultiDM', 'COMP1' )
+#                 ]
 
 # SWAP_LIST = [('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
 #                 ('Anti_Go', 'MultiDM', 'Anti_DelayDM', 'COMP2_Mod1'), 
@@ -587,14 +594,19 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
                 TASK_LIST.index(task_type))
 
 
-trials = DelayGo(1)
-# trials.factory.mod
+# trials = DelayGo(1)
+# # trials.factory.mod
 
-# trials.conditions_arr[1, :, 1, 0]
-# trials.conditions_arr[1, :, 0, 0]
-# trials.target_dirs[0]
+# # trials.conditions_arr[1, :, 1, 0]
+# # trials.conditions_arr[1, :, 0, 0]
+# # trials.target_dirs[0]
 
-inputs, targets, _, _, task_index = construct_trials('Anti_RT_DM_Mod1', 128)
-for index in range(5):
-    task_factory.TaskFactory.plot_trial(inputs[index, ...], targets[index, ...], TASK_LIST[task_index])
+# inputs, targets, _, _, task_index = construct_trials('Go_Mod1', 128)
+# for index in range(1):
+#     task_factory.TaskFactory.plot_trial(inputs[index, ...], targets[index, ...], TASK_LIST[task_index])
 
+# import pickle
+# instructs = pickle.load(open('instructions/5.11train_instruct_dict', 'rb'))
+
+# for task in TASK_LIST: 
+#     print(task + ' ' + str(len(set(instructs[task])) == 15))

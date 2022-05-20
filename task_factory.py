@@ -49,10 +49,10 @@ class TaskFactory():
     def make_intervals(self): 
         intervals = np.empty((self.num_trials, 5), dtype=tuple)
         for i in range(self.num_trials):
-            T_go = (int(TRIAL_LEN - np.floor(np.random.uniform(300, 400)/DELTA_T)), TRIAL_LEN)
-            T_stim2 = (int(T_go[0]-np.floor(np.random.uniform(500, 800)/DELTA_T)), T_go[0])
+            T_go = (int(TRIAL_LEN - np.floor(np.random.uniform(400, 500)/DELTA_T)), TRIAL_LEN)
+            T_stim2 = (int(T_go[0]-np.floor(np.random.uniform(400, 700)/DELTA_T)), T_go[0])
             T_delay = (int(T_stim2[0]-np.floor(np.random.uniform(200, 400)/DELTA_T)), T_stim2[0])
-            T_stim1 = (int(T_delay[0]-np.floor(np.random.uniform(500, 800)/DELTA_T)), T_delay[0])
+            T_stim1 = (int(T_delay[0]-np.floor(np.random.uniform(400, 700)/DELTA_T)), T_delay[0])
             T_fix = (0, T_stim1[0])
             intervals[i] = (T_fix, T_stim1, T_delay, T_stim2, T_go)
         return intervals
@@ -272,7 +272,7 @@ class GoFactory(TaskFactory):
 #                 directions2 = directions1
 
 #             if self.multi:    
-#                 base_strength = np.random.uniform(0.8, 1.2, size=2)
+#                 base_strength = np.random.uniform(0.9, 1.1, size=2)
 
 #                 redraw = True
 #                 while redraw: 
@@ -286,7 +286,7 @@ class GoFactory(TaskFactory):
 
 #             else:
 #                 mod = np.random.choice([0, 1])
-#                 base_strength = np.random.uniform(0.8, 1.2)
+#                 base_strength = np.random.uniform(0.9, 1.1)
 #                 coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
 
 #                 strengths = np.array([base_strength+coh, base_strength-coh]).T
@@ -320,7 +320,7 @@ class OrderFactory(TaskFactory):
                 directions2 = directions1
 
             if self.multi:    
-                base_strength = np.random.uniform(0.8, 1.2, size=2)
+                base_strength = np.random.uniform(0.9, 1.1, size=2)
 
                 strengths = np.array([base_strength, base_strength]).T
                 conditions_arr[:, :, 0, i] = np.array([directions1, directions2])
@@ -328,7 +328,7 @@ class OrderFactory(TaskFactory):
 
             else:
                 mod = np.random.choice([0, 1])
-                base_strength = np.random.uniform(0.8, 1.2)
+                base_strength = np.random.uniform(0.9, 1.1)
 
                 strengths = np.array([base_strength, base_strength]).T
                 
@@ -367,7 +367,7 @@ class DMFactory(TaskFactory):
                 directions2 = directions1
 
             if self.multi:    
-                base_strength = np.random.uniform(0.8, 1.2, size=2)
+                base_strength = np.random.uniform(0.9, 1.1, size=2)
 
                 redraw = True
                 while redraw: 
@@ -381,7 +381,7 @@ class DMFactory(TaskFactory):
 
             else:
                 mod = np.random.choice([0, 1])
-                base_strength = np.random.uniform(0.8, 1.2)
+                base_strength = np.random.uniform(0.9, 1.1)
                 coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2])
 
                 strengths = np.array([base_strength+coh, base_strength-coh]).T
@@ -475,7 +475,7 @@ class COMPFactory(TaskFactory):
                 target_dirs[i] = None
     
             if self.multi: 
-                base_strength = np.random.uniform(0.8, 1.2, size=2)
+                base_strength = np.random.uniform(0.9, 1.1, size=2)
                 redraw = True
                 while redraw: 
                     coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)

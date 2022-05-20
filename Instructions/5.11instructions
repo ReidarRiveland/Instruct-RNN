@@ -2,21 +2,21 @@ Python Dictionary Form:
 
 train_instruct_dict = {}
 
-train_instruct_dict['Go'] = ('respond in the direction of the stimulus when prompted', 
-                            'respond with the displayed orientation when prompted', 
-                            'choose the orientation displayed when cued', 
-                            'respond with the same orientation when prompted', 
-                            'go in the presented direction when prompted', 
-                            'select the displayed orientation when prompted directed', 
-                            'respond with the identical orientation when prompted', 
-                            'copy the direction displayed when prompted', 
-                            'when cued select the direction of presented stimulus', 
-                            'when prompted select the direction of the stimulus', 
-                            'when directed respond with the same direction displayed', 
-                            'go in the orientation indicated when prompted', 
-                            'when prompted go in the direction on the display', 
-                            'respond to the same direction when directed', 
-                            'when prompted select the direction on the display')
+train_instruct_dict['Go'] = ('respond in the direction of the stimulus', 
+                            'respond with the same direction as the displayed orientation', 
+                            'choose the orientation displayed', 
+                            'respond with the same orientation', 
+                            'go in the presented direction', 
+                            'select the displayed orientation', 
+                            'respond with the identical orientation', 
+                            'copy the direction displayed', 
+                            'select the direction of presented stimulus', 
+                            'select the direction of the stimulus', 
+                            'respond with the same orientation as the presented stimulus', 
+                            'go in the orientation indicated by the stimulus', 
+                            'go in the direction presented on the display', 
+                            'respond with the identical orientation', 
+                            'opt for the same orientation as indicated by the stimulus')
 
 train_instruct_dict['RT_Go'] = ('respond in direction of the stimulus immediately', 
                                 'respond with the displayed orientation at stimulus onset', 
@@ -34,21 +34,21 @@ train_instruct_dict['RT_Go'] = ('respond in direction of the stimulus immediatel
                                 'choose the direction that appears on the display immediately', 
                                 'select the presented direction when the stimulus is shown')
 
-train_instruct_dict['Anti_Go'] = ('respond in the opposite orientation of stimulus when directed', 
-                                    'respond in the reverse direction of stimulus when prompted', 
-                                    'choose the opposite of the displayed direction when prompted', 
-                                    'when cued choose the converse direction', 
-                                    'respond with the converse orientation when prompted', 
-                                    'go in opposite direction when prompted', 
-                                    'choose converse orientation when prompted', 
-                                    'select the reverse of the displayed orientation when prompted', 
-                                    'when directed respond opposite of the displayed stimulus', 
-                                    'choose the inverse of the shown direction when directed', 
-                                    'when prompted choose the opposite of direction shown', 
-                                    'when cued select the inverse of presented stimulus', 
-                                    'pick the reverse of the stimulus displayed when cued', 
-                                    'select the opposite of the displayed direction when cued',
-                                    'when directed respond in the opposite of the displayed direction')
+train_instruct_dict['Anti_Go'] = ('respond in the opposite orientation of stimulus', 
+                                    'respond in the reverse direction of stimulus', 
+                                    'choose the opposite of the displayed direction', 
+                                    'choose the converse direction', 
+                                    'respond with the converse orientation', 
+                                    'go in inverse of the displayed orientation', 
+                                    'select the converse of the displayed orientation', 
+                                    'select the reverse of the displayed orientation', 
+                                    'respond in the opposite of the displayed stimulus', 
+                                    'choose the inverse of the presented direction', 
+                                    'pick the opposite of direction indicated by the stimulus', 
+                                    'select the inverse of presented stimulus', 
+                                    'pick the reverse of the stimulus displayed', 
+                                    'select the opposite of the displayed direction',
+                                    'go in the direction opposite of the displayed orientation')
 
 train_instruct_dict['Anti_RT_Go'] = ('respond opposite of the stimulus immediately', 
                                     'respond in the reverse direction of stimulus immediately', 
@@ -66,70 +66,107 @@ train_instruct_dict['Anti_RT_Go'] = ('respond opposite of the stimulus immediate
                                     'at stimulus onset go in the reverse direction', 
                                     'select the reverse of the displayed direction at stimulus onset')
 
-train_instruct_dict['Go_Mod1'] = ('when cued respond to the direction displayed in the first modality', 
-                                'when prompted opt for the orientation of the stimulus that appears in the first modality', 
-                                'when cued select the direction corresponding to the stimulus in the first modality', 
-                                'pay attention only to the stimulus in the first modality and respond in that direction when prompted', 
-                                'focus on the first modality and select the stimulus that appears when cued', 
-                                'attend to the first modality and go in the direction of the displayed stimulus when directed', 
-                                'when prompted select the orientation that appears in the first modality', 
-                                'when cued opt for the direction displayed in the first modality', 
-                                'focus on the first modality and respond to the orientation displayed when cued',
-                                'when prompted choose the stimulus presented in the first modality', 
-                                'attend to the first modality and pick the displayed direction when directed', 
-                                'select the orientation displayed in the first modality when prompted', 
-                                'focus only on the first modality and choose the shown orientation when cued', 
-                                'when directed opt for the direction of the stimulus that appears in the first modality', 
-                                'go in the direction that appears in the first modality when prompted')
 
-train_instruct_dict['Go_Mod2'] = ('pay attention only to the second modality and respond to the direction displayed there when prompted', 
-                                'focus on the second modality and select the displayed direction when directed', 
-                                'when prompted select the stimulus displayed in the second modality', 
-                                'when cued choose the orientation that appears in the second modality', 
-                                'attend to the second modality and respond to the displayed stimulus when prompted', 
-                                'opt for the orientation displayed in the second modality when directed', 
-                                'pick the direction that appears in the second modality when directed', 
-                                'focus only on the second modality and go in the direction of the stimulus displayed there when prompted', 
-                                'when cued pick the direction that appears in the second modality', 
-                                'when directed respond in the direction displayed in the second modality', 
-                                'attend only to the second modality and select the displayed orientation when cued', 
+train_instruct_dict['DelayGo'] = ('remember the stimulus through the delay and go in the same direction', 
+                                    'maintain the displayed direction and respond in the identical direction', 
+                                    'during the delay maintain the presented orientation and then select the same direction', 
+                                    'remember the orientation and select that direction', 
+                                    'when the stimulus is displayed remember it through the delay then respond in the same direction', 
+                                    'when the orientation appears maintain it during the delay and then select the identical direction', 
+                                    'maintain the stimulus in memory and pick the identical direction',
+                                    'remember the orientation during the delay and choose the same direction', 
+                                    'during the delay remember the stimulus and respond in with the same orientation', 
+                                    'remember the presented direction and select the identical direction after the delay', 
+                                    'when the direction is displayed remember it and then respond in the same direction', 
+                                    'maintain the stimulus orientation through the delay and select the identical orientation', 
+                                    'remember the displayed direction and select the same orientation',
+                                    'during the delay maintain the presented orientation and select the identical direction',
+                                    'remember the displayed direction through the delay and opt for the same direction')
+
+train_instruct_dict['Anti_DelayGo'] = ('remember the stimulus through the delay and select the opposite direction', 
+                                        'maintain the orientation during the delay and opt for the inverse of the displayed direction', 
+                                        'maintain the stimulus through the delay and go in the converse direction', 
+                                        'when the stimulus appears remember it and choose the opposite orientation', 
+                                        'when the direction is displayed remember it and respond with the inverse orientation', 
+                                        'remember the stimulus and then select the opposite orientation', 
+                                        'during the delay maintain the stimulus and respond with the reverse orientation',
+                                        'remember the stimulus and go in the reverse of the displayed direction', 
+                                        'during the delay remember the stimulus and choose the opposite direction', 
+                                        'remember the orientation and respond with the reverse direction', 
+                                        'remember the displayed direction the go in the converse direction', 
+                                        'when the stimulus appears remember it and select the opposite of the orientation', 
+                                        'during the delay maintain the displayed direction and then choose the inverse orientation', 
+                                        'when the orientation is presented remember it and opt for the reverse direction',
+                                        'during the delay remember the stimulus and go in the inverse direction'
+                                        )
+
+train_instruct_dict['Go_Mod1'] = ('respond to the direction displayed in the first modality', 
+                                'opt for the orientation of the stimulus that appears in the first modality', 
+                                'select the direction corresponding to the stimulus in the first modality', 
+                                'attend only to the stimulus in the first modality and respond in that direction', 
+                                'focus on the first modality and select the stimulus that appears', 
+                                'attend to the first modality and go in the direction of the displayed stimulus', 
+                                'select the orientation that appears in the first modality', 
+                                'opt for the direction displayed in the first modality', 
+                                'focus on the first modality and respond to the orientation displayed',
+                                'choose the stimulus presented in the first modality', 
+                                'attend to the first modality and pick the displayed direction', 
+                                'select the orientation displayed in the first modality', 
+                                'focus only on the first modality and choose the shown orientation', 
+                                'opt for the direction of the stimulus that appears in the first modality', 
+                                'go in the direction that appears in the first modality')
+
+train_instruct_dict['Go_Mod2'] = ('pay attention only to the second modality and respond to the direction displayed there', 
+                                'focus on the second modality and select the displayed direction', 
+                                'select the stimulus displayed in the second modality', 
+                                'choose the orientation that appears in the second modality', 
+                                'attend to the second modality and respond to the displayed stimulus', 
+                                'opt for the orientation displayed in the second modality', 
+                                'pick the direction that appears in the second modality', 
+                                'focus only on the second modality and go in the direction of the stimulus displayed there', 
+                                'pick the direction that appears in the second modality', 
+                                'respond in the direction displayed in the second modality', 
+                                'attend only to the second modality and select the displayed orientation', 
                                 'opt for the direction of the stimulus displayed in the second modality',
                                 'pick the stimulus orientation that appears in the second modality', 
                                 'choose the orientation that appears in the second modality', 
-                                'focus on the stimulus displayed in the second modality and respond there when prompted')
+                                'focus on the stimulus displayed in the second modality and respond there')
 
-train_instruct_dict['Anti_Go_Mod1'] = ('focus only on the first modality and respond to the opposite of the displayed direction when prompted', 
-                                    'when cued select the converse of the orientation presented in the first modality', 
-                                    'attend to the first modality and respond in the reverse of the displayed direction when directed', 
-                                    'choose the opposite of the orientation that appears in the first modality when prompted', 
-                                    'pay attention only to the first modality and respond in the opposite of the displayed direction when prompted', 
-                                    'opt for the opposite of the direction displayed in the first modality when prompted', 
-                                    'attend to the stimulus in the first modality and go in the converse direction when cued', 
-                                    'when prompted select the opposite of the direction that appears in the first modality', 
-                                    'when cued choose the inverse of the orientation that is shown in the first modality',
-                                    'focus on the first modality and respond in the opposite direction of the stimulus displayed there when prompted', 
-                                    'focus on the first modality and select the converse of the displayed stimulus when prompted', 
-                                    'when cued opt for the inverse of the stimulus orientation displayed in the first stimulus',
-                                    'choose the opposite of the stimulus orientation that appears in the first modality when prompted', 
-                                    'attend to the first modality and pick the reverse of the direction displayed there when cued', 
-                                    'pay attention only to the first modality and choose the inverse of the direction displayed when prompted')
+train_instruct_dict['Anti_Go_Mod1'] = ('focus only on the first modality and respond to the opposite of the displayed direction', 
+                                    'select the converse of the orientation presented in the first modality', 
+                                    'attend to the first modality and respond in the reverse of the displayed direction', 
+                                    'choose the opposite of the orientation that appears in the first modality', 
+                                    'pay attention only to the first modality and respond in the opposite of the displayed direction', 
+                                    'opt for the opposite of the direction displayed in the first modality', 
+                                    'attend to the stimulus in the first modality and go in the converse direction', 
+                                    'select the opposite of the direction that appears in the first modality', 
+                                    'choose the inverse of the orientation that is shown in the first modality',
+                                    'focus on the first modality and respond in the opposite direction of the stimulus displayed there', 
+                                    'focus on the first modality and select the converse of the displayed stimulus', 
+                                    'opt for the inverse of the stimulus orientation displayed in the first stimulus',
+                                    'choose the opposite of the stimulus orientation that appears in the first modality', 
+                                    'attend to the first modality and pick the reverse of the direction displayed there', 
+                                    'pay attention only to the first modality and choose the inverse of the direction displayed')
  
-train_instruct_dict['Anti_Go_Mod2'] = ('pay attention only to the second modality and respond in the inverse direction when prompted', 
-                                    'when prompted respond to the converse of the orientation displayed in the second modality', 
-                                    'when cued select the opposite of the direction displayed in the second modality', 
-                                    'attend to the stimulus in the second modality and respond in the opposite direction when prompted', 
-                                    'focus on the second modality and respond in the converse of the direction that appears there when cued', 
-                                    'choose the opposite of the stimulus presented in the second modality when cued', 
-                                    'opt for the opposite of the orientation presented in the second modality when cued', 
-                                    'when prompted respond in the reverse of the stimulus orientation from the second modality', 
-                                    'pick the reverse of the stimulus displayed in the second modality when prompted', 
-                                    'attend to the second modality and select the opposite of the direction displayed when directed', 
-                                    'focus on the second modality and choose the inverse of the displayed direction when prompted', 
-                                    'when cued select the opposite of the orientation displayed in the second modality',
-                                    'when prompted choose the converse of the orientation displayed in the second modality', 
-                                    'attend only to the second modality and pick the reverse of the presented orientation when directed',
-                                    'choose the opposite of the direction of the stimulus presented in the second modality when prompted')
+train_instruct_dict['Anti_Go_Mod2'] = ('pay attention only to the second modality and respond in the inverse direction', 
+                                    'respond to the converse of the orientation displayed in the second modality', 
+                                    'select the opposite of the direction displayed in the second modality', 
+                                    'attend to the stimulus in the second modality and respond in the opposite direction', 
+                                    'focus on the second modality and respond in the converse of the direction that appears there', 
+                                    'choose the opposite of the stimulus presented in the second modality', 
+                                    'opt for the opposite of the orientation presented in the second modality', 
+                                    'respond in the reverse of the stimulus orientation from the second modality', 
+                                    'pick the reverse of the stimulus displayed in the second modality', 
+                                    'attend to the second modality and select the opposite of the direction displayed', 
+                                    'focus on the second modality and choose the inverse of the displayed direction', 
+                                    'select the opposite of the orientation displayed in the second modality',
+                                    'choose the converse of the orientation displayed in the second modality', 
+                                    'attend only to the second modality and pick the reverse of the presented orientation',
+                                    'choose the opposite of the direction of the stimulus presented in the second modality')
                                 
+
+
+
 train_instruct_dict['Order1'] = ('Respond in the direction of the initial stimulus', 
                                 'select the first orientation that is presented in the trial', 
                                 'choose the stimulus that is presented first', 
@@ -387,7 +424,7 @@ train_instruct_dict['Anti_DelayMultiDM'] = ('maintain both directions in memory 
                                             'remember both directions and pick the stimulus with lowest combined strength over both modalities',
                                             'remember each stimulus and respond in the direction which is presented with minimal strength averaged over both modalities')
 
-train_instruct_dict['DM_Mod1'] = ('select the strongest direction in the first modality', 
+train_instruct_dict['DM_Mod1'] = ('select the orientation in the first modality that is strongest', 
                                 'choose the most intense stimulus that appears in the first modality', 
                                 'attend to the first modality and select the orientation displayed with highest intensity', 
                                 'focus only on the first modality and choose the direction with greatest strength', 
@@ -395,23 +432,23 @@ train_instruct_dict['DM_Mod1'] = ('select the strongest direction in the first m
                                 'select the stimulus with maximal intensity in the first modality', 
                                 'attend only to the first modality and choose the strongest direction', 
                                 'respond to the stimulus displayed with greatest strength in the first modality', 
-                                'pay attention only to the first modality and pick the orientation displayed with maximal strength', 
+                                'attend only to the first modality and pick the orientation displayed with maximal strength', 
                                 'choose the stimulus which appears with highest intensity in the first modality', 
                                 'select the most intensely displayed direction in the first modality',
-                                'respond to the strongest direction in the first modality', 
-                                'opt for the direction with highest intensity in the first modality', 
-                                'choose the orientation in the first modality which has greatest strength', 
+                                'respond to the direction in the first modality that is strongest', 
+                                'attend only to the first modality and opt for the direction with highest intensity', 
+                                'focus on the first modality and choose the orientation which has greatest strength', 
                                 'select the direction in the first modality displayed most intensely')
 
-train_instruct_dict['DM_Mod2'] = ('choose the strongest direction that appears in the second modality', 
+train_instruct_dict['DM_Mod2'] = ('choose the direction in the second modality that appears strongest', 
                                 'attend only to the second modality and respond to the most intense orientation', 
                                 'focus on the second modality and select the direction displayed with greatest strength',
                                 'pick the stimulus in the second modality that is displayed with maximal intensity', 
                                 'opt for the direction displayed in the second modality with most intensity', 
                                 'select the stimulus that has maximal strength in the second modality', 
-                                'pay attention only to the second modality and choose the strongest direction that appears there', 
+                                'focus only on the second modality and choose the strongest direction that appears there', 
                                 'respond to the direction which appears with highest intensity in the second modality', 
-                                'pick the orientation that appears strongest in the second modality', 
+                                'attend only to the second modality and pick the orientation that appears strongest', 
                                 'attend only to the second modality and opt for the stimulus displayed there with greatest strength', 
                                 'select the stimulus in the second modality which has maximal strength', 
                                 'pick the direction that is displayed most intensely in the second modality', 
@@ -424,54 +461,98 @@ train_instruct_dict['Anti_DM_Mod1'] = ('choose the weakest direction in the firs
                                     'select the orientation in the first modality which has lowest strength', 
                                     'pick the stimulus in the first modality that is presented with least intensity', 
                                     'focus only on the first modality and choose the direction that appears weakest', 
-                                    'respond to the stimulus that has lowest strength in the first modality', 
-                                    'choose the direction which has least intensity in the first modality', 
+                                    'respond to the stimulus in the first modality that has lowest strength', 
+                                    'choose the direction in the first modality which is weakest', 
                                     'select the stimulus in the second modality that has minimal strength', 
                                     'attend to the first modality and select the direction that is displayed with least strength', 
-                                    'opt for the direction that appears weakest in the first modality',
+                                    'opt for the direction in the first modality that appears weakest',
                                     'focus only on the first modality and choose the orientation displayed with minimal intensity', 
                                     'select the stimulus in the first modality that has lowest intensity', 
                                     'pick the direction which appears with minimal intensity in the first modality',
-                                    'opt for the weakest stimulus that appears in the first modality',
-                                    'pick the direction that is presented with minimal strength in the first modality')
+                                    'opt for the stimulus that appears weakest in the first modality',
+                                    'pick the direction in the first modality that is presented with minimal strength')
 
-train_instruct_dict['Anti_DM_Mod2'] = ('attend to the second modality and choose the orientation that appears weakest there', (yes)
-                                    'focus only on the second modality and select the direction displayed with minimal intensity', (no) 
-                                    'select the orientation in the second modality which has least strength', (no)
-                                    'attend to the second modality and select the stimulus with least strength', (0.19)
-                                    'choose the least intense stimulus in the second modality', (0.29)
-                                    'opt for the stimulus in the second modality with has minimal strength', (0.0)
-                                    'respond to the orientation which has lowest strength in the second modality', (0.02)
-                                    'focus only on the second modality and pick the stimulus with lowest intensity', (yes)
-                                    'attend to the second modality and opt for the weakest stimulus presented there', (yes)
-                                    'pick the direction in the second modality presented with least strength', (no)
-                                    'pay attention to the second modality and select the weakest direction presented there', (yes)
-                                    'select the direction displayed with least strength in the second modality', (0.0) 
-                                    'pick the stimulus which has lowest intensity in the second modality', (0.25)
-                                    'pay attention to the second modality and respond to the orientation presented there with minimal strength', (no)
-                                    'select the orientation with least intensity in the second modality' (no))
-
-'''
 train_instruct_dict['Anti_DM_Mod2'] = ('attend to the second modality and choose the orientation that appears weakest there', 
+                                    'focus only on the second modality and select the direction displayed with minimal intensity', 
+                                    'select the orientation in the second modality which has least strength', 
+                                    'attend to the second modality and select the stimulus with least strength', 
+                                    'choose the least intense stimulus in the second modality', 
+                                    'opt for the stimulus in the second modality with has minimal strength', 
+                                    'respond to the orientation which has lowest strength in the second modality', 
                                     'focus only on the second modality and pick the stimulus with lowest intensity', 
                                     'attend to the second modality and opt for the weakest stimulus presented there', 
+                                    'pick the direction in the second modality presented with least strength', 
                                     'pay attention to the second modality and select the weakest direction presented there', 
-                                    'focus on the second modality and choose the direction that has lowest strength',
-                                    'consider only the second modality and respond in the direction of minimal intensity',
-                                    'consider only the second modality and choose the orientation presented with lowest strength',
-                                    'only take the second modality into account and respond to the weakest direction preseneted there',
-                                    'only take the second modality into account and choose the stimuli with lowest intensity',
-                                    'focus on the second modality and respond to the orientation with least strength',
-                                    'attend only to the second modality and select the direction that is weakest', 
-                                    'attend only to stimuli in the second modality and select the weakest one',
-                                    'pay attention only to the second modality and opt for the least intense stimuli that appears there',
-                                    'consider only the second modality and select the orientation that is least intense',
-                                    'only take the second modality into account and select the weakest stimulus')
-'''
+                                    'select the direction displayed with least strength in the second modality', 
+                                    'pick the stimulus which has lowest intensity in the second modality',
+                                    'pay attention to the second modality and respond to the orientation presented there with minimal strength', 
+                                    'select the orientation with least intensity in the second modality')
 
+train_instruct_dict['RT_DM_Mod1'] = ('select the direction in the first modality that appears strongest at stimulus onset', 
+                                    'attend to the first modality and select the most intense orientation as soon as the stimuli appear', 
+                                    'focus only on the first modality and choose the orientation with maximal strength immediately', 
+                                    'respond to the stimulus that appears strongest in the first modality as soon as the stimuli appear', 
+                                    'choose the highest intensity stimulus in the first modality at stimulus onset', 
+                                    'select the stimulus most intense stimulus in the first modality as soon as the stimulus appears',
+                                    'attend only to the first modality and opt for the highest strength stimulus at stimulus onset', 
+                                    'focus on the first modality and pick the strongest direction as soon as the stimuli appear', 
+                                    'focus only on the first modality and choose the orientation with maximal strength immediately', 
+                                    'attend to the first modality and respond to the highest intensity stimulus as soon as the stimuli appear', 
+                                    'select the strongest orientation in the first modality as stimulus onset', 
+                                    'pick the most intense direction displayed in the first modality as stimulus onset', 
+                                    'focus on the first modality and opt for the stimulus with maximal intensity as soon as the stimuli appear',
+                                    'pick the direction in the first modality with largest strength at stimulus onset',
+                                    'choose the orientation in the first modality with maximal strength immediately')
 
+train_instruct_dict['RT_DM_Mod2'] = ('focus only on the second modality and pick the orientation that is strongest at stimulus onset', 
+                                    'opt for the direction in the second modality that has highest intensity as soon as the stimuli appear', 
+                                    'respond to the orientation in the second modality that has maximal strength immediately', 
+                                    'attend only to the second modality and select the direction with greatest strength as soon as the stimuli appear', 
+                                    'attend only to the second modality and opt for the orientation with highest strength at stimulus onset', 
+                                    'select the stimulus in the second modality that has greatest intensity at stimulus onset', 
+                                    'focus only on the second modality and pick the most intensely displayed orientation immediately', 
+                                    'choose the direction in the second modality displayed most intensely as soon as the stimuli appear', 
+                                    'focus only on the second modality and opt for the highest intensity orientation at stimulus onset', 
+                                    'opt for the orientation in the second modality that is strongest as soon as the stimuli appear', 
+                                    'attend only to the second modality and select the strongest orientation at stimulus onset',
+                                    'attend only to the second modality and choose the stimulus with greatest strength as soon as the stimuli appear',
+                                    'pick the direction in the second modality that has largest intensity immediately',
+                                    'respond to the orientation in the second modality which has maximal strength at stimulus onset',
+                                    'focus on the second modality and go in the direction greatest intensity as soon as the stimuli appear'
+                                    )
 
-
+train_instruct_dict['Anti_RT_DM_Mod1'] = ('focus only on the first modality and select the weakest orientation at stimulus onset', 
+                                        'choose the direction in the first modality that appears weakest as soon as the stimuli appear', 
+                                        'attend only to the first modality and respond to the orientation with weakest intensity immediately', 
+                                        'select the orientation in the first modality that has minimal strength as soon as the stimuli appear', 
+                                        'respond to the direction in the first modality that is least intense immediately', 
+                                        'attend only to the first modality and go in the direction with lowest strength as soon as the stimuli appear', 
+                                        'focus only on the first modality and select the least intense orientation at stimulus onset', 
+                                        'focus on the first modality and choose the orientation with minimal strength as soon as the stimuli appear', 
+                                        'pick the direction in the first modality that is least intense immediately', 
+                                        'respond to the orientation in the first modality that has least strength at stimulus onset', 
+                                        'choose the stimulus in the first modality presented with lowest intensity as soon as the stimuli appear', 
+                                        'attend to the first modality and pick the stimulus with minimal intensity immediately', 
+                                        'attend to the first modality and respond to the weakest orientation at stimulus onset', 
+                                        'select the stimulus in the first modality that appears weakest as soon as the stimuli appear', 
+                                        'choose the orientation in the first modality presented with minimal strength immediately'
+                                        )
+train_instruct_dict['Anti_RT_DM_Mod2'] = ('focus on the second modality and select the least intensely displayed direction at stimulus onset', 
+                                        'opt for the direction in the second modality that has minimal strength immediately', 
+                                        'opt for the orientation in the second modality that is displayed with least strength as soon as the stimuli appear', 
+                                        'attend only to the second modality and pick the direction with minimal intensity at stimulus onset', 
+                                        'attend only to the second modality and opt for the orientation that is weakest immediately', 
+                                        'select the direction in the second modality that has lowest strength as soon as the stimuli appear', 
+                                        'respond to the stimulus in the second modality which has lowest strength as soon as the stimulus appears', 
+                                        'select the stimulus in the second modality that is least intensely displayed immediately', 
+                                        'focus only on the second modality and choose the lowest strength orientation at stimulus onset', 
+                                        'focus on the second modality and respond to the least intense stimulus as soon as the stimuli appear', 
+                                        'pick the orientation in the second direction that is presented with minimal strength at stimulus onset', 
+                                        'go in the direction of the stimulus in the second modality which is weakest immediately', 
+                                        'attend to the second modality and choose the weakest direction at stimulus onset', 
+                                        'select the direction in the second modality that has minimal strength as soon as the stimuli appear', 
+                                        'opt for the stimulus in the second modality which is displayed least intensely at stimulus onset'
+                                        )
 
 
 train_instruct_dict['COMP1'] = ('if the first stimulus is greater than the second stimulus respond to the first stimulus otherwise do not respond', 
@@ -669,11 +750,11 @@ train_instruct_dict['DNMC'] = ('if stimuli are on different halves of display re
 
 
 test_instruction_dict = {}
-test_instruction_dict['Go'] = ('select the presented direction when prompted', 
-                                'when cued respond in the direction shown',
-                                'when directed respond in the direction displayed', 
-                                'respond with the displayed orientation when cued', 
-                                'choose the presented direction when prompted')
+test_instruction_dict['Go'] = ('select the presented direction', 
+                                'respond in the direction shown',
+                                'respond in the direction displayed', 
+                                'respond with the displayed orientation', 
+                                'choose the presented direction')
 
 test_instruction_dict['RT Go'] = ('choose the direction shown immediately', 
                                     'select the direction presented immediately', 
@@ -681,11 +762,11 @@ test_instruction_dict['RT Go'] = ('choose the direction shown immediately',
                                     'choose the direction presented immediately', 
                                     'immediately respond to the presented orientation')
 
-test_instruction_dict['Anti Go'] = ('select the opposing direction when prompted', 
-                                        'choose the opposite of the presented direction when prompted', 
-                                        'when cued respond with the reverse orientation', 
-                                        'go in the opposite of displayed orientation when prompted',
-                                        'pick the converse of the stimulus orientation when directed')
+test_instruction_dict['Anti Go'] = ('select the opposing direction', 
+                                        'choose the opposite of the presented direction', 
+                                        'respond with the reverse orientation', 
+                                        'go in the opposite of displayed orientation',
+                                        'pick the converse of the stimulus orientation')
 
 test_instruction_dict['Anti RT Go'] = ('pick the converse of the stimulus direction immediately', 
                                         'select the reverse of the displayed direction immediately', 
