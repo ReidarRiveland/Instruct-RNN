@@ -601,8 +601,8 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
 # # trials.conditions_arr[1, :, 0, 0]
 # # trials.target_dirs[0]
 
-# inputs, targets, _, _, task_index = construct_trials('Go_Mod1', 128)
-# for index in range(1):
+# inputs, targets, _, _, task_index = construct_trials('ConMultiDM', 128)
+# for index in range(5):
 #     task_factory.TaskFactory.plot_trial(inputs[index, ...], targets[index, ...], TASK_LIST[task_index])
 
 # import pickle

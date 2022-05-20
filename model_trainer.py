@@ -271,8 +271,8 @@ if __name__ == "__main__":
 
     # train_model_set(['gptNet'],  
     #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
-    # train_model_set(['sbertNet'],  
-    #     [0], list(SWAPS), overwrite=True, stream_data=False)     
+    train_model_set(['sbertNet'],  
+        [0], list(SWAPS), overwrite=True, stream_data=False)     
     
     tune_model_set(['sbertNet_tuned'],  
-        [0], list(SWAPS), overwrite=True, stream_data=True)     
+        [0], list(SWAPS), overwrite=True, stream_data=False)     
