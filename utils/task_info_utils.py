@@ -4,6 +4,7 @@ import itertools
 from tasks import Task
 import torch
 from tasks import TASK_LIST
+from utils.utils import get_swap_task
 
 from collections import Counter
 task_list = TASK_LIST
@@ -39,7 +40,7 @@ def get_instruction_dict(instruct_mode):
     if instruct_mode == 'swap': 
         swap_dict = {}
         for task in TASK_LIST: 
-            swap_dict[task] = train_instruct_dict[Task.get_swap(task)]
+            swap_dict[task] = train_instruct_dict[get_swap_task(task)]
 
     elif instruct_mode == 'shuffled': 
         shuffle_dict = {}

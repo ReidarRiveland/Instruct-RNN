@@ -29,19 +29,6 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
 
-
-SWAP_LIST = [('Anti_ConDM', 'DM_Mod2', 'Anti_RT_Go', 'DelayGo', 'MultiCOMP2'), 
-            ('DelayDM', 'Anti_ConMultiDM', 'RT_DM_Mod2', 'Anti_RT_DM', 'COMP2'), 
-            ('Anti_DM', 'MultiDM', 'Anti_RT_DM_Mod2', 'Go', 'DNMC'), 
-            ('DM', 'Anti_MultiDM', 'RT_DM_Mod1', 'Anti_Go', 'COMP1'), 
-            ('Anti_DelayGo', 'ConDM', 'Anti_DM_Mod1', 'DelayMultiDM', 'DMC'), 
-            ('RT_Go', 'Anti_RT_DM_Mod1', 'ConMultiDM', 'Anti_Go_Mod2', 'MultiCOMP1'),
-            ('Anti_DelayMultiDM', 'RT_DM', 'Anti_Go_Mod1', 'DM_Mod1', 'DNMS'), 
-            ('Go_Mod2', 'Anti_DelayDM', 'Go_Mod1', 'Anti_DM_Mod2', 'DMS')
-            ]
-
-SWAPS = zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST)
-
 # SWAP_LIST = [('Anti_RT_Go', 'DM', 'Anti_DM_Mod2', 'RT_DM_Mod1', 'Delay'), 
 #                 ('Anti_DM', 'Go_Mod2', 'COMP2', 'DelayMultiDM'),
 #                 ('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
