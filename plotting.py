@@ -11,8 +11,8 @@ from perfDataFrame import HoldoutDataFrame
 from task_criteria import isCorrect
 
 from model_analysis import get_hid_var_resp
-from utils.utils import task_swaps_map, task_colors, MODEL_STYLE_DICT, all_swaps
-from utils.task_info_utils import train_instruct_dict, test_instruct_dict
+from tasks_utils import task_colors, MODEL_STYLE_DICT
+from instruct_utils import train_instruct_dict, test_instruct_dict
 
 
 import numpy as np
@@ -276,7 +276,7 @@ def plot_val_performance(all_perf_dict):
     plt.show()
 
 from task_factory import STIM_DIM
-from utils.task_info_utils import get_task_info
+from instruct_utils import get_task_info
 
 
 def plot_model_response(model, trials, plotting_index = 0, instructions = None, save_file=None):
@@ -710,10 +710,10 @@ def plot_neural_resp(model, task_type, task_variable, unit, mod, num_repeats = 1
 if __name__ == "__main__":
     from multitasking_models.language_models import SBERT, BERT
     from multitasking_models.sensorimotor_models import InstructNet, SimpleNet
-    from utils.utils import train_instruct_dict
+    from tasks_utils import train_instruct_dict
     from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_sim_scores, get_hid_var_group_resp
     import numpy as np
-    from utils.utils import train_instruct_dict, task_swaps_map
+    from tasks_utils import train_instruct_dict, task_swaps_map
     from tasks import DM
 
 

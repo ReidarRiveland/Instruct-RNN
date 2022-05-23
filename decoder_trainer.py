@@ -1,8 +1,8 @@
 from json import decoder
 import numpy as np
 import torch.optim as optim
-from utils.utils import training_lists_dict, get_holdout_file_name
-from utils.task_info_utils import get_instructions
+from tasks_utils import training_lists_dict, get_holdout_file_name
+from instruct_utils import get_instructions
 from dataset import TaskDataSet
 from decoding_models.decoder_models import DecoderRNN
 from attrs import define, asdict

@@ -265,7 +265,7 @@ import pickle
 import numpy as np 
 import torch
 import itertools
-from utils.utils import task_colors
+from tasks_utils import task_colors
 import matplotlib.patches as mpatches
 from matplotlib import colors, cm, markers, use 
 from matplotlib.lines import Line2D

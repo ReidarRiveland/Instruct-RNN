@@ -7,7 +7,7 @@ import itertools
 
 from tasks import Task, construct_batch, isCorrect
 from collections import defaultdict
-from utils.task_info_utils import inv_train_instruct_dict, get_instructions
+from instruct_utils import inv_train_instruct_dict, get_instructions
 
 import seaborn as sns
 import matplotlib.pyplot as plt

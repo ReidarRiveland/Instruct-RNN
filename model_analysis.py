@@ -2,8 +2,7 @@ from matplotlib.pyplot import axis
 import torch
 import numpy as np
 
-from utils.utils import task_swaps_map
-from utils.task_info_utils import train_instruct_dict, get_task_info, get_instruction_dict
+from instruct_utils import train_instruct_dict, get_task_info, get_instruction_dict
 
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.stats import spearmanr

@@ -86,25 +86,42 @@
 # pooled_output = outputs.pooler_output  # pooled (EOS token) states
 # pooled_output.unsqueeze(0)[0].shape
 import numpy as np
-from utils.task_info_utils import get_task_info
+from instruct_utils import get_task_info
 from task_criteria import isCorrect
 from models.full_models import SBERTNet, SimpleNetPlus, SBERTNet_tuned, GPTNet
 from model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
-from tasks import TASK_LIST, SWAPS, GoMod2
 from plotting import plot_model_response
-
-
+from tasks_utils import SWAPS_DICT 
+from tasks import TASK_LIST
 
 
 EXP_FILE = '5.5models/swap_holdouts'
 sbertNet = SBERTNet_tuned()
-holdouts_file = 'swap0'
+
+
+holdouts_file = 'swap5'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet_tuned', suffix='_seed0')
+
+
+def get_zero_shot_perf(model): 
+    perf_array = np.empty((40))
+    for label, tasks in SWAPS_DICT.items():
+        model.load_model(EXP_FILE+'/'+label+'/'+model.model_name, suffix='_seed0')
+        for task in tasks: 
+            print(task)
+            perf = task_eval(model, task, 128) 
+            perf_array[TASK_LIST.index(task)] = perf
+    return perf_array
+
+perf = get_zero_shot_perf(sbertNet)
+list(zip(TASK_LIST, perf))
+np.mean(perf) 
+
 
 repeats = []
 for _ in range(5):
-    perf = task_eval(sbertNet, 'Anti_DM_Mod2', 128, 
-            instructions=['only take the second modality into account and select the weakest stimulus']*128)
+    perf = task_eval(sbertNet, 'Anti_Go_Mod2', 128, 
+            instructions=['focus on the second modality and respond in the converse of the direction that appears there']*128)
     repeats.append(perf)
 
 np.mean(repeats)
@@ -113,15 +130,15 @@ from tasks import DMMod2, Order1
 
 ins, targets, _, target_dirs, _ = construct_trials('Go_Mod2', 128, None)
 
-task_info = get_task_info(128, 'DM_Mod1', sbertNet.is_instruct)
+task_info = get_task_info(128, 'Anti_Go_Mod2', sbertNet.is_instruct)
 
 task_info
 
 RT MOD
 
-task_info
-trials = DMMod2(128)
-plot_model_response(sbertNet, trials, 0)
+from tasks import AntiGoMod2
+trials = AntiGoMod2(128)
+plot_model_response(sbertNet, trials, 1)
 
 
 
@@ -132,7 +149,6 @@ trials = AntiDMMod2(128)
 trials.num_trials
 
 perf = get_model_performance(sbertNet)
-
 
 list(zip(TASK_LIST, perf))
 

@@ -7,8 +7,7 @@ from models.full_models import make_default_model
 from base_trainer import BaseTrainer, masked_MSE_Loss
 from dataset import TaskDataSet
 from task_criteria import isCorrect
-from utils.utils import get_holdout_file_name, training_lists_dict
-from utils.task_info_utils import get_task_info
+from instruct_utils import get_task_info
 
 import pickle
 import copy
@@ -84,7 +83,8 @@ class ModelTrainer(BaseTrainer):
             optimizer = self.optim_alg([
                     {'params' : model.recurrent_units.parameters()},
                     {'params' : model.sensory_motor_outs.parameters()},
-                    {'params' : model.langModel.parameters(), 'lr': langLR}
+                    {'params' : model.langModel.proj_out.parameters()},
+                    {'params' : model.langModel.transformer.parameters(), 'lr': langLR}
                 ], lr=self.lr, weight_decay=self.weight_decay)
         else: 
             optimizer = self.optim_alg(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
@@ -267,12 +267,12 @@ if __name__ == "__main__":
     #                 'bertNet', 'gptNet', 'simpleNet', 'simpleNetPlus'], 
     #     [0], training_lists_dict['aligned_holdouts'])            
     torch.autograd.set_detect_anomaly(True)
-    from tasks import SWAPS
+    from tasks_utils import SWAPS_DICT
 
     # train_model_set(['gptNet'],  
     #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
-    train_model_set(['sbertNet'],  
-        [0], list(SWAPS), overwrite=True, stream_data=False)     
+    # train_model_set(['sbertNet'],  
+    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
     
     tune_model_set(['sbertNet_tuned'],  
-        [0], list(SWAPS), overwrite=True, stream_data=False)     
+        [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     

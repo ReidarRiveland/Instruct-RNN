@@ -1,6 +1,6 @@
 from random import uniform
 from matplotlib.style import context
-from utils.utils import get_holdout_file_name, training_lists_dict
+from tasks_utils import get_holdout_file_name, training_lists_dict
 from models.full_models import make_default_model
 from base_trainer import masked_MSE_Loss, BaseTrainer
 from dataset import TaskDataSet
