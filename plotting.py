@@ -9,6 +9,7 @@ from torch.random import seed
 from model_analysis import get_hid_var_resp, get_model_performance, get_instruct_reps
 from perfDataFrame import HoldoutDataFrame
 from task_criteria import isCorrect
+from tasks import TASK_LIST
 
 from model_analysis import get_hid_var_resp
 from tasks_utils import task_colors, MODEL_STYLE_DICT
@@ -555,9 +556,9 @@ def plot_RDM(sim_scores, rep_type, cmap=sns.color_palette("rocket_r", as_cmap=Tr
     sns.heatmap(sim_scores, yticklabels = '', xticklabels= '', 
                         cmap=cmap, vmin=0, vmax=1, ax=axn, cbar_kws={'label': '1-r'})
 
-    for i, task in enumerate(Task.TASK_LIST):
-        plt.text(-2, number_reps/2+number_reps*i, task, ha='right', size=8, fontweight='bold')
-        plt.text(number_reps/2+number_reps*i, number_reps*16, task, va='top', rotation='vertical', size=8, fontweight='bold')
+    for i, task in enumerate(TASK_LIST):
+        plt.text(-2, number_reps/2+number_reps*i, task, ha='right', size=5, fontweight='bold')
+        plt.text(number_reps/2+number_reps*i, number_reps*16, task, va='top', rotation='vertical', size=5, fontweight='bold')
     plt.title(plot_title, fontweight='bold', fontsize=12)
 
     if save_file is not None: 

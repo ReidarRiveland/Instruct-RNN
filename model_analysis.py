@@ -56,10 +56,10 @@ def get_instruct_reps(langModel, depth='full', instruct_mode=None):
         rep_dim = langModel.LM_out_dim 
 
     instruct_dict = get_instruction_dict(instruct_mode)
-    instruct_reps = torch.empty(len(instruct_dict.keys()), len(list(instruct_dict.values())[0]), rep_dim)
+    instruct_reps = torch.empty(len(TASK_LIST), len(list(instruct_dict.values())[0]), rep_dim)
     
     with torch.no_grad():      
-        for i, task in enumerate(list(instruct_dict.keys())):
+        for i, task in enumerate(TASK_LIST):
             
             instructions = instruct_dict[task]    
             if depth == 'full': 
@@ -115,13 +115,13 @@ def get_layer_sim_scores(model, rep_depth='12'):
     if rep_depth.isnumeric(): 
         rep_dim = model.langModel.LM_intermediate_lang_dim
     if rep_depth =='full': 
-        rep_dim = 20
+        rep_dim = model.langModel.LM_out_dim
     
     if rep_depth == 'task': 
-        rep_dim = 128
+        rep_dim = model.rnn_hidden_dim
     
     if rep_depth == 'task': 
-        reps, _ = get_task_reps(model)
+        reps = get_task_reps(model)
     if rep_depth == 'full' or rep_depth.isnumeric(): 
         reps = get_instruct_reps(model.langModel, depth=rep_depth)
 

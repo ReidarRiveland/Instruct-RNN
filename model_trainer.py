@@ -39,7 +39,7 @@ class TrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.95}
+    scheduler_args: dict = {'gamma': 0.99}
 
     save_for_tuning_epoch: int = 30
     checker_threshold: float = 0.95
@@ -83,8 +83,7 @@ class ModelTrainer(BaseTrainer):
             optimizer = self.optim_alg([
                     {'params' : model.recurrent_units.parameters()},
                     {'params' : model.sensory_motor_outs.parameters()},
-                    {'params' : model.langModel.proj_out.parameters()},
-                    {'params' : model.langModel.transformer.parameters(), 'lr': langLR}
+                    {'params' : model.langModel.parameters(), 'lr': langLR}
                 ], lr=self.lr, weight_decay=self.weight_decay)
         else: 
             optimizer = self.optim_alg(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
@@ -269,10 +268,10 @@ if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(True)
     from tasks_utils import SWAPS_DICT
 
-    # train_model_set(['gptNet'],  
-    #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
+    train_model_set(['gptNet'],  
+        [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
     # train_model_set(['sbertNet'],  
-    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
+    #     [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
     
-    tune_model_set(['sbertNet_tuned'],  
-        [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
+    # tune_model_set(['sbertNet_tuned'],  
+    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False, step_last_lr=False)     
