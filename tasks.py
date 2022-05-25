@@ -22,56 +22,14 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
 
             'DM_Mod1', 'Anti_DM_Mod1', 'DM_Mod2', 'Anti_DM_Mod2',
             
-            'RT_DM_Mod1', 'Anti_RT_DM_Mod1', 'RT_DM_Mod2', 'Anti_RT_DM_Mod2', 
+            #'RT_DM_Mod1', 'Anti_RT_DM_Mod1', 'RT_DM_Mod2', 'Anti_RT_DM_Mod2', 
 
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
 
+            'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
+
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
-
-# SWAP_LIST = [('Anti_RT_Go', 'DM', 'Anti_DM_Mod2', 'RT_DM_Mod1', 'Delay'), 
-#                 ('Anti_DM', 'Go_Mod2', 'COMP2', 'DelayMultiDM'),
-#                 ('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
-#                 ('RT_Go', 'DM_Mod1', 'DMC', 'Anti_ConMultiDM'),
-#                 ('Anti_Go', 'MultiDM', 'Anti_DelayDM', 'RT_DM'), 
-#                 ('RT_Go', 'DM_Mod1', 'DMC', 'Anti_ConMultiDM'),
-#                 ('Go_Mod1', 'Anti_RT_DM', 'MultiCOMP1', 'DNMC'), 
-#                 ('Anti_Go_Mod1', 'DMS', 'DelayDM', 'MultiCOMP2'), 
-#                 ('Anti_Go_Mod2', 'ConDM', 'Anti_DelayMultiDM',  'Order2'),
-#                 ('Anti_DM', 'Go_Mod2', 'COMP2', 'DelayMultiDM'),
-#                 ('Anti_DM_Mod1', 'ConMultiDM', 'Anti_MultiDM', 'COMP1' )
-#                 ]
-
-# SWAP_LIST = [('Go', 'Anti_ConDM', 'DM_Mod2', 'DNMS'),
-#                 ('Anti_Go', 'MultiDM', 'Anti_DelayDM', 'COMP2_Mod1'), 
-#                 ('RT_Go', 'Anti_Go_Mod1', 'DMC', 'Anti_ConMultiDM'),
-#                 ('Anti_RT_Go', 'DM', 'Anti_ConDM', 'Order1'), 
-#                 ('Go_Mod1', 'Anti_RT_DM', 'MultiCOMP1', 'DNMC'), 
-#                 ('Anti_Go_Mod1', 'DMS', 'DelayDM', 'COMP2_Mod2'), 
-#                 ('Anti_Go_Mod2', 'ConDM', 'Anti_DelayMultiDM',  'Order2'),
-#                 ('Anti_DM', 'COMP1_Mod1', 'COMP2', 'DelayMultiDM'),
-#                 ('Anti_DM_Mod1', 'ConMultiDM', 'Anti_MultiDM', 'COMP1' ),
-#                 ('Anti_DM_Mod2', 'DM_Mod1', 'MultiCOMP2', 'RT_DM')]
-# SWAP_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST))
-
-# ALIGNED_LIST = [('Go', 'Anti Go', 'COMP1', 'COMP2'),
-#                 ('RT_Go', 'Anti_RT_Go', 'DelayDM', 'Anti_DelayDM'), 
-#                 ('COMP1_Mod1', 'COMP2_Mod1', 'ConDM', 'Anti_ConDM'),
-#                 ('DMS', 'DNMS', 'DelayMultiDM', 'Anti_DelayMultiDM'), 
-#                 ('DMC', 'DNMC', 'DM_Mod1', 'Anti_DM_Mod1'),
-#                 ('RT_DM', 'Anti_RT_DM', 'Order1', 'Order2'),
-#                 ('ConMultiDM', 'Anti_ConMultiDM', 'COMP1_Mod2', 'COMP2_Mod2') 
-#                 ('DM_Mod2', 'Anti_DM_Mod2', ),
-#                 ('MultiDM', 'Anti_MultiDM', 'Go_Mod2', 'Anti_Go_Mod2'), 
-#                 ('DM', 'Anti_DM')]
-
-
-
-SWAPPED_TASK_LIST = ['Anti DM', 'MultiCOMP1', 'DNMC', 'DMC', 'MultiCOMP2', 'Go', 'DNMS', 'COMP1', 'Anti MultiDM', 'DMS', 'Anti Go', 'DM', 'COMP2', 'MultiDM', 'Anti RT Go', 'RT Go']
-TASK_GROUP_DICT = {'Go': ['Go', 'Anti Go', 'RT Go', 'Anti RT Go'],
-            'DM': ['DM', 'Anti DM', 'MultiDM', 'Anti MultiDM'], 
-            'COMP': ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2'],
-            'Delay': ['DMS', 'DNMS', 'DMC', 'DNMC']}
 
 class Task(): 
     def __init__(self, num_trials, noise, factory, **factory_kwargs):
@@ -450,6 +408,46 @@ class MultiCOMP2(Task):
         self.task_type = 'MultiCOMP2'
 
 
+class COMP1Mod1(Task): 
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
+                        resp_stim = 1, 
+                        mod=0, 
+                        multi=True
+                        )
+        self.task_type = 'COMP1_Mod1'
+
+class COMP1Mod2(Task): 
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
+                        resp_stim = 1, 
+                        mod=1,
+                        multi=True
+                        )
+        self.task_type = 'COMP1_Mod2'
+
+class COMP2Mod1(Task): 
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
+                        resp_stim = 2, 
+                        mod=0,
+                        multi=True
+                        )
+        self.task_type = 'COMP2_Mod1'
+
+class COMP2Mod2(Task): 
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
+                        resp_stim = 2, 
+                        mod=1,
+                        multi=True
+                        )
+        self.task_type = 'COMP2_Mod2'
+
 class DMS(Task):
     def __init__(self, num_trials, noise=None):
         super().__init__(num_trials, noise,
@@ -558,6 +556,16 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
         trial = MultiCOMP1(num_trials, noise=noise)
     if task_type == 'MultiCOMP2': 
         trial = MultiCOMP2(num_trials, noise=noise)
+
+    if task_type == 'COMP1_Mod1': 
+        trial = COMP1Mod1(num_trials, noise=noise)
+    if task_type == 'COMP1_Mod2': 
+        trial = COMP1Mod2(num_trials, noise=noise)
+    if task_type == 'COMP2_Mod1': 
+        trial = COMP2Mod1(num_trials, noise=noise)
+    if task_type == 'COMP2_Mod2': 
+        trial = COMP2Mod2(num_trials, noise=noise)
+
     if task_type == 'DMS': 
         trial = DMS(num_trials, noise=noise)
     if task_type == 'DNMS': 
@@ -588,7 +596,7 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
 # # trials.conditions_arr[1, :, 0, 0]
 # # trials.target_dirs[0]
 
-# inputs, targets, _, _, task_index = construct_trials('Anti_DM_Mod2', 128)
+# inputs, targets, _, _, task_index = construct_trials('COMP2_Mod1', 128)
 # for index in range(5):
 #     task_factory.TaskFactory.plot_trial(inputs[index, ...], targets[index, ...], TASK_LIST[task_index])
 
@@ -597,3 +605,4 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
 
 # for task in TASK_LIST: 
 #     print(task + ' ' + str(len(set(instructs[task])) == 15))
+

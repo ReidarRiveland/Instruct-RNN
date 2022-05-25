@@ -372,7 +372,7 @@ class DMFactory(TaskFactory):
                 redraw = True
                 while redraw: 
                     coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
-                    if coh[0] != -1*coh[1] and (coh[0] <0 or coh[1] < 0): 
+                    if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
                         redraw = False
                 
                 strengths = np.array([base_strength + coh, base_strength - coh]).T
@@ -457,29 +457,28 @@ class COMPFactory(TaskFactory):
     def _make_cond_tar_dirs(self): 
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
         target_dirs = np.empty(self.num_trials)
-        
+
         if self.num_trials >1: 
             requires_response_list = list(np.random.permutation([True]*int(self.num_trials/2) + [False] * int(self.num_trials/2)))
         else: 
             requires_response_list = [np.random.choice([True, False])]
 
         for i in range(self.num_trials): 
-            directions = _draw_ortho_dirs()
             requires_response = requires_response_list.pop()
 
-            if requires_response and self.resp_stim==1:
-                target_dirs[i] = directions[0]
-            elif requires_response and self.resp_stim==2: 
-                target_dirs[i] = directions[1]
-            else: 
-                target_dirs[i] = None
-    
             if self.multi: 
+                if self.mod is not None: 
+                    directions1 = _draw_ortho_dirs()
+                    directions2 = _draw_ortho_dirs((directions1[0]+np.pi/2)%(2*np.pi))
+                else:
+                    directions1 = _draw_ortho_dirs()
+                    directions2 = directions1
+
                 base_strength = np.random.uniform(0.9, 1.1, size=2)
                 redraw = True
                 while redraw: 
                     coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
-                    if coh[0] != -1*coh[1] and (coh[0] <0 or coh[1] < 0): 
+                    if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
                         redraw = False
                 
                 tmp_strengths = np.array([base_strength + coh, base_strength - coh]).T
@@ -492,8 +491,22 @@ class COMPFactory(TaskFactory):
                 positive_strength = tmp_strengths[:, positive_index]
                 negative_strength = tmp_strengths[:, (positive_index+1)%2]
                 strs = self._set_comp_strs(positive_strength, negative_strength, requires_response, self.resp_stim)
-                conditions_arr[:, :, 0, i] = np.array([directions, directions])
+                directions = np.array([directions1, directions2])
+                conditions_arr[:, :, 0, i] = directions
                 conditions_arr[:, :, 1, i] = strs.T
+
+                if requires_response and self.resp_stim==1:
+                    if self.mod is not None: 
+                        target_dirs[i] = directions[self.mod, 0]
+                    else: 
+                        target_dirs[i] = directions[0, 0]
+                elif requires_response and self.resp_stim==2: 
+                    if self.mod is not None: 
+                        target_dirs[i] = directions[self.mod, 1]
+                    else: 
+                        target_dirs[i] = directions[0, 1]
+                else: 
+                    target_dirs[i] = None
 
             else: 
                 base_strength = np.random.uniform(0.8, 1.)
@@ -502,9 +515,17 @@ class COMPFactory(TaskFactory):
                 negative_strength = base_strength - coh
                 strs = self._set_comp_strs(positive_strength, negative_strength, requires_response, self.resp_stim)
                 mod = np.random.choice([0, 1])
+                directions = _draw_ortho_dirs()
                 conditions_arr[mod, :, 0, i] = np.array([directions])
                 conditions_arr[mod, :, 1, i] = strs
                 conditions_arr[((mod+1)%2), :, :, i] = np.NaN
+
+                if requires_response and self.resp_stim==1:
+                    target_dirs[i] = directions[0]
+                elif requires_response and self.resp_stim==2: 
+                    target_dirs[i] = directions[1]
+                else: 
+                    target_dirs[i] = None
         
         return conditions_arr, target_dirs
     

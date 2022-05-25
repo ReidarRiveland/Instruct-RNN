@@ -119,20 +119,20 @@
 import numpy as np
 from instruct_utils import get_task_info
 from task_criteria import isCorrect
-from models.full_models import SBERTNet, SimpleNetPlus, SBERTNet_tuned, GPTNet
+from models.full_models import SBERTNet, SBERTNet_tuned
 from model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 from plotting import plot_model_response
 from tasks_utils import SWAPS_DICT 
 from tasks import TASK_LIST, construct_trials
 
 
-EXP_FILE = '5.5models/swap_holdouts'
+EXP_FILE = '5.24models/swap_holdouts'
 sbertNet = SBERTNet_tuned()
 
 for n,p in sbertNet.named_parameters(): 
     if p.requires_grad: print(n)
 
-holdouts_file = 'swap7'
+holdouts_file = 'swap1'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet_tuned', suffix='_seed0')
 
 
@@ -154,7 +154,7 @@ np.mean(perf)
 from dataset import TaskDataSet
 from task_factory import TaskFactory
 
-data = TaskDataSet(num_batches = 10, set_single_task='Anti_DM_Mod2', stream=False)
+data = TaskDataSet(num_batches = 10, set_single_task='ConMultiDM', stream=False)
 ins, tar, mask, tar_dirs, type = next(data.stream_batch())
 
 for index in range(5):
@@ -163,17 +163,17 @@ for index in range(5):
 
 from instruct_utils import train_instruct_dict
 repeats = []
-for instruct in train_instruct_dict['Anti_DM_Mod2']:
-    perf = task_eval(sbertNet, 'Anti_DM_Mod2', 128, 
+for instruct in train_instruct_dict['Anti_Go_Mod2']:
+    perf = task_eval(sbertNet, 'Anti_Go_Mod2', 128, 
             instructions=[instruct]*128)
-    repeats.append(perf)
+    repeats.append((instruct, perf))
 
-np.mean(repeats)
+repeats
 
 from plotting import plot_model_response
 
-from tasks import AntiDMMod2
-trials = AntiDMMod2(12)
+from tasks import AntiRTGo
+trials = AntiRTGo(12)
 plot_model_response(sbertNet, trials)
 
 
@@ -258,9 +258,28 @@ abs(np.nansum(trials.conditions_arr[:, 0, 1, :]-trials.conditions_arr[:, 1, 1, :
 
 
 
+import numpy as np
+from instruct_utils import get_task_info
+from task_criteria import isCorrect
+from models.full_models import SBERTNet, SBERTNet_tuned
+from model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
+from plotting import plot_model_response
+from tasks_utils import SWAPS_DICT 
+from tasks import TASK_LIST, construct_trials
+import torch
 
 
-num_trials = 65
+from models.full_models import SBERTNet
+from instruct_utils import get_instructions
+
+sbertNet = SBERTNet(LM_out_dim=20, rnn_hidden_dim = 128) 
+
+EXP_FILE = '_ReLU128_4.11/swap_holdouts'
+holdouts_file = 'Multitask'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet', suffix='_seed0')
+
+
+num_trials = 20
 conditions_arr = np.full((2, 2, 2, num_trials), np.NaN)
 intervals = np.empty((num_trials, 5), dtype=tuple)
 for i in range(num_trials): 
@@ -268,36 +287,37 @@ for i in range(num_trials):
 
 directions = np.array([[np.pi/2] * num_trials, [3*np.pi/2] * num_trials])
 
-#directions = np.array([[np.pi/2] * num_trials, [3*np.pi/2] * num_trials])
 fixed_strengths = np.array([1]* num_trials)
-diff_strength = np.linspace(-0.3, 0.3, num=num_trials)
+diff_strength = np.linspace(-0.2, 0.2, num=num_trials)
 strengths = np.array([fixed_strengths, fixed_strengths-diff_strength])
 
 target_dirs = np.where([strengths[0, ...] > strengths[1, ...]], directions[0], directions[1]).squeeze()
 
-diff_strength
+conditions_arr[0, :, 0, :] = directions
+conditions_arr[0, :, 1, :] = strengths
 
-trials.conditions_arr
+from tasks import Task
+from task_factory import DMFactory
 
-np.nansum(trials.conditions_arr[:, 0, 1, :]-trials.conditions_arr[:, 1, 1, :], axis=0)/0.15
+num_repeats = 100
+resp_stats = np.empty((num_repeats, num_trials))
+for i in range(num_repeats): 
+    trials = Task(num_trials, 0.2, DMFactory, str_chooser = np.argmax, intervals=intervals, cond_arr=conditions_arr)
+    trials.task_type='DM'
+    task_instructions = ['respond to the stimulus with greatest strength']*num_trials
 
-mod=1
-conditions_arr[mod, :, 0, : ] = directions
-conditions_arr[mod, :, 1, : ] = strengths
-trials = Task(128, 'full', noise=0.2, conditions_factory = dm_factory, 
-                                    intervals=intervals, target_dirs = target_dirs, conditions_arr=conditions_arr)
-trials.task_type = 'DM'
-np.linspace(-0.3, 0.3, num=num_trials)[32]
-plot_trial(trials.inputs[35, ...], trials.targets[35, ...], 'DM')
+    out, hid = sbertNet(torch.Tensor(trials.inputs), task_instructions)
+    
+    resp_stats[i, :] =  np.where(isCorrect(out, torch.Tensor(trials.targets), target_dirs), diff_strength > 0, diff_strength<=0)
 
-
+np.mean(resp_stats, axis=0)
 
 
 import matplotlib.pyplot as plt
-plt.plot(np.linspace(-0.3, 0.3, num=num_trials), np.mean(p_right, axis=0))
+plt.plot(np.linspace(-0.2, 0.2, num=num_trials), np.mean(resp_stats, axis=0))
 plt.show()
 
-p_right[:, 30]
+np.linspace(-0.5, 0.5, num=num_trials)
 
 from plotting import plot_model_response
 plot_model_response(sbertNet_tuned, trials, plotting_index=31)
@@ -326,37 +346,3 @@ reps_reduced, _ = reduce_rep(simpleNetPlus_context)
 from plotting import plot_rep_scatter
 plot_rep_scatter(reps_reduced, Task.TASK_GROUP_DICT['Delay'], s=100)
 
-
-
-from perfDataFrame import HoldoutDataFrame
-
-list(range(1))
-
-EXP_FILE = '_ReLU128_4.11'
-
-data = HoldoutDataFrame(EXP_FILE, 'aligned_holdouts', 'sbertNet_tuned', 'correct', seeds=range(1))
-data.data
-mean(data.get_k_shot(0)[0])
-
-
-import pickle
-data = pickle.load(open('5.5models/Multitask/gptNet/gptNet_seed0_CHECKPOINT_attrs', 'rb'))
-
-import matplotlib.pyplot as plt
-
-from tasks import TASK_LIST
-
-for task in TASK_LIST[14:]: 
-    plt.plot(data[task])
-    plt.title(task)
-    plt.show()
-
-from tasks import TASK_LIST
-DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
-
-numer = np.ones(len(TASK_LIST))
-TASK_LIST[TASK_LIST.index('MultiCOMP1'):TASK_LIST.index('COMP2_Mod2')+1]
-numer[TASK_LIST.index('MultiCOMP1'):TASK_LIST.index('COMP2_Mod2')+1]=2
-HARD_TASK_DICT = dict(zip(TASK_LIST, (1/len(TASK_LIST))*numer))
-
-HARD_TASK_DICT

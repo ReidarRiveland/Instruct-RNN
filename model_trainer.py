@@ -19,7 +19,7 @@ import gc
 
 device = torch.device(0)
 
-EXP_FILE ='5.5models/swap_holdouts'
+EXP_FILE ='5.25models/swap_holdouts'
 
 @define
 class TrainerConfig(): 
@@ -39,7 +39,7 @@ class TrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.99}
+    scheduler_args: dict = {'gamma': 0.95}
 
     save_for_tuning_epoch: int = 30
     checker_threshold: float = 0.95
@@ -219,7 +219,7 @@ def tune_model_set(model_names, seeds, holdout_list, overwrite=False, **train_co
 
                 training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
                 tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, 
-                                                epochs=10, min_run_epochs=5, lr=1e-4, lang_lr=1e-5,
+                                                epochs=15, min_run_epochs=5, lr=1e-4, lang_lr=1e-5,
                                                 save_for_tuning_epoch=np.nan, 
                                                 **train_config_kwargs)
 
@@ -268,10 +268,10 @@ if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(True)
     from tasks_utils import SWAPS_DICT
 
-    train_model_set(['gptNet'],  
-        [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
-    # train_model_set(['sbertNet'],  
-    #     [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
+    # train_model_set(['gptNet'],  
+    #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
+    train_model_set(['sbertNet'],  
+        [0], list(SWAPS_DICT.items())[1:2], overwrite=True, stream_data=False)     
     
-    # tune_model_set(['sbertNet_tuned'],  
-    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False, step_last_lr=False)     
+    tune_model_set(['sbertNet_tuned'],  
+        [0], list(SWAPS_DICT.items())[1:2], overwrite=True, stream_data=False)     

@@ -4,6 +4,7 @@ from attrs import asdict
 import pickle
 from script_gru import ScriptGRU
 from tasks import TASK_LIST
+from models.model_configs import LMConfig
 
 class BaseNet(nn.Module): 
     def __init__(self, config):
@@ -91,6 +92,12 @@ class RuleNet(BaseNet):
 class InstructNet(BaseNet): 
     def __init__(self, config): 
         super().__init__(config)
+        self.LM_config = LMConfig(self.LM_load_str, 
+                                self.LM_train_layers, 
+                                self.LM_reducer,
+                                self.LM_out_dim, 
+                                self.LM_output_nonlinearity)
+
         self.langModel = self.LM_class(self.LM_config)
 
     def forward(self, x, instruction = None, context = None):

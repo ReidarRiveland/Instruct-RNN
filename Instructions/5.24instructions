@@ -51,17 +51,17 @@ train_instruct_dict['Anti_Go'] = ('respond in the opposite orientation of stimul
                                     'go in the direction opposite of the displayed orientation')
 
 train_instruct_dict['Anti_RT_Go'] = ('respond opposite of the stimulus immediately', 
-                                    'respond in the reverse direction of stimulus immediately', 
+                                    'respond in the reverse direction of stimulus as soon as the stimulus appears', 
                                     'choose the opposite of the displayed direction at stimulus onset', 
-                                    'select the converse orientation immediately', 
+                                    'select the converse orientation immediately after the stimulus is shown', 
                                     'respond with the converse direction immediately', 
-                                    'go in the inverse of the displayed orientation immediately', 
+                                    'go in the inverse of the displayed orientation as soon as the stimulus appears', 
                                     'choose the converse direction immediately', 
                                     'respond with the opposite of the displayed orientation immediately', 
                                     'go in the reverse of the direction displayed as soon as stimulus appears', 
                                     'as soon as stimulus appears respond in the opposite direction', 
-                                    'immediately select the reverse orientation', 
-                                    'choose the inverse orientation of the one displayed immediately', 
+                                    'select the reverse orientation at stimulus onset', 
+                                    'choose the inverse orientation of the one displayed at stimulus onset', 
                                     'respond in the converse of the displayed direction as soon as it appears', 
                                     'at stimulus onset go in the reverse direction', 
                                     'select the reverse of the displayed direction at stimulus onset')

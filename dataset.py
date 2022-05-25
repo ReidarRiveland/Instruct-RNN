@@ -6,18 +6,12 @@ import os
 
 class TaskDataSet():
     DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
-
-    # numer = np.ones(len(TASK_LIST))
-    # TASK_LIST[TASK_LIST.index('MultiCOMP1'):TASK_LIST.index('COMP2_Mod2')+1]
-    # numer[TASK_LIST.index('MultiCOMP1'):TASK_LIST.index('COMP2_Mod2')+1]=1.2
-    # HARD_TASK_DICT = dict(zip(TASK_LIST, (1/len(TASK_LIST))*numer))
-
     def __init__(self, stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None): 
         __len__ = num_batches
         self.stream = stream
         self.batch_len = batch_len
         self.num_batches = num_batches
-        self.data_folder = '5.5models/training_data'
+        self.data_folder = '5.25models/training_data'
         self.holdouts = holdouts
 
         if set_single_task is None: 
@@ -107,4 +101,4 @@ def build_training_data(foldername):
         np.save(path +'/target_dirs', target_dirs)
         np.save(path +'/type_indices', trial_indices)
 
-#build_training_data('5.5models')
+build_training_data('5.25models')

@@ -19,21 +19,25 @@ class BaseModelConfig():
 
 @define
 class LMConfig(): 
-    LM_train_layers: list 
     LM_load_str: str
-    LM_reducer: str = 'mean'
-    LM_out_dim: int = 128
-    LM_output_nonlinearity: str = 'relu'
+    LM_train_layers: list 
+    LM_reducer: str 
+    LM_out_dim: int 
+    LM_output_nonlinearity: str 
 
 @define
 class InstructModelConfig(BaseModelConfig): 
     LM_class: InstructionEmbedder = field(kw_only=True)
-    LM_config: LMConfig = field(kw_only=True)
+    LM_load_str: str = field(kw_only=True)
+    LM_train_layers: list = field(kw_only=True)
+    LM_reducer: str = 'mean' 
+    LM_out_dim: int = 100
+    LM_output_nonlinearity: str ='relu'
 
     _rnn_in_dim: int = field(kw_only=True)
     @_rnn_in_dim.default
     def _set_rnn_in_dim(self):
-        return self.LM_config.LM_out_dim + SENSORY_INPUT_DIM
+        return self.LM_out_dim + SENSORY_INPUT_DIM
     is_instruct: bool = True
 
 @define
