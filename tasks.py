@@ -1,3 +1,4 @@
+from email.mime import base
 import itertools
 from lib2to3.pytree import Base
 import numpy as np
@@ -589,20 +590,78 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
                 TASK_LIST.index(task_type))
 
 
-# trials = DelayGo(1)
-# # trials.factory.mod
 
-# # trials.conditions_arr[1, :, 1, 0]
-# # trials.conditions_arr[1, :, 0, 0]
-# # trials.target_dirs[0]
+# for task in TASK_LIST: 
+#     construct_trials(task, 10)
 
-# inputs, targets, _, _, task_index = construct_trials('COMP2_Mod1', 128)
+# trials = MultiCOMP2(500)
+# trials.factory.mod
+
+# np.mean(np.max(trials.conditions_arr[0, :, 1, :], axis=0) > np.max(trials.conditions_arr[1, :, 1, :], axis=0))
+
+
+# index = 4
+# trials.conditions_arr[:,:,:,index]
+# np.sum(trials.conditions_arr[:,:,1,index],axis=0)
+# trials.target_dirs[index]
+
+# 1.32+0.977
+
+# 1.112+1.077
+
+# np.sum(trials.conditions_arr[:, :, 1, 0], axis=0)
+
+# trials.target_dirs[0]
+
+
+# redraw = True
+# while redraw: 
+#     coh = np.random.choice([-0.1, -0.05, 0.05, 0.1], size=2, replace=False)
+#     if coh[0] != -1*coh[1] and (abs(coh[0])-abs(coh[1]))>=0.05 and ((coh[0] <0) ^ (coh[1] < 0)): 
+#         redraw = False
+
+# coh
+# mod_coh = np.random.choice([0.1, 0.05, -0.05, -0.1])
+
+# base_strength = np.random.uniform(0.8, 1.2)
+# mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
+
+# mod_base_strs
+
+# strengths = np.array([mod_base_strs + coh, mod_base_strs- coh]).T
+# strengths
+
+# trials.conditions_arr[:, :, 1, 0] = strengths
+
+# np.sum(trials.conditions_arr[:, :, 1, 0], axis=0)[0] > np.sum(trials.conditions_arr[:, :, 1, 0], axis=0)[1]
+
+
+# strengths = np.array([base_strength + coh, base_strength - coh])
+
+
+# np.mean(np.isnan(test), axis=1)
+
+
+# trials.conditions_arr[0, :, 0, 0]
+# trials.conditions_arr[0, :, 0, 0][0]+(np.pi/2)
+# trials.conditions_arr[1, :, 0, 0]
+# (trials.target_dirs[0])%(2*np.pi)
+
+# inputs, targets, _, _, task_index = construct_trials('MultiDM', 128)
+# trials = AntiMultiDM(128)
+
+# # from collections import Counter
+# # np.sum(trials.factory.cond_arr[:, :, 1, :], axis=0)[0]-np.sum(trials.factory.cond_arr[:, :, 1, :], axis=0)[1]
+# # trials.factory.cond_arr[:, :, 0, 3]
+
 # for index in range(5):
-#     task_factory.TaskFactory.plot_trial(inputs[index, ...], targets[index, ...], TASK_LIST[task_index])
+#     task_factory.TaskFactory.plot_trial(trials.inputs[index, ...], trials.targets[index, ...], 'MultiCOMP1')
 
 # import pickle
 # instructs = pickle.load(open('instructions/5.11train_instruct_dict', 'rb'))
 
 # for task in TASK_LIST: 
 #     print(task + ' ' + str(len(set(instructs[task])) == 15))
+
+
 

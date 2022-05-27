@@ -1,7 +1,4 @@
 from tasks import TASK_LIST
-from task_factory import TUNING_DIRS
-task_list = TASK_LIST
-tuning_dirs = TUNING_DIRS
 
 def invert_task_dict(task_dict):
     inv_swap_dict = {}
@@ -13,42 +10,38 @@ def invert_task_dict(task_dict):
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) 
 
-# SWAP_LIST = [('Anti_ConDM', 'DM_Mod2', 'Anti_RT_Go', 'DelayGo', 'MultiCOMP2'), 
-#             ('DelayDM', 'Anti_ConMultiDM', 'RT_DM_Mod2', 'Anti_RT_DM', 'COMP2'), 
-#             ('Anti_DM', 'MultiDM', 'Anti_RT_DM_Mod2', 'Go', 'DNMC'), 
-#             ('DM', 'Anti_MultiDM', 'RT_DM_Mod1', 'Anti_Go', 'COMP1'), 
-#             ('Anti_DelayGo', 'ConDM', 'Anti_DM_Mod1', 'DelayMultiDM', 'DMC'), 
-#             ('RT_Go', 'Anti_RT_DM_Mod1', 'ConMultiDM', 'Anti_Go_Mod2', 'MultiCOMP1'),
-#             ('Anti_DelayMultiDM', 'RT_DM', 'Anti_Go_Mod1', 'DM_Mod1', 'DNMS'), 
-#             ('Go_Mod2', 'Anti_DelayDM', 'Go_Mod1', 'Anti_DM_Mod2', 'DMS')
-#             ]
+SWAP_LIST = [
+            ('DM', 'Anti_MultiDM', 'COMP2_Mod2', 'Anti_Go', 'DMC'), 
 
-# SWAP_LIST = [('Anti_ConDM', 'DM_Mod2', 'Anti_RT_Go', 'DelayGo', 'MultiCOMP2'), 
-#             ('DelayDM', 'Anti_ConMultiDM', 'RT_DM_Mod2', 'Anti_RT_DM', 'COMP2'), 
-#             ('Anti_DM', 'MultiDM', 'Anti_RT_DM_Mod2', 'Go', 'DNMC'), 
-#             ('DM', 'Anti_MultiDM', 'RT_DM_Mod1', 'Anti_Go', 'COMP1'), 
+            ('Anti_ConDM', 'DM_Mod2', 'Anti_RT_Go', 'DelayGo', 'MultiCOMP2'), 
 
-#             ('Anti_DelayGo', 'Go_Mod2', 'Anti_DM_Mod1', 'DelayMultiDM', 'DMC'), 
-
-#             ('RT_Go', 'Anti_RT_DM_Mod1', 'ConMultiDM', 'Anti_Go_Mod2', 'MultiCOMP1'),
-#             ('Anti_DelayMultiDM', 'RT_DM', 'Anti_Go_Mod1', 'DM_Mod1', 'DNMS'), 
-#             ('ConDM', 'Anti_DelayDM', 'Go_Mod1', 'Anti_DM_Mod2', 'DMS')
-#             ]
-
-SWAP_LIST = [('Anti_ConDM', 'DM_Mod2', 'Anti_RT_Go', 'DelayGo', 'MultiCOMP2'), 
-            ('DelayDM', 'Anti_ConMultiDM', 'COMP1_Mod2', 'Anti_RT_DM', 'DMC'), 
+            ('DelayDM', 'Anti_ConMultiDM', 'COMP1_Mod2', 'Anti_RT_DM', 'DNMC'), 
+            
             ('Anti_DM', 'MultiDM', 'COMP1_Mod1', 'Go', 'DNMS'), 
-            ('DM', 'Anti_MultiDM', 'COMP2_Mod1', 'Anti_Go', 'DNMC'), 
 
             ('Anti_DelayGo', 'Go_Mod2', 'Anti_DM_Mod1', 'DelayMultiDM', 'COMP2'), 
 
-            ('RT_Go', 'COMP2_Mod2', 'ConMultiDM', 'Anti_Go_Mod2', 'MultiCOMP1'),
+            ('RT_Go', 'COMP2_Mod1', 'ConMultiDM', 'Anti_Go_Mod2', 'DMS'),
             ('Anti_DelayMultiDM', 'RT_DM', 'Anti_Go_Mod1', 'DM_Mod1', 'COMP1'), 
-            ('ConDM', 'Anti_DelayDM', 'Go_Mod1', 'Anti_DM_Mod2', 'DMS')
+            ('ConDM', 'Anti_DelayDM', 'Go_Mod1', 'Anti_DM_Mod2', 'MultiCOMP1'), 
+            ]
+
+ALIGNED_LIST = [
+            ('DM', 'Anti_DM', 'MultiCOMP1', 'MultiCOMP2'), 
+            ('Go', 'Anti_Go', 'COMP1_Mod1', 'COMP1_Mod2'), 
+            ('DM_Mod1', 'DM_Mod2', 'COMP2_Mod1', 'COMP2_Mod2'), 
+            ('Go_Mod1', 'Go_Mod2', 'ConDM', 'Anti_ConDM'), 
+            ('Anti_Go_Mod1', 'Anti_Go_Mod2', 'DelayMultiDM', 'Anti_DelayMultiDM'), 
+            ('DelayGo', 'Anti_DelayGo', 'ConMultiDM', 'Anti_ConMultiDM'), 
+            ('MultiDM', 'Anti_MultiDM', 'DMS', 'DNMS'), 
+            ('RT_DM', 'Anti_RT_DM', 'COMP1', 'COMP2'), 
+            ('DelayDM', 'Anti_DelayDM', 'DMC', 'DNMC'), 
+            ('RT_Go', 'Anti_RT_Go', 'Anti_DM_Mod1', 'Anti_DM_Mod2')
             ]
 
 
 SWAPS_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST.copy()))
+ALIGNED_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], ALIGNED_LIST.copy()))
 
 INV_SWAPS_DICT = invert_task_dict(SWAPS_DICT)
 

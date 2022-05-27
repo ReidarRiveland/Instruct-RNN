@@ -26,7 +26,7 @@ def task_eval(model, task, batch_size, noise=None, instructions = None):
     out, _ = model(torch.Tensor(ins).to(model.__device__), task_info)
     return np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
-def get_model_performance(model, num_repeats=1): 
+def get_model_performance(model, num_repeats = 1, batch_len=128): 
     model.eval()
     perf_array = np.empty(len(TASK_LIST))
     with torch.no_grad():
@@ -34,7 +34,7 @@ def get_model_performance(model, num_repeats=1):
             print(task)
             mean_list = [] 
             for _ in range(num_repeats): 
-                frac_correct = task_eval(model, task, 128)
+                frac_correct = task_eval(model, task, batch_len)
                 mean_list.append(frac_correct)
             perf_array[i] = np.mean(mean_list)
     return perf_array

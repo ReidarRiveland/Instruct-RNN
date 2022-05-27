@@ -6,12 +6,12 @@ import os
 
 class TaskDataSet():
     DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
-    def __init__(self, stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None): 
+    def __init__(self, exp_file, stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None): 
         __len__ = num_batches
         self.stream = stream
         self.batch_len = batch_len
         self.num_batches = num_batches
-        self.data_folder = '5.25models/training_data'
+        self.data_folder = exp_file
         self.holdouts = holdouts
 
         if set_single_task is None: 
@@ -101,4 +101,4 @@ def build_training_data(foldername):
         np.save(path +'/target_dirs', target_dirs)
         np.save(path +'/type_indices', trial_indices)
 
-build_training_data('5.25models')
+build_training_data('5.26models')

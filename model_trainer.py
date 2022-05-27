@@ -19,7 +19,6 @@ import gc
 
 device = torch.device(0)
 
-EXP_FILE ='5.25models/swap_holdouts'
 
 @define
 class TrainerConfig(): 
@@ -51,6 +50,10 @@ class ModelTrainer(BaseTrainer):
 
     def _record_session(self, model, mode='CHECKPOINT'): 
         checkpoint_attrs = super()._record_session()
+        if os.path.exists(self.file_path):
+            pass
+        else: os.makedirs(self.file_path)
+
         if mode == 'CHECKPOINT':
             pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+'_CHECKPOINT_attrs', 'wb'))
             model.save_model(self.file_path, suffix='_'+self.seed_suffix+'_CHECKPOINT')
@@ -70,7 +73,8 @@ class ModelTrainer(BaseTrainer):
             pickle.dump(self.correct_data, open(self.file_path+'/'+task_file_name+'_'+self.seed_suffix+'_holdout_correct', 'wb'))
 
     def _init_streamer(self):
-        self.streamer = TaskDataSet(self.stream_data, 
+        self.streamer = TaskDataSet(DATA_FOLDER+'/training_data', 
+                        self.stream_data, 
                         self.batch_len, 
                         self.num_batches, 
                         self.holdouts, 
@@ -219,7 +223,7 @@ def tune_model_set(model_names, seeds, holdout_list, overwrite=False, **train_co
 
                 training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
                 tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, 
-                                                epochs=15, min_run_epochs=5, lr=1e-4, lang_lr=1e-5,
+                                                epochs=20, min_run_epochs=5, lr=5*1e-5, lang_lr=1e-5,
                                                 save_for_tuning_epoch=np.nan, 
                                                 **train_config_kwargs)
 
@@ -266,12 +270,18 @@ if __name__ == "__main__":
     #                 'bertNet', 'gptNet', 'simpleNet', 'simpleNetPlus'], 
     #     [0], training_lists_dict['aligned_holdouts'])            
     torch.autograd.set_detect_anomaly(True)
-    from tasks_utils import SWAPS_DICT
+    from tasks_utils import SWAPS_DICT, ALIGNED_DICT
 
+    DATA_FOLDER = '5.26models'
+    EXP_FILE =DATA_FOLDER+'/swap_holdouts'
+    
     # train_model_set(['gptNet'],  
     #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
     train_model_set(['sbertNet'],  
-        [0], list(SWAPS_DICT.items())[1:2], overwrite=True, stream_data=False)     
+        [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=True)     
     
     tune_model_set(['sbertNet_tuned'],  
-        [0], list(SWAPS_DICT.items())[1:2], overwrite=True, stream_data=False)     
+        [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
+
+    train_model_set(['gptNet'],  
+        [0], [['Multitask','Multitask']], overwrite=False, stream_data=False)     

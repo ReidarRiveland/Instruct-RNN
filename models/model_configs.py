@@ -10,7 +10,7 @@ MOTOR_OUTPUT_DIM = OUTPUT_DIM
 class BaseModelConfig(): 
     model_name: str 
 
-    rnn_hidden_dim: int = 256
+    rnn_hidden_dim: int = 128
     rnn_layers: int = 1
     rnn_hiddenInitValue: int = 0.1
     rnn_activ_func: str = 'relu'
@@ -31,7 +31,7 @@ class InstructModelConfig(BaseModelConfig):
     LM_load_str: str = field(kw_only=True)
     LM_train_layers: list = field(kw_only=True)
     LM_reducer: str = 'mean' 
-    LM_out_dim: int = 100
+    LM_out_dim: int = 32
     LM_output_nonlinearity: str ='relu'
 
     _rnn_in_dim: int = field(kw_only=True)
