@@ -9,7 +9,7 @@ from tasks_utils import get_swap_task
 from collections import Counter
 task_list = TASK_LIST
 
-train_instruct_dict = pickle.load(open('5.24models/train_instruct_dict', 'rb'))
+train_instruct_dict = pickle.load(open('5.31models/train_instruct_dict', 'rb'))
 
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict', 'rb'))
 

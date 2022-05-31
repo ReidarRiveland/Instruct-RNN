@@ -272,7 +272,7 @@ if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(True)
     from tasks_utils import SWAPS_DICT, ALIGNED_DICT
 
-    DATA_FOLDER = '5.30models'
+    DATA_FOLDER = '5.31models'
     EXP_FILE =DATA_FOLDER+'/swap_holdouts'
     
     
