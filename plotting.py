@@ -301,11 +301,11 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
         out = out.detach().cpu().numpy()[plotting_index, :, :]
         hid = hid.detach().cpu().numpy()[plotting_index, :, :]
 
-        try: 
-            task_info_embedding = torch.Tensor(get_instruct_reps(model.langModel, depth='12', instruct_mode=None)).swapaxes(0, 1)
-            task_info_embedding = task_info_embedding.repeat(1, ins.shape[1], 1)
-        except: 
-            task_info_embedding = torch.matmul(task_info, model.rule_transform).unsqueeze(1).repeat(1, ins.shape[1], 1)
+        # try: 
+        #     task_info_embedding = torch.Tensor(get_instruct_reps(model.langModel, depth='12', instruct_mode=None)).swapaxes(0, 1)
+        #     task_info_embedding = task_info_embedding.repeat(1, ins.shape[1], 1)
+        # except: 
+        #     task_info_embedding = torch.matmul(task_info, model.rule_transform).unsqueeze(1).repeat(1, ins.shape[1], 1)
 
         fix = ins[plotting_index, :, 0:1]            
         mod1 = ins[plotting_index, :, 1:1+STIM_DIM]

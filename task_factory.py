@@ -32,7 +32,7 @@ def _add_noise(array, noise):
 def _draw_ortho_dirs(dir1=None): 
     if dir1 is None: 
         dir1 = np.random.uniform(0, 2*np.pi)
-    dir2 = (dir1+np.pi+np.random.uniform(-np.pi*0.4, np.pi*0.4))%(2*np.pi)
+    dir2 = (dir1+np.pi+np.random.uniform(-np.pi*0.2, np.pi*0.2))%(2*np.pi)
     return (dir1, dir2)
 
 class TaskFactory(): 
@@ -234,10 +234,14 @@ class GoFactory(TaskFactory):
                 # dir1 = np.random.uniform(0, 2*np.pi)
                 # dir2 = (dir1+np.pi/2)%(2*np.pi)
                 # directions = (dir1, dir2)
-                directions = np.random.uniform(0, 2*np.pi, size=2)
-                base_strength = np.random.uniform(0.8, 1.2, size=2)
-                conditions_arr[0, 0, :, i] = [directions[0], base_strength[0]]
-                conditions_arr[1, 0, :, i] = [directions[1], base_strength[1]]
+                # directions = np.random.uniform(0, 2*np.pi, size=2)
+                # base_strength = np.random.uniform(0.8, 1.2, size=2)
+                # conditions_arr[0, 0, :, i] = [directions[0], base_strength[0]]
+                # conditions_arr[1, 0, :, i] = [directions[1], base_strength[1]]
+                # base_strength = np.random.uniform(0.8, 1.2, size=2)
+                conditions_arr[:, 0, 0, i] = np.random.uniform(0, 2*np.pi, size=2)
+                conditions_arr[:, 0, 1, i] = np.random.uniform(0.8, 1.2, size=2)
+
 
             else:
                 direction = np.random.uniform(0, 2*np.pi)
@@ -290,7 +294,7 @@ class DMFactory(TaskFactory):
                 redraw = True
                 while redraw: 
                     coh = np.random.choice([-0.2, -0.175, -0.15, -0.125, -0.1, 0.1, 0.125, 0.15, 0.175, 0.2], size=2, replace=False)
-                    if coh[0] != -1*coh[1] and (abs(coh[0])-abs(coh[1]))>=0.1 and ((coh[0] <0) ^ (coh[1] < 0)): 
+                    if coh[0] != -1*coh[1] and (abs(coh[0])-abs(coh[1]))>=0.05 and ((coh[0] <0) ^ (coh[1] < 0)): 
                         redraw = False
 
                 strengths = np.array([mod_base_strs + coh, mod_base_strs- coh]).T
@@ -493,18 +497,24 @@ class MatchingFactory(TaskFactory):
             
             if match_trial and self.match_type=='stim': direction2 = direction1
             elif match_trial and self.match_type=='cat': direction2 = np.random.uniform(cat_range[0], cat_range[1])
-            elif not match_trial and self.match_type=='cat': direction2 = (np.random.uniform(cat_range[0]+(np.pi/3), cat_range[1]-(np.pi/3)) + np.pi)%(2*np.pi)
-            else: direction2 = (direction1 + np.random.uniform(np.pi/3, (2*np.pi - np.pi/3)))%(2*np.pi)
+            elif not match_trial and self.match_type=='cat': direction2 = np.random.uniform(cat_range[0]+np.pi%(2*np.pi), cat_range[1]+np.pi%(2*np.pi))
+            else: direction2 = np.random.uniform(0, 2*np.pi)
+            
+            
+            #(direction1 + np.random.uniform(np.pi/3, (2*np.pi - np.pi/3)))%(2*np.pi)
             
             mod = np.random.choice([0, 1])
             conditions_arr[mod, :, 0, i] = np.array([direction1, direction2])
-            conditions_arr[mod, :, 1, i] = np.array([1, 1])
-            conditions_arr[((mod+1)%2), :, :, i] = np.NaN
+            conditions_arr[mod, :, 1, i] = np.random.uniform(0.8, 1.2, size=2)
+
+            # conditions_arr[mod, :, 0, i] = np.array([direction1, direction2])
+            # conditions_arr[mod, :, 1, i] = np.array([1, 1])
+            
 
             if match_trial and self.matching_task:
-                target_dirs[i] = direction1
-            elif not match_trial and not self.matching_task:
                 target_dirs[i] = direction2
+            elif not match_trial and not self.matching_task:
+                target_dirs[i] = direction1
             else: target_dirs[i] = None
         return conditions_arr, target_dirs
 

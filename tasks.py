@@ -80,6 +80,51 @@ class AntiDelayGo(Task):
                         )
         self.task_type = 'Anti_DelayGo'
 
+class DelayGoMod1(Task): 
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing='delay', 
+                        mod=0,
+                        multi=True,
+                        dir_chooser = task_factory.choose_pro
+                        )
+        self.task_type = 'DelayGo_Mod1'
+
+class DelayGoMod2(Task): 
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing='delay', 
+                        mod=1,
+                        multi=True,
+                        dir_chooser = task_factory.choose_pro
+                        )
+        self.task_type = 'DelayGo_Mod2'
+
+
+class AntiDelayGoMod1(Task): 
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing='delay', 
+                        mod=0,
+                        multi=True,
+                        dir_chooser = task_factory.choose_anti
+                        )
+        self.task_type = 'Anti_DelayGo_Mod1'
+
+class AntiDelayGoMod2(Task): 
+    def __init__(self, num_trials, noise=None): 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing='delay', 
+                        mod=1,
+                        multi=True,
+                        dir_chooser = task_factory.choose_anti
+                        )
+        self.task_type = 'Anti_DelayGo_Mod2'
+
 
 class RTGo(Task):
     def __init__(self, num_trials, noise=None): 
@@ -476,6 +521,15 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
     if task_type == 'Anti_DelayGo': 
         trial = AntiDelayGo(num_trials, noise=noise)
 
+    if task_type == 'DelayGo_Mod1':
+        trial = DelayGoMod1(num_trials, noise=noise)
+    if task_type == 'DelayGo_Mod2':
+        trial = DelayGoMod2(num_trials, noise=noise)
+    if task_type == 'Anti_DelayGo_Mod1':
+        trial = AntiDelayGoMod1(num_trials, noise=noise)
+    if task_type == 'Anti_DelayGo_Mod2':
+        trial = AntiDelayGoMod2(num_trials, noise=noise)
+
     if task_type == 'Go_Mod1':
         trial = GoMod1(num_trials, noise=noise)
     if task_type == 'Go_Mod2':
@@ -489,6 +543,7 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
         trial = DM(num_trials, noise=noise)
     if task_type == 'Anti_DM': 
         trial = AntiDM(num_trials, noise=noise)
+
     if task_type == 'ConDM':
         trial = ConDM(num_trials, noise=noise)
     if task_type == 'Anti_ConDM': 
@@ -502,10 +557,12 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
         trial = RTDM(num_trials, noise=noise)
     if task_type == 'Anti_RT_DM': 
         trial = AntiRTDM(num_trials, noise=noise)
+
     if task_type == 'MultiDM':
         trial = MultiDM(num_trials, noise=noise)
     if task_type == 'Anti_MultiDM': 
         trial = AntiMultiDM(num_trials, noise=noise)
+
     if task_type == 'DelayDM': 
         trial = DelayDM(num_trials, noise=noise)
     if task_type == 'Anti_DelayDM': 
@@ -577,10 +634,10 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
 # for task in TASK_LIST: 
 #     construct_trials(task, 10)
 
-# trials = DMMod1(500)
+# trials = DNMC(500)
 # trials.factory.mod
 
-# np.mean(np.isnan(trials.factory.cond_arr[0, 0, 1, :]))
+# # np.mean(np.isnan(trials.factory.cond_arr[0, 0, 1, :]))
 
 
 # for index in range(5):
