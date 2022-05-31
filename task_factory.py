@@ -32,7 +32,7 @@ def _add_noise(array, noise):
 def _draw_ortho_dirs(dir1=None): 
     if dir1 is None: 
         dir1 = np.random.uniform(0, 2*np.pi)
-    dir2 = (dir1+np.pi+np.random.uniform(-np.pi*0.2, np.pi*0.2))%(2*np.pi)
+    dir2 = (dir1+np.pi+np.random.uniform(-np.pi*0.4, np.pi*0.4))%(2*np.pi)
     return (dir1, dir2)
 
 class TaskFactory(): 
@@ -231,9 +231,10 @@ class GoFactory(TaskFactory):
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
         for i in range(self.num_trials):
             if self.multi:    
-                dir1 = np.random.uniform(0, 2*np.pi)
-                dir2 = (dir1+np.pi/2)%(2*np.pi)
-                directions = (dir1, dir2)
+                # dir1 = np.random.uniform(0, 2*np.pi)
+                # dir2 = (dir1+np.pi/2)%(2*np.pi)
+                # directions = (dir1, dir2)
+                directions = np.random.uniform(0, 2*np.pi, size=2)
                 base_strength = np.random.uniform(0.8, 1.2, size=2)
                 conditions_arr[0, 0, :, i] = [directions[0], base_strength[0]]
                 conditions_arr[1, 0, :, i] = [directions[1], base_strength[1]]
@@ -243,9 +244,6 @@ class GoFactory(TaskFactory):
                 base_strength = np.random.uniform(0.8, 1.2)    
                 tmp_mod = np.random.choice([0, 1])
                 conditions_arr[tmp_mod, 0, :, i] = [direction, base_strength]
-                #conditions_arr[((tmp_mod+1)%2), 0, :, i] = [np.nan, np.nan]
-            if (conditions_arr[:, :, 1, :]>2).any(): 
-                raise ValueError
         return conditions_arr
         
     def _set_target_dirs(self): 
@@ -256,51 +254,6 @@ class GoFactory(TaskFactory):
 
         return self.dir_chooser(dirs)
 
-
-class OrderFactory(TaskFactory):
-    def __init__(self, num_trials, noise, resp_stim, timing= 'full', 
-                        mod=None, intervals= None, cond_arr=None):
-        super().__init__(num_trials, timing, noise, intervals)
-        self.multi=False
-        self.mod = mod
-        self.cond_arr = cond_arr
-        self.timing = timing
-        self.resp_stim = resp_stim
-        if self.cond_arr is None: 
-            self.cond_arr = self._make_cond_arr()
-        self.target_dirs = self._set_target_dirs()
-    
-    def _make_cond_arr(self):
-        conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
-        for i in range(self.num_trials):
-            if self.mod is not None: 
-                directions1 = _draw_ortho_dirs()
-                directions2 = _draw_ortho_dirs((directions1[0]+np.pi/2)%(2*np.pi))
-            else:
-                directions1 = _draw_ortho_dirs()
-                directions2 = directions1
-
-            if self.multi:    
-                base_strength = np.random.uniform(0.8, 1.2, size=2)
-
-                strengths = np.array([base_strength, base_strength]).T
-                conditions_arr[:, :, 0, i] = np.array([directions1, directions2])
-                conditions_arr[:, :, 1, i] = strengths
-
-            else:
-                mod = np.random.choice([0, 1])
-                base_strength = np.random.uniform(0.8, 1.2)
-
-                strengths = np.array([base_strength, base_strength]).T
-                
-                conditions_arr[mod, :, 0, i] = np.array(directions1)
-                conditions_arr[mod, :, 1, i] = strengths
-                conditions_arr[((mod+1)%2), :, :, i] = np.NaN
-        return conditions_arr
-
-    def _set_target_dirs(self):
-        target_dirs = np.nansum(self.cond_arr[:, self.resp_stim-1, 0, :], axis=0)
-        return target_dirs
 
 class DMFactory(TaskFactory):
     def __init__(self, num_trials,  noise, str_chooser,
@@ -322,7 +275,7 @@ class DMFactory(TaskFactory):
         for i in range(self.num_trials):
             if self.mod is not None: 
                 directions1 = _draw_ortho_dirs()
-                directions2 = _draw_ortho_dirs((directions1[0]+np.pi/2)%(2*np.pi))
+                directions2 = _draw_ortho_dirs()
             else:
                 directions1 = _draw_ortho_dirs()
                 directions2 = directions1
@@ -337,7 +290,7 @@ class DMFactory(TaskFactory):
                 redraw = True
                 while redraw: 
                     coh = np.random.choice([-0.2, -0.175, -0.15, -0.125, -0.1, 0.1, 0.125, 0.15, 0.175, 0.2], size=2, replace=False)
-                    if coh[0] != -1*coh[1] and (abs(coh[0])-abs(coh[1]))>=0.05 and ((coh[0] <0) ^ (coh[1] < 0)): 
+                    if coh[0] != -1*coh[1] and (abs(coh[0])-abs(coh[1]))>=0.1 and ((coh[0] <0) ^ (coh[1] < 0)): 
                         redraw = False
 
                 strengths = np.array([mod_base_strs + coh, mod_base_strs- coh]).T
@@ -434,7 +387,7 @@ class COMPFactory(TaskFactory):
             if self.multi: 
                 if self.mod is not None: 
                     directions1 = _draw_ortho_dirs()
-                    directions2 = _draw_ortho_dirs((directions1[0]+np.pi/2)%(2*np.pi))
+                    directions2 = _draw_ortho_dirs()
                 else:
                     directions1 = _draw_ortho_dirs()
                     directions2 = directions1

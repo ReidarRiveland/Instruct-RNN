@@ -86,36 +86,45 @@
 # pooled_output = outputs.pooler_output  # pooled (EOS token) states
 # pooled_output.unsqueeze(0)[0].shape
 
+#SIMPLENET
+# [('Go', 1.0), ('Anti_Go', 0.1484375), ('RT_Go', 0.0), ('Anti_RT_Go', 0.1171875), 
+# ('Go_Mod1', 0.359375), ('Anti_Go_Mod1', 0.12109375), ('Go_Mod2', 0.44140625), ('Anti_Go_Mod2', 0.14453125), 
+# ('DelayGo', 0.72265625), ('Anti_DelayGo', 0.015625), ('DM', 0.19140625), ('Anti_DM', 0.15234375), 
+# ('MultiDM', 0.20703125), ('Anti_MultiDM', 0.53515625), ('RT_DM', 0.29296875), ('Anti_RT_DM', 0.34375), 
+# ('DelayDM', 0.6171875), ('Anti_DelayDM', 0.11328125), ('DelayMultiDM', 0.41796875), ('Anti_DelayMultiDM', 0.19921875), 
+# ('DM_Mod1', 0.2578125), ('Anti_DM_Mod1', 0.3515625), ('DM_Mod2', 0.2265625), ('Anti_DM_Mod2', 0.21484375), 
+# ('COMP1', 0.35546875), ('COMP2', 0.5), ('MultiCOMP1', 0.34765625), ('MultiCOMP2', 0.61328125), 
+# ('COMP1_Mod1', 0.4140625), ('COMP2_Mod1', 0.5078125), ('COMP1_Mod2', 0.39453125), ('COMP2_Mod2', 0.25390625), 
+# ('DMS', 0.49609375), ('DNMS', 0.2734375), ('DMC', 0.4375), ('DNMC', 0.50390625)]
+
 #SBERTNET
-# [('Go', 1.0), ('Anti_Go', 1.0), ('RT_Go', 0.70703125), ('Anti_RT_Go', 0.79296875), 
-# ('Go_Mod1', 0.99609375), ('Anti_Go_Mod1', 0.35546875), ('Go_Mod2', 0.3203125), ('Anti_Go_Mod2', 0.0546875), 
-# ('DelayGo', 0.9921875), ('Anti_DelayGo', 0.93359375), 
-# ('DM', 1.0), ('Anti_DM', 1.0), ('MultiDM', 0.96484375), ('Anti_MultiDM', 0.9921875), 
-# ('RT_DM', 0.921875), ('Anti_RT_DM', 0.90234375), 
-# ('ConDM', 0.8515625), ('Anti_ConDM', 0.90625), ('ConMultiDM', 0.6875), ('Anti_ConMultiDM', 0.7734375), 
-# ('DelayDM', 0.921875), ('Anti_DelayDM', 0.859375), ('DelayMultiDM', 0.94140625), ('Anti_DelayMultiDM', 0.578125), 
-# ('DM_Mod1', 0.6015625), ('Anti_DM_Mod1', 0.31640625), ('DM_Mod2', 0.61328125), ('Anti_DM_Mod2', 0.12109375), 
-# ('COMP1', 0.59375), ('COMP2', 0.84765625), ('MultiCOMP1', 0.6171875), ('MultiCOMP2', 0.7421875), 
-# ('COMP1_Mod1', 0.25), ('COMP2_Mod1', 0.2578125), ('COMP1_Mod2', 0.26953125), ('COMP2_Mod2', 0.11328125), 
-# ('DMS', 0.671875), ('DNMS', 0.6484375), ('DMC', 0.74609375), ('DNMC', 0.640625)]
+# [('Go', 1.0), ('Anti_Go', 0.99609375), ('RT_Go', 0.96484375), ('Anti_RT_Go', 0.48046875), 
+# ('Go_Mod1', 0.99609375), ('Anti_Go_Mod1', 0.59375), ('Go_Mod2', 0.90234375), ('Anti_Go_Mod2', 0.78515625), 
+# ('DelayGo', 0.99609375), ('Anti_DelayGo', 0.9921875), 
+# ('DM', 0.96875), ('Anti_DM', 1.0), ('MultiDM', 0.984375), ('Anti_MultiDM', 0.98046875), 
+# ('RT_DM', 0.83203125), ('Anti_RT_DM', 0.82421875), 
+# ('DelayDM', 0.90625), ('Anti_DelayDM', 0.8125), ('DelayMultiDM', 0.796875), ('Anti_DelayMultiDM', 0.68359375), 
+# ('DM_Mod1', 0.99609375), ('Anti_DM_Mod1', 0.890625), ('DM_Mod2', 0.59375), ('Anti_DM_Mod2', 0.32421875), 
+# ('COMP1', 0.51171875), ('COMP2', 0.73046875), ('MultiCOMP1', 0.9453125), ('MultiCOMP2', 0.65234375), 
+# ('COMP1_Mod1', 0.296875), ('COMP2_Mod1', 0.24609375), ('COMP1_Mod2', 0.2890625), ('COMP2_Mod2', 0.1015625), 
+# ('DMS', 0.609375), ('DNMS', 0.64453125), ('DMC', 0.74609375), ('DNMC', 0.71484375)]
 
 #SBERTNET_TUNED
-# [('Go', 1.0), ('Anti_Go', 1.0), ('RT_Go', 0.9921875), ('Anti_RT_Go', 0.984375), 
-# ('Go_Mod1', 1.0), ('Anti_Go_Mod1', 0.5859375), ('Go_Mod2', 0.94140625), ('Anti_Go_Mod2', 0.1640625), 
-# ('DelayGo', 1.0), ('Anti_DelayGo', 0.90234375), 
-# ('DM', 1.0), ('Anti_DM', 1.0), ('MultiDM', 0.9921875), ('Anti_MultiDM', 0.97265625), 
-# ('RT_DM', 0.94140625), ('Anti_RT_DM', 0.8671875), 
-# ('ConDM', 0.859375), ('Anti_ConDM', 0.8515625), ('ConMultiDM', 0.60546875), ('Anti_ConMultiDM', 0.61328125), 
-# ('DelayDM', 0.89453125), ('Anti_DelayDM', 0.91796875), ('DelayMultiDM', 0.98828125), ('Anti_DelayMultiDM', 0.55078125), 
-# ('DM_Mod1', 0.9453125), ('Anti_DM_Mod1', 0.70703125), ('DM_Mod2', 0.67578125), ('Anti_DM_Mod2', 0.26171875), 
-# ('COMP1', 0.734375), ('COMP2', 0.9296875), ('MultiCOMP1', 0.8828125), ('MultiCOMP2', 0.894531)
-# ('COMP1_Mod1', 0.1640625), ('COMP2_Mod1', 0.40234375), ('COMP1_Mod2', 0.13671875), ('COMP2_Mod2', 0.09765625),
-# ('DMS', 0.6953125), ('DNMS', 0.7109375), ('DMC', 0.65625), ('DNMC', 0.65625)]
+# [('Go', 1.0), ('Anti_Go', 1.0), ('RT_Go', 0.99609375), ('Anti_RT_Go', 0.98046875), 
+# ('Go_Mod1', 1.0), ('Anti_Go_Mod1', 0.5078125), ('Go_Mod2', 0.93359375), ('Anti_Go_Mod2', 0.9765625), 
+# ('DelayGo', 1.0), ('Anti_DelayGo', 0.9453125), 
+# ('DM', 0.97265625), ('Anti_DM', 1.0), ('MultiDM', 1.0), ('Anti_MultiDM', 1.0), 
+# ('RT_DM', 0.828125), ('Anti_RT_DM', 0.7578125), 
+# ('DelayDM', 0.87109375), ('Anti_DelayDM', 0.90625), ('DelayMultiDM', 0.84375), ('Anti_DelayMultiDM', 0.76171875), 
+# ('DM_Mod1', 1.0), ('Anti_DM_Mod1', 0.875), ('DM_Mod2', 0.70703125), ('Anti_DM_Mod2', 0.3984375), 
+# ('COMP1', 0.7109375), ('COMP2', 0.68359375), ('MultiCOMP1', 0.953125), ('MultiCOMP2', 0.95703125), 
+# ('COMP1_Mod1', 0.34765625), ('COMP2_Mod1', 0.53125), ('COMP1_Mod2', 0.24609375), ('COMP2_Mod2', 0.07421875), 
+# ('DMS', 0.6796875), ('DNMS', 0.7109375), ('DMC', 0.6328125), ('DNMC', 0.6640625)]
 
 from dataset import TaskDataSet
 
 from task_factory import TaskFactory
-from models.full_models import SBERTNet, SBERTNet_tuned
+from models.full_models import SBERTNet, SBERTNet_tuned, SimpleNetPlus, SimpleNet
 from model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 from plotting import plot_model_response
 from tasks_utils import SWAP_LIST, SWAPS_DICT 
@@ -127,20 +136,20 @@ import torch
 
 
 
-EXP_FILE = '5.25models/swap_holdouts'
+EXP_FILE = '5.30models/swap_holdouts'
 sbertNet = SBERTNet_tuned()
 
 sbertNet.rnn_hidden_dim
 for n,p in sbertNet.named_parameters(): 
     if p.requires_grad: print(n)
 
-holdouts_file = 'swap7'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet_tuned', suffix='_seed0')
+holdouts_file = 'swap2'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 
 def get_zero_shot_perf(model): 
     perf_array = np.empty((40))
-    for label, tasks in list(SWAPS_DICT.items())[:-1]:
+    for label, tasks in list(SWAPS_DICT.items()):
         model.load_model(EXP_FILE+'/'+label+'/'+model.model_name, suffix='_seed0')
         for task in tasks: 
             # task_instructions = get_instructions(256, task, None)
@@ -172,12 +181,14 @@ for index in range(5):
 
 from instruct_utils import train_instruct_dict
 repeats = []
-for instruct in train_instruct_dict['DMC']:
-    perf = task_eval(sbertNet, 'DMC', 128, 
+for instruct in train_instruct_dict['Anti_DM_Mod2']:
+    perf = task_eval(sbertNet, 'Anti_DM_Mod1', 128, 
             instructions=[instruct]*128)
     repeats.append((instruct, perf))
 
 repeats
+
+
 
 from plotting import plot_model_response
 
@@ -185,17 +196,18 @@ from tasks import AntiDMMod2
 trials = AntiDMMod2(128)
 plot_model_response(sbertNet, trials, instructions=task_instructions)
 
-task_instructions = get_instructions(128, 'Anti_DM_Mod2', None)
+task_instructions = get_instructions(128, 'DM_Mod2', None)
 task_instructions[2]
 
 perf = task_eval(sbertNet, 'Anti_DM_Mod2', 128, instructions=task_instructions)
 
-perf
-
+perf = get_model_performance(sbertNet)
+list(zip(TASK_LIST, perf))
 np.mean(repeats)
 
 
 for task in SWAPS_DICT[holdouts_file]:
+    print(task)
     perf = task_eval(sbertNet, task, 256)
     print((task, perf))
 
@@ -213,9 +225,9 @@ from model_analysis import get_layer_sim_scores, get_instruct_reps
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-reps = get_instruct_reps(sbertNet.langModel, depth='full')
+#reps = get_instruct_reps(sbertNet.langModel, depth='full')
 
-sim_scores = get_layer_sim_scores(sbertNet, rep_depth='full')
+sim_scores = get_layer_sim_scores(sbertNet, rep_depth='task')
 
 sim_scores.shape
 
@@ -262,13 +274,6 @@ plot_RDM(sim_scores, 'lang')
 
 
 
-
-
-
-
-
-
-
 import numpy as np
 from instruct_utils import get_task_info
 from task_criteria import isCorrect
@@ -278,69 +283,78 @@ from plotting import plot_model_response
 from tasks_utils import SWAPS_DICT 
 from tasks import TASK_LIST, construct_trials
 import torch
-
 from tasks import Task
 from task_factory import DMFactory
-
-
-
 from models.full_models import SBERTNet
 from instruct_utils import get_instructions
 
-sbertNet = SBERTNet(LM_out_dim=20, rnn_hidden_dim = 128) 
 
-EXP_FILE = '_ReLU128_4.11/swap_holdouts'
-holdouts_file = 'Multitask'
+
+sbertNet = SBERTNet()
+EXP_FILE = '5.30models/swap_holdouts'
+holdouts_file = 'swap0'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/sbertNet', suffix='_seed0')
 
 
+def get_DM_perf(model, noises, diff_strength, num_repeats=100):
+    num_trials = len(diff_strength)
+    pstim1_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
+    correct_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
+    for i in range(num_repeats): 
+        print(i)
+        for j, noise in enumerate(noises): 
 
-noises = [0.1, 0.2, 0.3, 0.4, 0.5]
+            conditions_arr = np.full((2, 2, 2, num_trials), np.NaN)
+            intervals = np.empty((num_trials, 5), dtype=tuple)
+            for k in range(num_trials): 
+                intervals[k, :] = ((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))
+
+            directions = np.array([[np.pi/2] * num_trials, [3*np.pi/2] * num_trials])
+
+            fixed_strengths = np.array([1]* num_trials)
+            strengths = np.array([fixed_strengths, fixed_strengths-diff_strength])
+
+            target_dirs = np.where([strengths[0, ...] > strengths[1, ...]], directions[0], directions[1]).squeeze()
+
+            conditions_arr[0, :, 0, :] = directions
+            conditions_arr[0, :, 1, :] = strengths
+            trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, intervals=intervals, cond_arr=conditions_arr)
+            
+            task_instructions = ['respond to the stimulus with greatest strength']*num_trials
+
+            out, hid = model(torch.Tensor(trial.inputs), task_instructions)
+            correct_stats[i, j, :] =  isCorrect(out, torch.Tensor(trial.targets), target_dirs)
+            pstim1_stats[i, j, :] =  np.where(isCorrect(out, torch.Tensor(trial.targets), target_dirs), diff_strength > 0, diff_strength<=0)
+    
+    return correct_stats, pstim1_stats
+
+
+noises = np.linspace(0.1, 0.5, num=21)
 noises
-num_repeats = 100
-diff_strength = np.linspace(-0.4, 0.4, num=9)
-num_trials = len(diff_strength)
-pstim1_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
-correct_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
-for i in range(num_repeats): 
-    print(i)
-    trial_list = []
-    for j, noise in enumerate(noises): 
+diff_strength = np.linspace(-0.175, 0.175, num=11)
 
-        conditions_arr = np.full((2, 2, 2, num_trials), np.NaN)
-        intervals = np.empty((num_trials, 5), dtype=tuple)
-        for k in range(num_trials): 
-            intervals[k, :] = ((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))
+diff_strength
 
-        directions = np.array([[np.pi/2] * num_trials, [3*np.pi/2] * num_trials])
+correct_stats, pstim1_stats = get_DM_perf(sbertNet, noises, diff_strength)
 
-        fixed_strengths = np.array([1]* num_trials)
-        strengths = np.array([fixed_strengths, fixed_strengths-diff_strength])
 
-        target_dirs = np.where([strengths[0, ...] > strengths[1, ...]], directions[0], directions[1]).squeeze()
 
-        conditions_arr[0, :, 0, :] = directions
-        conditions_arr[0, :, 1, :] = strengths
-        trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, intervals=intervals, cond_arr=conditions_arr)
-        
-        task_instructions = ['respond to the stimulus with greatest strength']*num_trials
-
-        out, hid = sbertNet(torch.Tensor(trial.inputs), task_instructions)
-        correct_stats[i, j, :] =  isCorrect(out, torch.Tensor(trial.targets), target_dirs)
-        pstim1_stats[i, j, :] =  np.where(isCorrect(out, torch.Tensor(trial.targets), target_dirs), diff_strength > 0, diff_strength<=0)
 
 
 from scipy.ndimage.filters import gaussian_filter1d
-
 import matplotlib.pyplot as plt
-for x in range(len(diff_strength)):
-    plt.plot(noises, np.mean(correct_stats[:, :, x], axis=0))
 
+
+for x in range(4):
+    plt.plot(noises, np.mean(correct_stats[:, :, x], axis=0))
 plt.legend(labels=list(np.round(diff_strength, 2)))
 plt.xlabel('Noise Level')
 plt.ylabel('Correct Rate')
 plt.show()
 
+
+
+#THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2
 for x in range(len(noises)):
     smoothed = gaussian_filter1d(np.mean(pstim1_stats[:, x, :], axis=0), 1)
     plt.plot(diff_strength, smoothed)
@@ -351,11 +365,13 @@ plt.ylabel('p_stim1')
 plt.show()
 
 
+np.mean(correct_stats, axis=0)>0.95
+np.where(np.mean(correct_stats, axis=0) > 0.95 == False)[0][0]
+np.where(np.mean(correct_stats, axis=0) > 0.95 == False)[1][0]
 
 
 
-
-
+np.where(np.mean(correct_stats, axis=0) < 0.95)[0]
 
 
 

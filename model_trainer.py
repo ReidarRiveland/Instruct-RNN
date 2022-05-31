@@ -176,13 +176,13 @@ def check_already_tested(file_name, seed, task):
     except FileNotFoundError:
         return False
 
-def train_model_set(model_names, seeds, holdout_list, overwrite=False, **train_config_kwargs): 
+def train_model_set(model_names, seeds, label_holdout_list, overwrite=False, **train_config_kwargs): 
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
             if '_tuned' in model_name: warnings.warn('\n TUNED MODELS SHOULD BE FINE TUNED USING THE TUNING FUNCTION \n')
-            for label, holdouts in holdout_list: 
+            for label, holdouts in label_holdout_list: 
                 file_name = EXP_FILE+'/'+label+'/'+model_name
                 
                 if check_already_trained(file_name, seed) and not overwrite:
@@ -199,14 +199,14 @@ def train_model_set(model_names, seeds, holdout_list, overwrite=False, **train_c
 
     return inspection_list
 
-def tune_model_set(model_names, seeds, holdout_list, overwrite=False, **train_config_kwargs): 
+def tune_model_set(model_names, seeds, label_holdout_list, overwrite=False, **train_config_kwargs): 
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
             assert '_tuned' in model_name
 
-            for label, holdouts in holdout_list: 
+            for label, holdouts in label_holdout_list: 
                 untuned_model_name = model_name.replace('_tuned', '')
                 file_name = EXP_FILE+'/'+label
                 
@@ -238,13 +238,13 @@ def tune_model_set(model_names, seeds, holdout_list, overwrite=False, **train_co
 
     return inspection_list
 
-def test_model_set(model_names, seeds, all_holdouts, overwrite=False, **train_config_kwargs): 
+def test_model_set(model_names, seeds, label_holdout_list, overwrite=False, **train_config_kwargs): 
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
-            for holdouts in all_holdouts: 
-                file_name = EXP_FILE+'/'+get_holdout_file_name(holdouts)+'/'+model_name
+            for label, holdouts in label_holdout_list: 
+                file_name = EXP_FILE+'/'+label+'/'+model_name
                 
                 model = make_default_model(model_name)
                 model.load_model(file_name, suffix='_seed'+str(seed))
@@ -272,16 +272,18 @@ if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(True)
     from tasks_utils import SWAPS_DICT, ALIGNED_DICT
 
-    DATA_FOLDER = '5.26models'
+    DATA_FOLDER = '5.30models'
     EXP_FILE =DATA_FOLDER+'/swap_holdouts'
     
-    # train_model_set(['gptNet'],  
-    #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
+    
     train_model_set(['sbertNet'],  
-        [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=True)     
+        [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
     
     tune_model_set(['sbertNet_tuned'],  
         [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
 
+    train_model_set(['simpleNet'],  
+        [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
+
     train_model_set(['gptNet'],  
-        [0], [['Multitask','Multitask']], overwrite=False, stream_data=False)     
+        [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     

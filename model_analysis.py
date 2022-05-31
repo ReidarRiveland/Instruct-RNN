@@ -70,6 +70,14 @@ def get_instruct_reps(langModel, depth='full', instruct_mode=None):
 
     return instruct_reps.cpu().numpy().astype(np.float64)
 
+def get_rule_embedder_reps(model):
+    reps = np.empty((len(TASK_LIST), model.rule_dim))
+    with torch.no_grad():
+        for i, task in enumerate(TASK_LIST): 
+            info = get_task_info(1, task, False)
+            reps[i, :] = model.rule_encoder(info).cpu().numpy()
+    return reps
+
 def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, instruct_mode=None, contexts=None):
     assert epoch in ['stim', 'prep', 'stim_start'] or epoch.isnumeric(), "entered invalid epoch: %r" %epoch
     model.eval()
@@ -119,11 +127,16 @@ def get_layer_sim_scores(model, rep_depth='12'):
     
     if rep_depth == 'task': 
         rep_dim = model.rnn_hidden_dim
+
+    if rep_depth == 'rule_encoder': 
+        rep_dim = model.rule_dim
     
     if rep_depth == 'task': 
-        reps = get_task_reps(model)
+        reps = get_task_reps(model, num_trials=32)
     if rep_depth == 'full' or rep_depth.isnumeric(): 
         reps = get_instruct_reps(model.langModel, depth=rep_depth)
+    if rep_depth == 'rule_encoder': 
+        reps = get_rule_embedder_reps(model)
 
     sim_scores = 1-cosine_similarity(reps.reshape(-1, rep_dim))
     
