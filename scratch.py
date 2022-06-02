@@ -123,6 +123,7 @@
 # ('DMS', 0.6796875), ('DNMS', 0.7109375), ('DMC', 0.6328125), ('DNMC', 0.6640625)]
 #85%
 
+from turtle import position
 from dataset import TaskDataSet
 
 from task_factory import TaskFactory
@@ -137,11 +138,10 @@ import torch
 from tasks import TASK_LIST
 
 
+EXP_FILE = '6.2models/swap_holdouts'
+sbertNet = SBERTNet()
 
-EXP_FILE = '5.30models/swap_holdouts'
-sbertNet = SBERTNet_tuned()
-
-holdouts_file = 'swap2'
+holdouts_file = 'swap0'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 
@@ -186,7 +186,7 @@ for instruct in train_instruct_dict['Anti_DM_Mod2']:
 
 repeats
 
-
+get_instructions(128, 'DMC', None)
 
 from plotting import plot_model_response
 
@@ -255,21 +255,19 @@ plot_RDM(sim_scores, 'lang')
 
 
 
-# repeats = 1
-# p_right = np.empty((repeats, num_trials))
-# for i in range(repeats): 
-#     print(i)
-#     task_info = get_task_info(num_trials, 'DM', True)
-#     out, _ = sbertNet_tuned(torch.Tensor(trials.inputs).to(sbertNet_tuned.__device__), task_info)
-#     p_right[i, :] = isCorrect(out, torch.Tensor(trials.targets), trials.target_dirs)
 
-#     #p_right[i, :] = np.where(isCorrect(out, torch.Tensor(trials.targets), target_dirs), diff_strength > 0, diff_strength<=0)
+# simpleNetPlus_context = np.empty((16, 20))
+# simpleNetPlus.eval()
+# with torch.no_grad():
+#     for i, task in enumerate(Task.TASK_LIST): 
+#         rule = get_input_rule(1, task, None)
+#         simpleNetPlus_context[i, :]=simpleNetPlus.rule_encoder(torch.matmul(rule, simpleNetPlus.rule_transform))
 
-# np.std(trials.inputs[0, 60:65], axis=1)
+# simpleNetPlus_context = np.expand_dims(simpleNetPlus_context, 1)
 
-# np.mean(p_right)
-# abs(np.nansum(trials.conditions_arr[:, 0, 1, :]-trials.conditions_arr[:, 1, 1, :], axis=0)/0.3)>0.8
-
+# reps_reduced, _ = reduce_rep(simpleNetPlus_context)
+# from plotting import plot_rep_scatter
+# plot_rep_scatter(reps_reduced, Task.TASK_GROUP_DICT['Delay'], s=100)
 
 
 import numpy as np
@@ -286,109 +284,131 @@ from task_factory import DMFactory
 import task_factory
 from models.full_models import SBERTNet
 from instruct_utils import get_instructions
-
+from tqdm import tqdm
+from task_factory import TaskFactory
 
 sbertNet = SimpleNet()
-EXP_FILE = '5.30models/swap_holdouts'
-holdouts_file = 'swap0'
+EXP_FILE = '6.2models/swap_holdouts'
+holdouts_file = 'Multitask'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/simpleNet', suffix='_seed0')
 
 def get_DM_perf(model, noises, diff_strength, num_repeats=100, mod=0, task='DM'):
     num_trials = len(diff_strength)
     pstim1_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
     correct_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
-    for i in range(num_repeats): 
+    for i in tqdm(range(num_repeats)): 
         for j, noise in enumerate(noises): 
 
             conditions_arr = np.full((2, 2, 2, num_trials), np.NaN)
             intervals = np.empty((num_trials, 5), dtype=tuple)
             directions = np.empty((2, num_trials))
 
+            intervals = np.empty((num_trials, 5), dtype=tuple)
             for k in range(num_trials): 
-                intervals[k, :] = ((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))
+                intervals[k, :] = ((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))    
                 directions[:, k]= task_factory._draw_ortho_dirs()
 
-            strengths = np.array([1+diff_strength/2, 1-diff_strength/2])
 
-            conditions_arr[mod, :, 0, :] = directions
-            conditions_arr[mod, :, 1, :] = strengths
+                if 'Multi' in task:
+                    mod_coh = diff_strength[k]/2
+                    mod_base_strs = np.array([1-mod_coh, 1+mod_coh])
+                    redraw = True
+                    while redraw: 
+                        coh = np.random.choice([-0.05, -0.1, 0.1, 0.05], size=2, replace=False)
+                        if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
+                            redraw = False
+
+                    strengths = np.array([mod_base_strs + coh, mod_base_strs- coh]).T
+                    conditions_arr[:, :, 0, k] = np.array([directions[:,k], directions[:,k]])
+                    conditions_arr[:, :, 1, k] = strengths.T
+
+            if not 'Multi' in task: 
+                strengths = np.array([1+diff_strength/2, 1-diff_strength/2])
+                conditions_arr[mod, :, 0, :] = directions
+                conditions_arr[mod, :, 1, :] = strengths
+
             if task == 'DM':
                 trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, intervals=intervals, cond_arr=conditions_arr)
             elif task =='Anti_DM':
-                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, intervals=intervals, cond_arr=conditions_arr)
+                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, intervals=intervals, cond_arr=conditions_arr)
+            elif task =='MultiDM':
+                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, multi=True, intervals=intervals, cond_arr=conditions_arr)
+            elif task =='Anti_MultiDM':
+                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, multi=True, intervals=intervals, cond_arr=conditions_arr)
 
-            #task_instructions = ['respond to the stimulus with greatest strength']*num_trials
+            # task_instructions = ['respond to the stimulus with greatest strength']*num_trials
             task_instructions = get_task_info(num_trials, task, False)
 
             out, hid = model(torch.Tensor(trial.inputs), task_instructions)
             correct_stats[i, j, :] =  isCorrect(out, torch.Tensor(trial.targets), trial.target_dirs)
             pstim1_stats[i, j, :] =  np.where(isCorrect(out, torch.Tensor(trial.targets), trial.target_dirs), diff_strength > 0, diff_strength<=0)
     
-    return correct_stats, pstim1_stats
+    return correct_stats, pstim1_stats, trial
+
+def get_noise_thresholdouts(correct_stats, diff_strength, noises): 
+    pos_coords = np.where(np.mean(correct_stats, axis=0) > 0.95)
+    neg_coords = np.where(np.mean(correct_stats, axis=0) < 0.75)
+    pos_thresholds = np.array((noises[pos_coords[0]], diff_strength[pos_coords[1]]))
+    neg_thresholds = np.array((noises[neg_coords[0]], diff_strength[neg_coords[1]]))
+    return pos_thresholds, neg_thresholds
+
+single_diff_strength = np.concatenate((np.linspace(-0.2, -0.1, num=7), np.linspace(0.1, 0.2, num=7)))
+multi_diff_strength = np.concatenate((np.linspace(-0.15, -0.1, num=7), np.linspace(0.1, 0.15, num=7)))
+noises = np.linspace(0.1, 0.8, num=30)
+
+correct_stats0, pstim1_stats, trial = get_DM_perf(sbertNet, noises, multi_diff_strength, mod=0, task='Anti_MultiDM')
+thresholds = get_noise_thresholdouts(correct_stats0, multi_diff_strength, noises)
+
+pos_thresholds, neg_thresholds = thresholds
 
 
-diff_strength = np.linspace(-0.175, 0.175, num=15)
-diff_strength
-noises = np.linspace(0.1, 0.5, num=21)
+neg_thresholds
+noise, contrast = pos_thresholds[:, 5]
+noise, contrast = neg_thresholds[:, 5]
 
+import pickle
+pickle.dump(thresholds, open('6.2models/noise_thresholds/anti_multi_dm_noise_thresholds', 'wb'))
 
-
-
-correct_stats, pstim1_stats = get_DM_perf(sbertNet, noises, diff_strength, mod=1)
 
 from scipy.ndimage.filters import gaussian_filter1d
 import matplotlib.pyplot as plt
 
 for x in range(15):
-    plt.plot(noises, np.mean(correct_stats[:, :, x], axis=0))
-plt.legend(labels=list(np.round(diff_strength, 2)))
+    plt.plot(noises, np.mean(correct_stats0[:, :, x], axis=0))
+plt.legend(labels=list(np.round(multi_diff_strength, 2)))
 plt.xlabel('Noise Level')
 plt.ylabel('Correct Rate')
 plt.show()
 
 
 #THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2
-for x in range(len(noises)):
+for x in range(10):
     smoothed = gaussian_filter1d(np.mean(pstim1_stats[:, x, :], axis=0), 1)
     plt.plot(diff_strength, smoothed)
 
-plt.legend(labels=list(np.round(noises, 2)))
+plt.legend(labels=list(np.round(noises, 2)[:10]))
 plt.xlabel('Contrast')
 plt.ylabel('p_stim1')
 plt.show()
 
 
+from tasks import ConAntiDM, ConDM, ConAntiMultiDM, ConMultiDM
+from model_analysis import task_eval
 
-X,Y = np.meshgrid(diff_strength, noises)
+mod_coh = diff_strength[0]/2
+mod_base_strs = np.array([1-mod_coh, 1+mod_coh])
 
-np.mean(correct_stats, axis=0)
-np.mean(correct_stats, axis=0) > 0.95
+redraw = True
+while redraw: 
+    coh = np.random.choice([-0.2, -0.175, -0.15, -0.125, -0.1, 0.1, 0.125, 0.15, 0.175, 0.2], size=2, replace=False)
+    if coh[0] != -1*coh[1] and (abs(coh[0])-abs(coh[1]))>=0.05 and ((coh[0] <0) ^ (coh[1] < 0)): 
+        redraw = False
 
+strengths = np.array([mod_base_strs + coh, mod_base_strs- coh]).T
 
-coords = np.where(np.mean(correct_stats, axis=0) > 0.95)
-
-coords[0][0], coords[0][1]
-
-X[coords[0]], Y[coords[1]]
-
-
-np.where(np.mean(correct_stats, axis=0) < 0.95)[0]
-
-
-
-
-simpleNetPlus_context = np.empty((16, 20))
+coh = [0.1, -0.15]
+coh[0] != -1*coh[1] 
+abs((abs(coh[0])-abs(coh[1])))
 
 
-simpleNetPlus.eval()
-with torch.no_grad():
-    for i, task in enumerate(Task.TASK_LIST): 
-        rule = get_input_rule(1, task, None)
-        simpleNetPlus_context[i, :]=simpleNetPlus.rule_encoder(torch.matmul(rule, simpleNetPlus.rule_transform))
-
-simpleNetPlus_context = np.expand_dims(simpleNetPlus_context, 1)
-
-reps_reduced, _ = reduce_rep(simpleNetPlus_context)
-from plotting import plot_rep_scatter
-plot_rep_scatter(reps_reduced, Task.TASK_GROUP_DICT['Delay'], s=100)
-
+((coh[0] <0) ^ (coh[1] < 0))
