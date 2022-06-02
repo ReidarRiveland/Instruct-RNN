@@ -10,21 +10,37 @@ def invert_task_dict(task_dict):
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) 
 
-SWAP_LIST = [
-            ('RT_Go', 'DM_Mod1', 'Anti_Go_Mod2', 'DMS'),
-
-            ('Anti_DelayGo', 'Go_Mod2', 'Anti_DM_Mod1', 'DelayMultiDM', 'COMP2'), 
-            ('Anti_DelayDM', 'Go_Mod1', 'Anti_DM_Mod2', 'MultiCOMP1'), 
-            ('DM', 'Anti_MultiDM',  'Anti_Go', 'DMC'),             
-
-            ('DM_Mod2', 'Anti_RT_Go', 'DelayGo', 'MultiCOMP2'), 
-
-            ('DelayDM',  'Anti_RT_DM', 'DNMC'), 
-            
-            ('Anti_DM', 'MultiDM', 'Go', 'DNMS'), 
-
-            ('Anti_DelayMultiDM', 'RT_DM', 'Anti_Go_Mod1', 'COMP1')
+SWAP_LIST = [            
+            ('DM_Mod1', 'Anti_Go_Mod2', 'ConMultiDM', 'DMS'),
+            ('Anti_DM_Mod2', 'Go_Mod1', 'Anti_Go', 'COMP1'), 
+            ('Anti_Go_Mod1', 'DM_Mod2', 'Go', 'MultiCOMP1'), 
+            ('Go_Mod2', 'Anti_DM_Mod1', 'Anti_DelayGo', 'COMP2'), 
+            ('Anti_DelayMultiDM', 'MultiDM', 'Anti_RT_DM', 'DMC'),             
+            ('DM', 'Anti_ConDM', 'RT_Go', 'MultiCOMP2'), 
+            ('Anti_DM', 'DelayMultiDM', 'Anti_RT_Go',  'DNMS'), 
+            ('RT_DM', 'Anti_MultiDM', 'DelayDM', 'DNMC'),
+            ('ConDM', 'Anti_DelayDM', 'DelayGo', 'Anti_ConMultiDM')
             ]
+
+task_list=TASK_LIST.copy()
+
+for swap in SWAP_LIST: 
+    for task in swap: 
+        task_list.pop(task_list.index(task))
+task_list
+# SWAP_LIST = [
+#             ('Anti_DM_Mod2', 'Go_Mod1', 'Anti_Go', 'COMP1', 'ConMultiDM'), 
+#             ('Anti_Go_Mod1', 'DM_Mod2', 'Go', 'MultiCOMP1', 'ConDM'), 
+#             ('DM_Mod1', 'Anti_Go_Mod2', 'DelayGo', 'DMS', 'Anti_ConDM'),
+#             ('Go_Mod2', 'Anti_DM_Mod1', 'Anti_DelayGo', 'COMP2', 'Anti_ConMultiDM'), 
+#             ('Anti_DelayDM', 'MultiDM', 'Anti_RT_DM', 'DMC', 'COMP1_Mod1'),             
+#             ('DM', 'Anti_DelayMultiDM', 'RT_Go', 'MultiCOMP2', 'COMP1_Mod2'), 
+#             ('Anti_DM', 'DelayMultiDM', 'Anti_RT_Go',  'DNMS', 'COMP2_Mod2'), 
+#             ('RT_DM', 'Anti_MultiDM', 'DelayDM', 'DNMC', 'COMP2_Mod1')
+#             ]
+
+task_list = TASK_LIST.copy()
+
 
 ALIGNED_LIST = [
             ('DM', 'Anti_DM', 'MultiCOMP1', 'MultiCOMP2'), 
@@ -62,61 +78,3 @@ MODEL_STYLE_DICT = {'simpleNet': ('blue', None), 'simpleNetPlus': ('blue', '+'),
                     'bertNet': ('green', None), 'sbertNet': ('purple', None), 'sbertNet_tuned': ('purple', 'v')}
 
 
-
-# import seaborn as sns
-# import matplotlib.pyplot as plt
-# from tasks import Task
-# from model_analysis import get_task_reps, reduce_rep, get_instruct_reps
-# import pickle
-# import numpy as np 
-# import torch
-# import itertools
-# from tasks_utils import task_colors
-# import matplotlib
-# import matplotlib.patches as mpatches
-# from matplotlib import colors, cm, markers, use 
-# from models.full_models import SBERTNet
-# from matplotlib.lines import Line2D
-# from tasks import TASK_LIST
-
-# cmap = plt.get_cmap('hsv')
-# cmap.set_clim=(0, 40)
-
-# EXP_FILE = '5.30models/swap_holdouts'
-# sbertNet = SBERTNet()
-
-# holdouts_file = 'swap0'
-# sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
-
-
-# def _rep_scatter(reps_reduced, task, ax, **scatter_kwargs): 
-#     task_reps = reps_reduced[TASK_LIST.index(task), ...]
-#     ax.scatter(task_reps[:, 0], task_reps[:, 1], s=25, color = cmap(TASK_LIST.index(task)), **scatter_kwargs)
-#     patch = Line2D([0], [0], label = task, linestyle='None', markersize=8, **scatter_kwargs)
-#     return patch
-
-# def _group_rep_scatter(reps_reduced, task_to_plot, ax, **scatter_kwargs): 
-#     Patches = []
-#     for task in task_to_plot: 
-#         if bool(scatter_kwargs): 
-#              _ = _rep_scatter(reps_reduced, task, ax, **scatter_kwargs)
-#         else:
-#             patch = _rep_scatter(reps_reduced, task, ax, marker='o')
-#             Patches.append(patch)
-#     return Patches
-
-# def plot_scatter(model, tasks_to_plot, rep_depth='task'): 
-#     if rep_depth == 'task': 
-#         reps = get_task_reps(model, epoch='stim_start', num_trials = 32)
-#     elif rep_depth is not 'task': 
-#         reps = get_instruct_reps(model.langModel, depth=rep_depth)
-#     reduced, _ = reduce_rep(reps)
-#     _, ax = plt.subplots(figsize=(6,6))
-
-#     Patches = _group_rep_scatter(reduced, tasks_to_plot,   ax)
-#     Patches.append((Line2D([0], [0], linestyle='None', marker='X', color='grey', label='Contexts', 
-#                     markerfacecolor='white', markersize=8)))
-#     plt.legend(handles=Patches, fontsize='medium')
-#     plt.show()
-
-# plot_scatter(sbertNet, ['Go_Mod1', 'Go_Mod2', 'Anti_Go_Mod1', 'Anti_Go_Mod2'])

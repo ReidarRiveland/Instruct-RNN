@@ -17,7 +17,7 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
 
             'RT_DM', 'Anti_RT_DM', 
 
-            #'ConDM', 'Anti_ConDM', 'ConMultiDM', 'Anti_ConMultiDM',            
+            'ConDM', 'Anti_ConDM', 'ConMultiDM', 'Anti_ConMultiDM',            
 
             'DelayDM', 'Anti_DelayDM', 'DelayMultiDM', 'Anti_DelayMultiDM',
 
@@ -27,7 +27,7 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
 
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
 
-            'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
+            #'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
 
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
@@ -208,7 +208,7 @@ class ConDM(Task):
         super().__init__(num_trials, noise,
                         task_factory.ConDMFactory, 
                         str_chooser = np.argmax,
-                        conf_threshold = 1
+                        threshold_folder = 'dm_noise_thresholds'
                         )
         self.task_type = 'ConDM'
 
@@ -219,7 +219,7 @@ class ConAntiDM(Task):
         super().__init__(num_trials, noise,
                         task_factory.ConDMFactory, 
                         str_chooser = np.argmin,
-                        conf_threshold = 1
+                        threshold_folder = 'anti_dm_noise_thresholds'
                         )
         self.task_type = 'Anti_ConDM'
 
@@ -229,7 +229,7 @@ class ConMultiDM(Task):
                         task_factory.ConDMFactory, 
                         str_chooser = np.argmax,
                         multi=True,
-                        conf_threshold = 1
+                        threshold_folder = 'multi_dm_noise_thresholds'
                         )
         self.task_type = 'ConMultiDM'
 
@@ -240,7 +240,7 @@ class ConAntiMultiDM(Task):
                         task_factory.ConDMFactory, 
                         str_chooser = np.argmin,
                         multi=True,
-                        conf_threshold = 1
+                        threshold_folder = 'anti_multi_dm_noise_thresholds'
                         )
         self.task_type = 'Anti_ConMultiDM'
 
@@ -634,11 +634,21 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
 # for task in TASK_LIST: 
 #     construct_trials(task, 10)
 
-# trials = DNMC(500)
-# trials.factory.mod
+# trials = ConMultiDM(500)
 
-# # np.mean(np.isnan(trials.factory.cond_arr[0, 0, 1, :]))
+# np.sum(trials.factory.cond_arr[:, :, 1, 3], 0)[0]-np.sum(trials.factory.cond_arr[:, :, 1, 3], 0)[1]
 
+# trials.factory.requires_response_list[3]
+# trials.factory.noise[3]
+# trials.factory.target_dirs[3]
 
-# for index in range(5):
+# import pickle
+# pos_thresholds, neg_thresholds = pickle.load(open('6.2models/noise_thresholds/multi_dm_noise_thresholds', 'rb'))
+# pos_thresholds
+
+# for index in range(10):
 #     task_factory.TaskFactory.plot_trial(trials.inputs[index, ...], trials.targets[index, ...], trials.task_type)
+
+# np.mean(np.isnan(trials.target_dirs))
+
+
