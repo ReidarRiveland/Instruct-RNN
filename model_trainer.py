@@ -25,7 +25,7 @@ class TrainerConfig():
     file_path: str
     random_seed: int
     epochs: int = 100
-    min_run_epochs: int = 25
+    min_run_epochs: int = 35
     batch_len: int = 32
     num_batches: int = 1200
     holdouts: list = []
@@ -292,12 +292,14 @@ if __name__ == "__main__":
     train_model_set(['sbertNet'],  
         [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
     
-    # tune_model_set(['sbertNet_tuned'],  
-    #     [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
+    tune_model_set(['sbertNet_tuned'],  
+        [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
+
+
+    train_model_set(['simpleNet'],  
+        [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
+
 
     # train_model_set(['gptNet'],  
     #     [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     
-
-    # train_model_set(['simpleNet'],  
-    #     [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
 
