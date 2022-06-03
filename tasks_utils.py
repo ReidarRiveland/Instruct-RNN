@@ -11,8 +11,8 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) 
 
 SWAP_LIST = [            
-            ('DM_Mod1', 'Anti_Go_Mod2', 'ConMultiDM', 'DMS'),
             ('Anti_DM_Mod2', 'Go_Mod1', 'Anti_Go', 'COMP1'), 
+            ('DM_Mod1', 'Anti_Go_Mod2', 'ConMultiDM', 'DMS'),
             ('Anti_Go_Mod1', 'DM_Mod2', 'Go', 'MultiCOMP1'), 
             ('Go_Mod2', 'Anti_DM_Mod1', 'Anti_DelayGo', 'COMP2'), 
             ('Anti_DelayMultiDM', 'MultiDM', 'Anti_RT_DM', 'DMC'),             

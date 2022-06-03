@@ -98,7 +98,7 @@ class TaskFactory():
         '''
         mod_dim = mod_dir_str_conditions.shape[0]
         num_trials = mod_dir_str_conditions.shape[-1]
-        centered_dir = np.repeat(np.array([[0.8*np.exp(-0.5*(((10*abs(np.pi-i))/np.pi)**2)) for i in TUNING_DIRS]]), num_trials*2, axis=0)
+        centered_dir = np.repeat(np.array([[0.8*np.exp(-0.5*(((12*abs(np.pi-i))/np.pi)**2)) for i in TUNING_DIRS]]), num_trials*2, axis=0)
         roll = np.nan_to_num(np.floor((mod_dir_str_conditions[: , 0, :]/(2*np.pi))*STIM_DIM)- np.floor(STIM_DIM/2)).astype(int)
         rolled = np.array(list(map(np.roll, centered_dir, np.expand_dims(roll.flatten(), axis=1)))) * np.expand_dims(np.nan_to_num(mod_dir_str_conditions[:, 1, :]).flatten() , axis=1)
         if mod_dim>1: 
@@ -232,8 +232,9 @@ class GoFactory(TaskFactory):
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
         for i in range(self.num_trials):
             if self.multi:    
-                dir1 = np.random.uniform(0, 2*np.pi)
-                conditions_arr[:, 0, 0, i] = (dir1, dir1+np.pi/4)
+                dir1, dir2 = np.random.uniform(0, 2*np.pi, size=2)
+                #dir1, dir2 = _draw_ortho_dirs()
+                conditions_arr[:, 0, 0, i] = (dir1, dir2)
                 conditions_arr[:, 0, 1, i] = np.random.uniform(0.8, 1.2, size=2)
 
             else:
@@ -272,7 +273,7 @@ class DMFactory(TaskFactory):
         for i in range(self.num_trials):
             if self.mod is not None: 
                 directions1 = _draw_ortho_dirs()
-                directions2 = _draw_ortho_dirs(directions1[1])
+                directions2 = _draw_ortho_dirs(directions1[0]+np.pi/2)
             else:
                 directions1 = _draw_ortho_dirs()
                 directions2 = directions1
@@ -287,10 +288,14 @@ class DMFactory(TaskFactory):
                 redraw = True
                 while redraw: 
                     coh = np.random.choice([-0.2, -0.175, -0.15, -0.125, -0.1, 0.1, 0.125, 0.15, 0.175, 0.2], size=2, replace=False)
-                    if coh[0] != -1*coh[1] and (abs(coh[0])-abs(coh[1]))>=0.05 and ((coh[0] <0) ^ (coh[1] < 0)): 
+                    if coh[0] != -1*coh[1] and abs((abs(coh[0])-abs(coh[1])))>=0.05 and ((coh[0] <0) ^ (coh[1] < 0)): 
                         redraw = False
 
-                strengths = np.array([mod_base_strs + coh, mod_base_strs- coh]).T
+                mod_swap = np.random.choice([0,1])
+                _mod_swap = (mod_swap+1)%2
+                strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
+                                    [mod_base_strs[_mod_swap] - coh[_mod_swap], mod_base_strs[_mod_swap] + coh[_mod_swap]] ])
+
                 conditions_arr[:, :, 0, i] = np.array([directions1, directions2])
                 conditions_arr[:, :, 1, i] = strengths
 
@@ -303,7 +308,6 @@ class DMFactory(TaskFactory):
                 
                 conditions_arr[mod, :, 0, i] = np.array(directions1)
                 conditions_arr[mod, :, 1, i] = strengths
-                conditions_arr[((mod+1)%2), :, :, i] = np.NaN
         return conditions_arr
 
     def _set_target_dirs(self): 
@@ -370,7 +374,11 @@ class ConDMFactory(TaskFactory):
                     if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
                         redraw = False
 
-                strengths = np.array([mod_base_strs + coh, mod_base_strs- coh]).T
+                mod_swap = np.random.choice([0,1])
+                _mod_swap = (mod_swap+1)%2
+                strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
+                                    [mod_base_strs[_mod_swap] - coh[_mod_swap], mod_base_strs[_mod_swap] + coh[_mod_swap]] ])
+
                 conditions_arr[:, :, 0, i] = np.array([directions1, directions1])
                 conditions_arr[:, :, 1, i] = strengths.T
 
@@ -396,7 +404,6 @@ class ConDMFactory(TaskFactory):
 
         return target_dirs
         
-
 class COMPFactory(TaskFactory):
     def __init__(self, num_trials,  noise, resp_stim,
                             timing= 'delay', mod=None, multi=False, 
@@ -426,7 +433,7 @@ class COMPFactory(TaskFactory):
             if self.multi:        
                 if self.mod is not None: 
                     directions1 = _draw_ortho_dirs()
-                    directions2 = _draw_ortho_dirs(directions1[1])
+                    directions2 = _draw_ortho_dirs()
                 else:
                     directions1 = _draw_ortho_dirs()
                     directions2 = directions1
@@ -436,13 +443,18 @@ class COMPFactory(TaskFactory):
                 base_strength = np.random.uniform(0.8, 1.2)
                 mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
 
+
                 redraw = True
                 while redraw: 
                     coh = np.random.choice([-0.2, -0.175, -0.15, -0.125, -0.1, 0.1, 0.125, 0.15, 0.175, 0.2], size=2, replace=False)
-                    if coh[0] != -1*coh[1] and (abs(coh[0])-abs(coh[1]))>=0.05 and ((coh[0] <0) ^ (coh[1] < 0)): 
+                    if coh[0] != -1*coh[1] and abs((abs(coh[0])-abs(coh[1])))>=0.05 and ((coh[0] <0) ^ (coh[1] < 0)): 
                         redraw = False
 
-                tmp_strengths = np.array([mod_base_strs + coh, mod_base_strs- coh]).T
+                mod_swap = np.random.choice([0,1])
+                _mod_swap = (mod_swap+1)%2
+                tmp_strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
+                                    [mod_base_strs[_mod_swap] - coh[_mod_swap], mod_base_strs[_mod_swap] + coh[_mod_swap]] ])
+
                 
                 if self.mod == None: 
                     candidate_strs = np.sum(tmp_strengths, axis=0)
@@ -497,7 +509,6 @@ class COMPFactory(TaskFactory):
         elif (resp_stim==2 and req_resp) or (resp_stim==1 and not req_resp): 
             strs = np.array([neg_str, pos_str])
         return strs
-
 
 class MatchingFactory(TaskFactory):
     def __init__(self, num_trials,  noise, matching_task, match_type,

@@ -63,20 +63,29 @@ class BaseNet(nn.Module):
         super().to(cuda_device)
         self.__device__ = cuda_device
 
+class RuleEncoder(nn.Module):
+    def __init__(self, rule_dim, hidden_size):
+        super(RuleEncoder, self).__init__()
+        self.rule_dim = rule_dim
+        self.hidden_size = hidden_size
+        self.rule_in = nn.Sequential(
+                nn.Linear(self.rule_dim, self.hidden_size), 
+                nn.ReLU(), 
+                nn.Linear(self.hidden_size, self.hidden_size),
+                nn.ReLU()
+                )
+        self.rule_out = nn.Sequential(
+                nn.Linear(self.hidden_size, self.rule_dim),
+                nn.ReLU()
+            )
+
 class RuleNet(BaseNet):
     def __init__(self, config):
         super().__init__(config)
         ortho_rules = pickle.load(open('ortho_rule_vecs', 'rb'))
         self.rule_transform = torch.Tensor(ortho_rules)
         if self.add_rule_encoder: 
-            self.rule_encoder = nn.Sequential(
-                nn.Linear(self.rule_dim, 128), 
-                nn.ReLU(), 
-                nn.Linear(128, 128),
-                nn.ReLU(), 
-                nn.Linear(128, self.rule_dim),
-                nn.ReLU()
-            )
+            self.rule_encoder = RuleEncoder(self.rule_dim, self.rule_encoder_hidden)
         else: 
             self.rule_encoder = nn.Identity()
 

@@ -5,11 +5,14 @@ from tasks import Task
 import torch
 from tasks import TASK_LIST
 from tasks_utils import get_swap_task
+import os 
 
 from collections import Counter
 task_list = TASK_LIST
 
-train_instruct_dict = pickle.load(open('6.2models/train_instruct_dict', 'rb'))
+#cur_folder = os.getenv('MODEL_FOLDER')
+
+train_instruct_dict = pickle.load(open('6.4models/train_instruct_dict', 'rb'))
 
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict', 'rb'))
 

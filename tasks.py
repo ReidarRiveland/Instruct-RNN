@@ -634,21 +634,47 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
 # for task in TASK_LIST: 
 #     construct_trials(task, 10)
 
-# trials = ConMultiDM(500)
+#trials = DMMod2(500)
 
-# np.sum(trials.factory.cond_arr[:, :, 1, 3], 0)[0]-np.sum(trials.factory.cond_arr[:, :, 1, 3], 0)[1]
+# index = np.argmax(trials.factory.cond_arr[0, :, 1, :], axis=0)
 
-# trials.factory.requires_response_list[3]
-# trials.factory.noise[3]
-# trials.factory.target_dirs[3]
+# np.sum(trials.factory.cond_arr[:, :, 1, :], axis=0)[0]-np.sum(trials.factory.cond_arr[:, :, 1, :], axis=0)[1]
 
-# import pickle
-# pos_thresholds, neg_thresholds = pickle.load(open('6.2models/noise_thresholds/multi_dm_noise_thresholds', 'rb'))
-# pos_thresholds
+# trials.factory.cond_arr[:, :, 0, 5]
 
-# for index in range(10):
+
+# trials.factory.target_dirs[-3]
+
+# trials.factory.cond_arr[0, 0, 1, :]>trials.factory.cond_arr[1, 0, 1, :]
+
+# trials.factory.cond_arr[1, 0, 1, :]-trials.factory.cond_arr[1, 1, 1, :]>trials.factory.cond_arr[0, 0, 1, :]-trials.factory.cond_arr[0, 1, 1, :]
+
+# for index in range(5):
 #     task_factory.TaskFactory.plot_trial(trials.inputs[index, ...], trials.targets[index, ...], trials.task_type)
 
 # np.mean(np.isnan(trials.target_dirs))
 
 
+
+# mod_coh = np.random.choice([0.05, 0.125, 0.1, -0.1, -0.125, -0.05])
+
+# base_strength = np.random.uniform(0.8, 1.2)
+# mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
+# mod_base_strs
+# redraw = True
+# while redraw: 
+#     coh = np.random.choice([-0.175, -0.15, -0.125, -0.1, 0.1, 0.125, 0.15, 0.175], size=2, replace=False)
+#     if coh[0] != -1*coh[1] and (abs(coh[0])-abs(coh[1]))>=0.04 and ((coh[0] <0) ^ (coh[1] < 0)): 
+#         redraw = False
+# mod_swap = np.random.choice([0,1])
+# _mod_swap = (mod_swap+1)%2
+# strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
+#                     [mod_base_strs[_mod_swap] - coh[_mod_swap], mod_base_strs[_mod_swap] + coh[_mod_swap]] ])
+
+# strengths1 = np.array([mod_base_strs - coh, mod_base_strs + coh]).T
+
+# strengths1
+# np.sum(strengths, axis=0)
+
+
+# np.sum(strengths, axis=0)[0]>np.sum(strengths, axis=0)[1]

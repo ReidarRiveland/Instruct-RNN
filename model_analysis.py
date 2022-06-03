@@ -6,12 +6,11 @@ from instruct_utils import train_instruct_dict, get_task_info, get_instruction_d
 
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.stats import spearmanr
+from tqdm import tqdm
 
-from tasks import construct_trials, TASK_LIST
+from tasks import construct_trials, TASK_LIST, Task
+from task_factory import _draw_ortho_dirs, DMFactory
 from task_criteria import isCorrect
-
-# swapped_task_list = Task.SWAPPED_TASK_LIST
-# task_group_dict = Task.TASK_GROUP_DICT
 
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -141,6 +140,77 @@ def get_layer_sim_scores(model, rep_depth='12'):
     sim_scores = 1-cosine_similarity(reps.reshape(-1, rep_dim))
     
     return sim_scores
+
+
+def get_DM_perf(model, noises, diff_strength, num_repeats=100, mod=0, task='DM'):
+    num_trials = len(diff_strength)
+    pstim1_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
+    correct_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
+    for i in tqdm(range(num_repeats)): 
+        for j, noise in enumerate(noises): 
+
+            conditions_arr = np.full((2, 2, 2, num_trials), np.NaN)
+            intervals = np.empty((num_trials, 5), dtype=tuple)
+            directions = np.empty((2, num_trials))
+
+            intervals = np.empty((num_trials, 5), dtype=tuple)
+            for k in range(num_trials): 
+                intervals[k, :] = ((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))    
+                directions[:, k]= _draw_ortho_dirs()
+
+
+                if 'Multi' in task:
+                    mod_coh = diff_strength[k]/2
+                    mod_base_strs = np.array([1-mod_coh, 1+mod_coh])
+                    redraw = True
+                    while redraw: 
+                        coh = np.random.choice([-0.05, -0.1, 0.1, 0.05], size=2, replace=False)
+                        if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
+                            redraw = False
+
+                    strengths = np.array([mod_base_strs + coh, mod_base_strs- coh]).T
+                    conditions_arr[:, :, 0, k] = np.array([directions[:,k], directions[:,k]])
+                    conditions_arr[:, :, 1, k] = strengths.T
+
+            if not 'Multi' in task: 
+                strengths = np.array([1+diff_strength/2, 1-diff_strength/2])
+                conditions_arr[mod, :, 0, :] = directions
+                conditions_arr[mod, :, 1, :] = strengths
+
+            if task == 'DM':
+                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, intervals=intervals, cond_arr=conditions_arr)
+            elif task =='Anti_DM':
+                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, intervals=intervals, cond_arr=conditions_arr)
+            elif task =='MultiDM':
+                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, multi=True, intervals=intervals, cond_arr=conditions_arr)
+            elif task =='Anti_MultiDM':
+                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, multi=True, intervals=intervals, cond_arr=conditions_arr)
+
+            task_instructions = get_task_info(num_trials, task, False)
+
+            out, hid = model(torch.Tensor(trial.inputs), task_instructions)
+            correct_stats[i, j, :] =  isCorrect(out, torch.Tensor(trial.targets), trial.target_dirs)
+            pstim1_stats[i, j, :] =  np.where(isCorrect(out, torch.Tensor(trial.targets), trial.target_dirs), diff_strength > 0, diff_strength<=0)
+    
+    return correct_stats, pstim1_stats, trial
+
+def get_noise_thresholdouts(model, task): 
+    if 'Mutli' in task:
+        diff_strength = np.concatenate((np.linspace(-0.15, -0.1, num=7), np.linspace(0.1, 0.15, num=7)))
+    else:
+        diff_strength = np.concatenate((np.linspace(-0.2, -0.1, num=7), np.linspace(0.1, 0.2, num=7)))
+    noises = np.linspace(0.1, 0.8, num=30)
+
+    correct_stats, _, _ = get_DM_perf(model, noises, diff_strength, mod=0, task=task)
+
+    pos_coords = np.where(np.mean(correct_stats, axis=0) > 0.95)
+    neg_coords = np.where(np.mean(correct_stats, axis=0) < 0.75)
+    pos_thresholds = np.array((noises[pos_coords[0]], diff_strength[pos_coords[1]]))
+    neg_thresholds = np.array((noises[neg_coords[0]], diff_strength[neg_coords[1]]))
+    return pos_thresholds, neg_thresholds
+
+
+
 
 def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None): 
     model.eval()

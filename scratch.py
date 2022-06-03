@@ -138,7 +138,7 @@ import torch
 from tasks import TASK_LIST
 
 
-EXP_FILE = '6.2models/swap_holdouts'
+EXP_FILE = '6.4models/swap_holdouts'
 sbertNet = SBERTNet()
 
 holdouts_file = 'swap0'
@@ -170,7 +170,7 @@ from dataset import TaskDataSet
 from task_factory import TaskFactory
 TASK_LIST
 
-data = TaskDataSet('5.25models/training_data', num_batches = 10, set_single_task='DNMC', stream=False)
+data = TaskDataSet('6.4models/training_data', num_batches = 10, set_single_task='Anti_DM_Mod2', stream=False)
 ins, tar, mask, tar_dirs, type = next(data.stream_batch())
 
 for index in range(5):
@@ -178,6 +178,7 @@ for index in range(5):
 
 
 from instruct_utils import train_instruct_dict
+
 repeats = []
 for instruct in train_instruct_dict['Anti_DM_Mod2']:
     perf = task_eval(sbertNet, 'Anti_DM_Mod1', 128, 
@@ -194,7 +195,7 @@ from tasks import AntiDMMod2
 trials = AntiDMMod2(128)
 plot_model_response(sbertNet, trials, instructions=task_instructions)
 
-task_instructions = get_instructions(128, 'DM_Mod2', None)
+task_instructions = get_instructions(128, 'Anti_DM_Mod2', None)
 task_instructions[2]
 
 perf = task_eval(sbertNet, 'Anti_DM_Mod2', 128, instructions=task_instructions)
@@ -255,6 +256,28 @@ plot_RDM(sim_scores, 'lang')
 
 
 
+from scipy.ndimage.filters import gaussian_filter1d
+import matplotlib.pyplot as plt
+
+
+for x in range(15):
+    plt.plot(noises, np.mean(correct_stats0[:, :, x], axis=0))
+plt.legend(labels=list(np.round(multi_diff_strength, 2)))
+plt.xlabel('Noise Level')
+plt.ylabel('Correct Rate')
+plt.show()
+
+
+#THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2
+for x in range(10):
+    smoothed = gaussian_filter1d(np.mean(pstim1_stats[:, x, :], axis=0), 1)
+    plt.plot(diff_strength, smoothed)
+
+plt.legend(labels=list(np.round(noises, 2)[:10]))
+plt.xlabel('Contrast')
+plt.ylabel('p_stim1')
+plt.show()
+
 
 # simpleNetPlus_context = np.empty((16, 20))
 # simpleNetPlus.eval()
@@ -287,128 +310,29 @@ from instruct_utils import get_instructions
 from tqdm import tqdm
 from task_factory import TaskFactory
 
-sbertNet = SimpleNet()
-EXP_FILE = '6.2models/swap_holdouts'
-holdouts_file = 'Multitask'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/simpleNet', suffix='_seed0')
+EXP_FILE = '6.3models/swap_holdouts'
+sbertNet = SBERTNet()
 
-def get_DM_perf(model, noises, diff_strength, num_repeats=100, mod=0, task='DM'):
-    num_trials = len(diff_strength)
-    pstim1_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
-    correct_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
-    for i in tqdm(range(num_repeats)): 
-        for j, noise in enumerate(noises): 
+holdouts_file = 'swap1'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-            conditions_arr = np.full((2, 2, 2, num_trials), np.NaN)
-            intervals = np.empty((num_trials, 5), dtype=tuple)
-            directions = np.empty((2, num_trials))
+def get_hidden_reps(model, num_trials, tasks=TASK_LIST, instruct_mode=None):
+    hidden_reps = np.empty((num_trials, 120, 128, len(tasks)))
+    with torch.no_grad():
+        for i, task in enumerate(tasks): 
+            ins, _, _, _, _ =  construct_trials(task, num_trials)
 
-            intervals = np.empty((num_trials, 5), dtype=tuple)
-            for k in range(num_trials): 
-                intervals[k, :] = ((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))    
-                directions[:, k]= task_factory._draw_ortho_dirs()
+            task_info = get_task_info(num_trials, task, model.is_instruct, instruct_mode=instruct_mode)
+            _, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
+            hidden_reps[..., i] = hid.cpu().numpy()
+    return hidden_reps
 
+hid_reps = get_hidden_reps(sbertNet, 256)
 
-                if 'Multi' in task:
-                    mod_coh = diff_strength[k]/2
-                    mod_base_strs = np.array([1-mod_coh, 1+mod_coh])
-                    redraw = True
-                    while redraw: 
-                        coh = np.random.choice([-0.05, -0.1, 0.1, 0.05], size=2, replace=False)
-                        if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
-                            redraw = False
+task_var = np.mean(np.var(hid_reps, axis=0), axis=0)
 
-                    strengths = np.array([mod_base_strs + coh, mod_base_strs- coh]).T
-                    conditions_arr[:, :, 0, k] = np.array([directions[:,k], directions[:,k]])
-                    conditions_arr[:, :, 1, k] = strengths.T
-
-            if not 'Multi' in task: 
-                strengths = np.array([1+diff_strength/2, 1-diff_strength/2])
-                conditions_arr[mod, :, 0, :] = directions
-                conditions_arr[mod, :, 1, :] = strengths
-
-            if task == 'DM':
-                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, intervals=intervals, cond_arr=conditions_arr)
-            elif task =='Anti_DM':
-                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, intervals=intervals, cond_arr=conditions_arr)
-            elif task =='MultiDM':
-                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, multi=True, intervals=intervals, cond_arr=conditions_arr)
-            elif task =='Anti_MultiDM':
-                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, multi=True, intervals=intervals, cond_arr=conditions_arr)
-
-            # task_instructions = ['respond to the stimulus with greatest strength']*num_trials
-            task_instructions = get_task_info(num_trials, task, False)
-
-            out, hid = model(torch.Tensor(trial.inputs), task_instructions)
-            correct_stats[i, j, :] =  isCorrect(out, torch.Tensor(trial.targets), trial.target_dirs)
-            pstim1_stats[i, j, :] =  np.where(isCorrect(out, torch.Tensor(trial.targets), trial.target_dirs), diff_strength > 0, diff_strength<=0)
-    
-    return correct_stats, pstim1_stats, trial
-
-def get_noise_thresholdouts(correct_stats, diff_strength, noises): 
-    pos_coords = np.where(np.mean(correct_stats, axis=0) > 0.95)
-    neg_coords = np.where(np.mean(correct_stats, axis=0) < 0.75)
-    pos_thresholds = np.array((noises[pos_coords[0]], diff_strength[pos_coords[1]]))
-    neg_thresholds = np.array((noises[neg_coords[0]], diff_strength[neg_coords[1]]))
-    return pos_thresholds, neg_thresholds
-
-single_diff_strength = np.concatenate((np.linspace(-0.2, -0.1, num=7), np.linspace(0.1, 0.2, num=7)))
-multi_diff_strength = np.concatenate((np.linspace(-0.15, -0.1, num=7), np.linspace(0.1, 0.15, num=7)))
-noises = np.linspace(0.1, 0.8, num=30)
-
-correct_stats0, pstim1_stats, trial = get_DM_perf(sbertNet, noises, multi_diff_strength, mod=0, task='Anti_MultiDM')
-thresholds = get_noise_thresholdouts(correct_stats0, multi_diff_strength, noises)
-
-pos_thresholds, neg_thresholds = thresholds
-
-
-neg_thresholds
-noise, contrast = pos_thresholds[:, 5]
-noise, contrast = neg_thresholds[:, 5]
-
-import pickle
-pickle.dump(thresholds, open('6.2models/noise_thresholds/anti_multi_dm_noise_thresholds', 'wb'))
-
-
-from scipy.ndimage.filters import gaussian_filter1d
+import seaborn as sns
 import matplotlib.pyplot as plt
 
-for x in range(15):
-    plt.plot(noises, np.mean(correct_stats0[:, :, x], axis=0))
-plt.legend(labels=list(np.round(multi_diff_strength, 2)))
-plt.xlabel('Noise Level')
-plt.ylabel('Correct Rate')
+sns.heatmap(task_var)
 plt.show()
-
-
-#THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2
-for x in range(10):
-    smoothed = gaussian_filter1d(np.mean(pstim1_stats[:, x, :], axis=0), 1)
-    plt.plot(diff_strength, smoothed)
-
-plt.legend(labels=list(np.round(noises, 2)[:10]))
-plt.xlabel('Contrast')
-plt.ylabel('p_stim1')
-plt.show()
-
-
-from tasks import ConAntiDM, ConDM, ConAntiMultiDM, ConMultiDM
-from model_analysis import task_eval
-
-mod_coh = diff_strength[0]/2
-mod_base_strs = np.array([1-mod_coh, 1+mod_coh])
-
-redraw = True
-while redraw: 
-    coh = np.random.choice([-0.2, -0.175, -0.15, -0.125, -0.1, 0.1, 0.125, 0.15, 0.175, 0.2], size=2, replace=False)
-    if coh[0] != -1*coh[1] and (abs(coh[0])-abs(coh[1]))>=0.05 and ((coh[0] <0) ^ (coh[1] < 0)): 
-        redraw = False
-
-strengths = np.array([mod_base_strs + coh, mod_base_strs- coh]).T
-
-coh = [0.1, -0.15]
-coh[0] != -1*coh[1] 
-abs((abs(coh[0])-abs(coh[1])))
-
-
-((coh[0] <0) ^ (coh[1] < 0))

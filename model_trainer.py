@@ -25,7 +25,7 @@ class TrainerConfig():
     file_path: str
     random_seed: int
     epochs: int = 100
-    min_run_epochs: int = 35
+    min_run_epochs: int = 25
     batch_len: int = 32
     num_batches: int = 1200
     holdouts: list = []
@@ -38,7 +38,7 @@ class TrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.95}
+    scheduler_args: dict = {'gamma': 0.9}
 
     save_for_tuning_epoch: int = 30
     checker_threshold: float = 0.95
@@ -73,7 +73,7 @@ class ModelTrainer(BaseTrainer):
             pickle.dump(self.correct_data, open(self.file_path+'/'+task_file_name+'_'+self.seed_suffix+'_holdout_correct', 'wb'))
 
     def _init_streamer(self):
-        self.streamer = TaskDataSet(DATA_FOLDER+'/training_data', 
+        self.streamer = TaskDataSet(MODEL_FOLDER+'/training_data', 
                         self.stream_data, 
                         self.batch_len, 
                         self.num_batches, 
@@ -183,7 +183,7 @@ def train_model_set(model_names, seeds, label_holdout_list, overwrite=False, **t
         for model_name in model_names: 
             if '_tuned' in model_name: warnings.warn('\n TUNED MODELS SHOULD BE FINE TUNED USING THE TUNING FUNCTION \n')
             for label, holdouts in label_holdout_list: 
-                file_name = EXP_FILE+'/'+label+'/'+model_name
+                file_name = EXP_FOLDER+'/'+label+'/'+model_name
                 
                 if check_already_trained(file_name, seed) and not overwrite:
                     continue 
@@ -208,7 +208,7 @@ def tune_model_set(model_names, seeds, label_holdout_list, overwrite=False, **tr
 
             for label, holdouts in label_holdout_list: 
                 untuned_model_name = model_name.replace('_tuned', '')
-                file_name = EXP_FILE+'/'+label
+                file_name = EXP_FOLDER+'/'+label
                 
                 if check_already_trained(file_name+'/'+model_name, seed) and not overwrite:
                     continue 
@@ -244,7 +244,7 @@ def test_model_set(model_names, seeds, label_holdout_list, overwrite=False, **tr
         torch.manual_seed(seed)
         for model_name in model_names: 
             for label, holdouts in label_holdout_list: 
-                file_name = EXP_FILE+'/'+label+'/'+model_name
+                file_name = EXP_FOLDER+'/'+label+'/'+model_name
                 
                 model = make_default_model(model_name)
                 model.load_model(file_name, suffix='_seed'+str(seed))
@@ -264,28 +264,40 @@ def test_model_set(model_names, seeds, label_holdout_list, overwrite=False, **tr
 
 
 if __name__ == "__main__":
+    import argparse
+    from tasks_utils import SWAPS_DICT
 
-#save training data when checkpointing!
-    # test_model_set(['sbertNet_tuned', 'bertNet_tuned', 'gptNet_tuned', 'sbertNet', \
-    #                 'bertNet', 'gptNet', 'simpleNet', 'simpleNetPlus'], 
-    #     [0], training_lists_dict['aligned_holdouts'])            
-    torch.autograd.set_detect_anomaly(True)
-    from tasks_utils import SWAPS_DICT, ALIGNED_DICT
-
-    DATA_FOLDER = '6.2models'
-    EXP_FILE =DATA_FOLDER+'/swap_holdouts'
     
-    # train_model_set(['sbertNet'],  
-    #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--model_name', required=True)
+    # parser.add_argument('--model_folder', required=True)
+    # parser.add_argument('--exp_type', required=True)
+    # parser.add_argument('--mode', default='train')
+    # parser.add_argument('--overwrite', default=False)
+    # args = parser.parse_args()
+    # os.environ['MODEL_FOLDER'] = args.folder
+
+
+
+    # MODEL_FOLDER = args.model_folder
+    # EXP_FOLDER =MODEL_FOLDER+'/'+args.exp_type
+
+
+    MODEL_FOLDER = '6.3models'
+    EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
+
+    # # train_model_set(['sbertNet'],  
+    # #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
 
     train_model_set(['sbertNet'],  
         [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
     
-    tune_model_set(['sbertNet_tuned'],  
-        [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
+    # tune_model_set(['sbertNet_tuned'],  
+    #     [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
 
-    train_model_set(['simpleNet'],  
-        [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
+    # train_model_set(['gptNet'],  
+    #     [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     
 
-    train_model_set(['gptNet'],  
-        [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
+    # train_model_set(['simpleNet'],  
+    #     [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
+
