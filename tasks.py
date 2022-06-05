@@ -27,7 +27,7 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
 
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
 
-            'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
+            #'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
 
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
@@ -634,16 +634,16 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
 # for task in TASK_LIST: 
 #     construct_trials(task, 10)
 
-# trials = DelayMultiDM(500)
+trials = DelayAntiMultiDM(500)
+trials.factory.cond_arr[:, :, 0, 0]
+np.sum(trials.factory.cond_arr[:, :, 1, :], axis=0)[0]-np.sum(trials.factory.cond_arr[:, :, 1, :], axis=0)[1]
 
-# trials.factory.cond_arr[:, :, 0, 0]
+np.min(trials.factory.cond_arr[0,:, 1, :], axis=0)<np.min(trials.factory.cond_arr[1, :, 1, :], axis=0)
 
-# np.sum(trials.factory.cond_arr[:, :, 1, :], axis=0)[0]-np.sum(trials.factory.cond_arr[:, :, 1, :], axis=0)[1]
+for index in range(5):
+    task_factory.TaskFactory.plot_trial(trials.inputs[index, ...], trials.targets[index, ...], trials.task_type)
 
-# for index in range(5):
-#     task_factory.TaskFactory.plot_trial(trials.inputs[index, ...], trials.targets[index, ...], trials.task_type)
-
-# np.mean(np.isnan(trials.target_dirs))
+np.mean(np.isnan(trials.target_dirs))
 
 
 
@@ -669,3 +669,5 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
 
 
 # np.sum(strengths, axis=0)[0]>np.sum(strengths, axis=0)[1]
+
+

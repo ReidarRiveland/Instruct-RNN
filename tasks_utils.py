@@ -11,16 +11,29 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) 
 
 SWAP_LIST = [            
-            ('Anti_DM_Mod2', 'Go_Mod1', 'Anti_Go', 'COMP1'), 
-            ('DM_Mod1', 'Anti_Go_Mod2', 'ConMultiDM', 'DMS'),
-            ('Anti_Go_Mod1', 'DM_Mod2', 'Go', 'MultiCOMP1'), 
-            ('Go_Mod2', 'Anti_DM_Mod1', 'Anti_DelayGo', 'COMP2'), 
+            ('Anti_DM_Mod2', 'RT_Go', 'Anti_ConDM', 'COMP1'), 
+            ('DelayDM', 'Anti_Go_Mod2', 'ConMultiDM', 'DMS'),
+            ('DM_Mod2', 'Anti_RT_Go',  'Go', 'MultiCOMP1'), 
+            ('Go_Mod2', 'Anti_ConMultiDM', 'Anti_DelayGo', 'COMP2'), 
             ('Anti_DelayMultiDM', 'MultiDM', 'Anti_RT_DM', 'DMC'),             
-            ('DM', 'Anti_ConDM', 'RT_Go', 'MultiCOMP2'), 
-            ('Anti_DM', 'DelayMultiDM', 'Anti_RT_Go',  'DNMS'), 
-            ('RT_DM', 'Anti_MultiDM', 'DelayDM', 'DNMC'),
-            ('ConDM', 'Anti_DelayDM', 'DelayGo', 'Anti_ConMultiDM')
+            ('DM', 'Anti_Go', 'Go_Mod1', 'MultiCOMP2'), 
+            ('Anti_DM', 'DelayMultiDM', 'Anti_Go_Mod1',  'DNMS'), 
+            ('RT_DM', 'Anti_MultiDM', 'DM_Mod1', 'DNMC'),
+            ('ConDM', 'Anti_DelayDM', 'DelayGo', 'Anti_DM_Mod1')
             ]
+
+
+# SWAP_LIST = [            
+#             ('Anti_DM_Mod2', 'Go_Mod1', 'Anti_Go', 'COMP1'), 
+#             ('DM_Mod1', 'Anti_Go_Mod2', 'ConMultiDM', 'DMS'),
+#             ('Anti_Go_Mod1', 'DM_Mod2', 'Go', 'MultiCOMP1'), 
+#             ('Go_Mod2', 'Anti_DM_Mod1', 'Anti_DelayGo', 'COMP2'), 
+#             ('Anti_DelayMultiDM', 'MultiDM', 'Anti_RT_DM', 'DMC'),             
+#             ('DM', 'Anti_ConDM', 'RT_Go', 'MultiCOMP2'), 
+#             ('Anti_DM', 'DelayMultiDM', 'Anti_RT_Go',  'DNMS'), 
+#             ('RT_DM', 'Anti_MultiDM', 'DelayDM', 'DNMC'),
+#             ('ConDM', 'Anti_DelayDM', 'DelayGo', 'Anti_ConMultiDM')
+#             ]
 
 task_list=TASK_LIST.copy()
 
@@ -28,6 +41,8 @@ for swap in SWAP_LIST:
     for task in swap: 
         task_list.pop(task_list.index(task))
 task_list
+
+
 # SWAP_LIST = [
 #             ('Anti_DM_Mod2', 'Go_Mod1', 'Anti_Go', 'COMP1', 'ConMultiDM'), 
 #             ('Anti_Go_Mod1', 'DM_Mod2', 'Go', 'MultiCOMP1', 'ConDM'), 

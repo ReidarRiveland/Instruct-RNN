@@ -33,7 +33,7 @@ def _add_noise(array, noise):
 def _draw_ortho_dirs(dir1=None): 
     if dir1 is None: 
         dir1 = np.random.uniform(0, 2*np.pi)
-    dir2 = (dir1+np.pi+np.random.uniform(-np.pi/5, np.pi/5))%(2*np.pi)
+    dir2 = (dir1+np.pi+np.random.uniform(-np.pi/8, np.pi/8))%(2*np.pi)
     return (dir1, dir2)
 
 class TaskFactory(): 

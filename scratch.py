@@ -138,10 +138,11 @@ import torch
 from tasks import TASK_LIST
 
 
-EXP_FILE = '6.4models/swap_holdouts'
-sbertNet = SBERTNet()
+EXP_FILE = '6.3models/swap_holdouts'
+sbertNet = SBERTNet(LM_out_dim=64, rnn_hidden_dim=256)
+sbertNet = SimpleNet(rnn_hidden_dim=256)
 
-holdouts_file = 'swap0'
+holdouts_file = 'swap2'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 
@@ -178,10 +179,9 @@ for index in range(5):
 
 
 from instruct_utils import train_instruct_dict
-
 repeats = []
 for instruct in train_instruct_dict['Anti_DM_Mod2']:
-    perf = task_eval(sbertNet, 'Anti_DM_Mod1', 128, 
+    perf = task_eval(sbertNet, 'DM_Mod2', 128, 
             instructions=[instruct]*128)
     repeats.append((instruct, perf))
 
@@ -313,10 +313,25 @@ from task_factory import TaskFactory
 EXP_FILE = '6.3models/swap_holdouts'
 sbertNet = SBERTNet()
 
-holdouts_file = 'swap1'
+holdouts_file = 'swap0'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-def get_hidden_reps(model, num_trials, tasks=TASK_LIST, instruct_mode=None):
+
+CLUSTER_TASK_LIST = ['Go', 'RT_Go','DelayGo','Go_Mod1','Go_Mod2',
+                    'Anti_Go',  'Anti_RT_Go', 'Anti_DelayGo', 'Anti_Go_Mod1',  'Anti_Go_Mod2',
+                    'DM', 'RT_DM', 'MultiDM', 'DelayDM', 'DelayMultiDM', 'ConDM','ConMultiDM','DM_Mod1',  'DM_Mod2',
+                    'Anti_DM', 'Anti_RT_DM', 'Anti_MultiDM',    'Anti_DelayDM',  'Anti_DelayMultiDM','Anti_ConDM', 'Anti_ConMultiDM', 'Anti_DM_Mod1', 'Anti_DM_Mod2',        
+                    
+                    #'RT_DM_Mod1', 'Anti_RT_DM_Mod1', 'RT_DM_Mod2', 'Anti_RT_DM_Mod2', 
+
+                    'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
+
+                    #'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
+
+                    'DMS', 'DNMS', 'DMC', 'DNMC']
+
+
+def get_hidden_reps(model, num_trials, tasks=CLUSTER_TASK_LIST, instruct_mode=None):
     hidden_reps = np.empty((num_trials, 120, 128, len(tasks)))
     with torch.no_grad():
         for i, task in enumerate(tasks): 
@@ -329,10 +344,20 @@ def get_hidden_reps(model, num_trials, tasks=TASK_LIST, instruct_mode=None):
 
 hid_reps = get_hidden_reps(sbertNet, 256)
 
-task_var = np.mean(np.var(hid_reps, axis=0), axis=0)
+A = np.matrix(np.mean(np.var(hid_reps, axis=0), axis=0))
+
+B = (A-A.min(axis=0))/(A.max(axis=0)-A.min(axis=0))
+np.sum(B, axis=0)
+
+#HOW TO SORT?
+
+def NormalizeData(data):
+    return (data[:,] - np.min(data, axis=1)) / (np.max(data, axis=1) - np.min(data, axis=1))
+
+NormalizeData(task_var)
 
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-sns.heatmap(task_var)
+sns.heatmap(B.T, yticklabels=CLUSTER_TASK_LIST)
 plt.show()
