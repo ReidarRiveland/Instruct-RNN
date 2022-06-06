@@ -440,18 +440,40 @@ class COMPFactory(TaskFactory):
         for i in range(self.num_trials): 
             requires_response = requires_response_list[i]
 
-            if self.multi:        
+
+            if self.mod is not None:
+                base_strength = np.random.uniform(0.8, 1.2, size=2)
+                coh = np.random.choice([0.1, 0.15, 0.2], size=2)
+                positive_strength0, negative_strength0 = base_strength[0] + coh[0], base_strength[0] - coh[0]
+                positive_strength1, negative_strength1 = base_strength[1] + coh[1], base_strength[1] - coh[1]
+                strs_true = self._set_comp_strs(positive_strength0, negative_strength0, requires_response, self.resp_stim)
+                strs_dummy = self._set_comp_strs(positive_strength1, negative_strength1, np.random.choice([True, False]), self.resp_stim)
+                directions0 = _draw_ortho_dirs()
+                directions1 = _draw_ortho_dirs()
+                directions = np.array([directions0, directions1])
+                conditions_arr[:, :, 0, i] = directions
+                conditions_arr[self.mod, :, 1, i] = strs_true
+                conditions_arr[((mod+1)%2), :, 1, i] = strs_dummy
+
+                if requires_response and self.resp_stim==1:
+                    target_dirs[i] = directions[self.mod, 0]
+                elif requires_response and self.resp_stim==2: 
+                    target_dirs[i] = directions[self.mod, 1]
+                else: 
+                    target_dirs[i] = None
+
+            elif self.multi:        
                 directions1 = _draw_ortho_dirs()
                 directions2 = directions1
 
-                mod_coh = np.random.choice([0.15, 0.125, 0.1, -0.1, -0.125, -0.15])
+                mod_coh = np.random.choice([0.175, 0.15, 0.125, -0.125, -0.15, -0.175])
 
                 base_strength = np.random.uniform(0.8, 1.2)
                 mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
 
                 redraw = True
                 while redraw: 
-                    coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
+                    coh = np.random.choice([-0.225, -0.175, -0.125, 0.125, 0.175, 0.225], size=2, replace=False)
                     if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
                         redraw = False
 
@@ -476,28 +498,6 @@ class COMPFactory(TaskFactory):
                     target_dirs[i] = directions[0, 1]
                 else: 
                     target_dirs[i] = None
-
-            elif self.mod is not None:
-                base_strength = np.random.uniform(0.8, 1.2, size=2)
-                coh = np.random.choice([0.1, 0.15, 0.2], size=2)
-                positive_strength0, negative_strength0 = base_strength[0] + coh[0], base_strength[0] - coh[0]
-                positive_strength1, negative_strength1 = base_strength[1] + coh[1], base_strength[1] - coh[1]
-                strs_true = self._set_comp_strs(positive_strength0, negative_strength0, requires_response, self.resp_stim)
-                strs_dummy = self._set_comp_strs(positive_strength1, negative_strength1, np.random.choice([True, False]), self.resp_stim)
-                directions0 = _draw_ortho_dirs()
-                directions1 = _draw_ortho_dirs()
-                directions = np.array([directions0, directions1])
-                conditions_arr[:, :, 0, i] = directions
-                conditions_arr[self.mod, :, 1, i] = strs_true
-                conditions_arr[((mod+1)%2), :, 1, i] = strs_dummy
-
-                if requires_response and self.resp_stim==1:
-                    target_dirs[i] = directions[self.mod, 0]
-                elif requires_response and self.resp_stim==2: 
-                    target_dirs[i] = directions[self.mod, 1]
-                else: 
-                    target_dirs[i] = None
-
 
             else:  
                 base_strength = np.random.uniform(0.8, 1.2)
