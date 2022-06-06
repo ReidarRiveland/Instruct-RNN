@@ -283,7 +283,7 @@ if __name__ == "__main__":
     # EXP_FOLDER =MODEL_FOLDER+'/'+args.exp_type
 
 
-    MODEL_FOLDER = '6.5models'
+    MODEL_FOLDER = '6.6models'
     EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
 
     # train_model_set(['simpleNet'],  

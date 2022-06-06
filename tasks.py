@@ -634,7 +634,7 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
 # for task in TASK_LIST: 
 #     construct_trials(task, 10)
 
-# trials = DMMod2(500)
+# trials = MultiCOMP1(500)
 # trials.factory.cond_arr[:, :, :, 4]
 # np.sum(trials.factory.cond_arr[:, :, 1, :], axis=0)[0]-np.sum(trials.factory.cond_arr[:, :, 1, :], axis=0)[1]
 
