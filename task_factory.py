@@ -284,7 +284,7 @@ class DMFactory(TaskFactory):
                 conditions_arr[:, :, 0, i] = np.array([directions1, directions2])
                 conditions_arr[:, :, 1, i] = np.array([strengths0, strengths1])
 
-            else: 
+            elif self.multi: 
                 directions1 = _draw_ortho_dirs()
                 directions2 = directions1
 
@@ -437,22 +437,16 @@ class COMPFactory(TaskFactory):
             requires_response_list = [np.random.choice([True, False])]
 
         for i in range(self.num_trials): 
-            requires_response = requires_response_list.pop()
+            requires_response = requires_response_list[i]
 
             if self.multi:        
-                if self.mod is not None: 
-                    directions1 = _draw_ortho_dirs()
-                    directions2 = _draw_ortho_dirs()
-                else:
-                    directions1 = _draw_ortho_dirs()
-                    directions2 = directions1
+                directions1 = _draw_ortho_dirs()
+                directions2 = directions1
 
                 mod_coh = np.random.choice([0.15, 0.125, 0.1, -0.1, -0.125, -0.15])
 
                 base_strength = np.random.uniform(0.8, 1.2)
                 mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
-
-
 
                 redraw = True
                 while redraw: 
@@ -465,11 +459,7 @@ class COMPFactory(TaskFactory):
                 tmp_strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
                                     [mod_base_strs[_mod_swap] - coh[_mod_swap], mod_base_strs[_mod_swap] + coh[_mod_swap]] ])
 
-                
-                if self.mod == None: 
-                    candidate_strs = np.sum(tmp_strengths, axis=0)
-                else: 
-                    candidate_strs = tmp_strengths[self.mod, :]
+                candidate_strs = np.sum(tmp_strengths, axis=0)
 
                 positive_index = argmax(candidate_strs)
                 positive_strength = tmp_strengths[:, positive_index]
@@ -480,19 +470,35 @@ class COMPFactory(TaskFactory):
                 conditions_arr[:, :, 1, i] = strs.T
 
                 if requires_response and self.resp_stim==1:
-                    if self.mod is not None: 
-                        target_dirs[i] = directions[self.mod, 0]
-                    else: 
-                        target_dirs[i] = directions[0, 0]
+                    target_dirs[i] = directions[0, 0]
                 elif requires_response and self.resp_stim==2: 
-                    if self.mod is not None: 
-                        target_dirs[i] = directions[self.mod, 1]
-                    else: 
-                        target_dirs[i] = directions[0, 1]
+                    target_dirs[i] = directions[0, 1]
                 else: 
                     target_dirs[i] = None
 
-            else: 
+            elif self.mod is not None:
+                base_strength = np.random.uniform(0.8, 1.2, size=2)
+                coh = np.random.choice([0.1, 0.15, 0.2], size=2)
+                positive_strength0, negative_strength0 = base_strength[0] + coh[0], base_strength[0] - coh[0]
+                positive_strength1, negative_strength1 = base_strength[1] + coh[1], base_strength[1] - coh[1]
+                strs_true = self._set_comp_strs(positive_strength0, negative_strength0, requires_response, self.resp_stim)
+                strs_dummy = self._set_comp_strs(positive_strength1, negative_strength1, np.random.choice([True, False]), self.resp_stim)
+                directions0 = _draw_ortho_dirs()
+                directions1 = _draw_ortho_dirs()
+                directions = np.array([directions0, directions1])
+                conditions_arr[:, :, 0, i] = directions
+                conditions_arr[self.mod, :, 1, i] = strs_true
+                conditions_arr[((mod+1)%2), :, 1, i] = strs_dummy
+
+                if requires_response and self.resp_stim==1:
+                    target_dirs[i] = directions[self.mod, 0]
+                elif requires_response and self.resp_stim==2: 
+                    target_dirs[i] = directions[self.mod, 1]
+                else: 
+                    target_dirs[i] = None
+
+
+            else:  
                 base_strength = np.random.uniform(0.8, 1.2)
                 coh = np.random.choice([0.1, 0.15, 0.2])
                 positive_strength = base_strength + coh
