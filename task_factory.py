@@ -308,15 +308,16 @@ class DMFactory(TaskFactory):
                     conditions_arr[:, :, 0, i] = np.array([directions1, directions2])
                     conditions_arr[:, :, 1, i] = strengths
 
-                else:
-                    mod = np.random.choice([0, 1])
-                    base_strength = np.random.uniform(0.8, 1.2)
-                    coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175])
+            else:
+                directions = _draw_ortho_dirs()
+                mod = np.random.choice([0, 1])
+                base_strength = np.random.uniform(0.8, 1.2)
+                coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175])
 
-                    strengths = np.array([base_strength+coh, base_strength-coh])
-                    
-                    conditions_arr[mod, :, 0, i] = np.array(directions1)
-                    conditions_arr[mod, :, 1, i] = strengths
+                strengths = np.array([base_strength+coh, base_strength-coh])
+                
+                conditions_arr[mod, :, 0, i] = np.array(directions)
+                conditions_arr[mod, :, 1, i] = strengths
         return conditions_arr
 
     def _set_target_dirs(self): 
