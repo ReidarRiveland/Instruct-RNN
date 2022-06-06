@@ -17,7 +17,7 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
 
             'RT_DM', 'Anti_RT_DM', 
 
-            #'ConDM', 'Anti_ConDM', 'ConMultiDM', 'Anti_ConMultiDM',            
+            'ConDM', 'Anti_ConDM', 'ConMultiDM', 'Anti_ConMultiDM',            
 
             'DelayDM', 'Anti_DelayDM', 'DelayMultiDM', 'Anti_DelayMultiDM',
 

@@ -286,19 +286,18 @@ if __name__ == "__main__":
     MODEL_FOLDER = '6.5models'
     EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
 
-    train_model_set(['simpleNet'],  
-        [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
-
-    # train_model_set(['sbertNet'],  
-    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
-    
-    # tune_model_set(['sbertNet_tuned'],  
-    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
-
-
     # train_model_set(['simpleNet'],  
-    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
+    #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
 
-    # train_model_set(['gptNet'],  
-    #     [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     
+    train_model_set(['sbertNet'],  
+        [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
+    
+    tune_model_set(['sbertNet_tuned'],  
+        [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
+
+    train_model_set(['simpleNet'],  
+        [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
+
+    train_model_set(['gptNet'],  
+        [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     
 

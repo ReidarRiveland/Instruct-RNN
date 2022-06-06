@@ -35,12 +35,12 @@ SWAP_LIST = [
 #             ('ConDM', 'Anti_DelayDM', 'DelayGo', 'Anti_ConMultiDM')
 #             ]
 
-task_list=TASK_LIST.copy()
+# task_list=TASK_LIST.copy()
 
-for swap in SWAP_LIST: 
-    for task in swap: 
-        task_list.pop(task_list.index(task))
-task_list
+# for swap in SWAP_LIST: 
+#     for task in swap: 
+#         task_list.pop(task_list.index(task))
+# task_list
 
 
 # SWAP_LIST = [

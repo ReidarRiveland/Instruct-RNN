@@ -347,7 +347,7 @@ class ConDMFactory(TaskFactory):
         self.timing = timing
         self.str_chooser = str_chooser
         self.mod = mod
-        self.pos_thresholds, self.neg_thresholds = pickle.load(open('6.2models/noise_thresholds/'+self.threshold_folder, 'rb'))
+        self.pos_thresholds, self.neg_thresholds = pickle.load(open('6.5models/noise_thresholds/'+self.threshold_folder, 'rb'))
         self.noise= []
 
         if self.cond_arr is None: 

@@ -222,8 +222,6 @@ np.mean(repeats)
 
 
 
-
-
 resp = get_task_reps(sbertNet)
 reps_reduced, _ = reduce_rep(resp)
 
@@ -263,17 +261,40 @@ plot_RDM(sim_scores, 'lang')
 
 
 
+from models.full_models import SimpleNet
+from model_analysis import get_DM_perf, get_noise_thresholdouts
+import pickle
+import numpy as np
+
+EXP_FILE = '6.5models/swap_holdouts'
+
+simpleNet = SimpleNet(rnn_hidden_dim=256)
+holdouts_file = 'Multitask'
+simpleNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+simpleNet.model_name, suffix='_seed0')
+
+task = 'Anti_MultiDM'
+
+if 'Mutli' in task:
+    diff_strength = np.concatenate((np.linspace(-0.15, -0.1, num=7), np.linspace(0.1, 0.15, num=7)))
+else:
+    diff_strength = np.concatenate((np.linspace(-0.2, -0.1, num=7), np.linspace(0.1, 0.2, num=7)))
+noises = np.linspace(0.1, 0.8, num=30)
+
+correct_stats, pstim1_stats, trial = get_DM_perf(simpleNet, noises, diff_strength, task=task)
 
 from scipy.ndimage.filters import gaussian_filter1d
 import matplotlib.pyplot as plt
 
-
 for x in range(15):
-    plt.plot(noises, np.mean(correct_stats0[:, :, x], axis=0))
-plt.legend(labels=list(np.round(multi_diff_strength, 2)))
+    plt.plot(noises, np.mean(correct_stats[:, :, x], axis=0))
+plt.legend(labels=list(np.round(diff_strength, 2)))
 plt.xlabel('Noise Level')
 plt.ylabel('Correct Rate')
 plt.show()
+
+thresholds = get_noise_thresholdouts(simpleNet, task)
+
+pickle.dump(thresholds, open('6.5models/noise_thresholds/anti_multi_dm_noise_thresholds', 'wb'))
 
 
 #THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2
