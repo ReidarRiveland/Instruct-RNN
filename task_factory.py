@@ -274,40 +274,49 @@ class DMFactory(TaskFactory):
             if self.mod is not None: 
                 directions1 = _draw_ortho_dirs()
                 directions2 = _draw_ortho_dirs()
-            else:
+                base_strength = np.random.uniform(0.8, 1.2, size=2)
+                coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175], size=2)
+
+                strengths0 = np.array([base_strength[0]+coh[0], base_strength[0]-coh[0]])
+                strengths1 = np.array([base_strength[1]+coh[1], base_strength[1]-coh[1]])
+
+                
+                conditions_arr[:, :, 0, i] = np.array([directions1, directions2])
+                conditions_arr[:, :, 1, i] = np.array([strengths0, strengths1])
+
+            else: 
                 directions1 = _draw_ortho_dirs()
                 directions2 = directions1
 
-            if self.multi:    
+                if self.multi:   
+                    mod_coh = np.random.choice([0.15, 0.125, 0.1, -0.1, -0.125, -0.15])
 
-                mod_coh = np.random.choice([0.15, 0.125, 0.1, -0.1, -0.125, -0.15])
+                    base_strength = np.random.uniform(0.8, 1.2)
+                    mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
 
-                base_strength = np.random.uniform(0.8, 1.2)
-                mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
+                    redraw = True
+                    while redraw: 
+                        coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
+                        if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
+                            redraw = False
 
-                redraw = True
-                while redraw: 
-                    coh = np.random.choice([-0.2, -0.175, -0.15, -0.125, -0.1, 0.1, 0.125, 0.15, 0.175, 0.2], size=2, replace=False)
-                    if coh[0] != -1*coh[1] and abs((abs(coh[0])-abs(coh[1])))>=0.05 and ((coh[0] <0) ^ (coh[1] < 0)): 
-                        redraw = False
+                    mod_swap = np.random.choice([0,1])
+                    _mod_swap = (mod_swap+1)%2
+                    strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
+                                        [mod_base_strs[_mod_swap] - coh[_mod_swap], mod_base_strs[_mod_swap] + coh[_mod_swap]] ])
 
-                mod_swap = np.random.choice([0,1])
-                _mod_swap = (mod_swap+1)%2
-                strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
-                                    [mod_base_strs[_mod_swap] - coh[_mod_swap], mod_base_strs[_mod_swap] + coh[_mod_swap]] ])
+                    conditions_arr[:, :, 0, i] = np.array([directions1, directions2])
+                    conditions_arr[:, :, 1, i] = strengths
 
-                conditions_arr[:, :, 0, i] = np.array([directions1, directions2])
-                conditions_arr[:, :, 1, i] = strengths
+                else:
+                    mod = np.random.choice([0, 1])
+                    base_strength = np.random.uniform(0.8, 1.2)
+                    coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175])
 
-            else:
-                mod = np.random.choice([0, 1])
-                base_strength = np.random.uniform(0.8, 1.2)
-                coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175])
-
-                strengths = np.array([base_strength+coh, base_strength-coh])
-                
-                conditions_arr[mod, :, 0, i] = np.array(directions1)
-                conditions_arr[mod, :, 1, i] = strengths
+                    strengths = np.array([base_strength+coh, base_strength-coh])
+                    
+                    conditions_arr[mod, :, 0, i] = np.array(directions1)
+                    conditions_arr[mod, :, 1, i] = strengths
         return conditions_arr
 
     def _set_target_dirs(self): 
@@ -444,10 +453,11 @@ class COMPFactory(TaskFactory):
                 mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
 
 
+
                 redraw = True
                 while redraw: 
-                    coh = np.random.choice([-0.2, -0.175, -0.15, -0.125, -0.1, 0.1, 0.125, 0.15, 0.175, 0.2], size=2, replace=False)
-                    if coh[0] != -1*coh[1] and abs((abs(coh[0])-abs(coh[1])))>=0.05 and ((coh[0] <0) ^ (coh[1] < 0)): 
+                    coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
+                    if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
                         redraw = False
 
                 mod_swap = np.random.choice([0,1])

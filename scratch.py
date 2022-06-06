@@ -138,12 +138,19 @@ import torch
 from tasks import TASK_LIST
 
 
-EXP_FILE = '6.3models/swap_holdouts'
+EXP_FILE = '6.5models/swap_holdouts'
 sbertNet = SBERTNet(LM_out_dim=64, rnn_hidden_dim=256)
-sbertNet = SimpleNet(rnn_hidden_dim=256)
+#sbertNet = SimpleNet(rnn_hidden_dim=256)
 
-holdouts_file = 'swap2'
+holdouts_file = 'swap5'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
+
+
+
+for task in SWAPS_DICT[holdouts_file]:
+    print(task)
+    perf = task_eval(sbertNet, task, 256)
+    print((task, perf))
 
 
 def get_zero_shot_perf(model): 
@@ -181,11 +188,13 @@ for index in range(5):
 from instruct_utils import train_instruct_dict
 repeats = []
 for instruct in train_instruct_dict['Anti_DM_Mod2']:
-    perf = task_eval(sbertNet, 'DM_Mod2', 128, 
+    perf = task_eval(sbertNet, 'Anti_DM_Mod2', 128, 
             instructions=[instruct]*128)
     repeats.append((instruct, perf))
 
 repeats
+
+('focus on the second modality and select the weakest direction', 0.8359375)
 
 get_instructions(128, 'DMC', None)
 
@@ -198,18 +207,17 @@ plot_model_response(sbertNet, trials, instructions=task_instructions)
 task_instructions = get_instructions(128, 'Anti_DM_Mod2', None)
 task_instructions[2]
 
-perf = task_eval(sbertNet, 'Anti_DM_Mod2', 128, instructions=task_instructions)
+('opt for the stimulus in the second modality with has minimal strength', 0.1953125), 
+('respond to the orientation which has lowest strength in the second modality', 0.1796875)
+
+instructions = ['select the direction with lowest strength in the second modality']*128
+task_eval(sbertNet, 'Anti_DM_Mod2', 128, instructions=instructions)
+
+
 
 perf = get_model_performance(sbertNet)
 list(zip(TASK_LIST, perf))
 np.mean(repeats)
-
-
-for task in SWAPS_DICT[holdouts_file]:
-    print(task)
-    perf = task_eval(sbertNet, task, 256)
-    print((task, perf))
-
 
 
 

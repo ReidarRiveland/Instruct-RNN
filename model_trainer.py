@@ -223,7 +223,7 @@ def tune_model_set(model_names, seeds, label_holdout_list, overwrite=False, **tr
 
                 training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
                 tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, 
-                                                epochs=20, min_run_epochs=5, lr=5*1e-5, lang_lr=1e-5,
+                                                epochs=20, min_run_epochs=5, lr=1e-4, lang_lr=1e-5,
                                                 save_for_tuning_epoch=np.nan, 
                                                 **train_config_kwargs)
 
@@ -286,20 +286,19 @@ if __name__ == "__main__":
     MODEL_FOLDER = '6.5models'
     EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
 
-    # train_model_set(['sbertNet'],  
-    #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
-
-    train_model_set(['sbertNet'],  
-        [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
-    
-    tune_model_set(['sbertNet_tuned'],  
-        [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
-
-
     train_model_set(['simpleNet'],  
-        [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
+        [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
+
+    # train_model_set(['sbertNet'],  
+    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
+    
+    # tune_model_set(['sbertNet_tuned'],  
+    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
 
 
-    train_model_set(['gptNet'],  
-        [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     
+    # train_model_set(['simpleNet'],  
+    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
+
+    # train_model_set(['gptNet'],  
+    #     [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     
 
