@@ -194,17 +194,9 @@ def get_DM_perf(model, noises, diff_strength, num_repeats=100, mod=0, task='DM')
     
     return correct_stats, pstim1_stats, trial
 
-def get_noise_thresholdouts(model, task): 
-    if 'Mutli' in task:
-        diff_strength = np.concatenate((np.linspace(-0.15, -0.1, num=7), np.linspace(0.1, 0.15, num=7)))
-    else:
-        diff_strength = np.concatenate((np.linspace(-0.2, -0.1, num=7), np.linspace(0.1, 0.2, num=7)))
-    noises = np.linspace(0.1, 0.8, num=30)
-
-    correct_stats, _, _ = get_DM_perf(model, noises, diff_strength, mod=0, task=task)
-
-    pos_coords = np.where(np.mean(correct_stats, axis=0) > 0.95)
-    neg_coords = np.where(np.mean(correct_stats, axis=0) < 0.75)
+def get_noise_thresholdouts(correct_stats, diff_strength, noises, pos_cutoff=0.95, neg_cutoff=0.75): 
+    pos_coords = np.where(np.mean(correct_stats, axis=0) > pos_cutoff)
+    neg_coords = np.where(np.mean(correct_stats, axis=0) < neg_cutoff)
     pos_thresholds = np.array((noises[pos_coords[0]], diff_strength[pos_coords[1]]))
     neg_thresholds = np.array((noises[neg_coords[0]], diff_strength[neg_coords[1]]))
     return pos_thresholds, neg_thresholds

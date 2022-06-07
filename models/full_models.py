@@ -28,6 +28,7 @@ class GPTNet(InstructNet):
                                     LM_class= GPT,
                                     LM_load_str = 'gpt2', 
                                     LM_train_layers=[], 
+                                    LM_proj_out_layers=3,
                                     **kw_args)
         super().__init__(config)
 

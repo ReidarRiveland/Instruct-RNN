@@ -1,10 +1,10 @@
 from random import uniform
 from matplotlib.style import context
-from tasks_utils import get_holdout_file_name, training_lists_dict
 from models.full_models import make_default_model
+from tasks import TASK_LIST
 from base_trainer import masked_MSE_Loss, BaseTrainer
 from dataset import TaskDataSet
-from tasks import Task, isCorrect
+from task_criteria import isCorrect
 import warnings
 
 import torch
@@ -18,10 +18,10 @@ from tqdm import tqdm
 from attrs import define
 from collections import defaultdict
 from copy import copy
+import os
 
 device = torch.device(0)
 
-EXP_FILE = '_ReLU128_4.11/swap_holdouts'
 
 @define 
 class ContextTrainerConfig(): 
@@ -52,6 +52,8 @@ class ContextTrainer(BaseTrainer):
         super().__init__(context_training_config, from_checkpoint_dict)
 
     def _record_session(self, contexts, task):
+        if os.path.exists(self.file_path):pass
+        else: os.makedirs(self.file_path)
         checkpoint_attrs = super()._record_session()
         filename = self.file_path+'/'+self.seed_suffix+task+'_supervised'
         pickle.dump(checkpoint_attrs, open(self.file_path+'/'+task+'_attrs', 'wb'))
@@ -99,7 +101,6 @@ class ContextTrainer(BaseTrainer):
                 ins, tar, mask, tar_dir, task_type = data
                 self.optimizer.zero_grad()
                 if contexts.shape[0]==1: 
-                    #in_contexts = contexts.repeat(self.batch_len, 1).clamp(min=0.0)
                     in_contexts = contexts.repeat(self.batch_len, 1)
                 else: 
                     in_contexts = contexts.clamp(min=0.0)
@@ -127,7 +128,8 @@ class ContextTrainer(BaseTrainer):
         return False
     
     def train(self, model, task, as_batch=True):
-        self.streamer = TaskDataSet(self.stream_data, 
+        self.streamer = TaskDataSet(MODEL_FOLDER+'/training_data',
+                self.stream_data, 
                 self.batch_len, 
                 self.num_batches,
                 set_single_task=task)
@@ -160,14 +162,13 @@ def check_already_trained(file_name, seed, task, context_dim):
     except FileNotFoundError:
         return False
 
-def train_context_set(model_names, seeds, holdouts_folders, context_dim, as_batch = False, tasks = Task.TASK_LIST, overwrite=False, **train_config_kwargs): 
+def train_context_set(model_names,  seeds, label_holdout_list, context_dim, as_batch = False, tasks = TASK_LIST, overwrite=False, **train_config_kwargs): 
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
-        for holdouts in holdouts_folders:
-            holdouts_file = get_holdout_file_name(holdouts)
+        for labels, _ in label_holdout_list:
             for model_name in model_names: 
-                file_name = EXP_FILE+'/'+holdouts_file+'/'+model_name+'/contexts'
+                file_name = EXP_FOLDER+'/'+labels+'/'+model_name+'/contexts'
 
                 model = make_default_model(model_name)
                 for task in tasks: 
@@ -180,23 +181,22 @@ def train_context_set(model_names, seeds, holdouts_folders, context_dim, as_batc
                         is_trained = trainer.train(model, task, as_batch=as_batch)
                         if not is_trained: inspection_list.append((model.model_name, seed))
 
-                del model
-
         return inspection_list
 
 if __name__ == "__main__":
-    ##TEST BY BATCH WITH NEW INITIALIZATION AND CLIP!!!
-    # train_context_set(['sbertNet_tuned'], 
-    #                     [0], 
-    #                     training_lists_dict['swap_holdouts'][::-1],
-    #                     768, 
-    #                     as_batch=True,  
-    #                     batch_len = 128, lr=0.005, min_run_epochs=10, epochs=20, step_last_lr=True, checker_threshold=0.98)
+    from tasks_utils import SWAPS_DICT
+
+    MODEL_FOLDER = '6.6models'
+    EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
+
 
     train_context_set(['sbertNet_tuned'], 
                         [0], 
-                        training_lists_dict['swap_holdouts'][::-1],
+                        list(SWAPS_DICT.items()),
                         768, 
-                        as_batch=False,  
-                        batch_len = 64, lr=0.005, min_run_epochs=1, epochs=5, step_last_lr=False)
+                        batch_len = 64, 
+                        lr=0.005, 
+                        min_run_epochs=1, 
+                        epochs=5, 
+                        step_last_lr=False)
 

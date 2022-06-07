@@ -1,7 +1,5 @@
 from instruct_utils import train_instruct_dict, count_vocab
-from model_analysis import reduce_rep
-from plotting import plot_rep_scatter
-from tasks import Task
+from tasks import TASK_LIST
 from script_gru import ScriptGRU
 
 from torch.distributions import Categorical
@@ -15,10 +13,10 @@ import pickle
 device = torch.device(0)
 
 class SMDecoder(nn.Module): 
-    def __init__(self, out_dim, drop_p):
+    def __init__(self, out_dim, sm_hidden_dim, drop_p):
         super(SMDecoder, self).__init__()
         self.dropper = nn.Dropout(p=drop_p)
-        self.fc1 = nn.Linear(128*2, out_dim)
+        self.fc1 = nn.Linear(sm_hidden_dim*2, out_dim)
         self.id = nn.Identity()
         
     def forward(self, sm_hidden): 
@@ -90,7 +88,7 @@ class BaseDecoder(nn.Module):
 
     def init_instructions(self, instruct_dict): 
         self.instruct_dict = instruct_dict
-        self.instruct_array = np.array([self.instruct_dict[task] for task in Task.TASK_LIST]).squeeze()
+        self.instruct_array = np.array([self.instruct_dict[task] for task in TASK_LIST]).squeeze()
 
     def save_model(self, save_string): 
         torch.save(self.state_dict(), save_string+'.pt')
@@ -114,7 +112,7 @@ class BaseDecoder(nn.Module):
 
 
 class DecoderRNN(BaseDecoder):
-    def __init__(self, hidden_size, drop_p = 0.1):
+    def __init__(self, hidden_size, sm_hidden_dim=256, drop_p = 0.1):
         super().__init__()
         self.decoder_name = 'rnn_decoder'
         self.hidden_size = hidden_size
@@ -123,7 +121,7 @@ class DecoderRNN(BaseDecoder):
         self.embedding = nn.Embedding(self.tokenizer.n_words, self.embedding_size)
         self.gru = ScriptGRU(self.embedding_size, self.hidden_size, 1, activ_func = torch.relu, batch_first=True)
         self.out = nn.Linear(self.hidden_size, self.tokenizer.n_words)
-        self.sm_decoder = SMDecoder(self.hidden_size, drop_p=drop_p)
+        self.sm_decoder = SMDecoder(self.hidden_size, sm_hidden_dim, drop_p=drop_p)
         self.softmax = nn.LogSoftmax(dim=1)
 
     def draw_next(self, logits, k_sample=1):

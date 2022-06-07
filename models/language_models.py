@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from attrs import asdict
+import itertools
 
 from transformers import GPT2Model, GPT2Tokenizer, GPTNeoForCausalLM
 from transformers import CLIPTokenizer, CLIPTextModel
@@ -25,9 +26,20 @@ class InstructionEmbedder(nn.Module):
         self.__device__ = 'cpu'
 
     def __init_proj_out__(self): 
-        self.proj_out = nn.Sequential(
-            nn.Linear(self.LM_intermediate_lang_dim, self.LM_out_dim), 
-            self._output_nonlinearity)
+        if self.LM_proj_out_layers==1:
+            self.proj_out = nn.Sequential(
+                nn.Linear(self.LM_intermediate_lang_dim, self.LM_out_dim), 
+                self._output_nonlinearity)
+        else:
+            layers_list = [(nn.Linear(128, 128), nn.ReLU()) for _ in range(self.LM_proj_out_layers)]
+            layers = list(itertools.chain(*layers_list))
+            self.proj_out= nn.Sequential(
+                nn.Linear(self.LM_intermediate_lang_dim, 128), 
+                self._output_nonlinearity, 
+                *layers,
+                nn.Linear(128, self.LM_out_dim), 
+                self._output_nonlinearity,
+                )
 
     def set_train_layers(self, train_layers): 
         all_train_layers = train_layers+['proj_out']

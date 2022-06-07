@@ -23,17 +23,6 @@ SWAP_LIST = [
             ]
 
 
-# SWAP_LIST = [            
-#             ('Anti_DM_Mod2', 'Go_Mod1', 'Anti_Go', 'COMP1'), 
-#             ('DM_Mod1', 'Anti_Go_Mod2', 'ConMultiDM', 'DMS'),
-#             ('Anti_Go_Mod1', 'DM_Mod2', 'Go', 'MultiCOMP1'), 
-#             ('Go_Mod2', 'Anti_DM_Mod1', 'Anti_DelayGo', 'COMP2'), 
-#             ('Anti_DelayMultiDM', 'MultiDM', 'Anti_RT_DM', 'DMC'),             
-#             ('DM', 'Anti_ConDM', 'RT_Go', 'MultiCOMP2'), 
-#             ('Anti_DM', 'DelayMultiDM', 'Anti_RT_Go',  'DNMS'), 
-#             ('RT_DM', 'Anti_MultiDM', 'DelayDM', 'DNMC'),
-#             ('ConDM', 'Anti_DelayDM', 'DelayGo', 'Anti_ConMultiDM')
-#             ]
 
 # task_list=TASK_LIST.copy()
 
@@ -83,11 +72,6 @@ def get_swap_task(task):
     pos = SWAPS_DICT[swap_label].index(task)
     swap_index = (pos+1)%len(SWAPS_DICT[swap_label])
     return SWAPS_DICT[swap_label][swap_index]
-
-task_colors = { 'Go':'tomato', 'RT Go':'limegreen', 'Anti Go':'cyan', 'Anti RT Go':'orange',
-                        'DM':'Red', 'Anti DM':'Green', 'MultiDM':'Blue', 'Anti MultiDM':'goldenrod', 
-                        'COMP1':'sienna', 'COMP2':'seagreen', 'MultiCOMP1':'skyblue', 'MultiCOMP2':'gold',
-                        'DMS':'firebrick', 'DNMS':'lightgreen', 'DMC':'dodgerblue', 'DNMC':'darkorange'}
 
 MODEL_STYLE_DICT = {'simpleNet': ('blue', None), 'simpleNetPlus': ('blue', '+'), 'bowNet': ('orange', None), 'gptNet': ('red', None), 'gptNet_tuned': ('red', 'v'), 'bertNet_tuned': ('green', 'v'),
                     'bertNet': ('green', None), 'sbertNet': ('purple', None), 'sbertNet_tuned': ('purple', 'v')}

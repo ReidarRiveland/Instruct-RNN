@@ -14,12 +14,12 @@ import matplotlib.pyplot as plt
 
 
 class EncoderDecoder(nn.Module): 
-    def __init__(self, sm_model, decoder): 
+    def __init__(self, sm_model, decoder, load_folder): 
         super(EncoderDecoder, self).__init__()
         self.sm_model = sm_model
         self.decoder = decoder
         self.contexts = None
-        self.load_foldername = '_ReLU128_4.11/swap_holdouts'
+        self.load_foldername = load_folder
 
     def load_model_componenets(self, task_file, seed, load_holdout_decoder=True):
         self.sm_model.set_seed(seed)

@@ -105,7 +105,8 @@ class InstructNet(BaseNet):
                                 self.LM_train_layers, 
                                 self.LM_reducer,
                                 self.LM_out_dim, 
-                                self.LM_output_nonlinearity)
+                                self.LM_output_nonlinearity,
+                                self.LM_proj_out_layers)
 
         self.langModel = self.LM_class(self.LM_config)
 

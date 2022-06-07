@@ -12,7 +12,7 @@ from task_criteria import isCorrect
 from tasks import TASK_LIST
 
 from model_analysis import get_hid_var_resp
-from tasks_utils import task_colors, MODEL_STYLE_DICT
+from tasks_utils import MODEL_STYLE_DICT
 from instruct_utils import train_instruct_dict, test_instruct_dict
 
 
@@ -40,8 +40,37 @@ from matplotlib import rc
 plt.rcParams["font.family"] = "serif"
 
 
+def get_task_color(task, cmap=matplotlib.cm.nipy_spectral):
+    norm = matplotlib.colors.Normalize(0, len(TASK_LIST))
+    spacer = lambda x : int(np.floor(x/4)+((x%4)*4))
+    return cmap(norm(spacer(TASK_LIST.index(task))))
 
-def _plot_performance_curve(avg_perf, all_perf, plt_ax, model_name, plt_args): 
+def split_axes():
+    inset1_lims = (-1, 10)
+    inset2_lims = (80, 99)
+    gs_kw = dict(width_ratios=[inset1_lims[1]-inset1_lims[0],inset2_lims[1]-inset2_lims[0]], height_ratios=[1])
+    fig,(axn,ax2) = plt.subplots(1,2,sharey=True, facecolor='w',  gridspec_kw=gs_kw, figsize =(6, 4))
+
+    axn.set_xlim(inset1_lims)
+    ax2.set_xlim(inset2_lims)
+
+    ax2.yaxis.set_visible(False)
+
+    # hide the spines between ax and ax2
+    axn.spines['right'].set_visible(False)
+    ax2.spines['left'].set_visible(False)
+
+    axn.set_ylim(-0.05, 1.05)
+
+    axn.xaxis.set_tick_params(labelsize=8)
+    ax2.xaxis.set_tick_params(labelsize=8)
+
+    axn.yaxis.set_tick_params(labelsize=10)            
+    axn.set_yticks(np.linspace(0, 1, 11))
+    return axn, ax2
+
+
+def _plot_performance_curve(avg_perf, all_perf, plt_ax, model_name, **plt_args): 
         if all_perf is not None: 
             std_dev_perf = np.std(all_perf, axis=0)
 
@@ -49,32 +78,10 @@ def _plot_performance_curve(avg_perf, all_perf, plt_ax, model_name, plt_args):
                                             avg_perf-std_dev_perf, color = MODEL_STYLE_DICT[model_name][0], alpha= 0.08)
         plt_ax.plot(avg_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], markeredgewidth=0.25, **plt_args)
 
-
 def plot_avg_curves(foldername, model_list, exp_type, perf_type='correct', plot_swaps = False, seeds=np.array(range(5)), split_axes=False):
 
     if split_axes: 
-        inset1_lims = (-1, 10)
-        inset2_lims = (80, 99)
-        gs_kw = dict(width_ratios=[inset1_lims[1]-inset1_lims[0],inset2_lims[1]-inset2_lims[0]], height_ratios=[1])
-        fig,(axn,ax2) = plt.subplots(1,2,sharey=True, facecolor='w',  gridspec_kw=gs_kw, figsize =(6, 4))
-
-        axn.set_xlim(inset1_lims)
-        ax2.set_xlim(inset2_lims)
-
-        ax2.yaxis.set_visible(False)
-
-        # hide the spines between ax and ax2
-        axn.spines['right'].set_visible(False)
-        ax2.spines['left'].set_visible(False)
-
-        axn.set_ylim(-0.05, 1.05)
-
-        axn.xaxis.set_tick_params(labelsize=8)
-        ax2.xaxis.set_tick_params(labelsize=8)
-
-        axn.yaxis.set_tick_params(labelsize=10)            
-        axn.set_yticks(np.linspace(0, 1, 11))
-
+        axn, ax2 = split_axes()
     else: 
         fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
         axn.set_ylim(-0.05, 1.05)
@@ -89,25 +96,18 @@ def plot_avg_curves(foldername, model_list, exp_type, perf_type='correct', plot_
 
     for model_name in model_list:
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type, seeds=seeds)
-        print(data.data)
-        plt_args['linestyle'] = '-'
-        _plot_performance_curve(np.nanmean(data.data, axis = (0, 1)), np.nanmean(data.data, axis = 1), axn, model_name, plt_args=plt_args)
-
-        # if plot_swaps:
-        #     swap_data = data_dict[model_name]['swap'][data_type_index, seeds, ...]
-        #     plt_args['linestyle'] = '--'
-        #     _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, axn, model_name, plt_args=plt_args)
+        _plot_performance_curve(np.nanmean(data.data, axis = (0, 1)), np.nanmean(data.data, axis = 1), axn, model_name, linestyle='-')
 
         if split_axes:
             plt_args['linestyle'] = '-'
-            _plot_performance_curve(np.mean(data, axis = (0, 1)), np.mean(data, axis = 1), ax2, model_name, plt_args=plt_args)
+            _plot_performance_curve(np.mean(data.data, axis = (0, 1)), np.mean(data, axis = 1), ax2, model_name, plt_args=plt_args)
             if plot_swaps:
                 plt_args['linestyle'] = '--'
                 _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, ax2, model_name, plt_args=plt_args)
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.7, 0.48), title='Models', title_fontsize = 'small', fontsize='x-small')
     plt.show()
 
-def plot_task_curves(foldername, model_list, correct_or_loss='correct', train_folder=None, seeds=np.array(range(5)), plot_contexts=None, plot_swaps=False):
+def plot_task_curves(foldername, model_list, correct_or_loss='correct',  seeds=np.array(range(5)), plot_contexts=None, plot_swaps=False):
     if train_folder is None: 
         data_dict = load_holdout_data(foldername, model_list)
         marker_every=15
@@ -333,32 +333,40 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
             plt.savefig('figs/'+save_file)
         plt.show()
 
-def plot_rep_scatter(reps_reduced, tasks_to_plot, annotate_tuples=[], annotate_args=[], swapped_tasks= [], save_file=None, s=25): 
-    colors_to_plot = list(itertools.chain.from_iterable([[task_colors[task]]*reps_reduced.shape[1] for task in tasks_to_plot]))
-    task_indices = [Task.TASK_LIST.index(task) for task in tasks_to_plot]
+def _rep_scatter(reps_reduced, task, ax, dims, **scatter_kwargs): 
+    task_reps = reps_reduced[TASK_LIST.index(task), ...]
+    task_color = get_task_color(task)
+    if dims ==2: 
+        ax.scatter(task_reps[:, 0], task_reps[:, 1], s=25, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
+    else: 
+        ax.scatter(task_reps[:, 0], task_reps[:, 1], task_reps[:,2], s=25, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
+    patch = Line2D([0], [0], label = task, color= task_color, linestyle='None', markersize=8, **scatter_kwargs)
+    return patch
 
-    reps_to_plot = reps_reduced[task_indices, ...]
-    flattened_reduced = reps_to_plot.reshape(-1, reps_to_plot.shape[-1])
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.scatter(flattened_reduced[:, 0], flattened_reduced[:, 1], c = colors_to_plot, s=s)
-    ax.scatter(np.mean(reps_to_plot, axis=1)[:, 0], np.mean(reps_to_plot, axis=1)[:, 1], c = [task_colors[task] for task in tasks_to_plot], s=20, marker='D', edgecolors='white')
+def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, **scatter_kwargs): 
+    Patches = []
+    for task in task_to_plot: 
+        patch = _rep_scatter(reps_reduced, task, ax, dims, marker='o', **scatter_kwargs)
+        Patches.append(patch)
+    return Patches
 
+def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2): 
+    if rep_depth == 'task': 
+        reps = get_task_reps(model, epoch='stim_start', num_trials = 128)
+    elif rep_depth is not 'task': 
+        reps = get_instruct_reps(model.langModel, depth=rep_depth)
+    reduced, _ = reduce_rep(reps, dim=dims)
 
-    plt.xlabel("PC 1", fontsize = 12)
-    plt.ylabel("PC 2", fontsize = 12)
-    Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in tasks_to_plot]
+    fig = plt.figure(figsize=(12, 12))
+    if dims==2:
+        ax = fig.add_subplot()
+    else:
+        ax = fig.add_subplot(projection='3d')
 
-    if len(swapped_tasks)>0: 
-        ax.scatter(reps_reduced[-1, :, 0], reps_reduced[-1, :, 1], color='white', marker='o', edgecolors=[task_colors[swapped_tasks[0]]]*reps_reduced.shape[1], s=25)
-        ax.scatter(np.mean(reps_reduced[-1, :, 0]), np.mean(reps_reduced[-1, :, 1]), c = task_colors[swapped_tasks[0]], s=10, marker='D', edgecolors='white')
-        Patches.append((Line2D([0], [0], linestyle='None', marker='o', color=task_colors[swapped_tasks[0]], label='Instruction Swap', 
-                markerfacecolor='white', markersize=8)))
-
+    Patches = _group_rep_scatter(reduced, tasks_to_plot, ax, dims)
+    Patches.append((Line2D([0], [0], linestyle='None', marker='X', color='grey', label='Contexts', 
+                    markerfacecolor='white', markersize=8)))
     plt.legend(handles=Patches, fontsize='medium')
-
-    if save_file is not None: 
-        plt.savefig('figs/'+save_file)
-
     plt.show()
 
 
@@ -496,76 +504,22 @@ def plot_hid_traj_quiver(task_group_hid_traj, task_group, task_indices, trial_in
 
 
 
+def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', save_file=None):
+    number_reps=sim_scores.shape[1]/len(TASK_LIST)
 
-def plot_dPCA(model, tasks, swapped_tasks=[]):
-    trials, var_of_insterest = make_test_trials('Anti DM', 'diff_strength', 0, num_trials=6)
-
-    Z_dict = {}
-    for task in tasks:
-        if task in swapped_tasks:
-            model.instruct_mode = 'swap'
-
-        print(task, model.instruct_mode)
-        hid_resp, mean_hid_resp = get_hid_var_resp(model, task, trials)
-
-        reshape_mean_hid_resp = mean_hid_resp.T.swapaxes(-1, 1)
-        reshape_hid_resp = hid_resp.swapaxes(1, 2).swapaxes(-1, 1)
-
-        dpca = dPCA.dPCA(labels='st',regularizer='auto')
-        dpca.protect = ['t']
-
-        Z = dpca.fit_transform(reshape_mean_hid_resp, reshape_hid_resp)
-        Z_dict[task] = Z
-        model.instruct_mode = ''
-
-    time = np.arange(120)
-    plt.figure(figsize=(16,7))
-
-
-    linestyle_list = ['-', '--']
-    cmap = plt.cm.seismic
-    norm = matplotlib.colors.Normalize(vmin=0, vmax=5)
-
-    for i, Z in enumerate(Z_dict.values()):
-        plt.subplot(131)
-        for s in range(6):
-            plt.plot(time,Z['st'][1,s], linestyle=linestyle_list[i], c=cmap(norm(s)))
-        plt.title('1st mixing component')
-
-        plt.subplot(132)
-        for s in range(6):
-            plt.plot(time,Z['t'][0,s], linestyle=linestyle_list[i], c=cmap(norm(s)))
-        plt.title('1st time component')
-
-        plt.subplot(133)
-        for s in range(6):
-            plt.plot(time,Z['s'][0,s], linestyle=linestyle_list[i], c=cmap(norm(s)))
-        plt.title('1st Decision Variable component')
-
-    plt.figlegend(['delta '+ str(num) for num in np.round(var_of_insterest, 2)], loc=5)
-
-    plt.show()
-
-
-def plot_RDM(sim_scores, rep_type, cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', save_file=None):
-    # if rep_type == 'lang': label_buffer = 2
-    # if rep_type == 'task': label_buffer = 8
-    number_reps=sim_scores.shape[1]
-
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(10, 8))
+    _, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(10, 8))
     sns.heatmap(sim_scores, yticklabels = '', xticklabels= '', 
                         cmap=cmap, vmin=0, vmax=1, ax=axn, cbar_kws={'label': '1-r'})
 
     for i, task in enumerate(TASK_LIST):
-        plt.text(-2, number_reps/2+number_reps*i, task, ha='right', size=5, fontweight='bold')
-        plt.text(number_reps/2+number_reps*i, number_reps*16, task, va='top', rotation='vertical', size=5, fontweight='bold')
+        plt.text(-2, (number_reps/2+number_reps*i), task, va='center', ha='right', size=5)
+        plt.text(number_reps/2+number_reps*i, number_reps*(len(TASK_LIST)), task, va='top', ha='center', rotation='vertical', size=5)
     plt.title(plot_title, fontweight='bold', fontsize=12)
 
     if save_file is not None: 
         plt.savefig(save_file, dpi=400)
 
     plt.show()
-    
 
     
 

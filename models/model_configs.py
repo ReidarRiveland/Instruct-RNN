@@ -24,6 +24,7 @@ class LMConfig():
     LM_reducer: str 
     LM_out_dim: int 
     LM_output_nonlinearity: str 
+    LM_proj_out_layers: int
 
 @define
 class InstructModelConfig(BaseModelConfig): 
@@ -33,6 +34,7 @@ class InstructModelConfig(BaseModelConfig):
     LM_reducer: str = 'mean' 
     LM_out_dim: int = 64
     LM_output_nonlinearity: str ='relu'
+    LM_proj_out_layers: int = 1
 
     _rnn_in_dim: int = field(kw_only=True)
     @_rnn_in_dim.default

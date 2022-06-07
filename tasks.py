@@ -35,7 +35,7 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
 class Task(): 
     def __init__(self, num_trials, noise, factory, **factory_kwargs):
         if noise is None: 
-            noise = np.random.uniform(0.05, 0.1)
+            noise = np.random.uniform(0.05, 0.15)
         self.num_trials = num_trials
         self.noise = noise
         self.factory = factory(num_trials, noise, **factory_kwargs)
@@ -634,8 +634,10 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
 # for task in TASK_LIST: 
 #     construct_trials(task, 10)
 
-# trials = MultiCOMP1(500)
-# trials.factory.cond_arr[:, :, :, 4]
+# trials = MultiCOMP2(500)
+# trials.factory.cond_arr[:, :, :, 0]
+# np.mean(np.isnan(trials.factory.target_dirs))
+
 # np.sum(trials.factory.cond_arr[:, :, 1, :], axis=0)[0]-np.sum(trials.factory.cond_arr[:, :, 1, :], axis=0)[1]
 
 # np.min(trials.factory.cond_arr[0,:, 1, :], axis=0)<np.min(trials.factory.cond_arr[1, :, 1, :], axis=0)
@@ -669,5 +671,4 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
 
 
 # np.sum(strengths, axis=0)[0]>np.sum(strengths, axis=0)[1]
-
 

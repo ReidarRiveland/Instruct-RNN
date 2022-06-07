@@ -232,9 +232,9 @@ class GoFactory(TaskFactory):
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
         for i in range(self.num_trials):
             if self.multi:    
-                dir1, dir2 = np.random.uniform(0, 2*np.pi, size=2)
+                dir1 = np.random.uniform(0, 2*np.pi)
                 #dir1, dir2 = _draw_ortho_dirs()
-                conditions_arr[:, 0, 0, i] = (dir1, dir2)
+                conditions_arr[:, 0, 0, i] = (dir1, dir1+np.random.uniform(np.pi/4, 3*np.pi/4))
                 conditions_arr[:, 0, 1, i] = np.random.uniform(0.8, 1.2, size=2)
 
             else:
@@ -273,7 +273,7 @@ class DMFactory(TaskFactory):
         for i in range(self.num_trials):
             if self.mod is not None: 
                 directions1 = _draw_ortho_dirs()
-                directions2 = _draw_ortho_dirs()
+                directions2 = _draw_ortho_dirs(directions1[0]+np.random.uniform(np.pi/4, 3*np.pi/4))
                 base_strength = np.random.uniform(0.8, 1.2, size=2)
                 coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175], size=2)
 
@@ -289,17 +289,16 @@ class DMFactory(TaskFactory):
                 directions2 = directions1
 
                 if self.multi:   
-                    mod_coh = np.random.choice([0.15, 0.125, 0.1, -0.1, -0.125, -0.15])
+                    mod_coh = np.random.choice([0.175, 0.15, 0.125, -0.125, -0.15, -0.175])
 
                     base_strength = np.random.uniform(0.8, 1.2)
                     mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
 
                     redraw = True
                     while redraw: 
-                        coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=2, replace=False)
+                        coh = np.random.choice([-0.225, -0.175, -0.125, 0.125, 0.175, 0.225], size=2, replace=False)
                         if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
                             redraw = False
-
                     mod_swap = np.random.choice([0,1])
                     _mod_swap = (mod_swap+1)%2
                     strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
@@ -348,7 +347,7 @@ class ConDMFactory(TaskFactory):
         self.timing = timing
         self.str_chooser = str_chooser
         self.mod = mod
-        self.pos_thresholds, self.neg_thresholds = pickle.load(open('6.6models/noise_thresholds/'+self.threshold_folder, 'rb'))
+        self.pos_thresholds, self.neg_thresholds = pickle.load(open('6.7models/noise_thresholds/'+self.threshold_folder, 'rb'))
         self.noise= []
 
         if self.cond_arr is None: 
@@ -449,7 +448,7 @@ class COMPFactory(TaskFactory):
                 strs_true = self._set_comp_strs(positive_strength0, negative_strength0, requires_response, self.resp_stim)
                 strs_dummy = self._set_comp_strs(positive_strength1, negative_strength1, np.random.choice([True, False]), self.resp_stim)
                 directions0 = _draw_ortho_dirs()
-                directions1 = _draw_ortho_dirs()
+                directions2 = _draw_ortho_dirs(directions1[0]+np.random.uniform(np.pi/4, 3*np.pi/4))
                 directions = np.array([directions0, directions1])
                 conditions_arr[:, :, 0, i] = directions
                 conditions_arr[self.mod, :, 1, i] = strs_true

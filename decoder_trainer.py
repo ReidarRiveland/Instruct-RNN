@@ -1,7 +1,6 @@
 from json import decoder
 import numpy as np
 import torch.optim as optim
-from tasks_utils import training_lists_dict, get_holdout_file_name
 from instruct_utils import get_instructions
 from dataset import TaskDataSet
 from decoding_models.decoder_models import DecoderRNN
@@ -15,8 +14,6 @@ import torch
 import torch.nn as nn
 
 device = torch.device(0)
-
-EXP_FILE = '_ReLU128_4.11/swap_holdouts'
 
 
 @define 
@@ -55,6 +52,7 @@ class DecoderTrainer():
         for name, value in asdict(self.config, recurse=False).items(): 
             setattr(self, name, value)
 
+        self.path_file = self.file_path+'/'+decoder.decoder_name+'_'+self.seed_suffix
         self.seed_suffix = 'seed'+str(self.random_seed)
 
 
@@ -90,21 +88,25 @@ class DecoderTrainer():
             holdouts_suffix = '_wHoldout'
         else: 
             holdouts_suffix = ''
+        
+        if os.path.exists(self.file_path):pass
+        else: os.makedirs(self.file_path)
 
-        path = self.file_path+'/'+decoder.decoder_name+'_'+self.seed_suffix
+        
         if mode == 'CHECKPOINT':    
-            pickle.dump(checkpoint_attrs, open(path+'_CHECKPOINT_attrs'+holdouts_suffix, 'wb'))
-            decoder.save_model(path+'_CHECKPOINT'+holdouts_suffix)
+            pickle.dump(checkpoint_attrs, open(self.file_path+'_CHECKPOINT_attrs'+holdouts_suffix, 'wb'))
+            decoder.save_model(self.file_path+'_CHECKPOINT'+holdouts_suffix)
 
         if mode=='FINAL': 
-            pickle.dump(checkpoint_attrs, open(path+'_attrs'+holdouts_suffix, 'wb'))
-            os.remove(path+'_CHECKPOINT_attrs'+holdouts_suffix)
-            decoder.save_model(path+holdouts_suffix)
-            os.remove(path+'_CHECKPOINT'+holdouts_suffix)
+            pickle.dump(checkpoint_attrs, open(self.file_path+'_attrs'+holdouts_suffix, 'wb'))
+            os.remove(self.file_path+'_CHECKPOINT_attrs'+holdouts_suffix)
+            decoder.save_model(self.file_path+holdouts_suffix)
+            os.remove(self.file_path+'_CHECKPOINT'+holdouts_suffix)
 
 
     def _init_streamer(self):
-        self.streamer = TaskDataSet(self.stream_data, 
+        self.streamer = TaskDataSet(MODEL_FOLDER+'/training_data',
+                        self.stream_data, 
                         self.batch_len, 
                         self.num_batches, 
                         self.holdouts, 
@@ -194,34 +196,39 @@ def check_decoder_trained(file_name, seed, use_holdouts):
     except FileNotFoundError:
         return False
 
-def train_decoder_set(model_names, seeds, holdouts_folders, use_holdouts = False, overwrite=False, **train_config_kwargs): 
+def train_decoder_set(model_names, seeds, label_holdout_list,  use_holdouts = False, overwrite=False, **train_config_kwargs): 
     for seed in seeds: 
         torch.manual_seed(seed)
-        for holdouts in holdouts_folders:
-            holdouts_file = get_holdout_file_name(holdouts)
+        for label, holdouts in label_holdout_list:
             for model_name in model_names: 
-                file_name = EXP_FILE+'/'+holdouts_file+'/'+model_name
+                file_name = EXP_FOLDER+'/'+label
 
                 if not overwrite and check_decoder_trained(file_name+'/decoders', seed, use_holdouts):
                     continue 
                 else:  
                     print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts)+  '\n')
                     model = make_default_model(model_name)   
-                    model.load_model(file_name, suffix='_seed'+str(seed))
+                    model.load_model(file_name+'/'+model_name, suffix='_seed'+str(seed))
                     model.to(device)
 
                     decoder = DecoderRNN(64)
                     decoder.to(device)
 
-                    trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, **train_config_kwargs)
+                    if use_holdouts: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)
+                    else: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, **train_config_kwargs)
+                    
                     trainer = DecoderTrainer(trainer_config)
                     trainer.train(model, decoder)
 
-                del model
-                del decoder
 
-  
+if __name__ == "__main__":
+    import argparse
+    from tasks_utils import SWAPS_DICT
 
-train_decoder_set(['sbertNet_tuned'], [0], training_lists_dict['swap_holdouts'])
+    MODEL_FOLDER = '6.6models'
+    EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
+
+    train_decoder_set(['sbertNet_tuned'], 
+                    [0], list(SWAPS_DICT.items()))
 
 
