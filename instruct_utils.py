@@ -12,7 +12,7 @@ task_list = TASK_LIST
 
 #cur_folder = os.getenv('MODEL_FOLDER')
 
-train_instruct_dict = pickle.load(open('6.6models/train_instruct_dict2', 'rb'))
+train_instruct_dict = pickle.load(open('6.7models/train_instruct_dict', 'rb'))
 
 test_instruct_dict = pickle.load(open('Instructions/test_instruct_dict', 'rb'))
 

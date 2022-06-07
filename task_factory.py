@@ -33,7 +33,8 @@ def _add_noise(array, noise):
 def _draw_ortho_dirs(dir1=None): 
     if dir1 is None: 
         dir1 = np.random.uniform(0, 2*np.pi)
-    dir2 = (dir1+np.pi+np.random.uniform(-np.pi/8, np.pi/8))%(2*np.pi)
+    #dir2 = (dir1+np.pi+np.random.uniform(-np.pi/8, np.pi/8))%(2*np.pi)
+    dir2 = (dir1+np.pi)%(2*np.pi)
     return (dir1, dir2)
 
 class TaskFactory(): 
@@ -273,7 +274,7 @@ class DMFactory(TaskFactory):
         for i in range(self.num_trials):
             if self.mod is not None: 
                 directions1 = _draw_ortho_dirs()
-                directions2 = _draw_ortho_dirs(directions1[0]+np.random.uniform(np.pi/4, 3*np.pi/4))
+                directions2 = _draw_ortho_dirs()
                 base_strength = np.random.uniform(0.8, 1.2, size=2)
                 coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175], size=2)
 
@@ -448,7 +449,7 @@ class COMPFactory(TaskFactory):
                 strs_true = self._set_comp_strs(positive_strength0, negative_strength0, requires_response, self.resp_stim)
                 strs_dummy = self._set_comp_strs(positive_strength1, negative_strength1, np.random.choice([True, False]), self.resp_stim)
                 directions0 = _draw_ortho_dirs()
-                directions2 = _draw_ortho_dirs(directions1[0]+np.random.uniform(np.pi/4, 3*np.pi/4))
+                directions2 = _draw_ortho_dirs()
                 directions = np.array([directions0, directions1])
                 conditions_arr[:, :, 0, i] = directions
                 conditions_arr[self.mod, :, 1, i] = strs_true
