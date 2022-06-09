@@ -1,7 +1,7 @@
 import numpy as np
 import torch.optim as optim
 from instructions.instruct_utils import get_instructions
-from dataset import TaskDataSet
+from data_loaders.dataset import TaskDataSet
 from decoding_models.decoder_models import DecoderRNN
 from attrs import define, asdict
 from models.full_models import make_default_model
@@ -223,7 +223,7 @@ def train_decoder_set(model_names, seeds, label_holdout_list,  use_holdouts = Fa
 
 if __name__ == "__main__":
     import argparse
-    from tasks_utils import SWAPS_DICT
+    from tasks.tasks import SWAPS_DICT
 
     MODEL_FOLDER = '6.7models'
     EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'

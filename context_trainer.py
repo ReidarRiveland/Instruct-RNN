@@ -3,8 +3,8 @@ from matplotlib.style import context
 from models.full_models import make_default_model
 from tasks import TASK_LIST
 from base_trainer import masked_MSE_Loss, BaseTrainer
-from dataset import TaskDataSet
-from task_criteria import isCorrect
+from data_loaders.dataset import TaskDataSet
+from tasks.task_criteria import isCorrect
 import warnings
 
 import torch
@@ -184,7 +184,7 @@ def train_context_set(model_names,  seeds, label_holdout_list, context_dim, as_b
         return inspection_list
 
 if __name__ == "__main__":
-    from tasks_utils import SWAPS_DICT
+    from tasks.tasks import SWAPS_DICT
 
     MODEL_FOLDER = '6.6models'
     EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'

@@ -5,7 +5,7 @@ from yaml import warnings
 
 from models.full_models import make_default_model
 from base_trainer import BaseTrainer, masked_MSE_Loss
-from dataset import TaskDataSet
+from data_loaders.dataset import TaskDataSet
 from tasks.task_criteria import isCorrect
 from instructions.instruct_utils import get_task_info
 
