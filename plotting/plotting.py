@@ -7,7 +7,7 @@ from scipy.ndimage.measurements import label
 from torch.nn.modules.container import T
 from torch.random import seed
 from model_analysis import get_hid_var_resp, get_model_performance, get_instruct_reps
-from perfDataFrame import HoldoutDataFrame
+from data_loaders.perfDataFrame import HoldoutDataFrame
 from tasks.task_criteria import isCorrect
 from tasks import TASK_LIST
 

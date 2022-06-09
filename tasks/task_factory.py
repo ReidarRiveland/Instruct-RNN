@@ -450,11 +450,11 @@ class COMPFactory(TaskFactory):
                 strs_true = self._set_comp_strs(positive_strength0, negative_strength0, requires_response, self.resp_stim)
                 strs_dummy = self._set_comp_strs(positive_strength1, negative_strength1, np.random.choice([True, False]), self.resp_stim)
                 directions0 = _draw_ortho_dirs()
-                directions2 = _draw_ortho_dirs()
+                directions1 = _draw_ortho_dirs()
                 directions = np.array([directions0, directions1])
                 conditions_arr[:, :, 0, i] = directions
                 conditions_arr[self.mod, :, 1, i] = strs_true
-                conditions_arr[((mod+1)%2), :, 1, i] = strs_dummy
+                conditions_arr[((self.mod+1)%2), :, 1, i] = strs_dummy
 
                 if requires_response and self.resp_stim==1:
                     target_dirs[i] = directions[self.mod, 0]

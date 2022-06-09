@@ -13,8 +13,6 @@ from transformers import CLIPTokenizer, CLIPTextModel
 from transformers import BertModel, BertTokenizer
 from transformers import GPTNeoForCausalLM
 
-
-
 class InstructionEmbedder(nn.Module): 
     def __init__(self, config): 
         super(InstructionEmbedder, self).__init__()
