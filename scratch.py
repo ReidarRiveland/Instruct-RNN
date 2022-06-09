@@ -100,40 +100,28 @@
 # 37%
 
 # SBERTNET
-# [('Go', 1.0), ('Anti_Go', 1.0), ('RT_Go', 0.99609375), ('Anti_RT_Go', 0.44921875), 
-# ('Go_Mod1', 0.96875), ('Anti_Go_Mod1', 0.49609375), ('Go_Mod2', 0.578125), ('Anti_Go_Mod2', 0.8359375), 
-# ('DelayGo', 0.93359375), ('Anti_DelayGo', 0.984375), 
-# ('DM', 1.0), ('Anti_DM', 1.0), ('MultiDM', 0.890625), ('Anti_MultiDM', 0.73046875), 
-# ('RT_DM', 0.98828125), ('Anti_RT_DM', 0.890625), 
-# ('ConDM', 0.90234375), ('Anti_ConDM', 0.953125), ('ConMultiDM', 0.94140625), ('Anti_ConMultiDM', 0.95703125), 
-# ('DelayDM', 1.0), ('Anti_DelayDM', 0.9453125), ('DelayMultiDM', 0.828125), ('Anti_DelayMultiDM', 0.6484375), 
-# ('DM_Mod1', 0.8828125), ('Anti_DM_Mod1', 0.8046875), ('DM_Mod2', 0.734375), ('Anti_DM_Mod2', 0.703125), 
-# ('COMP1', 0.79296875), ('COMP2', 0.828125), ('MultiCOMP1', 0.3828125), ('MultiCOMP2', 0.6953125), 
-# ('DMS', 0.64453125), ('DNMS', 0.86328125), ('DMC', 0.71875), ('DNMC', 0.609375)]
-# 82%
+# [('Go', 1.0), ('Anti_Go', 1.0), ('RT_Go', 0.98828125), ('Anti_RT_Go', 0.6484375), 
+# ('Go_Mod1', 0.70703125), ('Anti_Go_Mod1', 0.86328125), ('Go_Mod2', 0.8515625), ('Anti_Go_Mod2', 0.96875), 
+# ('DelayGo', 1.0), ('Anti_DelayGo', 1.0), 
+# ('DM', 1.0), ('Anti_DM', 1.0), ('MultiDM', 0.953125), ('Anti_MultiDM', 0.8984375), 
+# ('RT_DM', 0.96484375), ('Anti_RT_DM', 0.62890625), 
+# ('ConDM', 0.9375), ('Anti_ConDM', 0.953125), ('ConMultiDM', 0.90234375), ('Anti_ConMultiDM', 0.953125), 
+# ('DelayDM', 0.98828125), ('Anti_DelayDM', 0.8515625), ('DelayMultiDM', 0.91796875), ('Anti_DelayMultiDM', 0.58984375), 
+# ('DM_Mod1', 0.8125), ('Anti_DM_Mod1', 0.73828125), ('DM_Mod2', 0.765625), ('Anti_DM_Mod2', 0.69921875), 
+# ('COMP1', 0.72265625), ('COMP2', 0.6328125), ('MultiCOMP1', 0.4609375), ('MultiCOMP2', 0.4140625), 
+# ('DMS', 0.61328125), ('DNMS', 0.859375), ('DMC', 0.578125), ('DNMC', 0.734375)]
+#82%
 
-#SBERTNET_TUNED
-# ('Go', 1.0), ('Anti_Go', 1.0), ('RT_Go', 1.0), ('Anti_RT_Go', 0.6953125), 
-# ('Go_Mod1', 0.94921875), ('Anti_Go_Mod1', 0.3359375), ('Go_Mod2', 0.7578125), ('Anti_Go_Mod2', 0.83984375), 
-# ('DelayGo', 0.99609375), ('Anti_DelayGo', 0.99609375), 
-# ('DM', 1.0), ('Anti_DM', 1.0), ('MultiDM', 0.87109375), ('Anti_MultiDM', 0.76171875), 
-# ('RT_DM', 0.97265625), ('Anti_RT_DM', 0.94921875), 
-# ('ConDM', 0.91796875), ('Anti_ConDM', 0.98828125), ('ConMultiDM', 0.98046875), ('Anti_ConMultiDM', 0.984375), 
-# ('DelayDM', 0.99609375), ('Anti_DelayDM', 0.9765625), ('DelayMultiDM', 0.8671875), ('Anti_DelayMultiDM', 0.5625), 
-# ('DM_Mod1', 0.87109375), ('Anti_DM_Mod1', 0.89453125), ('DM_Mod2', 0.7265625), ('Anti_DM_Mod2', 0.62109375), 
-# ('COMP1', 0.7890625), ('COMP2', 0.9296875), ('MultiCOMP1', 0.87890625), ('MultiCOMP2', 0.92578125), 
-# ('DMS', 0.65234375), ('DNMS', 0.8359375), ('DMC', 0.78515625), ('DNMC', 0.71484375)
-#86%
 
 from turtle import position
 from dataset import TaskDataSet
 
 from task_factory import TaskFactory
-from models.full_models import SBERTNet, SBERTNet_tuned, SimpleNetPlus, SimpleNet
+from models.full_models import SBERTNet, SBERTNet_lin, SBERTNet_tuned, SimpleNetPlus, SimpleNet
 from model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 from plotting import plot_model_response
 from tasks_utils import SWAP_LIST, SWAPS_DICT 
-from instruct_utils import get_instructions
+from instructions.instruct_utils import get_instructions
 from task_criteria import isCorrect
 import numpy as np
 import torch
@@ -141,11 +129,11 @@ from tasks import TASK_LIST
 
 
 EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = SBERTNet(LM_out_dim=64, rnn_hidden_dim=256)
+sbertNet = SBERTNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 #sbertNet = SimpleNet(rnn_hidden_dim=256)
 
 holdouts_file = 'swap0'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0_CHECKPOINT')
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 
 for task in SWAPS_DICT[holdouts_file]:
@@ -191,7 +179,7 @@ for index in range(5):
     TaskFactory.plot_trial(ins[index, ...], tar[index, ...], type)
 
 
-from instruct_utils import train_instruct_dict
+from instructions.instruct_utils import train_instruct_dict
 repeats = []
 for instruct in train_instruct_dict['Anti_DM_Mod2']:
     perf = task_eval(sbertNet, 'Anti_DM_Mod2', 128, 
@@ -199,6 +187,33 @@ for instruct in train_instruct_dict['Anti_DM_Mod2']:
     repeats.append((instruct, perf))
 
 repeats
+
+[('attend to the second modality and choose the orientation that appears weakest', 0.8515625), 
+('focus on the second modality and respond to least intense direction')
+('choose the direction with least intensity in the second modality'), 
+('attend to the second modality and select the direction with least strength', 0.75), 
+--> ('choose the least intense orientation in the second modality', 0.5703125), 
+('go in the direction of the weakest stimulus in the second modality', 0.7265625), 
+--> ('respond to the orientation which has lowest strength in the second modality', 0.234375), 
+('focus only on the second modality and pick the stimulus with lowest intensity', 0.765625), 
+('attend to the second modality and opt for the weakest stimulus presented there', 0.8359375), 
+--> ('pick the direction in the second modality presented with least strength', 0.34375), 
+('focus on the second modality and select the weakest direction', 0.75), 
+
+--> ('select the direction with lowest strength in the second modality', 0.5), 
+
+('choose the direction with weakest intensity in the second modality', 0.6015625), 
+('attend to the second modality and choose the orientation with lowest intensity', 0.7265625), 
+('attend only to the second modality and select the direction with lowest strength', 0.609375)]
+
+
+
+
+instructions = ['respond to the orientation which has lowest strength in the second modality']*128
+task_eval(sbertNet, 'Anti_DM_Mod2', 128, instructions=instructions)
+
+
+task_eval(sbertNet, 'Anti_Go_Mod2', 128)
 
 
 
@@ -213,10 +228,6 @@ plot_model_response(sbertNet, trials, instructions=task_instructions)
 
 
 task_instructions[2]
-
-
-instructions = ['go in the opposite of the direction in the first modality']*128
-task_eval(sbertNet, 'Anti_Go_Mod1', 128, instructions=instructions)
 
 
 
@@ -240,8 +251,8 @@ from plotting import plot_RDM
 
 #reps = get_instruct_reps(sbertNet.langModel, depth='full')
 
-sim_scores = get_layer_sim_scores(sbertNet, rep_depth='task')
-plot_RDM(sim_scores, 'lang')
+sim_scores = get_layer_sim_scores(sbertNet, rep_depth='full')
+plot_RDM(sim_scores)
 
 
 
@@ -254,7 +265,7 @@ EXP_FILE = '6.6models/noise_thresholding_model'
 simpleNet = SimpleNet(rnn_hidden_dim=256)
 simpleNet.load_model(EXP_FILE+'/'+simpleNet.model_name, suffix='_seed0')
 
-task = 'Anti_DM'
+task = 'DM'
 
 
 #diff_strength = np.concatenate((np.linspace(-0.15, -0.05, num=7), np.linspace(0.05, 0.15, num=7)))
@@ -274,9 +285,9 @@ plt.xlabel('Noise Level')
 plt.ylabel('Correct Rate')
 plt.show()
 
-thresholds = get_noise_thresholdouts(correct_stats, diff_strength, noises, neg_cutoff=0.9)
+thresholds = get_noise_thresholdouts(correct_stats, diff_strength, noises, neg_cutoff=0.8)
 
-pickle.dump(thresholds, open('6.7models/noise_thresholds/anti_dm_noise_thresholds', 'wb'))
+pickle.dump(thresholds, open('6.7models/noise_thresholds/dm_noise_thresholds', 'wb'))
 
 
 #THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2
@@ -305,7 +316,7 @@ plt.show()
 
 
 import numpy as np
-from instruct_utils import get_task_info
+from instructions.instruct_utils import get_task_info
 from task_criteria import isCorrect
 from models.full_models import SBERTNet, SBERTNet_tuned, SimpleNet
 from model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
@@ -317,7 +328,7 @@ from tasks import Task
 from task_factory import DMFactory
 import task_factory
 from models.full_models import SBERTNet
-from instruct_utils import get_instructions
+from instructions.instruct_utils import get_instructions
 from tqdm import tqdm
 from task_factory import TaskFactory
 
@@ -372,3 +383,6 @@ import matplotlib.pyplot as plt
 
 sns.heatmap(B.T, yticklabels=CLUSTER_TASK_LIST)
 plt.show()
+
+
+

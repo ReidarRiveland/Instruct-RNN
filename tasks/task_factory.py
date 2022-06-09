@@ -290,16 +290,17 @@ class DMFactory(TaskFactory):
                 directions2 = directions1
 
                 if self.multi:   
-                    mod_coh = np.random.choice([0.175, 0.15, 0.125, -0.125, -0.15, -0.175])
+                    mod_coh = np.random.choice([0.2, 0.175, 0.15, 0.125, -0.125, -0.15, -0.175, -0.2])
 
                     base_strength = np.random.uniform(0.8, 1.2)
                     mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
 
                     redraw = True
                     while redraw: 
-                        coh = np.random.choice([-0.225, -0.175, -0.125, 0.125, 0.175, 0.225], size=2, replace=False)
+                        coh = np.random.choice([-0.25, 0.2, -0.15, -0.1, 0.1, 0.15, 0.2, 0.25], size=2, replace=False)
                         if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
                             redraw = False
+
                     mod_swap = np.random.choice([0,1])
                     _mod_swap = (mod_swap+1)%2
                     strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
@@ -466,14 +467,14 @@ class COMPFactory(TaskFactory):
                 directions1 = _draw_ortho_dirs()
                 directions2 = directions1
 
-                mod_coh = np.random.choice([0.175, 0.15, 0.125, -0.125, -0.15, -0.175])
+                mod_coh = np.random.choice([0.2, 0.175, 0.15, 0.125, -0.125, -0.15, -0.175, -0.2])
 
                 base_strength = np.random.uniform(0.8, 1.2)
                 mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
 
                 redraw = True
                 while redraw: 
-                    coh = np.random.choice([-0.225, -0.175, -0.125, 0.125, 0.175, 0.225], size=2, replace=False)
+                    coh = np.random.choice([-0.25, 0.2, -0.15, -0.1, 0.1, 0.15, 0.2, 0.25], size=2, replace=False)
                     if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
                         redraw = False
 

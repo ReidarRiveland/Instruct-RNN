@@ -82,15 +82,18 @@ class RuleEncoder(nn.Module):
 class RuleNet(BaseNet):
     def __init__(self, config):
         super().__init__(config)
-        ortho_rules = pickle.load(open('ortho_rule_vecs', 'rb'))
-        self.rule_transform = torch.Tensor(ortho_rules)
+        self._set_rule_transform()
         if self.add_rule_encoder: 
-            self.rule_encoder = RuleEncoder(self.rule_dim, self.rule_encoder_hidden)
+            self.rule_encoder = RuleEncoder(self.rule_transform_out, self.rule_encoder_hidden)
         else: 
             self.rule_encoder = nn.Identity()
 
+    def _set_rule_transform(self):
+        ortho_rules = pickle.load(open('models/ortho_rule_vecs/othro)rules'+self.rule_dim+'x'+self.rule_transform_out, 'rb'))
+        self.rule_transform = torch.Tensor(ortho_rules)
+
     def forward(self, x, task_rule):
-        #task_rule = self.rule_encoder(torch.matmul(task_rule.to(self.__device__), self.rule_transform))
+        task_rule = self.rule_encoder(torch.matmul(task_rule.to(self.__device__), self.rule_transform))
         outs, rnn_hid = super().forward(x, task_rule)
         return outs, rnn_hid
 

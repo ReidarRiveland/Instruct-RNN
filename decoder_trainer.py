@@ -1,7 +1,6 @@
-from json import decoder
 import numpy as np
 import torch.optim as optim
-from instruct_utils import get_instructions
+from instructions.instruct_utils import get_instructions
 from dataset import TaskDataSet
 from decoding_models.decoder_models import DecoderRNN
 from attrs import define, asdict
@@ -32,7 +31,7 @@ class DecoderTrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.999999999}
+    scheduler_args: dict = {'gamma': 0.999}
 
     init_teacher_forcing_ratio: float = 0.5
     
@@ -52,7 +51,6 @@ class DecoderTrainer():
         for name, value in asdict(self.config, recurse=False).items(): 
             setattr(self, name, value)
 
-        self.path_file = self.file_path+'/'+decoder.decoder_name+'_'+self.seed_suffix
         self.seed_suffix = 'seed'+str(self.random_seed)
 
 
@@ -83,6 +81,9 @@ class DecoderTrainer():
         for attr in record_attrs: 
             checkpoint_attrs[attr]=getattr(self, attr)
 
+        record_file = self.file_path+'/'+decoder.decoder_name+'_'+self.seed_suffix
+
+
         with_holdouts = bool(self.holdouts)
         if with_holdouts: 
             holdouts_suffix = '_wHoldout'
@@ -92,17 +93,15 @@ class DecoderTrainer():
         if os.path.exists(self.file_path):pass
         else: os.makedirs(self.file_path)
 
-        
         if mode == 'CHECKPOINT':    
-            pickle.dump(checkpoint_attrs, open(self.file_path+'_CHECKPOINT_attrs'+holdouts_suffix, 'wb'))
-            decoder.save_model(self.file_path+'_CHECKPOINT'+holdouts_suffix)
+            pickle.dump(checkpoint_attrs, open(record_file+'_CHECKPOINT_attrs'+holdouts_suffix, 'wb'))
+            decoder.save_model(record_file+'_CHECKPOINT'+holdouts_suffix)
 
         if mode=='FINAL': 
-            pickle.dump(checkpoint_attrs, open(self.file_path+'_attrs'+holdouts_suffix, 'wb'))
-            os.remove(self.file_path+'_CHECKPOINT_attrs'+holdouts_suffix)
-            decoder.save_model(self.file_path+holdouts_suffix)
-            os.remove(self.file_path+'_CHECKPOINT'+holdouts_suffix)
-
+            pickle.dump(checkpoint_attrs, open(record_file+'_attrs'+holdouts_suffix, 'wb'))
+            os.remove(record_file+'_CHECKPOINT_attrs'+holdouts_suffix)
+            decoder.save_model(record_file+holdouts_suffix)
+            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'.pt')
 
     def _init_streamer(self):
         self.streamer = TaskDataSet(MODEL_FOLDER+'/training_data',
@@ -122,6 +121,7 @@ class DecoderTrainer():
         self.scheduler = self.scheduler_class(self.decoder_optimizer, **self.scheduler_args)
 
     def train(self, sm_model, decoder): 
+
         criterion = nn.NLLLoss(reduction='mean')
         teacher_forcing_ratio = self.init_teacher_forcing_ratio
         self.pad_len  = decoder.tokenizer.pad_len 
@@ -225,7 +225,7 @@ if __name__ == "__main__":
     import argparse
     from tasks_utils import SWAPS_DICT
 
-    MODEL_FOLDER = '6.6models'
+    MODEL_FOLDER = '6.7models'
     EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
 
     train_decoder_set(['sbertNet_tuned'], 

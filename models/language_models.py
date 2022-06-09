@@ -2,13 +2,18 @@ import torch
 import torch.nn as nn
 from attrs import asdict
 import itertools
+import pickle
+
+from fse.models import SIF
+from fse import IndexedList, Vectors, SIF
+from instructions.instruct_utils import get_all_sentences, sort_vocab
 
 from transformers import GPT2Model, GPT2Tokenizer, GPTNeoForCausalLM
 from transformers import CLIPTokenizer, CLIPTextModel
 from transformers import BertModel, BertTokenizer
 from transformers import GPTNeoForCausalLM
 
-from instruct_utils import sort_vocab
+
 
 class InstructionEmbedder(nn.Module): 
     def __init__(self, config): 
@@ -19,6 +24,9 @@ class InstructionEmbedder(nn.Module):
 
         if self.LM_output_nonlinearity == 'relu': 
             self._output_nonlinearity = nn.ReLU()
+        elif self.LM_output_nonlinearity == 'lin': 
+            self._output_nonlinearity = nn.Identity()
+        
         
         if self.LM_reducer == 'mean': 
             self._reducer = torch.mean
@@ -93,7 +101,7 @@ class SBERT(TransformerEmbedder):
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
-        self.transformer.load_state_dict(self._convert_state_dict_format(self.LM_load_str))
+        self.transformer.load_state_dict(self._convert_state_dict_format('models/_pretrained_lang_models/'+self.LM_load_str))
 
     def _convert_state_dict_format(self, state_dict_file): 
         print('converting state dict keys to BERT format')
@@ -138,6 +146,36 @@ class GPTNeo(TransformerEmbedder):
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
+class SIF(InstructionEmbedder): 
+    def __init__(self, config): 
+        super().__init__(config)
+        self.sif_model = pickle.load(open('models/_pretrained_lang_models/'+self.LM_load_str, 'rb'))    
+        if self.LM_out_dim == None: 
+            self.out_dim=300
+        self.LM_intermediate_lang_dim = 300
+        self.set_train_layers(self.LM_train_layers)
+        self.__init_proj_out__()
+
+    def _train_SIF_embeddings(word_vectors='glove-wiki-gigaword-300', sent_model=SIF): 
+        wv = Vectors.from_pretrained(word_vectors, mmap="r")
+        model = sent_model(wv, workers=1, lang_freq='en')
+        s = IndexedList([sent.split() for sent in get_all_sentences()])
+        model.train(s)
+        return s, model
+
+    def get_embedding_vecs(self, instructions): 
+        try: 
+            embeddings = self.sif_model.sv[[instructions.index(sent) for sent in instructions]]
+        except ValueError: 
+            tmp = [(instruct.split(), i) for i, instruct in enumerate(instructions)]
+            embeddings = self.sif_model.infer(tmp)
+        return embeddings
+
+    def forward(self, x):
+        sif_embedded = torch.Tensor(self.get_embedding_vecs(x)).to(self.__device__)
+        sif_out = self.proj_out(sif_embedded).to(self.__device__)
+        return sif_out
+
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()
     def __init__(self, config): 
@@ -145,8 +183,10 @@ class BoW(InstructionEmbedder):
         if self.LM_out_dim == None: 
             self.out_dim=len(self.VOCAB)
         self.LM_intermediate_lang_dim = len(self.VOCAB)
+        self.set_train_layers(self.LM_train_layers)
+        self.__init_proj_out__()
 
-    def make_freq_tensor(self, instruct): 
+    def _make_freq_tensor(self, instruct): 
         out_vec = torch.zeros(len(self.VOCAB))
         for word in instruct.split():
             index = self.VOCAB.index(word)
@@ -154,8 +194,7 @@ class BoW(InstructionEmbedder):
         return out_vec
 
     def forward(self, x): 
-        freq_tensor = torch.stack(tuple(map(self.make_freq_tensor, x))).to(self.__device__)
+        freq_tensor = torch.stack(tuple(map(self._make_freq_tensor, x))).to(self.__device__)
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
-
 

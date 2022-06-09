@@ -2,15 +2,15 @@ from matplotlib.pyplot import axis
 import torch
 import numpy as np
 
-from instruct_utils import train_instruct_dict, get_task_info, get_instruction_dict
+from instructions.instruct_utils import train_instruct_dict, get_task_info, get_instruction_dict
 
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.stats import spearmanr
 from tqdm import tqdm
 
-from tasks import construct_trials, TASK_LIST, Task
-from task_factory import _draw_ortho_dirs, DMFactory
-from task_criteria import isCorrect
+from tasks.tasks import construct_trials, TASK_LIST, Task
+from tasks.task_factory import _draw_ortho_dirs, DMFactory
+from tasks.task_criteria import isCorrect
 
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE

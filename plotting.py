@@ -8,12 +8,12 @@ from torch.nn.modules.container import T
 from torch.random import seed
 from model_analysis import get_hid_var_resp, get_model_performance, get_instruct_reps
 from perfDataFrame import HoldoutDataFrame
-from task_criteria import isCorrect
+from tasks.task_criteria import isCorrect
 from tasks import TASK_LIST
 
 from model_analysis import get_hid_var_resp
-from tasks_utils import MODEL_STYLE_DICT
-from instruct_utils import train_instruct_dict, test_instruct_dict
+from tasks.tasks_utils import MODEL_STYLE_DICT
+from instructions.instruct_utils import train_instruct_dict, test_instruct_dict
 
 
 import numpy as np
@@ -277,7 +277,7 @@ def plot_val_performance(all_perf_dict):
     plt.show()
 
 from task_factory import STIM_DIM
-from instruct_utils import get_task_info
+from instructions.instruct_utils import get_task_info
 
 
 def plot_model_response(model, trials, plotting_index = 0, instructions = None, save_file=None):

@@ -1,5 +1,5 @@
-from instruct_utils import train_instruct_dict, count_vocab
-from tasks import TASK_LIST
+from instructions.instruct_utils import train_instruct_dict, count_vocab
+from tasks.tasks import TASK_LIST
 from script_gru import ScriptGRU
 
 from torch.distributions import Categorical

@@ -6,8 +6,8 @@ from yaml import warnings
 from models.full_models import make_default_model
 from base_trainer import BaseTrainer, masked_MSE_Loss
 from dataset import TaskDataSet
-from task_criteria import isCorrect
-from instruct_utils import get_task_info
+from tasks.task_criteria import isCorrect
+from instructions.instruct_utils import get_task_info
 
 import pickle
 import copy
@@ -25,7 +25,7 @@ class TrainerConfig():
     random_seed: int
     epochs: int = 100
     min_run_epochs: int = 35
-    batch_len: int = 32
+    batch_len: int = 64
     num_batches: int = 1200
     holdouts: list = []
     set_single_task: str = None
@@ -37,7 +37,8 @@ class TrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.9}
+    scheduler_gamma: float = 0.9
+    scheduler_args: dict = {}
 
     save_for_tuning_epoch: int = 30
     checker_threshold: float = 0.95
@@ -92,7 +93,7 @@ class ModelTrainer(BaseTrainer):
             optimizer = self.optim_alg(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
 
         self.optimizer = optimizer
-        self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
+        self.scheduler = self.scheduler_class(self.optimizer, gamma=self.scheduler_gamma, **self.scheduler_args)
         self.step_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, 
                             milestones=[self.epochs-5, self.epochs-2, self.epochs-1], gamma=0.25)
 
@@ -222,7 +223,7 @@ def tune_model_set(model_names, seeds, label_holdout_list, overwrite=False, **tr
 
                 training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
                 tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, 
-                                                epochs=20, min_run_epochs=5, lr=1e-4, lang_lr=1e-5,
+                                                epochs=25, min_run_epochs=5, lr=2e-5, lang_lr=1e-5,
                                                 save_for_tuning_epoch=np.nan, 
                                                 **train_config_kwargs)
 
@@ -287,15 +288,15 @@ if __name__ == "__main__":
     # train_model_set(['simpleNet'],  
     #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
 
-    train_model_set(['sbertNet'],  
+    train_model_set(['sifNet'],  
         [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
     
-    tune_model_set(['sbertNet_tuned'],  
-        [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
+    # tune_model_set(['bertNet_tuned'],  
+    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
 
-    train_model_set(['simpleNet'],  
-        [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
+    # train_model_set(['simpleNet'],  
+    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
 
-    train_model_set(['gptNetXL'],  
-        [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     
+    # train_model_set(['gptNetXL'],  
+    #     [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     
 

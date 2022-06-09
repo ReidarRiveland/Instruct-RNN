@@ -1,4 +1,3 @@
-Python Dictionary Form:
 
 train_instruct_dict = {}
 
@@ -456,7 +455,7 @@ train_instruct_dict['DM_Mod2'] = ('choose the direction in the second modality t
                                 'choose the stimulus in the second modality which has maximal strength',
                                 'pick the direction that is most intense in the second modality')
 
-train_instruct_dict['Anti_DM_Mod1'] = ('choose the weakest direction in the first modality', 
+train_instruct_dict['Anti_DM_Mod1'] = ('attend to the first modality and choose the weakest direction', 
                                     'attend to the first modality and respond in the direction of minimal intensity',
                                     'select the orientation in the first modality which has lowest strength', 
                                     'pick the stimulus in the first modality that is presented with least intensity', 
@@ -470,23 +469,24 @@ train_instruct_dict['Anti_DM_Mod1'] = ('choose the weakest direction in the firs
                                     'select the stimulus in the first modality that has lowest intensity', 
                                     'pick the direction which appears with minimal intensity in the first modality',
                                     'opt for the stimulus that appears weakest in the first modality',
-                                    'pick the direction in the first modality that is presented with minimal strength')
+                                    'focus on the first modality and choose the stimulus minimal strength')
 
-train_instruct_dict['Anti_DM_Mod2'] = ('attend to the second modality and choose the orientation that appears weakest there', 
-                                    'focus only on the second modality and select the direction displayed with minimal intensity', 
-                                    'select the orientation in the second modality which has least strength', 
-                                    'attend to the second modality and select the stimulus with least strength', 
-                                    'choose the least intense stimulus in the second modality', 
-                                    'opt for the stimulus in the second modality with has minimal strength', 
+train_instruct_dict['Anti_DM_Mod2'] = ('attend to the second modality and choose the orientation that appears weakest', 
+                                    'focus on the second modality and respond to the least intense direction',
+                                    'choose the direction with least intensity in the second modality',
+                                    'attend to the second modality and select the direction with least strength', 
+                                    'choose the least intense orientation in the second modality', 
+                                    'go in the direction of the weakest stimulus in the second modality', 
                                     'respond to the orientation which has lowest strength in the second modality', 
                                     'focus only on the second modality and pick the stimulus with lowest intensity', 
                                     'attend to the second modality and opt for the weakest stimulus presented there', 
                                     'pick the direction in the second modality presented with least strength', 
-                                    'pay attention to the second modality and select the weakest direction presented there', 
-                                    'select the direction displayed with least strength in the second modality', 
-                                    'pick the stimulus which has lowest intensity in the second modality',
-                                    'pay attention to the second modality and respond to the orientation presented there with minimal strength', 
-                                    'select the orientation with least intensity in the second modality')
+                                    'focus on the second modality and select the weakest direction', 
+                                    'select the direction with lowest strength in the second modality', 
+                                    'choose the direction with weakest intensity in the second modality',
+                                    'attend to the second modality and choose the orientation with lowest intensity',
+                                    'attend only to the second modality and select the direction with lowest strength')
+
 
 train_instruct_dict['RT_DM_Mod1'] = ('select the direction in the first modality that appears strongest at stimulus onset', 
                                     'attend to the first modality and select the most intense orientation as soon as the stimuli appear', 

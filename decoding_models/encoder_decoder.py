@@ -5,9 +5,10 @@ import numpy as np
 import pickle
 import itertools
 
-from tasks import Task, construct_batch, isCorrect
+from tasks.tasks import Task, construct_trials
+from tasks.task_criteria import isCorrect
 from collections import defaultdict
-from instruct_utils import inv_train_instruct_dict, get_instructions
+from instructions.instruct_utils import inv_train_instruct_dict, get_instructions
 
 import seaborn as sns
 import matplotlib.pyplot as plt
