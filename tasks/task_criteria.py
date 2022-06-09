@@ -1,7 +1,8 @@
 
 import numpy as np
 import torch
-from task_factory import TUNING_DIRS
+from tasks.task_factory import TUNING_DIRS
+
 def gpu_to_np(t):
     """removes tensor from gpu and converts to np.array""" 
     if t.get_device() >= 0: 

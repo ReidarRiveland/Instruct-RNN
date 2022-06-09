@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 from attrs import asdict
 import pickle
-from script_gru import ScriptGRU
-from tasks import TASK_LIST
+from models.script_gru import ScriptGRU
 from models.model_configs import LMConfig
+from tasks.tasks import TASK_LIST
 
 class BaseNet(nn.Module): 
     def __init__(self, config):
@@ -84,12 +84,12 @@ class RuleNet(BaseNet):
         super().__init__(config)
         self._set_rule_transform()
         if self.add_rule_encoder: 
-            self.rule_encoder = RuleEncoder(self.rule_transform_out, self.rule_encoder_hidden)
+            self.rule_encoder = RuleEncoder(self.rule_dim, self.rule_encoder_hidden)
         else: 
             self.rule_encoder = nn.Identity()
 
     def _set_rule_transform(self):
-        ortho_rules = pickle.load(open('models/ortho_rule_vecs/othro)rules'+self.rule_dim+'x'+self.rule_transform_out, 'rb'))
+        ortho_rules = pickle.load(open('models/ortho_rule_vecs/ortho_rules'+str(len(TASK_LIST))+'x'+str(self.rule_dim), 'rb'))
         self.rule_transform = torch.Tensor(ortho_rules)
 
     def forward(self, x, task_rule):

@@ -12,7 +12,6 @@ from tasks.task_criteria import isCorrect
 from tasks import TASK_LIST
 
 from model_analysis import get_hid_var_resp
-from tasks.tasks_utils import MODEL_STYLE_DICT
 from instructions.instruct_utils import train_instruct_dict, test_instruct_dict
 
 
@@ -32,6 +31,12 @@ import torch
 
 from sklearn.decomposition import PCA
 import warnings
+
+
+
+MODEL_STYLE_DICT = {'simpleNet': ('blue', None), 'simpleNetPlus': ('blue', '+'), 'bowNet': ('orange', None), 'gptNet': ('red', None), 'gptNet_tuned': ('red', 'v'), 'bertNet_tuned': ('green', 'v'),
+                    'bertNet': ('green', None), 'sbertNet': ('purple', None), 'sbertNet_tuned': ('purple', 'v')}
+
 
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300

@@ -1,7 +1,7 @@
 from genericpath import exists
 import numpy as np
 import torch
-from tasks import TASK_LIST, construct_trials
+from tasks.tasks import TASK_LIST, construct_trials
 import os
 
 class TaskDataSet():
@@ -101,4 +101,4 @@ def build_training_data(foldername):
         np.save(path +'/target_dirs', target_dirs)
         np.save(path +'/type_indices', trial_indices)
 
-#build_training_data('6.7models')
+build_training_data('6.9models')

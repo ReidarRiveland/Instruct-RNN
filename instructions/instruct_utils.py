@@ -2,8 +2,7 @@ import numpy as np
 import pickle
 import itertools
 import torch
-from tasks.tasks import TASK_LIST, Task
-from tasks.tasks_utils import get_swap_task
+from tasks.tasks import TASK_LIST, SWAPS_DICT, INV_SWAPS_DICT, Task
 
 from collections import Counter
 task_list = TASK_LIST
@@ -66,6 +65,12 @@ def get_instructions(batch_size, task_type, instruct_mode):
             instructs = list(map(shuffle_instruction, instructs))
 
         return list(instructs)
+
+def get_swap_task(task):
+    swap_label = INV_SWAPS_DICT[task]
+    pos = SWAPS_DICT[swap_label].index(task)
+    swap_index = (pos+1)%len(SWAPS_DICT[swap_label])
+    return SWAPS_DICT[swap_label][swap_index]
 
 def one_hot_input_rule(batch_size, task_type, shuffled=False): 
     if shuffled: index = Task.SHUFFLED_TASK_LIST.index(task_type) 

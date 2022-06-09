@@ -1,6 +1,13 @@
 import numpy as np
 import torch
-import task_factory as task_factory
+import tasks.task_factory as task_factory
+
+def invert_task_dict(task_dict):
+    inv_swap_dict = {}
+    for k, v in task_dict.items():
+        for task in v:
+            inv_swap_dict[task] = k
+    return inv_swap_dict
 
 TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go', 
             
@@ -22,9 +29,50 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
 
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
 
-            #'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
+            'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
 
             'DMS', 'DNMS', 'DMC', 'DNMC']
+
+# SWAP_LIST = [            
+#             ('Anti_DM_Mod2', 'RT_Go', 'Anti_ConDM', 'COMP1'), 
+#             ('DelayDM', 'Anti_Go_Mod2', 'ConMultiDM', 'DMS'),
+#             ('DM_Mod2', 'Anti_RT_Go',  'Go', 'MultiCOMP1'), 
+#             ('Go_Mod2', 'Anti_ConMultiDM', 'Anti_DelayGo', 'COMP2'), 
+#             ('Anti_DelayMultiDM', 'MultiDM', 'Anti_RT_DM', 'DMC'),             
+#             ('DM', 'Anti_Go', 'Go_Mod1', 'MultiCOMP2'), 
+#             ('Anti_DM', 'DelayMultiDM', 'Anti_Go_Mod1',  'DNMS'), 
+#             ('RT_DM', 'Anti_MultiDM', 'DM_Mod1', 'DNMC'),
+#             ('ConDM', 'Anti_DelayDM', 'DelayGo', 'Anti_DM_Mod1')
+#             ]
+
+SWAP_LIST = [
+            ('Anti_DM_Mod2', 'Go_Mod1', 'Anti_Go', 'COMP1', 'ConMultiDM'), 
+            ('Anti_Go_Mod1', 'DM_Mod2', 'Go', 'MultiCOMP1', 'ConDM'), 
+            ('DM_Mod1', 'Anti_Go_Mod2', 'DelayGo', 'DMS', 'Anti_ConDM'),
+            ('Go_Mod2', 'Anti_DM_Mod1', 'Anti_DelayGo', 'COMP2', 'Anti_ConMultiDM'), 
+            ('Anti_DelayDM', 'MultiDM', 'Anti_RT_DM', 'DMC', 'COMP1_Mod1'),             
+            ('DM', 'Anti_DelayMultiDM', 'RT_Go', 'MultiCOMP2', 'COMP1_Mod2'), 
+            ('Anti_DM', 'DelayMultiDM', 'Anti_RT_Go',  'DNMS', 'COMP2_Mod2'), 
+            ('RT_DM', 'Anti_MultiDM', 'DelayDM', 'DNMC', 'COMP2_Mod1')
+            ]
+            
+ALIGNED_LIST = [
+            ('DM', 'Anti_DM', 'MultiCOMP1', 'MultiCOMP2'), 
+            ('Go', 'Anti_Go', 'COMP1_Mod1', 'COMP1_Mod2'), 
+            ('DM_Mod1', 'DM_Mod2', 'COMP2_Mod1', 'COMP2_Mod2'), 
+            ('Go_Mod1', 'Go_Mod2', 'ConDM', 'Anti_ConDM'), 
+            ('Anti_Go_Mod1', 'Anti_Go_Mod2', 'DelayMultiDM', 'Anti_DelayMultiDM'), 
+            ('DelayGo', 'Anti_DelayGo', 'ConMultiDM', 'Anti_ConMultiDM'), 
+            ('MultiDM', 'Anti_MultiDM', 'DMS', 'DNMS'), 
+            ('RT_DM', 'Anti_RT_DM', 'COMP1', 'COMP2'), 
+            ('DelayDM', 'Anti_DelayDM', 'DMC', 'DNMC'), 
+            ('RT_Go', 'Anti_RT_Go', 'Anti_DM_Mod1', 'Anti_DM_Mod2')
+            ]
+
+
+SWAPS_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST.copy()))
+ALIGNED_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], ALIGNED_LIST.copy()))
+INV_SWAPS_DICT = invert_task_dict(SWAPS_DICT)
 
 
 class Task(): 
