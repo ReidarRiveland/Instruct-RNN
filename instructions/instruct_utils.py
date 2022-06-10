@@ -80,8 +80,8 @@ def one_hot_input_rule(batch_size, task_type, shuffled=False):
     return one_hot
 
 def get_comp_rep(batch_size, task_type): 
-    comp_rep = np.expand_dims(construct_trials(task_type, 0).comp_rep, 0)
-    comp_rep = np.repeat(comp_rep, batch_size, axis=0)
+    ref_tasks = construct_trials(task_type, 0).comp_ref_tasks
+    comp_rep = make_one_hot(batch_size, ref_tasks[0])-make_one_hot(batch_size, ref_tasks[1])+make_one_hot(batch_size, ref_tasks[2])
     return comp_rep
 
 def get_comp_rule(batch_size, task_type, instruct_mode=None): 
