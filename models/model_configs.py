@@ -39,19 +39,20 @@ class InstructModelConfig(BaseModelConfig):
     @_rnn_in_dim.default
     def _set_rnn_in_dim(self):
         return self.LM_out_dim + SENSORY_INPUT_DIM
-    is_instruct: bool = True
+
+    info_type: str = 'lang'
 
 @define
 class RuleModelConfig(BaseModelConfig): 
     add_rule_encoder: bool = False
-    rule_encoder_hidden = 128
+    rule_encoder_hidden: int = 128
     rule_dim: int = 64
 
     _rnn_in_dim: int = field(kw_only=True)
     @_rnn_in_dim.default
     def _set_rnn_in_dim(self):
             return self.rule_dim + SENSORY_INPUT_DIM
-    is_instruct: bool = False
+    info_type: str = 'rule'
 
 
 

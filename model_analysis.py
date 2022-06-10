@@ -19,7 +19,7 @@ from sklearn.manifold import TSNE
 def task_eval(model, task, batch_size, noise=None, instructions = None): 
     ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, noise)
     if instructions is None: 
-        task_info = get_task_info(batch_size, task, model.is_instruct)
+        task_info = get_task_info(batch_size, task, model.info_type)
     else: 
         task_info = instructions
     out, _ = model(torch.Tensor(ins).to(model.__device__), task_info)
@@ -89,7 +89,7 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
             if contexts is not None: 
                 _, hid = model(torch.Tensor(ins).to(model.__device__), context=contexts[i, ...])
             else: 
-                task_info = get_task_info(num_trials, task, model.is_instruct, instruct_mode=instruct_mode)
+                task_info = get_task_info(num_trials, task, model.info_type, instruct_mode=instruct_mode)
                 _, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
 
             hid = hid.cpu().numpy()

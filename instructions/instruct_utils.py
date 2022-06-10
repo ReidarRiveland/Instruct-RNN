@@ -2,10 +2,9 @@ import numpy as np
 import pickle
 import itertools
 import torch
-from tasks.tasks import TASK_LIST, SWAPS_DICT, INV_SWAPS_DICT, Task
+from tasks.tasks import TASK_LIST, SWAPS_DICT, INV_SWAPS_DICT, Task, construct_trials
 
 from collections import Counter
-task_list = TASK_LIST
 
 #cur_folder = os.getenv('MODEL_FOLDER')
 
@@ -17,7 +16,7 @@ inv_train_instruct_dict = inv_train_instruct_dict = dict(zip(list(itertools.chai
                                             list(itertools.chain(*[[task]*15 for task in TASK_LIST]))))
 
 def get_all_sentences():
-    combined_instruct= {task: list(train_instruct_dict[task]) for task in task_list}
+    combined_instruct= {task: list(train_instruct_dict[task]) for task in TASK_LIST}
     all_sentences = list(itertools.chain.from_iterable(combined_instruct.values()))
     return all_sentences
 
@@ -39,32 +38,6 @@ def shuffle_instruction(instruct):
     instruct = ' '.join(list(shuffled))
     return instruct
 
-def get_instruction_dict(instruct_mode): 
-    assert instruct_mode in [None, 'swap', 'shuffled', 'validation']
-    if instruct_mode == 'swap': 
-        swap_dict = {}
-        for task in TASK_LIST: 
-            swap_dict[task] = train_instruct_dict[get_swap_task(task)]
-
-    elif instruct_mode == 'shuffled': 
-        shuffle_dict = {}
-        for task in TASK_LIST: 
-            shuffled_instructs = [shuffle_instruction(instruct) for instruct in train_instruct_dict[task]]
-            shuffle_dict[task] = shuffled_instructs
-
-    elif instruct_mode == 'validation': 
-        return test_instruct_dict
-
-    else: 
-        return train_instruct_dict
-
-def get_instructions(batch_size, task_type, instruct_mode):
-        instruct_dict = get_instruction_dict(instruct_mode = instruct_mode)
-        instructs = np.random.choice(instruct_dict[task_type], size=batch_size)
-        if instruct_mode == 'shuffled': 
-            instructs = list(map(shuffle_instruction, instructs))
-
-        return list(instructs)
 
 def get_swap_task(task):
     swap_label = INV_SWAPS_DICT[task]
@@ -72,87 +45,73 @@ def get_swap_task(task):
     swap_index = (pos+1)%len(SWAPS_DICT[swap_label])
     return SWAPS_DICT[swap_label][swap_index]
 
+
+def get_instruction_dict(instruct_mode): 
+    assert instruct_mode in [None, 'swap', 'validation']
+    if instruct_mode == 'swap': 
+        swap_dict = {}
+        for task in TASK_LIST: 
+            swap_dict[task] = train_instruct_dict[get_swap_task(task)]
+
+    elif instruct_mode == 'validation': 
+        return test_instruct_dict
+
+    else: 
+        return train_instruct_dict
+
+def get_instructions(batch_size, task_type, instruct_mode=None):
+        instruct_dict = get_instruction_dict(instruct_mode = instruct_mode)
+        instructs = np.random.choice(instruct_dict[task_type], size=batch_size)
+        if instruct_mode == 'shuffled': 
+            instructs = list(map(shuffle_instruction, instructs))
+
+        return list(instructs)
+
+def make_one_hot(len, index): 
+    one_hot = np.zeros((1, len(TASK_LIST)))
+    one_hot[:,index] = 1
+    return one_hot
+
 def one_hot_input_rule(batch_size, task_type, shuffled=False): 
     if shuffled: index = Task.SHUFFLED_TASK_LIST.index(task_type) 
     else: index = TASK_LIST.index(task_type)
-    one_hot = np.zeros((1, len(TASK_LIST)))
-    one_hot[:,index] = 1
+    one_hot = make_one_hot(len(TASK_LIST), index)
     one_hot= np.repeat(one_hot, batch_size, axis=0)
     return one_hot
 
-def comp_input_rule(batch_size, task_type): 
-    go_delay_dir = one_hot_input_rule(batch_size, 'DelayGo')-one_hot_input_rule(batch_size, 'Go')
-    go_mod1_dir = one_hot_input_rule(batch_size, 'Go_Mod1')-one_hot_input_rule(batch_size, 'Go')
-    go_mod2_dir = one_hot_input_rule(batch_size, 'Go_Mod2')-one_hot_input_rule(batch_size, 'Go')
-    
-    if task_type == 'Go': 
-        comp_vec = one_hot_input_rule(batch_size, 'RT Go')+(one_hot_input_rule(batch_size, 'Anti Go')-one_hot_input_rule(batch_size, 'Anti RT Go'))
-    if task_type == 'RT Go':
-        comp_vec = one_hot_input_rule(batch_size, 'Go')+(one_hot_input_rule(batch_size, 'Anti RT Go')-one_hot_input_rule(batch_size, 'Anti Go'))
-    if task_type == 'Anti Go':
-        comp_vec = one_hot_input_rule(batch_size, 'Anti RT Go')+(one_hot_input_rule(batch_size, 'Go')-one_hot_input_rule(batch_size, 'RT Go'))
-    if task_type == 'Anti RT Go':
-        comp_vec = one_hot_input_rule(batch_size, 'Anti Go')+(one_hot_input_rule(batch_size, 'RT Go')-one_hot_input_rule(batch_size, 'Go'))
+def get_comp_rep(batch_size, task_type): 
+    comp_rep = np.expand_dims(construct_trials(task_type, 0).comp_rep, 0)
+    comp_rep = np.repeat(comp_rep, batch_size, axis=0)
+    return comp_rep
 
-    go_delay_dir = one_hot_input_rule(batch_size, 'DelayGo')-one_hot_input_rule(batch_size, 'Go')
-    go_mod1_dir = one_hot_input_rule(batch_size, 'Go_Mod1')-one_hot_input_rule(batch_size, 'Go')
-    go_mod2_dir = one_hot_input_rule(batch_size, 'Go_Mod2')-one_hot_input_rule(batch_size, 'Go')
-    
-    if task_type == 'DM':
-        comp_vec = one_hot_input_rule(batch_size, 'MultiDM') + (one_hot_input_rule(batch_size, 'Anti DM') - one_hot_input_rule(batch_size, 'Anti MultiDM'))
-    if task_type == 'Anti DM': 
-        comp_vec = one_hot_input_rule(batch_size, 'Anti MultiDM') + (one_hot_input_rule(batch_size, 'DM') - one_hot_input_rule(batch_size, 'MultiDM'))
-    if task_type == 'MultiDM': 
-        comp_vec = one_hot_input_rule(batch_size, 'DM') + (one_hot_input_rule(batch_size, 'Anti MultiDM')-one_hot_input_rule(batch_size, 'Anti DM'))
-    if task_type == 'Anti MultiDM': 
-        comp_vec = one_hot_input_rule(batch_size, 'Anti DM') + (one_hot_input_rule(batch_size, 'MultiDM')-one_hot_input_rule(batch_size, 'DM'))
-
-    # dm_delay_dir = 
-    # dm_mod1_dir = 
-    # dm_mod2_dir = 
-    # dm_con_dir = 
-    # dm_
-
-    if task_type == 'COMP1': 
-        comp_vec = one_hot_input_rule(batch_size, 'COMP2') + (one_hot_input_rule(batch_size, 'MultiCOMP1')-one_hot_input_rule(batch_size, 'MultiCOMP2'))
-    if task_type == 'COMP2': 
-        comp_vec = one_hot_input_rule(batch_size, 'COMP1') + (one_hot_input_rule(batch_size, 'MultiCOMP2')-one_hot_input_rule(batch_size, 'MultiCOMP1'))
-    if task_type == 'MultiCOMP1': 
-        comp_vec = one_hot_input_rule(batch_size, 'MultiCOMP2') + (one_hot_input_rule(batch_size, 'COMP1')-one_hot_input_rule(batch_size, 'COMP2'))
-    if task_type == 'MultiCOMP2': 
-        comp_vec = one_hot_input_rule(batch_size, 'MultiCOMP1') + (one_hot_input_rule(batch_size, 'COMP2')-one_hot_input_rule(batch_size, 'COMP1'))
-    if task_type == 'DMS': 
-        comp_vec = one_hot_input_rule(batch_size, 'DMC') + (one_hot_input_rule(batch_size, 'DNMS')-one_hot_input_rule(batch_size, 'DNMC'))
-    if task_type == 'DMC': 
-        comp_vec = one_hot_input_rule(batch_size, 'DMS') + (one_hot_input_rule(batch_size, 'DNMC')-one_hot_input_rule(batch_size, 'DNMS'))
-    if task_type == 'DNMS': 
-        comp_vec = one_hot_input_rule(batch_size, 'DNMC') + (one_hot_input_rule(batch_size, 'DMS')-one_hot_input_rule(batch_size, 'DMC'))
-    if task_type == 'DNMC': 
-        comp_vec = one_hot_input_rule(batch_size, 'DNMS') + (one_hot_input_rule(batch_size, 'DMC')-one_hot_input_rule(batch_size, 'DMS'))
-
-    return comp_vec
-
-# def swap_input_rule(batch_size, task_type): 
-#     index = Task.TASK_LIST.index(task_type)
-#     swapped_one_hot = one_hot_input_rule(batch_size, swapped_task_list[index])
-#     return swapped_one_hot
-
-def get_input_rule(batch_size, task_type, instruct_mode): 
-    # if instruct_mode == 'swap': 
-    #     task_rule = swap_input_rule(batch_size, task_type)
-    if instruct_mode == 'comp': 
-        task_rule = comp_input_rule(batch_size, task_type)
+def get_comp_rule(batch_size, task_type, instruct_mode=None): 
+    if instruct_mode == 'swap': 
+        swapped_task = get_swap_task(task_type)
+        task_rule = get_comp_rep(batch_size, swapped_task)
     elif instruct_mode == 'masked': 
-        task_rule = np.zeros((batch_size, 20))
-    elif instruct_mode == ' shuffled': 
-        task_rule = one_hot_input_rule(batch_size, task_type, shuffled=True)
+        task_rule = np.zeros((batch_size, 11))
+    else: 
+        task_rule = get_comp_rep(batch_size, task_type)
+    
+    return torch.Tensor(task_rule)
+
+def get_input_rule(batch_size, task_type, instruct_mode=None): 
+    if instruct_mode == 'swap': 
+        swapped_task = get_swap_task(task_type)
+        task_rule = one_hot_input_rule(batch_size, swapped_task)
+    elif instruct_mode == 'masked': 
+        task_rule = np.zeros((batch_size, len(TASK_LIST)))
     else: 
         task_rule = one_hot_input_rule(batch_size, task_type)
     
     return torch.Tensor(task_rule)
 
-def get_task_info(batch_len, task_type, is_instruct, device='cpu', instruct_mode=None,): 
-    if is_instruct: 
-        return get_instructions(batch_len, task_type, instruct_mode)
+def get_task_info(batch_len, task_type, info_type, instruct_mode=None): 
+    if info_type=='lang': 
+        return get_instructions(batch_len, task_type, instruct_mode = instruct_mode)
+    elif info_type=='comp': 
+        return get_comp_rule(batch_len, task_type, instruct_mode = instruct_mode)
     else: 
-        return get_input_rule(batch_len, task_type, instruct_mode).to(device)
+        return get_input_rule(batch_len, task_type, instruct_mode = instruct_mode)
+
+

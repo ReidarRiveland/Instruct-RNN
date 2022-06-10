@@ -29,32 +29,20 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
 
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
 
-            'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
-
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
-# SWAP_LIST = [            
-#             ('Anti_DM_Mod2', 'RT_Go', 'Anti_ConDM', 'COMP1'), 
-#             ('DelayDM', 'Anti_Go_Mod2', 'ConMultiDM', 'DMS'),
-#             ('DM_Mod2', 'Anti_RT_Go',  'Go', 'MultiCOMP1'), 
-#             ('Go_Mod2', 'Anti_ConMultiDM', 'Anti_DelayGo', 'COMP2'), 
-#             ('Anti_DelayMultiDM', 'MultiDM', 'Anti_RT_DM', 'DMC'),             
-#             ('DM', 'Anti_Go', 'Go_Mod1', 'MultiCOMP2'), 
-#             ('Anti_DM', 'DelayMultiDM', 'Anti_Go_Mod1',  'DNMS'), 
-#             ('RT_DM', 'Anti_MultiDM', 'DM_Mod1', 'DNMC'),
-#             ('ConDM', 'Anti_DelayDM', 'DelayGo', 'Anti_DM_Mod1')
-#             ]
-
-SWAP_LIST = [
-            ('Anti_DM_Mod2', 'Go_Mod1', 'Anti_Go', 'COMP1', 'ConMultiDM'), 
-            ('Anti_Go_Mod1', 'DM_Mod2', 'Go', 'MultiCOMP1', 'ConDM'), 
-            ('DM_Mod1', 'Anti_Go_Mod2', 'DelayGo', 'DMS', 'Anti_ConDM'),
-            ('Go_Mod2', 'Anti_DM_Mod1', 'Anti_DelayGo', 'COMP2', 'Anti_ConMultiDM'), 
-            ('Anti_DelayDM', 'MultiDM', 'Anti_RT_DM', 'DMC', 'COMP1_Mod1'),             
-            ('DM', 'Anti_DelayMultiDM', 'RT_Go', 'MultiCOMP2', 'COMP1_Mod2'), 
-            ('Anti_DM', 'DelayMultiDM', 'Anti_RT_Go',  'DNMS', 'COMP2_Mod2'), 
-            ('RT_DM', 'Anti_MultiDM', 'DelayDM', 'DNMC', 'COMP2_Mod1')
+SWAP_LIST = [            
+            ('Anti_DM_Mod2', 'RT_Go', 'Anti_ConDM', 'COMP1'), 
+            ('DelayDM', 'Anti_Go_Mod2', 'ConMultiDM', 'DMS'),
+            ('DM_Mod2', 'Anti_RT_Go',  'Go', 'MultiCOMP1'), 
+            ('Go_Mod2', 'Anti_ConMultiDM', 'Anti_DelayGo', 'COMP2'), 
+            ('Anti_DelayMultiDM', 'MultiDM', 'Anti_RT_DM', 'DMC'),             
+            ('DM', 'Anti_Go', 'Go_Mod1', 'MultiCOMP2'), 
+            ('Anti_DM', 'DelayMultiDM', 'Anti_Go_Mod1',  'DNMS'), 
+            ('RT_DM', 'Anti_MultiDM', 'DM_Mod1', 'DNMC'),
+            ('ConDM', 'Anti_DelayDM', 'DelayGo', 'Anti_DM_Mod1')
             ]
+
             
 ALIGNED_LIST = [
             ('DM', 'Anti_DM', 'MultiCOMP1', 'MultiCOMP2'), 
@@ -77,6 +65,7 @@ INV_SWAPS_DICT = invert_task_dict(SWAPS_DICT)
 
 class Task(): 
     def __init__(self, num_trials, noise, factory, **factory_kwargs):
+        if num_trials == 0: return
         if noise is None: 
             noise = np.random.uniform(0.05, 0.1)
         self.num_trials = num_trials
@@ -88,7 +77,9 @@ class Task():
         self.targets = self.factory.make_trial_targets()
         self.masks = self.factory.make_loss_mask()
 
+   
 class Go(Task): 
+    comp_ref_tasks = ('Anti_Go', 'Anti_RT_Go', 'RT_Go')
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -96,8 +87,9 @@ class Go(Task):
                         )
         self.task_type = 'Go'
 
-
 class AntiGo(Task): 
+    comp_ref_tasks = ('Anti_RT_Go', 'RT_Go', 'Go')
+    comp_rep = np.array([-1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -106,6 +98,7 @@ class AntiGo(Task):
         self.task_type = 'Anti_Go'
 
 class DelayGo(Task): 
+    comp_ref_tasks = ('Anti_Go', 'Anti_RT_Go', 'RT_Go')
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -115,6 +108,7 @@ class DelayGo(Task):
         self.task_type = 'DelayGo'
 
 class AntiDelayGo(Task): 
+    comp_rep = np.array([-1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -124,6 +118,7 @@ class AntiDelayGo(Task):
         self.task_type = 'Anti_DelayGo'
 
 class DelayGoMod1(Task): 
+    comp_rep = np.array([1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -135,6 +130,7 @@ class DelayGoMod1(Task):
         self.task_type = 'DelayGo_Mod1'
 
 class DelayGoMod2(Task): 
+    comp_rep = np.array([1, 0, 0, 0, 0, 0, 0, -1, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -147,6 +143,7 @@ class DelayGoMod2(Task):
 
 
 class AntiDelayGoMod1(Task): 
+    comp_rep = np.array([-1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -158,6 +155,7 @@ class AntiDelayGoMod1(Task):
         self.task_type = 'Anti_DelayGo_Mod1'
 
 class AntiDelayGoMod2(Task): 
+    comp_rep = np.array([-1, 0, 0, 0, 0, 0, 0, -1, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -170,6 +168,8 @@ class AntiDelayGoMod2(Task):
 
 
 class RTGo(Task):
+    comp_ref_tasks = ('Go', 'Anti_Go', 'Anti_RT_Go')
+    comp_rep = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -179,6 +179,7 @@ class RTGo(Task):
         self.task_type = 'RT_Go'
 
 class AntiRTGo(Task):
+    comp_ref_tasks = ('Anti_Go', 'Go', 'RT_Go')
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -188,6 +189,7 @@ class AntiRTGo(Task):
         self.task_type = 'Anti_RT_Go'
 
 class GoMod1(Task): 
+    comp_rep = np.array([1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -198,6 +200,7 @@ class GoMod1(Task):
         self.task_type = 'Go_Mod1'
 
 class GoMod2(Task): 
+    comp_rep = np.array([1, 0, 0, 0, 0, 0, 0, -1, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -208,6 +211,7 @@ class GoMod2(Task):
         self.task_type = 'Go_Mod2'
 
 class AntiGoMod1(Task): 
+    comp_rep = np.array([-1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -218,6 +222,7 @@ class AntiGoMod1(Task):
         self.task_type = 'Anti_Go_Mod1'
 
 class AntiGoMod2(Task): 
+    comp_rep = np.array([-1, 0, 0, 0, 0, 0, 0, -1, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -227,8 +232,8 @@ class AntiGoMod2(Task):
                         )
         self.task_type = 'Anti_Go_Mod2'
 
-
 class DM(Task):
+    comp_rep = np.array([0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -237,6 +242,7 @@ class DM(Task):
         self.task_type = 'DM'
 
 class AntiDM(Task):
+    comp_rep = np.array([0, -1, 0, 0, 0, 0, 0, 0, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -246,6 +252,7 @@ class AntiDM(Task):
 
 
 class ConDM(Task):
+    comp_rep = np.array([0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0])
     def __init__(self, num_trials, noise=None):
         noise = np.random.uniform(0.1, 0.4)
         super().__init__(num_trials, noise,
@@ -256,6 +263,7 @@ class ConDM(Task):
         self.task_type = 'ConDM'
 
 class ConAntiDM(Task):
+    comp_rep = np.array([0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         noise = np.random.uniform(0.1, 0.4)
 
@@ -267,6 +275,7 @@ class ConAntiDM(Task):
         self.task_type = 'Anti_ConDM'
 
 class ConMultiDM(Task):
+    comp_rep = np.array([0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.ConDMFactory, 
@@ -277,6 +286,7 @@ class ConMultiDM(Task):
         self.task_type = 'ConMultiDM'
 
 class ConAntiMultiDM(Task):
+    comp_rep = np.array([0, -1, 0, 0, 0, 1, 1, 0, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         noise = np.random.uniform(0.01, 0.4) 
         super().__init__(num_trials, noise,
@@ -288,6 +298,7 @@ class ConAntiMultiDM(Task):
         self.task_type = 'Anti_ConMultiDM'
 
 class RTDM(Task):
+    comp_rep = np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -297,6 +308,7 @@ class RTDM(Task):
         self.task_type = 'RT_DM'
 
 class AntiRTDM(Task):
+    comp_rep = np.array([0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -306,6 +318,7 @@ class AntiRTDM(Task):
         self.task_type = 'Anti_RT_DM'
 
 class MultiDM(Task):
+    comp_rep = np.array([0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -315,6 +328,7 @@ class MultiDM(Task):
         self.task_type = 'MultiDM'
 
 class AntiMultiDM(Task):
+    comp_rep = np.array([0, -1, 0, 0, 0, 0, 1, 0, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -324,6 +338,7 @@ class AntiMultiDM(Task):
         self.task_type = 'Anti_MultiDM'
 
 class DelayDM(Task):
+    comp_rep = np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -333,6 +348,7 @@ class DelayDM(Task):
         self.task_type = 'DelayDM'
 
 class DelayAntiDM(Task):
+    comp_rep = np.array([0, -1, 0, 0, 0, 0, 0, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -342,6 +358,7 @@ class DelayAntiDM(Task):
         self.task_type = 'Anti_DelayDM'
 
 class DelayMultiDM(Task):
+    comp_rep = np.array([0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -352,6 +369,7 @@ class DelayMultiDM(Task):
         self.task_type = 'DelayMultiDM'
 
 class DelayAntiMultiDM(Task):
+    comp_rep = np.array([0, -1, 0, 0, 0, 0, 1, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -362,6 +380,7 @@ class DelayAntiMultiDM(Task):
         self.task_type = 'Anti_DelayMultiDM'
 
 class DMMod1(Task):
+    comp_rep = np.array([0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -372,6 +391,7 @@ class DMMod1(Task):
         self.task_type = 'DM_Mod1'
 
 class DMMod2(Task):
+    comp_rep = np.array([0, 1, 0, 0, 0, 0, 0, -1, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -382,6 +402,7 @@ class DMMod2(Task):
         self.task_type = 'DM_Mod2'
         
 class AntiDMMod1(Task):
+    comp_rep = np.array([0, -1, 0, 0, 0, 0, 0, 1, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -392,6 +413,7 @@ class AntiDMMod1(Task):
         self.task_type = 'Anti_DM_Mod1'
 
 class AntiDMMod2(Task):
+    comp_rep = np.array([0, -1, 0, 0, 0, 0, 0, -1, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -402,6 +424,7 @@ class AntiDMMod2(Task):
         self.task_type = 'Anti_DM_Mod2'
 
 class RTDMMod1(Task):
+    comp_rep = np.array([0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -413,6 +436,7 @@ class RTDMMod1(Task):
         self.task_type = 'RT_DM_Mod1'
 
 class RTDMMod2(Task):
+    comp_rep = np.array([0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 1])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -424,6 +448,7 @@ class RTDMMod2(Task):
         self.task_type = 'RT_DM_Mod2'
 
 class AntiRTDMMod1(Task):
+    comp_rep = np.array([0, -1, 0, 0, 0, 0, 0, 1, 0, 0, 1])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -435,6 +460,7 @@ class AntiRTDMMod1(Task):
         self.task_type = 'Anti_RT_DM_Mod1'
 
 class AntiRTDMMod2(Task):
+    comp_rep = np.array([0, -1, 0, 0, 0, 0, 0, -1, 0, 0, 1])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -446,6 +472,7 @@ class AntiRTDMMod2(Task):
         self.task_type = 'Anti_RT_DM_Mod2'
 
 class COMP1(Task): 
+    comp_rep = np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -454,6 +481,7 @@ class COMP1(Task):
         self.task_type = 'COMP1'
 
 class COMP2(Task): 
+    comp_rep = np.array([0, 0, -1, 0, 0, 0, 0, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -462,6 +490,7 @@ class COMP2(Task):
         self.task_type = 'COMP2'
 
 class MultiCOMP1(Task): 
+    comp_rep = np.array([0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -471,6 +500,7 @@ class MultiCOMP1(Task):
         self.task_type = 'MultiCOMP1'
 
 class MultiCOMP2(Task): 
+    comp_rep = np.array([0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -479,48 +509,8 @@ class MultiCOMP2(Task):
                         )
         self.task_type = 'MultiCOMP2'
 
-
-class COMP1Mod1(Task): 
-    def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, noise,
-                        task_factory.COMPFactory, 
-                        resp_stim = 1, 
-                        mod=0, 
-                        multi=True
-                        )
-        self.task_type = 'COMP1_Mod1'
-
-class COMP1Mod2(Task): 
-    def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, noise,
-                        task_factory.COMPFactory, 
-                        resp_stim = 1, 
-                        mod=1,
-                        multi=True
-                        )
-        self.task_type = 'COMP1_Mod2'
-
-class COMP2Mod1(Task): 
-    def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, noise,
-                        task_factory.COMPFactory, 
-                        resp_stim = 2, 
-                        mod=0,
-                        multi=True
-                        )
-        self.task_type = 'COMP2_Mod1'
-
-class COMP2Mod2(Task): 
-    def __init__(self, num_trials, noise=None): 
-        super().__init__(num_trials, noise,
-                        task_factory.COMPFactory, 
-                        resp_stim = 2, 
-                        mod=1,
-                        multi=True
-                        )
-        self.task_type = 'COMP2_Mod2'
-
 class DMS(Task):
+    comp_rep = np.array([0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None):
         super().__init__(num_trials, noise,
                         task_factory.MatchingFactory,                        
@@ -528,6 +518,7 @@ class DMS(Task):
         self.task_type = 'DMS'
 
 class DNMS(Task):
+    comp_rep = np.array([0, 0, 0, -1, 1, 0, 0, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None):
         super().__init__(num_trials, noise,
                         task_factory.MatchingFactory,                        
@@ -535,6 +526,7 @@ class DNMS(Task):
         self.task_type = 'DNMS'
 
 class DMC(Task):
+    comp_rep = np.array([0, 0, 0, 1, -1, 0, 0, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None):
         super().__init__(num_trials, noise,
                         task_factory.MatchingFactory,                        
@@ -542,6 +534,7 @@ class DMC(Task):
         self.task_type = 'DMC'
 
 class DNMC(Task):
+    comp_rep = np.array([0, 0, 0, -1, -1, 0, 0, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None):
         super().__init__(num_trials, noise,
                         task_factory.MatchingFactory,                        
@@ -641,15 +634,6 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
     if task_type == 'MultiCOMP2': 
         trial = MultiCOMP2(num_trials, noise=noise)
 
-    if task_type == 'COMP1_Mod1': 
-        trial = COMP1Mod1(num_trials, noise=noise)
-    if task_type == 'COMP1_Mod2': 
-        trial = COMP1Mod2(num_trials, noise=noise)
-    if task_type == 'COMP2_Mod1': 
-        trial = COMP2Mod1(num_trials, noise=noise)
-    if task_type == 'COMP2_Mod2': 
-        trial = COMP2Mod2(num_trials, noise=noise)
-
     if task_type == 'DMS': 
         trial = DMS(num_trials, noise=noise)
     if task_type == 'DNMS': 
@@ -659,7 +643,10 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
     if task_type == 'DNMC': 
         trial = DNMC(num_trials, noise=noise)
 
-    if return_tensor: 
+    if num_trials ==0: 
+        return trial
+        
+    elif return_tensor: 
         return (torch.tensor(trial.inputs), 
                 torch.tensor(trial.targets), 
                 torch.tensor(trial.masks), 
@@ -671,6 +658,5 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
                 trial.masks.astype(int), 
                 trial.target_dirs.astype(np.float32), 
                 TASK_LIST.index(task_type))
-
 
 

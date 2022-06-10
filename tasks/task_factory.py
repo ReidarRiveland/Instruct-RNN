@@ -442,28 +442,7 @@ class COMPFactory(TaskFactory):
             requires_response = requires_response_list[i]
 
 
-            if self.mod is not None:
-                base_strength = np.random.uniform(0.8, 1.2, size=2)
-                coh = np.random.choice([0.1, 0.15, 0.2], size=2)
-                positive_strength0, negative_strength0 = base_strength[0] + coh[0], base_strength[0] - coh[0]
-                positive_strength1, negative_strength1 = base_strength[1] + coh[1], base_strength[1] - coh[1]
-                strs_true = self._set_comp_strs(positive_strength0, negative_strength0, requires_response, self.resp_stim)
-                strs_dummy = self._set_comp_strs(positive_strength1, negative_strength1, np.random.choice([True, False]), self.resp_stim)
-                directions0 = _draw_ortho_dirs()
-                directions1 = _draw_ortho_dirs()
-                directions = np.array([directions0, directions1])
-                conditions_arr[:, :, 0, i] = directions
-                conditions_arr[self.mod, :, 1, i] = strs_true
-                conditions_arr[((self.mod+1)%2), :, 1, i] = strs_dummy
-
-                if requires_response and self.resp_stim==1:
-                    target_dirs[i] = directions[self.mod, 0]
-                elif requires_response and self.resp_stim==2: 
-                    target_dirs[i] = directions[self.mod, 1]
-                else: 
-                    target_dirs[i] = None
-
-            elif self.multi:        
+            if self.multi:        
                 directions1 = _draw_ortho_dirs()
                 directions2 = directions1
 

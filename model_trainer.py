@@ -81,7 +81,7 @@ class ModelTrainer(BaseTrainer):
                         self.set_single_task)
 
     def _init_optimizer(self, model):
-        if model.is_instruct:
+        if model.info_type=='lang':
             if self.lang_lr is None: langLR = self.lr 
             else: langLR = self.lang_lr
             optimizer = self.optim_alg([
@@ -111,10 +111,10 @@ class ModelTrainer(BaseTrainer):
 
         self.model_file_path = model.model_name+'_'+self.seed_suffix
 
-        if not is_tuning and model.is_instruct: 
+        if not is_tuning and model.info_type=='lang': 
             model.langModel.eval()
         
-        if is_testing and model.is_instruct:
+        if is_testing and model.info_type=='lang':
             model.langModel.freeze_transformer()
 
         if self.cur_epoch>0: 
@@ -123,14 +123,14 @@ class ModelTrainer(BaseTrainer):
             self._init_optimizer(model)
 
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
-            if self.cur_epoch == self.save_for_tuning_epoch and model.is_instruct:
+            if self.cur_epoch == self.save_for_tuning_epoch and model.info_type=='lang':
                 self._save_for_tuning(model)
 
             self.streamer.shuffle_stream_order()
             for self.cur_step, data in enumerate(self.streamer.stream_batch()): 
                 ins, tar, mask, tar_dir, task_type = data
                 self.optimizer.zero_grad()
-                task_info = get_task_info(self.batch_len, task_type, model.is_instruct)
+                task_info = get_task_info(self.batch_len, task_type, model.info_type)
                 out, _ = model(ins.to(device), task_info)
                 loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
                 loss.backward()
@@ -177,7 +177,6 @@ def check_already_tested(file_name, seed, task):
         return False
 
 def train_model_set(model_names, seeds, label_holdout_list, overwrite=False, **train_config_kwargs): 
-    inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
@@ -191,16 +190,10 @@ def train_model_set(model_names, seeds, label_holdout_list, overwrite=False, **t
                 model = make_default_model(model_name)
                 trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
                 trainer = ModelTrainer(trainer_config)
-                is_trained = trainer.train(model)
-                if not is_trained: inspection_list.append((model.model_name, seed, holdouts))
-                del trainer
-                del model
-                gc.collect()
+                trainer.train(model)
 
-    return inspection_list
 
 def tune_model_set(model_names, seeds, label_holdout_list, overwrite=False, **train_config_kwargs): 
-    inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
@@ -228,18 +221,10 @@ def tune_model_set(model_names, seeds, label_holdout_list, overwrite=False, **tr
                                                 **train_config_kwargs)
 
                 trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
-                is_trained = trainer.train(model, is_tuning=True)
+                trainer.train(model, is_tuning=True)
 
-                if not is_trained: 
-                    inspection_list.append((model.model_name, seed, holdouts))
-                # else: 
-                #     os.remove(for_tuning_model_path)
-                #     os.remove(for_tuning_data_path)
-
-    return inspection_list
 
 def test_model_set(model_names, seeds, label_holdout_list, overwrite=False, **train_config_kwargs): 
-    inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
@@ -259,7 +244,6 @@ def test_model_set(model_names, seeds, label_holdout_list, overwrite=False, **tr
                     trainer = ModelTrainer(tuning_config)
                     trainer.train(model, is_testing=True)
 
-    return inspection_list
 
 
 
@@ -282,23 +266,29 @@ if __name__ == "__main__":
     # EXP_FOLDER =MODEL_FOLDER+'/'+args.exp_type
 
 
-    MODEL_FOLDER = '6.9models'
+    MODEL_FOLDER = '6.7models'
     EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
 
     # train_model_set(['simpleNet'],  
     #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
 
-    train_model_set(['sbertNet'],  
+    train_model_set(['comNetPlus'],  
         [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
     
-    tune_model_set(['sbertNet_tuned'],  
-        [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
+    # tune_model_set(['sbertNet_tuned'],  
+    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
 
     # train_model_set(['simpleNet'],  
     #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
 
-    train_model_set(['gptNetXL'],  
-        [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     
+    # train_model_set(['sbertNet'],  
+    #     [0], [['Multitask','Multitask']], overwrite=False, stream_data=False)     
+    
+    # tune_model_set(['sbertNet_tuned'],  
+    #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=False)     
 
-    train_model_set(['sifNet'],  
-        [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     
+    # train_model_set(['gptNetXL'],  
+    #     [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     
+
+    # train_model_set(['sifNet'],  
+    #     [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     

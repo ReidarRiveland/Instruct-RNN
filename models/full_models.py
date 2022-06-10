@@ -9,9 +9,9 @@ _all_models = ['clipNet', 'clipNet_tuned',
             'bertNet_lin_tuned', 'bertNet_lin', 
             'gptNetXL_tuned', 'gptNetXL', 
             'gptNetXL_lin_tuned', 'gptNetXL_lin', 
-            'bowNet', 'sifNet',
+            'bowNet', 
             'simpleNet', 'simpleNetPlus',
-            'compNet', 'compNetPlus']
+            'comNet', 'comNetPlus']
 
 class SimpleNet(RuleNet):
     def __init__(self, **kw_args):
@@ -22,6 +22,17 @@ class SimpleNetPlus(RuleNet):
     def __init__(self, **kw_args):
         config = RuleModelConfig('simpleNetPlus', add_rule_encoder=True, **kw_args)
         super().__init__(config)
+
+class ComNet(RuleNet):
+    def __init__(self, **kw_args):
+        config = RuleModelConfig('comNet', info_type='comp', **kw_args)
+        super().__init__(config)
+
+class ComNetPlus(RuleNet):
+    def __init__(self, **kw_args):
+        config = RuleModelConfig('comNetPlus', add_rule_encoder=True, info_type='comp', **kw_args)
+        super().__init__(config)
+
 
 class GPTNetXL(InstructNet):
     def __init__(self, **kw_args):
@@ -187,6 +198,10 @@ def make_default_model(model_str):
         return SimpleNet()
     if model_str == 'simpleNetPlus':
         return SimpleNetPlus()
+    if model_str == 'comNet':
+        return ComNet()
+    if model_str == 'comNetPlus':
+        return ComNetPlus()
     if model_str == 'bertNet': 
         return BERTNet()
     if model_str == 'bertNet_tuned': 

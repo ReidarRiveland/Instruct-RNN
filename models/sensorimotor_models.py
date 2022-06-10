@@ -1,3 +1,4 @@
+from turtle import forward
 import torch
 import torch.nn as nn
 from attrs import asdict
@@ -79,6 +80,9 @@ class RuleEncoder(nn.Module):
                 nn.ReLU()
             )
 
+    def forward(self, rule):
+        return self.rule_out(self.rule_in(rule))
+
 class RuleNet(BaseNet):
     def __init__(self, config):
         super().__init__(config)
@@ -89,11 +93,16 @@ class RuleNet(BaseNet):
             self.rule_encoder = nn.Identity()
 
     def _set_rule_transform(self):
-        ortho_rules = pickle.load(open('models/ortho_rule_vecs/ortho_rules'+str(len(TASK_LIST))+'x'+str(self.rule_dim), 'rb'))
+        rule_folder = 'models/ortho_rule_vecs/'
+        if self.info_type == 'comp': 
+            ortho_rules = pickle.load(open(rule_folder+'ortho_comp_rules'+str(self.rule_dim), 'rb'))
+        else: 
+            ortho_rules = pickle.load(open(rule_folder+'ortho_rules'+str(len(TASK_LIST))+'x'+str(self.rule_dim), 'rb'))
         self.rule_transform = torch.Tensor(ortho_rules)
 
     def forward(self, x, task_rule):
-        task_rule = self.rule_encoder(torch.matmul(task_rule.to(self.__device__), self.rule_transform))
+        rule_transformed = torch.matmul(task_rule.to(self.__device__), self.rule_transform)
+        task_rule = self.rule_encoder(rule_transformed)
         outs, rnn_hid = super().forward(x, task_rule)
         return outs, rnn_hid
 

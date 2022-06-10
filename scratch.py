@@ -114,25 +114,24 @@
 
 
 from turtle import position
-from dataset import TaskDataSet
+from data_loaders.dataset import TaskDataSet
 
-from task_factory import TaskFactory
+from tasks.task_factory import TaskFactory
 from models.full_models import SBERTNet, SBERTNet_lin, SBERTNet_tuned, SimpleNetPlus, SimpleNet
 from model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 from plotting import plot_model_response
-from tasks_utils import SWAP_LIST, SWAPS_DICT 
-from instructions.instruct_utils import get_instructions
-from task_criteria import isCorrect
+from tasks.tasks import SWAP_LIST, SWAPS_DICT, TASK_LIST 
+from instructions.instruct_utils import get_instructions, train_instruct_dict
+from tasks.task_criteria import isCorrect
 import numpy as np
 import torch
-from tasks import TASK_LIST
 
 
-EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = SBERTNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+EXP_FILE = '6.9models/swap_holdouts'
+sbertNet = SBERTNet_tuned(LM_out_dim=64, rnn_hidden_dim=256)
 #sbertNet = SimpleNet(rnn_hidden_dim=256)
 
-holdouts_file = 'swap0'
+holdouts_file = 'Multitask'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 
@@ -163,7 +162,7 @@ list(zip(TASK_LIST, perf))
 np.mean(perf) 
 
 
-from dataset import TaskDataSet
+from data_loaders.dataset import TaskDataSet
 from task_factory import TaskFactory
 TASK_LIST
 
@@ -186,31 +185,12 @@ for instruct in train_instruct_dict['Anti_DM_Mod2']:
             instructions=[instruct]*128)
     repeats.append((instruct, perf))
 
-repeats
+TASK_LIST
 
-[('attend to the second modality and choose the orientation that appears weakest', 0.8515625), 
-('focus on the second modality and respond to least intense direction')
-('choose the direction with least intensity in the second modality'), 
-('attend to the second modality and select the direction with least strength', 0.75), 
---> ('choose the least intense orientation in the second modality', 0.5703125), 
-('go in the direction of the weakest stimulus in the second modality', 0.7265625), 
---> ('respond to the orientation which has lowest strength in the second modality', 0.234375), 
-('focus only on the second modality and pick the stimulus with lowest intensity', 0.765625), 
-('attend to the second modality and opt for the weakest stimulus presented there', 0.8359375), 
---> ('pick the direction in the second modality presented with least strength', 0.34375), 
-('focus on the second modality and select the weakest direction', 0.75), 
-
---> ('select the direction with lowest strength in the second modality', 0.5), 
-
-('choose the direction with weakest intensity in the second modality', 0.6015625), 
-('attend to the second modality and choose the orientation with lowest intensity', 0.7265625), 
-('attend only to the second modality and select the direction with lowest strength', 0.609375)]
-
-
-
-
-instructions = ['respond to the orientation which has lowest strength in the second modality']*128
-task_eval(sbertNet, 'Anti_DM_Mod2', 128, instructions=instructions)
+task = 'Go_Mod2'
+instructions = ['respond to the stimulus in the second modality']*128
+instructions[0] in train_instruct_dict[task]
+task_eval(sbertNet, task, 128, instructions=instructions)
 
 
 task_eval(sbertNet, 'Anti_Go_Mod2', 128)
@@ -385,4 +365,9 @@ sns.heatmap(B.T, yticklabels=CLUSTER_TASK_LIST)
 plt.show()
 
 
+from scipy.stats import ortho_group  # Requires version 0.18 of scipy
 
+m = ortho_group.rvs(dim=64)
+
+# import pickle 
+# pickle.dump(m[:11, ], open('models/ortho_rule_vecs/ortho_comp_rules64', 'wb'))

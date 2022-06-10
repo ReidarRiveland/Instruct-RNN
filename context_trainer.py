@@ -74,7 +74,6 @@ class ContextTrainer(BaseTrainer):
         print(status_str)
 
     def _init_contexts(self, batch_len): 
-        #context = nn.Parameter(torch.randn((batch_len, self.context_dim), device=device))
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
         nn.init.uniform_(context, a=-0.1, b=0.1)
         return context
@@ -100,10 +99,8 @@ class ContextTrainer(BaseTrainer):
             for self.cur_step, data in enumerate(self.streamer.stream_batch()): 
                 ins, tar, mask, tar_dir, task_type = data
                 self.optimizer.zero_grad()
-                if contexts.shape[0]==1: 
-                    in_contexts = contexts.repeat(self.batch_len, 1)
-                else: 
-                    in_contexts = contexts.clamp(min=0.0)
+                in_contexts = contexts.repeat(self.batch_len, 1)
+                
 
                 out, _ = model(ins.to(device), context=in_contexts)
                 task_loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
