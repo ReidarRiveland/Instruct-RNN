@@ -101,4 +101,4 @@ def build_training_data(foldername):
         np.save(path +'/target_dirs', target_dirs)
         np.save(path +'/type_indices', trial_indices)
 
-#build_training_data('6.9models')
+build_training_data('6.models')
