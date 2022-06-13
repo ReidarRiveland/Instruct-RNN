@@ -201,17 +201,17 @@ def train_decoder_set(model_names, seeds, label_holdout_list,  use_holdouts = Fa
         torch.manual_seed(seed)
         for label, holdouts in label_holdout_list:
             for model_name in model_names: 
-                file_name = EXP_FOLDER+'/'+label
+                file_name = EXP_FOLDER+'/'+label+'/'+model_name
 
                 if not overwrite and check_decoder_trained(file_name+'/decoders', seed, use_holdouts):
                     continue 
                 else:  
                     print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts)+  '\n')
                     model = make_default_model(model_name)   
-                    model.load_model(file_name+'/'+model_name, suffix='_seed'+str(seed))
+                    model.load_model(file_name, suffix='_seed'+str(seed))
                     model.to(device)
 
-                    decoder = DecoderRNN(64)
+                    decoder = DecoderRNN(128)
                     decoder.to(device)
 
                     if use_holdouts: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)
@@ -229,6 +229,6 @@ if __name__ == "__main__":
     EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
 
     train_decoder_set(['sbertNet_tuned'], 
-                    [0], list(SWAPS_DICT.items()))
+                    [0], list(SWAPS_DICT.items()), overwrite=True)
 
 

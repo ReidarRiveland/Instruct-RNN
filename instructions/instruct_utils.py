@@ -67,8 +67,8 @@ def get_instructions(batch_size, task_type, instruct_mode=None):
 
         return list(instructs)
 
-def make_one_hot(len, index): 
-    one_hot = np.zeros((1, len(TASK_LIST)))
+def make_one_hot(size, index): 
+    one_hot = np.zeros((1, size))
     one_hot[:,index] = 1
     return one_hot
 
@@ -81,7 +81,8 @@ def one_hot_input_rule(batch_size, task_type, shuffled=False):
 
 def get_comp_rep(batch_size, task_type): 
     ref_tasks = construct_trials(task_type, 0).comp_ref_tasks
-    comp_rep = make_one_hot(batch_size, ref_tasks[0])-make_one_hot(batch_size, ref_tasks[1])+make_one_hot(batch_size, ref_tasks[2])
+    comp_rep = one_hot_input_rule(batch_size, ref_tasks[0])-one_hot_input_rule(batch_size, ref_tasks[1]) \
+                        +one_hot_input_rule(batch_size, ref_tasks[2])
     return comp_rep
 
 def get_comp_rule(batch_size, task_type, instruct_mode=None): 

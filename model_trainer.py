@@ -180,7 +180,9 @@ def train_model_set(model_names, seeds, label_holdout_list, overwrite=False, **t
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
-            if '_tuned' in model_name: warnings.warn('\n TUNED MODELS SHOULD BE FINE TUNED USING THE TUNING FUNCTION \n')
+            if '_tuned' in model_name: 
+                warnings.warn('\n !!!TUNED MODELS SHOULD BE FINE TUNED USING THE TUNING FUNCTION!!!')
+                continue
             for label, holdouts in label_holdout_list: 
                 file_name = EXP_FOLDER+'/'+label+'/'+model_name
                 
@@ -197,8 +199,9 @@ def tune_model_set(model_names, seeds, label_holdout_list, overwrite=False, **tr
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
-            assert '_tuned' in model_name
-
+            if '_tuned' not in model_name: 
+                warnings.warn('\n !!!UNTUNED MODELS SHOULD BE TRAINED USING THE TRAIN FUNCTION!!!')
+                continue
             for label, holdouts in label_holdout_list: 
                 untuned_model_name = model_name.replace('_tuned', '')
                 file_name = EXP_FOLDER+'/'+label
@@ -250,6 +253,7 @@ def test_model_set(model_names, seeds, label_holdout_list, overwrite=False, **tr
 if __name__ == "__main__":
     import argparse
     from tasks.tasks import SWAPS_DICT
+    from models.full_models import _all_models
 
     
     # parser = argparse.ArgumentParser()
@@ -272,11 +276,11 @@ if __name__ == "__main__":
     # train_model_set(['simpleNet'],  
     #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
 
-    train_model_set(['comNetPlus'],  
+    train_model_set(_all_models,  
         [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
     
-    # tune_model_set(['sbertNet_tuned'],  
-    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
+    tune_model_set(_all_models,  
+        [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
 
     # train_model_set(['simpleNet'],  
     #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     

@@ -117,9 +117,9 @@ from turtle import position
 from data_loaders.dataset import TaskDataSet
 
 from tasks.task_factory import TaskFactory
-from models.full_models import SBERTNet, SBERTNet_lin, SBERTNet_tuned, SimpleNetPlus, SimpleNet
+from models.full_models import *
 from model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
-from plotting import plot_model_response
+from plotting.plotting import plot_model_response
 from tasks.tasks import SWAP_LIST, SWAPS_DICT, TASK_LIST 
 from instructions.instruct_utils import get_instructions, train_instruct_dict
 from tasks.task_criteria import isCorrect
@@ -134,10 +134,18 @@ sbertNet = SBERTNet_tuned(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'Multitask'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
+EXP_FILE = '6.7models/swap_holdouts'
+comNet = ComNetPlus()
+#sbertNet = SimpleNet(rnn_hidden_dim=256)
+
+holdouts_file = 'swap0'
+comNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+comNet.model_name, suffix='_seed0')
+
+
 
 for task in SWAPS_DICT[holdouts_file]:
     print(task)
-    perf = task_eval(sbertNet, task, 256)
+    perf = task_eval(comNet, task, 256)
     print((task, perf))
 
 
@@ -187,8 +195,9 @@ for instruct in train_instruct_dict['Anti_DM_Mod2']:
 
 TASK_LIST
 
-task = 'Go_Mod2'
-instructions = ['respond to the stimulus in the second modality']*128
+
+task = 'Anti_Go_Mod2'
+instructions = ['pick the opposite of the orientation in the second modality' ]*128
 instructions[0] in train_instruct_dict[task]
 task_eval(sbertNet, task, 128, instructions=instructions)
 

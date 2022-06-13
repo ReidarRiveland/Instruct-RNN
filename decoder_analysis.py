@@ -1,9 +1,10 @@
-
 import pickle
 import torch
-from decoding_models.decoder_models import DecoderRNN, EncoderDecoder
+from decoding_models.decoder_models import DecoderRNN
+from decoding_models.encoder_decoder import EncoderDecoder
 from models.full_models import make_default_model
-load_str = '_ReLU128_4.11/swap_holdouts/Go_Anti_DM/sbertNet_tuned/'
+
+load_str = '6.7models/swap_holdouts/swap0/sbertNet_tuned/'
 
 sm_model = make_default_model('sbertNet_tuned')
 rnn_decoder = DecoderRNN(64, drop_p=0.1)
@@ -15,12 +16,12 @@ sm_model.to(device)
 rnn_decoder.to(device)
 sm_model.eval()
 
-rnn_decoder.load_model(load_str+'decoders/seed'+str(seed)+'_rnn_decoder_lin_wHoldout')
+rnn_decoder.load_model(load_str+'decoders/rnn_decoder_seed'+str(seed))
 sm_model.load_model(load_str, suffix='_seed'+str(seed))
 
 encoder = EncoderDecoder(sm_model, rnn_decoder)
 
-encoder.init_context_set('Go_Anti_DM', 0, 768)
+#encoder.init_context_set('Go_Anti_DM', 0, 768)
 
 
 decoded_set, _ = encoder.decode_set(128, 1)

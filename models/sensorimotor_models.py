@@ -94,10 +94,7 @@ class RuleNet(BaseNet):
 
     def _set_rule_transform(self):
         rule_folder = 'models/ortho_rule_vecs/'
-        if self.info_type == 'comp': 
-            ortho_rules = pickle.load(open(rule_folder+'ortho_comp_rules'+str(self.rule_dim), 'rb'))
-        else: 
-            ortho_rules = pickle.load(open(rule_folder+'ortho_rules'+str(len(TASK_LIST))+'x'+str(self.rule_dim), 'rb'))
+        ortho_rules = pickle.load(open(rule_folder+'ortho_rules'+str(len(TASK_LIST))+'x'+str(self.rule_dim), 'rb'))
         self.rule_transform = torch.Tensor(ortho_rules)
 
     def forward(self, x, task_rule):

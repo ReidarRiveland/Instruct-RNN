@@ -87,7 +87,6 @@ class Go(Task):
 
 class AntiGo(Task): 
     comp_ref_tasks = ('Anti_RT_Go', 'RT_Go', 'Go')
-    comp_rep = np.array([-1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -98,7 +97,6 @@ class AntiGo(Task):
 
 class RTGo(Task):
     comp_ref_tasks = ('Go', 'Anti_Go', 'Anti_RT_Go')
-    comp_rep = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -207,7 +205,6 @@ class GoMod2(Task):
 
 class AntiGoMod1(Task): 
     comp_ref_tasks = ('Anti_Go_Mod2', 'Go_Mod2', 'Go_Mod1')
-    comp_rep = np.array([-1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -239,7 +236,6 @@ class DM(Task):
 
 class AntiDM(Task):
     comp_ref_tasks = ('Anti_MultiDM', 'MultiDM', 'DM')
-    comp_rep = np.array([0, -1, 0, 0, 0, 0, 0, 0, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -248,7 +244,7 @@ class AntiDM(Task):
         self.task_type = 'Anti_DM'
 
 class MultiDM(Task):
-    comp_rep = np.array([0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0])
+    comp_ref_tasks = ('DM', 'Anti_DM', 'Anti_MultiDM')
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -258,7 +254,7 @@ class MultiDM(Task):
         self.task_type = 'MultiDM'
 
 class AntiMultiDM(Task):
-    comp_rep = np.array([0, -1, 0, 0, 0, 0, 1, 0, 1, 0, 0])
+    comp_ref_tasks = ('Anti_DM', 'DM', 'MultiDM')
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -269,8 +265,6 @@ class AntiMultiDM(Task):
 
 class ConDM(Task):
     comp_ref_tasks = ('ConMultiDM', 'Anti_ConMultiDM', 'Anti_ConDM')
-
-    comp_rep = np.array([0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0])
     def __init__(self, num_trials, noise=None):
         noise = np.random.uniform(0.1, 0.4)
         super().__init__(num_trials, noise,
@@ -282,7 +276,6 @@ class ConDM(Task):
 
 class ConAntiDM(Task):
     comp_ref_tasks = ('Anti_ConMultiDM', 'ConMultiDM', 'ConDM')
-    comp_rep = np.array([0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 0])
     def __init__(self, num_trials, noise=None): 
         noise = np.random.uniform(0.1, 0.4)
 
@@ -318,7 +311,6 @@ class ConAntiMultiDM(Task):
 
 class RTDM(Task):
     comp_ref_tasks = ('RT_Go', 'Go', 'DM')
-    comp_rep = np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -329,7 +321,6 @@ class RTDM(Task):
 
 class AntiRTDM(Task):
     comp_ref_tasks = ('RT_Go', 'Go', 'Anti_DM')
-    comp_rep = np.array([0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -340,7 +331,6 @@ class AntiRTDM(Task):
 
 class DelayDM(Task):
     comp_ref_tasks = ('DelayGo', 'Go', 'DM')
-    comp_rep = np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0])
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
