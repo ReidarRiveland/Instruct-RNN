@@ -229,6 +229,6 @@ if __name__ == "__main__":
     EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
 
     train_decoder_set(['sbertNet_tuned'], 
-                    [0], list(SWAPS_DICT.items()), overwrite=True)
+                    [0], list(SWAPS_DICT.items()))
 
 

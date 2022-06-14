@@ -1,7 +1,7 @@
 from random import uniform
 from matplotlib.style import context
 from models.full_models import make_default_model
-from tasks import TASK_LIST
+from tasks.tasks import TASK_LIST
 from base_trainer import masked_MSE_Loss, BaseTrainer
 from data_loaders.dataset import TaskDataSet
 from tasks.task_criteria import isCorrect
@@ -183,7 +183,7 @@ def train_context_set(model_names,  seeds, label_holdout_list, context_dim, as_b
 if __name__ == "__main__":
     from tasks.tasks import SWAPS_DICT
 
-    MODEL_FOLDER = '6.6models'
+    MODEL_FOLDER = '6.7models'
     EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
 
 
