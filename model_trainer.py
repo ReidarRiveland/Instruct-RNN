@@ -253,34 +253,43 @@ def test_model_set(model_names, seeds, label_holdout_list, overwrite=False, **tr
 if __name__ == "__main__":
     import argparse
     from tasks.tasks import SWAPS_DICT
-    from models.full_models import _all_models
-
     
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--model_name', required=True)
-    # parser.add_argument('--model_folder', required=True)
-    # parser.add_argument('--exp_type', required=True)
-    # parser.add_argument('--mode', default='train')
-    # parser.add_argument('--overwrite', default=False)
-    # args = parser.parse_args()
-    # os.environ['MODEL_FOLDER'] = args.folder
+    parser = argparse.ArgumentParser()
+    parser.add_argument('folder', required=True)
+    parser.add_argument('exp', required=True)
+    parser.add_argument('-mode', default='train')
+    parser.add_argument('-models', default=None, nargs='*')
+    parser.add_argument('--holdouts', type=int, default=None,  nargs='*')
+    parser.add_argument('--overwrite', type=bool, default=False)
+    parser.add_argument('--num_seeds', type=int, default=5)
+    args = parser.parse_args('6.7models swap_holdouts'.split())
+
+    os.environ['MODEL_FOLDER'] = args.folder
+    MODEL_FOLDER = args.model_folder
+    EXP_FOLDER =MODEL_FOLDER+'/'+args.exp_type
+
+    if args.holdout_set is None: holdouts = list(SWAPS_DICT.items())
+    else: holdouts = list(SWAPS_DICT.items())[:]
+
+    if args.model_name is None:
+        holdouts = list(SWAPS_DICT.items())
+    else:
+        holdouts = list(SWAPS_DICT.items())[:]
 
 
-    # MODEL_FOLDER = args.model_folder
-    # EXP_FOLDER =MODEL_FOLDER+'/'+args.exp_type
 
 
-    MODEL_FOLDER = '6.7models'
-    EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
+    if args.mode == 'train': 
+        train_model_set(args.model_name, np.range(args.num_seeds), list(SWAPS_DICT.items()), overwrite=args.overwrite)     
+    if args.mode == 'tune': 
+        tune_model_set(args.model_name,  
+            [0], list(SWAPS_DICT.items()), overwrite=False)     
+    if args.mode == 'test': 
+        test_model_set(args.model_name, 
+            [0], list(SWAPS_DICT.items()), overwrite=False)     
 
-    # train_model_set(['simpleNet'],  
-    #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=True)     
-
-    train_model_set(_all_models,  
-        [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
-    
-    tune_model_set(_all_models,  
-        [0], list(SWAPS_DICT.items()), overwrite=False, stream_data=False)     
+    # MODEL_FOLDER = '6.7models'
+    # EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
 
     # train_model_set(['simpleNet'],  
     #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
