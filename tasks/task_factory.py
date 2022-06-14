@@ -1,10 +1,4 @@
-from logging import exception
-import stat
-from numpy.core.fromnumeric import argmax
-from numpy.lib.twodim_base import tri
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
 import pickle
 
 STIM_DIM = 32
@@ -33,7 +27,6 @@ def _add_noise(array, noise):
 def _draw_ortho_dirs(dir1=None): 
     if dir1 is None: 
         dir1 = np.random.uniform(0, 2*np.pi)
-    #dir2 = (dir1+np.pi+np.random.uniform(-np.pi/8, np.pi/8))%(2*np.pi)
     dir2 = (dir1+np.pi)%(2*np.pi)
     return (dir1, dir2)
 
@@ -186,30 +179,6 @@ class TaskFactory():
         trial_target = self._expand_along_intervals(self.intervals, (no_resp, no_resp, no_resp, no_resp, resp))
         return trial_target
     
-    @staticmethod
-    def plot_trial(ins, tars, task_type):
-        ins = ins.T
-        tars = tars.T
-        fix = np.expand_dims(ins[0, :], 0)
-        mod1 = ins[1:STIM_DIM, :]
-        mod2 = ins[1+STIM_DIM:1+(2*STIM_DIM), :]
-
-        to_plot = (fix, mod1, mod2, tars)
-
-        gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 5])
-
-        fig, axn = plt.subplots(4,1, sharex = True, gridspec_kw=gs_kw)
-        cbar_ax = fig.add_axes([.91, .3, .03, .4])
-        ylabels = ('fix.', 'mod. 1', 'mod. 2', 'Target')
-        for i, ax in enumerate(axn.flat):
-            sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1.5, cbar_ax=None if i else cbar_ax)
-
-            ax.set_ylabel(ylabels[i])
-            if i == 0: 
-                ax.set_title('%r Trial Info' %task_type)
-            if i == 3: 
-                ax.set_xlabel('time')
-        plt.show()
 
 
 class GoFactory(TaskFactory): 

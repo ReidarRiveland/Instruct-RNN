@@ -1,6 +1,5 @@
-from models.language_models import GPT, BERT, SBERT, BoW, CLIP, SIF
-from models.sensorimotor_models import RuleNet, InstructNet
-from models.model_configs import RuleModelConfig, InstructModelConfig
+from models.language_models import *
+from models.sensorimotor_models import *
 
 _all_models = ['clipNet', 'clipNet_tuned', 
             'sbertNet_tuned', 'sbertNet', 

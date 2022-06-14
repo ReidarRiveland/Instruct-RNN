@@ -3,6 +3,7 @@ import torch.nn as nn
 from attrs import asdict
 import itertools
 import pickle
+from attrs import define
 
 from fse.models import SIF
 from fse import IndexedList, Vectors, SIF
@@ -12,6 +13,15 @@ from transformers import GPT2Model, GPT2Tokenizer, GPTNeoForCausalLM
 from transformers import CLIPTokenizer, CLIPTextModel
 from transformers import BertModel, BertTokenizer
 from transformers import GPTNeoForCausalLM
+
+@define
+class LMConfig(): 
+    LM_load_str: str
+    LM_train_layers: list 
+    LM_reducer: str 
+    LM_out_dim: int 
+    LM_output_nonlinearity: str 
+    LM_proj_out_layers: int
 
 class InstructionEmbedder(nn.Module): 
     def __init__(self, config): 
@@ -84,8 +94,6 @@ class BERT(TransformerEmbedder):
         self.transformer = BertModel.from_pretrained(self.LM_load_str, output_hidden_states=True)
         self.tokenizer = BertTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
-        ###USING EOS BUT NOT INITIALIZAED?
-        #self.tokenizer.pad_token = self.tokenizer.eos_token
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
@@ -95,7 +103,6 @@ class SBERT(TransformerEmbedder):
         self.transformer = BertModel.from_pretrained('bert-base-uncased', output_hidden_states=True)
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
-        #self.tokenizer.pad_token = self.tokenizer.eos_token
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
@@ -124,7 +131,6 @@ class CLIP(TransformerEmbedder):
         self.transformer = CLIPTextModel.from_pretrained(self.LM_load_str)
         self.tokenizer = CLIPTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
-        #self.tokenizer.pad_token = self.tokenizer.eos_token
         self._reducer = None
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()

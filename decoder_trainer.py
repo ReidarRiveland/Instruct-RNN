@@ -223,12 +223,31 @@ def train_decoder_set(model_names, seeds, label_holdout_list,  use_holdouts = Fa
 
 if __name__ == "__main__":
     import argparse
-    from tasks.tasks import SWAPS_DICT
+    from tasks.tasks import SWAPS_DICT, ALIGNED_DICT
+    from models.full_models import _all_models
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('folder')
+    parser.add_argument('exp')
+    parser.add_argument('--models', default=_all_models, nargs='*')
+    parser.add_argument('--holdouts', type=int, default=None,  nargs='*')
+    parser.add_argument('--use_holdouts', default=False, action='store_true')
+    parser.add_argument('--overwrite', default=False, action='store_true')
+    parser.add_argument('--seeds', type=int, default=[0], nargs='+')
+    args = parser.parse_args()
 
-    MODEL_FOLDER = '6.7models'
-    EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
+    os.environ['MODEL_FOLDER'] = args.folder
+    MODEL_FOLDER = args.folder
+    EXP_FOLDER =MODEL_FOLDER+'/'+args.exp+'_holdouts'
 
-    train_decoder_set(['sbertNet_tuned'], 
-                    [0], list(SWAPS_DICT.items()))
+    if args.exp == 'swap': 
+        _holdouts_list = list(SWAPS_DICT.items())
+    elif args.exp == 'algined': 
+        _holdouts_list = list(ALIGNED_DICT.items())
 
+    if args.holdouts is None: 
+        holdouts = _holdouts_list[:]
+    else: 
+        holdouts = _holdouts_list[args.holdouts]
 
+    train_decoder_set(args.models, args.seeds, holdouts, args.layer, use_holdouts=args.use_holdouts, overwrite=args.overwrite)

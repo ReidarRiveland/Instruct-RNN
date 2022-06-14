@@ -1,5 +1,3 @@
-from random import uniform
-from matplotlib.style import context
 from models.full_models import make_default_model
 from tasks.tasks import TASK_LIST
 from base_trainer import masked_MSE_Loss, BaseTrainer
@@ -13,10 +11,8 @@ import torch.optim as optim
 
 import numpy as np
 import pickle
-import itertools
 from tqdm import tqdm
 from attrs import define
-from collections import defaultdict
 from copy import copy
 import os
 
@@ -27,18 +23,17 @@ device = torch.device(0)
 class ContextTrainerConfig(): 
     file_path: str
     random_seed: int
-
-    context_dim: int = 20
+    context_dim: int    
     num_contexts: int = 128
 
-    epochs: int = 60
-    min_run_epochs: int = 5
-    batch_len: int = 128
+    epochs: int = 5
+    min_run_epochs: int = 1
+    batch_len: int = 64
     num_batches: int = 500
     stream_data: bool = False
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.1
+    lr: float = 0.001
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
@@ -75,7 +70,7 @@ class ContextTrainer(BaseTrainer):
 
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        nn.init.uniform_(context, a=-0.1, b=0.1)
+        nn.init.uniform_(context, a=-5, b=5)
         return context
     
     def _init_optimizer(self, context):
@@ -159,21 +154,27 @@ def check_already_trained(file_name, seed, task, context_dim):
     except FileNotFoundError:
         return False
 
-def train_context_set(model_names,  seeds, label_holdout_list, context_dim, as_batch = False, tasks = TASK_LIST, overwrite=False, **train_config_kwargs): 
+def train_context_set(model_names,  seeds, label_holdout_list, layer, 
+                    as_batch = False, tasks = TASK_LIST, overwrite=False, **train_config_kwargs): 
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
         for labels, _ in label_holdout_list:
             for model_name in model_names: 
+                model = make_default_model(model_name)
+
+                if layer=='emb': 
+                    context_dim = model.langModel.LM_out_dim
+                elif layer=='last': 
+                    context_dim = model.langModel.LM_intermediate_lang_dim 
                 file_name = EXP_FOLDER+'/'+labels+'/'+model_name+'/contexts'
 
-                model = make_default_model(model_name)
                 for task in tasks: 
                     if not overwrite and check_already_trained(file_name, seed, task, context_dim):
                         continue 
                     else:        
                         print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ '\n')
-                        trainer_config = ContextTrainerConfig(file_name, seed, context_dim = context_dim, **train_config_kwargs)
+                        trainer_config = ContextTrainerConfig(file_name, seed, context_dim, **train_config_kwargs)
                         trainer = ContextTrainer(trainer_config)
                         is_trained = trainer.train(model, task, as_batch=as_batch)
                         if not is_trained: inspection_list.append((model.model_name, seed))
@@ -181,19 +182,34 @@ def train_context_set(model_names,  seeds, label_holdout_list, context_dim, as_b
         return inspection_list
 
 if __name__ == "__main__":
-    from tasks.tasks import SWAPS_DICT
+    import argparse
+    from tasks.tasks import SWAPS_DICT, ALIGNED_DICT
+    from models.full_models import _all_models
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('folder')
+    parser.add_argument('exp')
+    parser.add_argument('--models', default=_all_models, nargs='*')
+    parser.add_argument('--layer', default='last', help='the dim corresponding to the layer the contexts gets trained at, must be emd or last')
+    parser.add_argument('--holdouts', type=int, default=None,  nargs='*')
+    parser.add_argument('--overwrite', default=False, action='store_true')
+    parser.add_argument('--seeds', type=int, default=[0], nargs='+')
+    args = parser.parse_args()
 
-    MODEL_FOLDER = '6.7models'
-    EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
+    os.environ['MODEL_FOLDER'] = args.folder
+    MODEL_FOLDER = args.folder
+    EXP_FOLDER =MODEL_FOLDER+'/'+args.exp+'_holdouts'
 
+    if args.exp == 'swap': 
+        _holdouts_list = list(SWAPS_DICT.items())
+    elif args.exp == 'algined': 
+        _holdouts_list = list(ALIGNED_DICT.items())
 
-    train_context_set(['sbertNet_tuned'], 
-                        [0], 
-                        list(SWAPS_DICT.items()),
-                        768, 
-                        batch_len = 64, 
-                        lr=0.005, 
-                        min_run_epochs=1, 
-                        epochs=5, 
-                        step_last_lr=False)
+    if args.holdouts is None: 
+        holdouts = _holdouts_list
+    else: 
+        holdouts = _holdouts_list[args.holdouts]
+
+    train_context_set(args.models, args.seeds, holdouts, args.layer, 
+                        lr=0.01)
 

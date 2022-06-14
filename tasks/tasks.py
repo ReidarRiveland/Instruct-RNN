@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 import tasks.task_factory as task_factory
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 def invert_task_dict(task_dict):
     inv_swap_dict = {}
@@ -74,6 +76,30 @@ class Task():
         self.inputs = self.factory.make_trial_inputs()
         self.targets = self.factory.make_trial_targets()
         self.masks = self.factory.make_loss_mask()
+    
+    def plot_trial(self, index):
+        ins = self.inputs.T
+        tars = self.targets.T
+        fix = np.expand_dims(ins[0, :], 0)
+        mod1 = ins[1:task_factory.STIM_DIM, index]
+        mod2 = ins[1+task_factory.STIM_DIM:1+(2*task_factory.STIM_DIM), index]
+
+        to_plot = (fix, mod1, mod2, tars)
+
+        gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 5])
+
+        fig, axn = plt.subplots(4,1, sharex = True, gridspec_kw=gs_kw)
+        cbar_ax = fig.add_axes([.91, .3, .03, .4])
+        ylabels = ('fix.', 'mod. 1', 'mod. 2', 'Target')
+        for i, ax in enumerate(axn.flat):
+            sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1.5, cbar_ax=None if i else cbar_ax)
+
+            ax.set_ylabel(ylabels[i])
+            if i == 0: 
+                ax.set_title('%r Trial Info' %self.task_type)
+            if i == 3: 
+                ax.set_xlabel('time')
+        plt.show()
 
    
 class Go(Task): 
@@ -530,7 +556,7 @@ class DNMC(Task):
                         matching_task = False, match_type = 'cat')
         self.task_type = 'DNMC'
  
-def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
+def construct_trials(task_type, num_trials=None, noise = None, return_tensor=False):
     assert task_type in TASK_LIST, "entered invalid task type"
     if task_type == 'Go':
         trial = Go(num_trials, noise=noise)
@@ -632,7 +658,7 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
     if task_type == 'DNMC': 
         trial = DNMC(num_trials, noise=noise)
 
-    if num_trials ==0: 
+    if num_trials is None: 
         return trial
         
     elif return_tensor: 
@@ -649,3 +675,16 @@ def construct_trials(task_type, num_trials, noise = None, return_tensor=False):
                 TASK_LIST.index(task_type))
 
 
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('task')
+    parser.add_argument('-num', default=1)
+    args = parser.parse_args()
+
+    _task = construct_trials(args.task)
+    trials = _task(args.num)
+
+    for index in range(args.num):
+        trials.plot_trial(index)

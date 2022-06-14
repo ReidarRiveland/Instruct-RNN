@@ -101,4 +101,11 @@ def build_training_data(foldername):
         np.save(path +'/target_dirs', target_dirs)
         np.save(path +'/type_indices', trial_indices)
 
-build_training_data('6.models')
+#build_training_data('6.models')
+
+if __name__ == "__main__":
+    import argparse    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('folder')
+    args = parser.parse_args()
+    build_training_data(args.folder)

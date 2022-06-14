@@ -1,6 +1,6 @@
+import pickle
 
 train_instruct_dict = {}
-
 train_instruct_dict['Go'] = ('respond in the direction of the stimulus', 
                             'respond with the same direction as the displayed orientation', 
                             'choose the orientation displayed', 
@@ -807,5 +807,17 @@ test_instruct_dict['DNMC'] = ('pick the second direction if both stimuli are on 
                                     'select the final orientation if both stimuli appear on opposite halves of the display otherwise do not respond')                                    
 
 
-# import pickle
-# pickle.dump(train_instruct_dict, open('6.7models/train_instruct_dict', 'wb'))
+def save_instruct_dicts(path):
+	pickle.dump(train_instruct_dict, open(path+'/train_instruct_dict', 'wb'))
+	pickle.dump(test_instruct_dict, open(path+'/test_instruct_dict', 'wb'))
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--path', default='instructions')
+    args = parser.parse_args()
+    save_instruct_dicts(args.path)
+
+
+	
