@@ -117,7 +117,7 @@ class SBERTNet(InstructNet):
     def __init__(self, **kw_args):
         config = InstructModelConfig('sbertNet', 
                                     LM_class= SBERT,
-                                    LM_load_str = 'sbert_raw.pt', 
+                                    LM_load_str = 'sbert-base-nli-mean-tokens.pt', 
                                     LM_train_layers=[], 
                                     **kw_args)
         super().__init__(config)
@@ -126,7 +126,7 @@ class SBERTNet_tuned(InstructNet):
     def __init__(self, **kw_args):
         config = InstructModelConfig('sbertNet_tuned', 
                                     LM_class= SBERT,
-                                    LM_load_str = 'sbert_raw.pt', 
+                                    LM_load_str = 'sbert-base-nli-mean-tokens.pt', 
                                     LM_train_layers=['9', '10', '11', 'pooler'],
                                     **kw_args)
         super().__init__(config)

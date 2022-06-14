@@ -50,27 +50,30 @@ class ModelTrainer(BaseTrainer):
 
     def _record_session(self, model, mode='CHECKPOINT'): 
         checkpoint_attrs = super()._record_session()
-        if os.path.exists(self.file_path):
-            pass
+        if os.path.exists(self.file_path):pass
         else: os.makedirs(self.file_path)
+        if os.path.exists(self.file_path+'/attrs'):pass
+        else: os.makedirs(self.file_path+'/attrs')
 
         if mode == 'CHECKPOINT':
-            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+'_CHECKPOINT_attrs', 'wb'))
+            pickle.dump(checkpoint_attrs, open(self.file_path+'/attrs/'+self.model_file_path+'_CHECKPOINT_attrs', 'wb'))
             model.save_model(self.file_path, suffix='_'+self.seed_suffix+'_CHECKPOINT')
 
         if mode=='FINAL': 
-            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.model_file_path+'_attrs', 'wb'))
-            os.remove(self.file_path+'/'+self.model_file_path+'_CHECKPOINT_attrs')
-            pickle.dump(self.loss_data, open(self.file_path+'/'+self.seed_suffix+'_training_loss', 'wb'))
-            pickle.dump(self.correct_data, open(self.file_path+'/'+self.seed_suffix+'_training_correct', 'wb'))
+            pickle.dump(checkpoint_attrs.pop('loss_data'), open(self.file_path+'/'+self.seed_suffix+'_training_loss', 'wb'))
+            pickle.dump(checkpoint_attrs.pop('correct_data'), open(self.file_path+'/'+self.seed_suffix+'_training_correct', 'wb'))
+
+            pickle.dump(checkpoint_attrs, open(self.file_path+'/attrs/'+self.model_file_path+'_attrs', 'wb'))
+            os.remove(self.file_path+'/attrs/'+self.model_file_path+'_CHECKPOINT_attrs')
+
             model.save_model(self.file_path, suffix='_'+self.seed_suffix)
-            os.remove(self.file_path+'/'+self.model_file_path+'_CHECKPOINT.pt')
+            os.remove(self.file_path+self.model_file_path+'_CHECKPOINT.pt')
 
         if mode=='TESTING': 
-            task_file_name = self.set_single_task.replace(' ', '_')
-            pickle.dump(checkpoint_attrs, open(self.file_path+'/'+self.seed_suffix+task_file_name+'_holdout_attrs', 'wb'))
-            pickle.dump(self.loss_data, open(self.file_path+'/'+task_file_name + '_'+self.seed_suffix+'_holdout_loss', 'wb'))
-            pickle.dump(self.correct_data, open(self.file_path+'/'+task_file_name+'_'+self.seed_suffix+'_holdout_correct', 'wb'))
+            task= self.set_single_task
+            pickle.dump(checkpoint_attrs, open(self.file_path+'/attrs/'+self.seed_suffix+task+'_holdout_attrs', 'wb'))
+            pickle.dump(self.loss_data, open(self.file_path+'/'+task + '_'+self.seed_suffix+'_holdout_loss', 'wb'))
+            pickle.dump(self.correct_data, open(self.file_path+'/'+task+'_'+self.seed_suffix+'_holdout_correct', 'wb'))
 
     def _init_streamer(self):
         self.streamer = TaskDataSet(MODEL_FOLDER+'/training_data', 
@@ -246,8 +249,6 @@ def test_model_set(model_names, seeds, label_holdout_list, overwrite=False, **tr
                                             **train_config_kwargs)
                     trainer = ModelTrainer(tuning_config)
                     trainer.train(model, is_testing=True)
-
-
 
 
 if __name__ == "__main__":

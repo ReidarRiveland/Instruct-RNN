@@ -33,7 +33,7 @@ class ContextTrainerConfig():
     stream_data: bool = False
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.001
+    lr: float = 0.01
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
@@ -70,7 +70,7 @@ class ContextTrainer(BaseTrainer):
 
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        nn.init.uniform_(context, a=-5, b=5)
+        nn.init.uniform_(context, a=-4, b=4)
         return context
     
     def _init_optimizer(self, context):
@@ -210,6 +210,6 @@ if __name__ == "__main__":
     else: 
         holdouts = _holdouts_list[args.holdouts]
 
-    train_context_set(args.models, args.seeds, holdouts, args.layer, 
-                        lr=0.01)
+    train_context_set(args.models, args.seeds, holdouts, args.layer, overwrite=args.overwrite,
+                        lr=0.005, num_contexts=10, tasks=TASK_LIST[2:])
 

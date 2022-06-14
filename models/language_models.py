@@ -105,8 +105,7 @@ class SBERT(TransformerEmbedder):
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
-
-        self.transformer.load_state_dict(self._convert_state_dict_format('models/_pretrained_lang_models/'+self.LM_load_str))
+        self.transformer.load_state_dict(self._convert_state_dict_format('models/_pretrained_state_dicts/'+self.LM_load_str))
 
     def _convert_state_dict_format(self, state_dict_file): 
         print('converting state dict keys to BERT format')

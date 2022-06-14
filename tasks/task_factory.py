@@ -433,7 +433,7 @@ class COMPFactory(TaskFactory):
 
                 candidate_strs = np.sum(tmp_strengths, axis=0)
 
-                positive_index = argmax(candidate_strs)
+                positive_index = np.argmax(candidate_strs)
                 positive_strength = tmp_strengths[:, positive_index]
                 negative_strength = tmp_strengths[:, (positive_index+1)%2]
                 strs = self._set_comp_strs(positive_strength, negative_strength, requires_response, self.resp_stim)

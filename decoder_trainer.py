@@ -1,4 +1,5 @@
 import numpy as np
+from base_trainer import BaseTrainer
 import torch.optim as optim
 from instructions.instruct_utils import get_instructions
 from data_loaders.dataset import TaskDataSet
@@ -36,23 +37,9 @@ class DecoderTrainerConfig():
     init_teacher_forcing_ratio: float = 0.5
     
 
-class DecoderTrainer():
+class DecoderTrainer(BaseTrainer):
     def __init__(self, config:DecoderTrainerConfig=None, from_checkpoint_dict:dict=None): 
-        self.config = config
-        self.cur_epoch = 0 
-        self.cur_step = 0
-        self.teacher_loss_data = []
-        self.loss_data = []
-
-        if from_checkpoint_dict is not None: 
-            for name, value in from_checkpoint_dict.items(): 
-                setattr(self, name, value)
-
-        for name, value in asdict(self.config, recurse=False).items(): 
-            setattr(self, name, value)
-
-        self.seed_suffix = 'seed'+str(self.random_seed)
-
+        super().__init__(config, from_checkpoint_dict)
 
     def _print_progress(self, decoder_loss, use_teacher_forcing, 
                                 decoded_sentence, target_instruct): 
@@ -76,13 +63,8 @@ class DecoderTrainer():
             self.loss_data.append(loss)
 
     def _record_session(self, decoder, mode):
-        record_attrs = ['config', 'decoder_optimizer', 'scheduler', 'cur_epoch', 'cur_step', 'teacher_loss_data', 'loss_data']
-        checkpoint_attrs = {}
-        for attr in record_attrs: 
-            checkpoint_attrs[attr]=getattr(self, attr)
-
+        checkpoint_attrs = super()._record_session()
         record_file = self.file_path+'/'+decoder.decoder_name+'_'+self.seed_suffix
-
 
         with_holdouts = bool(self.holdouts)
         if with_holdouts: 
@@ -100,6 +82,7 @@ class DecoderTrainer():
         if mode=='FINAL': 
             pickle.dump(checkpoint_attrs, open(record_file+'_attrs'+holdouts_suffix, 'wb'))
             os.remove(record_file+'_CHECKPOINT_attrs'+holdouts_suffix)
+            
             decoder.save_model(record_file+holdouts_suffix)
             os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'.pt')
 
