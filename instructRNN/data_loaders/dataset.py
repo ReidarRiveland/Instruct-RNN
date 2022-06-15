@@ -1,8 +1,10 @@
 from genericpath import exists
 import numpy as np
 import torch
-from tasks.tasks import TASK_LIST, construct_trials
 import os
+
+from instructRNN.tasks.tasks import TASK_LIST, construct_trials
+
 
 class TaskDataSet():
     DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
@@ -37,12 +39,17 @@ class TaskDataSet():
     
     def __make_memmaps__(self): 
         for task in self.task_ratio_dict.keys(): 
-            task_file = task.replace(' ', '_')
-            self.memmap_dict[task] = (np.lib.format.open_memmap(self.data_folder+'/'+task_file+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (8000, 120, 65)),
-                    np.lib.format.open_memmap(self.data_folder+'/'+task_file+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (8000, 120, 33)),
-                    np.lib.format.open_memmap(self.data_folder+'/'+task_file+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (8000, 120, 33)),
-                    np.lib.format.open_memmap(self.data_folder+'/'+task_file+'/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (8000)))
-    
+            try:
+                self.memmap_dict[task] = (np.lib.format.open_memmap(self.data_folder+'/'+task+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (8000, 120, 65)),
+                        np.lib.format.open_memmap(self.data_folder+'/'+task+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (8000, 120, 33)),
+                        np.lib.format.open_memmap(self.data_folder+'/'+task+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (8000, 120, 33)),
+                        np.lib.format.open_memmap(self.data_folder+'/'+task+'/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (8000)))
+            except FileNotFoundError: 
+                print('\n no training data for {task} discovered at {data_load_path} \n'.format(task=task, data_load_path=self.data_folder))
+                build_training_data(self.data_folder, task)
+
+
+
     def __init_task_distribution__(self):
         #rescale sampling ratio of tasks to deal with holdouts 
         if len(self.holdouts) > 0 and 'Multitask' not in self.holdouts: 
@@ -87,25 +94,15 @@ class TaskDataSet():
                 yield construct_trials(self.trial_types[i], self.batch_len, return_tensor=True)
 
 
-def build_training_data(foldername):
-    for task in TASK_LIST: 
-        print(task)
-        path = foldername+'/training_data/' + task
-        if os.path.exists(path):
-            pass
-        else: os.makedirs(path)
-        input_data, target_data, masks_data, target_dirs, trial_indices = construct_trials(task, 10000)
-        np.save(path+'/input_data', input_data)
-        np.save(path+'/target_data', target_data)
-        np.save(path+'/masks_data', masks_data)
-        np.save(path +'/target_dirs', target_dirs)
-        np.save(path +'/type_indices', trial_indices)
-
-#build_training_data('6.models')
-
-if __name__ == "__main__":
-    import argparse    
-    parser = argparse.ArgumentParser()
-    parser.add_argument('folder')
-    args = parser.parse_args()
-    build_training_data(args.folder)
+def build_training_data(foldername, task):
+    print('Building training data for ' + task + '...')
+    path = foldername+'/training_data/' + task
+    if os.path.exists(path):
+        pass
+    else: os.makedirs(path)
+    input_data, target_data, masks_data, target_dirs, trial_indices = construct_trials(task, 10000)
+    np.save(path+'/input_data', input_data)
+    np.save(path+'/target_data', target_data)
+    np.save(path+'/masks_data', masks_data)
+    np.save(path +'/target_dirs', target_dirs)
+    np.save(path +'/type_indices', trial_indices)

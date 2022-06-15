@@ -2,15 +2,14 @@ import numpy as np
 import pickle
 import itertools
 import torch
-from tasks.tasks import TASK_LIST, SWAPS_DICT, INV_SWAPS_DICT, Task, construct_trials
-
 from collections import Counter
+import pathlib
 
-#cur_folder = os.getenv('MODEL_FOLDER')
+from instructRNN.tasks.tasks import *
 
-train_instruct_dict = pickle.load(open('instructions/train_instruct_dict', 'rb'))
-
-test_instruct_dict = pickle.load(open('instructions/test_instruct_dict', 'rb'))
+location = str(pathlib.Path(__file__).parent.absolute())
+train_instruct_dict = pickle.load(open(location+'/train_instruct_dict', 'rb'))
+test_instruct_dict = pickle.load(open(location+'/test_instruct_dict', 'rb'))
 
 inv_train_instruct_dict = inv_train_instruct_dict = dict(zip(list(itertools.chain(*[list(instructions) for instructions in train_instruct_dict.values()])), 
                                             list(itertools.chain(*[[task]*15 for task in TASK_LIST]))))

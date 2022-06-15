@@ -1,7 +1,7 @@
-
 import numpy as np
 import torch
-from tasks.task_factory import TUNING_DIRS
+
+from instructRNN.tasks.task_factory import TUNING_DIRS
 
 def gpu_to_np(t):
     """removes tensor from gpu and converts to np.array""" 

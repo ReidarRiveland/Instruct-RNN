@@ -1,14 +1,13 @@
-from instructions.instruct_utils import train_instruct_dict, count_vocab
-from tasks.tasks import TASK_LIST
-from models.script_gru import ScriptGRU
-
 from torch.distributions import Categorical
 import numpy as np
-
 
 import torch
 import torch.nn as nn
 import pickle
+
+from instructRNN.instructions.instruct_utils import train_instruct_dict, count_vocab
+from instructRNN.tasks.tasks import TASK_LIST
+from instructRNN.models.script_gru import ScriptGRU
 
 device = torch.device(0)
 

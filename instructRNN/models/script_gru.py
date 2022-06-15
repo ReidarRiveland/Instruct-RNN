@@ -1,14 +1,9 @@
 import torch
 import torch.nn as nn
 from torch.nn import Parameter
-from torch.autograd import Variable
 import torch.jit as jit
-
-import warnings
-from collections import namedtuple
-from typing import List, Tuple
+from typing import List
 from torch import Tensor
-import numbers
 
 class scriptGRUCell(jit.ScriptModule): 
     def __init__(self, input_size, hidden_size, activ_func): 

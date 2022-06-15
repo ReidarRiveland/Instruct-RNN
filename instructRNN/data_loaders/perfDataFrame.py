@@ -1,11 +1,8 @@
 from dataclasses import dataclass
 import pickle
-from tasks.tasks import SWAPS_DICT
-
-from attr import frozen
-from torch import arange
-from tasks.tasks import TASK_LIST
 import numpy as np
+
+from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT
 
 @dataclass(frozen=True)
 class HoldoutDataFrame(): 

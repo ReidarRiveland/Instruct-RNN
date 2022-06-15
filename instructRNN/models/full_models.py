@@ -1,7 +1,7 @@
-from models.language_models import *
-from models.sensorimotor_models import *
+from instructRNN.models.language_models import *
+from instructRNN.models.sensorimotor_models import *
 
-_all_models = ['clipNet', 'clipNet_tuned', 
+all_models = ['clipNet', 'clipNet_tuned', 
             'sbertNet_tuned', 'sbertNet', 
             'sbertNet_lin', 'sbertNet_lin_tuned',
             'bertNet_tuned', 'bertNet', 
@@ -193,7 +193,7 @@ class BoWNet(InstructNet):
             
 
 def make_default_model(model_str): 
-    assert model_str in _all_models, 'invalid model name'
+    assert model_str in all_models, 'invalid model name'
     if model_str == 'simpleNet':
         return SimpleNet()
     if model_str == 'simpleNetPlus':

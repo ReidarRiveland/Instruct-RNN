@@ -1,20 +1,20 @@
 import numpy as np
-from base_trainer import BaseTrainer
-import torch.optim as optim
-from instructions.instruct_utils import get_instructions
-from data_loaders.dataset import TaskDataSet
-from decoding_models.decoder_models import DecoderRNN
-from attrs import define, asdict
-from models.full_models import make_default_model
+from attrs import define
 from tqdm import tqdm
 import pickle
 import os
 
 import torch
 import torch.nn as nn
+import torch.optim as optim
+
+from instructRNN.models.full_models import make_default_model
+from instructRNN.trainers.base_trainer import BaseTrainer
+from instructRNN.instructions.instruct_utils import get_instructions
+from instructRNN.data_loaders.dataset import TaskDataSet
+from instructRNN.decoding_models.decoder_models import DecoderRNN
 
 device = torch.device(0)
-
 
 @define 
 class DecoderTrainerConfig(): 
@@ -87,7 +87,7 @@ class DecoderTrainer(BaseTrainer):
             os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'.pt')
 
     def _init_streamer(self):
-        self.streamer = TaskDataSet(MODEL_FOLDER+'/training_data',
+        self.streamer = TaskDataSet(self.file_path.partition('/')[0]+'/training_data', 
                         self.stream_data, 
                         self.batch_len, 
                         self.num_batches, 
@@ -179,12 +179,12 @@ def check_decoder_trained(file_name, seed, use_holdouts):
     except FileNotFoundError:
         return False
 
-def train_decoder_set(model_names, seeds, label_holdout_list,  use_holdouts = False, overwrite=False, **train_config_kwargs): 
+def train_decoder_set(exp_folder, model_names, seeds, holdout_dict, use_holdouts, overwrite=False, **train_config_kwargs): 
     for seed in seeds: 
         torch.manual_seed(seed)
-        for label, holdouts in label_holdout_list:
+        for label, holdouts in holdout_dict:
             for model_name in model_names: 
-                file_name = EXP_FOLDER+'/'+label+'/'+model_name
+                file_name = exp_folder+'/'+label+'/'+model_name
 
                 if not overwrite and check_decoder_trained(file_name+'/decoders', seed, use_holdouts):
                     continue 
@@ -204,33 +204,3 @@ def train_decoder_set(model_names, seeds, label_holdout_list,  use_holdouts = Fa
                     trainer.train(model, decoder)
 
 
-if __name__ == "__main__":
-    import argparse
-    from tasks.tasks import SWAPS_DICT, ALIGNED_DICT
-    from models.full_models import _all_models
-    
-    parser = argparse.ArgumentParser()
-    parser.add_argument('folder')
-    parser.add_argument('exp')
-    parser.add_argument('--models', default=_all_models, nargs='*')
-    parser.add_argument('--holdouts', type=int, default=None,  nargs='*')
-    parser.add_argument('--use_holdouts', default=False, action='store_true')
-    parser.add_argument('--overwrite', default=False, action='store_true')
-    parser.add_argument('--seeds', type=int, default=[0], nargs='+')
-    args = parser.parse_args()
-
-    os.environ['MODEL_FOLDER'] = args.folder
-    MODEL_FOLDER = args.folder
-    EXP_FOLDER =MODEL_FOLDER+'/'+args.exp+'_holdouts'
-
-    if args.exp == 'swap': 
-        _holdouts_list = list(SWAPS_DICT.items())
-    elif args.exp == 'algined': 
-        _holdouts_list = list(ALIGNED_DICT.items())
-
-    if args.holdouts is None: 
-        holdouts = _holdouts_list[:]
-    else: 
-        holdouts = _holdouts_list[args.holdouts]
-
-    train_decoder_set(args.models, args.seeds, holdouts, args.layer, use_holdouts=args.use_holdouts, overwrite=args.overwrite)

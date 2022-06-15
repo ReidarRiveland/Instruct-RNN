@@ -1,8 +1,9 @@
 import numpy as np
 import torch
-import tasks.task_factory as task_factory
 import seaborn as sns
 import matplotlib.pyplot as plt
+
+import instructRNN.tasks.task_factory as task_factory
 
 def invert_task_dict(task_dict):
     inv_swap_dict = {}
@@ -78,13 +79,14 @@ class Task():
         self.masks = self.factory.make_loss_mask()
     
     def plot_trial(self, index):
-        ins = self.inputs.T
-        tars = self.targets.T
-        fix = np.expand_dims(ins[0, :], 0)
-        mod1 = ins[1:task_factory.STIM_DIM, index]
-        mod2 = ins[1+task_factory.STIM_DIM:1+(2*task_factory.STIM_DIM), index]
+        ins = self.inputs
+        tars = self.targets
+        fix = ins[index, :, 0:1]
+        mod1 = ins[index, :, 1:task_factory.STIM_DIM+1]
+        mod2 = ins[index, :, 1+task_factory.STIM_DIM:1+(2*task_factory.STIM_DIM)]
+        tars = tars[index, :, :]
 
-        to_plot = (fix, mod1, mod2, tars)
+        to_plot = (fix.T, mod1.T, mod2.T, tars.T)
 
         gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 5])
 

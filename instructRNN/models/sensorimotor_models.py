@@ -1,13 +1,12 @@
-from turtle import forward
 import torch
 import torch.nn as nn
-from attrs import asdict
+from attrs import asdict, define, field
 import pickle
-from models.script_gru import ScriptGRU
-from tasks.tasks import TASK_LIST
-from models.language_models import InstructionEmbedder, LMConfig
-from attrs import define, field
-from tasks.task_factory import INPUT_DIM, OUTPUT_DIM
+
+from instructRNN.models.script_gru import ScriptGRU
+from instructRNN.tasks.tasks import TASK_LIST
+from instructRNN.models.language_models import InstructionEmbedder, LMConfig
+from instructRNN.tasks.task_factory import INPUT_DIM, OUTPUT_DIM
 
 SENSORY_INPUT_DIM = INPUT_DIM
 MOTOR_OUTPUT_DIM = OUTPUT_DIM

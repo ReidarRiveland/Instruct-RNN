@@ -114,9 +114,11 @@
 
 
 from turtle import position
-from data_loaders.dataset import TaskDataSet
+from instructRNN.data_loaders.dataset import TaskDataSet
 
-from tasks.task_factory import TaskFactory
+
+
+from instructRNN.tasks.task_factory import TaskFactory
 from models.full_models import *
 from model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 from plotting.plotting import plot_model_response
@@ -127,7 +129,7 @@ import numpy as np
 import torch
 
 
-EXP_FILE = '6.9models/swap_holdouts'
+EXP_FILE = '6.7models/swap_holdouts'
 sbertNet = SBERTNet_tuned(LM_out_dim=64, rnn_hidden_dim=256)
 #sbertNet = SimpleNet(rnn_hidden_dim=256)
 
@@ -139,13 +141,13 @@ comNet = ComNetPlus()
 #sbertNet = SimpleNet(rnn_hidden_dim=256)
 
 holdouts_file = 'swap0'
-comNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+comNet.model_name, suffix='_seed0')
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 
 
 for task in SWAPS_DICT[holdouts_file]:
     print(task)
-    perf = task_eval(comNet, task, 256)
+    perf = task_eval(sbertNet, task, 256)
     print((task, perf))
 
 
@@ -238,7 +240,11 @@ reps_reduced, _ = reduce_rep(resp)
 from model_analysis import get_layer_sim_scores, get_instruct_reps
 from plotting import plot_RDM
 
-#reps = get_instruct_reps(sbertNet.langModel, depth='full')
+reps = get_instruct_reps(sbertNet.langModel, depth='12')
+reps.shape
+np.max(reps[TASK_LIST.index('DM'), 0, :])
+np.min(reps)
+
 
 sim_scores = get_layer_sim_scores(sbertNet, rep_depth='full')
 plot_RDM(sim_scores)

@@ -1,13 +1,13 @@
 import pickle
 import torch
-from decoding_models.decoder_models import DecoderRNN
-from decoding_models.encoder_decoder import EncoderDecoder
+from instructRNN.decoding_models.decoder_models import DecoderRNN
+from instructRNN.decoding_models.encoder_decoder import EncoderDecoder
 from models.full_models import make_default_model
 
 load_str = '6.7models/swap_holdouts/swap0/sbertNet_tuned/'
 
 sm_model = make_default_model('sbertNet_tuned')
-rnn_decoder = DecoderRNN(64, drop_p=0.1)
+rnn_decoder = DecoderRNN(128, drop_p=0.1)
 
 device = torch.device(0)
 

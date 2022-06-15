@@ -13,7 +13,6 @@ from instructions.instruct_utils import inv_train_instruct_dict, get_instruction
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-
 class EncoderDecoder(nn.Module): 
     def __init__(self, sm_model, decoder, load_folder=None): 
         super(EncoderDecoder, self).__init__()

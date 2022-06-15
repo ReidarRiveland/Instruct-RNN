@@ -1,13 +1,7 @@
 import torch
-from torch import Tensor, optim
+from torch import optim
 import numpy as np
 from yaml import warnings
-
-from models.full_models import make_default_model
-from base_trainer import BaseTrainer, masked_MSE_Loss
-from data_loaders.dataset import TaskDataSet
-from tasks.task_criteria import isCorrect
-from instructions.instruct_utils import get_task_info
 
 import pickle
 import copy
@@ -15,7 +9,13 @@ from tqdm import tqdm
 from attrs import define
 import os
 import warnings
-import gc
+
+from instructRNN.trainers.base_trainer import *
+from instructRNN.data_loaders.dataset import *
+from instructRNN.tasks.task_criteria import *
+from instructRNN.instructions.instruct_utils import get_task_info
+from instructRNN.models.full_models import make_default_model
+
 
 device = torch.device(0)
 
@@ -76,7 +76,7 @@ class ModelTrainer(BaseTrainer):
             pickle.dump(self.correct_data, open(self.file_path+'/'+task+'_'+self.seed_suffix+'_holdout_correct', 'wb'))
 
     def _init_streamer(self):
-        self.streamer = TaskDataSet(MODEL_FOLDER+'/training_data', 
+        self.streamer = TaskDataSet(self.file_path.partition('/')[0]+'/training_data', 
                         self.stream_data, 
                         self.batch_len, 
                         self.num_batches, 
@@ -179,15 +179,15 @@ def check_already_tested(file_name, seed, task):
     except FileNotFoundError:
         return False
 
-def train_model_set(model_names, seeds, label_holdout_list, overwrite=False, **train_config_kwargs): 
+def train_model_set(exp_folder, model_names, seeds, holdout_dict, overwrite=False, **train_config_kwargs): 
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
             if '_tuned' in model_name: 
                 warnings.warn('\n !!!TUNED MODELS SHOULD BE FINE TUNED USING THE TUNING FUNCTION!!!')
                 continue
-            for label, holdouts in label_holdout_list: 
-                file_name = EXP_FOLDER+'/'+label+'/'+model_name
+            for label, holdouts in holdout_dict.items(): 
+                file_name = exp_folder+'/'+label+'/'+model_name
                 
                 if check_already_trained(file_name, seed) and not overwrite:
                     continue 
@@ -198,16 +198,16 @@ def train_model_set(model_names, seeds, label_holdout_list, overwrite=False, **t
                 trainer.train(model)
 
 
-def tune_model_set(model_names, seeds, label_holdout_list, overwrite=False, **train_config_kwargs): 
+def tune_model_set(exp_folder, model_names, seeds, holdout_dict, overwrite=False, **train_config_kwargs): 
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
             if '_tuned' not in model_name: 
                 warnings.warn('\n !!!UNTUNED MODELS SHOULD BE TRAINED USING THE TRAIN FUNCTION!!!')
                 continue
-            for label, holdouts in label_holdout_list: 
+            for label, holdouts in holdout_dict.items(): 
                 untuned_model_name = model_name.replace('_tuned', '')
-                file_name = EXP_FOLDER+'/'+label
+                file_name = exp_folder+'/'+label
                 
                 if check_already_trained(file_name+'/'+model_name, seed) and not overwrite:
                     continue 
@@ -230,12 +230,12 @@ def tune_model_set(model_names, seeds, label_holdout_list, overwrite=False, **tr
                 trainer.train(model, is_tuning=True)
 
 
-def test_model_set(model_names, seeds, label_holdout_list, overwrite=False, **train_config_kwargs): 
+def test_model_set(exp_folder, model_names, seeds, holdout_dict, overwrite=False, **train_config_kwargs): 
     for seed in seeds: 
         torch.manual_seed(seed)
         for model_name in model_names: 
-            for label, holdouts in label_holdout_list: 
-                file_name = EXP_FOLDER+'/'+label+'/'+model_name
+            for label, holdouts in holdout_dict: 
+                file_name = exp_folder+'/'+label+'/'+model_name
                 
                 model = make_default_model(model_name)
                 model.load_model(file_name, suffix='_seed'+str(seed))
@@ -250,58 +250,3 @@ def test_model_set(model_names, seeds, label_holdout_list, overwrite=False, **tr
                     trainer = ModelTrainer(tuning_config)
                     trainer.train(model, is_testing=True)
 
-
-if __name__ == "__main__":
-    import argparse
-    from tasks.tasks import SWAPS_DICT, ALIGNED_DICT
-    from models.full_models import _all_models
-    
-    parser = argparse.ArgumentParser()
-    parser.add_argument('folder')
-    parser.add_argument('exp')
-    parser.add_argument('--mode', default='train')
-    parser.add_argument('--models', default=_all_models, nargs='*')
-    parser.add_argument('--holdouts', type=int, default=None,  nargs='*')
-    parser.add_argument('--overwrite', default=False, action='store_true')
-    parser.add_argument('--seeds', type=int, default=[0], nargs='+')
-    args = parser.parse_args()
-
-    os.environ['MODEL_FOLDER'] = args.folder
-    MODEL_FOLDER = args.folder
-    EXP_FOLDER =MODEL_FOLDER+'/'+args.exp+'_holdouts'
-
-    if args.exp == 'swap': 
-        _holdouts_list = list(SWAPS_DICT.items())
-    elif args.exp == 'algined': 
-        _holdouts_list = list(ALIGNED_DICT.items())
-
-    if args.holdouts is None: 
-        holdouts = _holdouts_list[:]
-    else: 
-        holdouts = _holdouts_list[args.holdouts]
-
-
-    if args.mode == 'train': 
-        train_model_set(args.models, args.seeds, holdouts, overwrite=args.overwrite)     
-    if args.mode == 'tune': 
-        tune_model_set(args.models, args.seeds, holdouts, overwrite=args.overwrite)     
-    if args.mode == 'test': 
-        test_model_set(args.models, args.seeds, holdouts, overwrite=args.overwrite)     
-
-    # MODEL_FOLDER = '6.7models'
-    # EXP_FOLDER =MODEL_FOLDER+'/swap_holdouts'
-
-    # train_model_set(['simpleNet'],  
-    #     [0], list(SWAPS_DICT.items()), overwrite=True, stream_data=False)     
-
-    # train_model_set(['sbertNet'],  
-    #     [0], [['Multitask','Multitask']], overwrite=False, stream_data=False)     
-    
-    # tune_model_set(['sbertNet_tuned'],  
-    #     [0], [['Multitask','Multitask']], overwrite=True, stream_data=False)     
-
-    # train_model_set(['gptNetXL'],  
-    #     [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     
-
-    # train_model_set(['sifNet'],  
-    #     [0], [['Multitask','Multitask']], overwrite=False, stream_data=True)     

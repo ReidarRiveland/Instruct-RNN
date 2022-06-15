@@ -4,15 +4,20 @@ from attrs import asdict
 import itertools
 import pickle
 from attrs import define
+import pathlib
 
 from fse.models import SIF
 from fse import IndexedList, Vectors, SIF
-from instructions.instruct_utils import get_all_sentences, sort_vocab
 
 from transformers import GPT2Model, GPT2Tokenizer, GPTNeoForCausalLM
 from transformers import CLIPTokenizer, CLIPTextModel
 from transformers import BertModel, BertTokenizer
 from transformers import GPTNeoForCausalLM
+
+from instructRNN.instructions.instruct_utils import get_all_sentences, sort_vocab
+
+
+location = str(pathlib.Path(__file__).parent.absolute())
 
 @define
 class LMConfig(): 
@@ -105,7 +110,7 @@ class SBERT(TransformerEmbedder):
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
-        self.transformer.load_state_dict(self._convert_state_dict_format('models/_pretrained_state_dicts/'+self.LM_load_str))
+        self.transformer.load_state_dict(self._convert_state_dict_format(location+'/_pretrained_state_dicts/'+self.LM_load_str))
 
     def _convert_state_dict_format(self, state_dict_file): 
         print('converting state dict keys to BERT format')

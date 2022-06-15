@@ -1,0 +1,7 @@
+setup.py
+instructRNN.egg-info/PKG-INFO
+instructRNN.egg-info/SOURCES.txt
+instructRNN.egg-info/dependency_links.txt
+instructRNN.egg-info/not-zip-safe
+instructRNN.egg-info/requires.txt
+instructRNN.egg-info/top_level.txt
