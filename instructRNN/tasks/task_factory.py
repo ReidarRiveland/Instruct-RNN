@@ -1,5 +1,8 @@
 import numpy as np
 import pickle
+import pathlib
+
+location = str(pathlib.Path(__file__).parent.absolute())
 
 STIM_DIM = 32
 TUNING_DIRS = [((2*np.pi*i)/32) for i in range(STIM_DIM)]
@@ -318,7 +321,7 @@ class ConDMFactory(TaskFactory):
         self.timing = timing
         self.str_chooser = str_chooser
         self.mod = mod
-        self.pos_thresholds, self.neg_thresholds = pickle.load(open('6.7models/noise_thresholds/'+self.threshold_folder, 'rb'))
+        self.pos_thresholds, self.neg_thresholds = pickle.load(open(location+'/noise_thresholds/'+self.threshold_folder, 'rb'))
         self.noise= []
 
         if self.cond_arr is None: 

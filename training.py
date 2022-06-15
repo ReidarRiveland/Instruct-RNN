@@ -24,22 +24,22 @@ if __name__ == "__main__":
     EXP_FOLDER =MODEL_FOLDER+'/'+args.exp+'_holdouts'
 
     if args.exp == 'swap': 
-        _holdouts_dict = SWAPS_DICT
+        _holdout_dict = SWAPS_DICT
     elif args.exp == 'algined': 
-        _holdouts_dict = ALIGNED_DICT
+        _holdout_dict = ALIGNED_DICT
 
     if args.holdouts is None: 
-        holdouts_dict = _holdouts_dict
+        holdout_dict = _holdout_dict
     else: 
-        holdouts = dict([list(_holdouts_dict.items())[i] for i in args.holdouts])
+        holdout_dict = dict([list(_holdout_dict.items())[i] for i in args.holdouts])
 
     if args.mode == 'train': 
-        train_model_set(EXP_FOLDER, args.models, args.seeds, holdouts, overwrite=args.overwrite)     
+        train_model_set(EXP_FOLDER, args.models, args.seeds, holdout_dict, overwrite=args.overwrite)     
     if args.mode == 'tune': 
-        tune_model_set(EXP_FOLDER, args.models, args.seeds, holdouts, overwrite=args.overwrite)     
+        tune_model_set(EXP_FOLDER, args.models, args.seeds, holdout_dict, overwrite=args.overwrite)     
     if args.mode == 'test': 
-        test_model_set(EXP_FOLDER, args.models, args.seeds, holdouts, overwrite=args.overwrite)   
+        test_model_set(EXP_FOLDER, args.models, args.seeds, holdout_dict, overwrite=args.overwrite)   
     if args.mode == 'context' or args.mode == 'c': 
-        train_context_set(EXP_FOLDER, args.models, args.seeds, holdouts, args.layer, overwrite=args.overwrite, lr=0.005, num_contexts=5, tasks=TASK_LIST[::-5])
+        train_context_set(EXP_FOLDER, args.models, args.seeds, holdout_dict, args.layer, overwrite=args.overwrite, lr=0.005, num_contexts=5, tasks=TASK_LIST[::-1][5:])
     if args.mode == 'decoder' or args.mode == 'd': 
-        train_decoder_set(EXP_FOLDER, args.models, args.seeds, holdouts, args.layer, args.use_holdouts, overwrite=args.overwrite)
+        train_decoder_set(EXP_FOLDER, args.models, args.seeds, holdout_dict, args.layer, args.use_holdouts, overwrite=args.overwrite)

@@ -1,38 +1,14 @@
 /__pycache__/*
-/LanguageModels/*
-/wordVectors/*
-/Figures/*
-/COSYNEfig/*
-/PrezFig/*
-/figs (1)/*
+/figs/*
 /*models/_pretrained_state_dicts/*
-
-
-/*ReLU*
-/*SigModels*
-/*shuffledModel1/*
-/*5.5models/*
-/*5.24models/*
-/*5.25models/*
-/*5.26models/*
-/*5.27models/*
-/*5.30models/*
-/*5.31models/*
-/*6.1models/*
-/*6.2models/*
-/*6.3models/*
-/*6.4models/*
-/*6.5models/*
+/*training_data/*
 /*6.6models/*
 /*6.7models/*
 /*6.9models/*
 /*6.models/*
-
-
-
-
-
 *.pyc
+*.pt
+*_attrs
 
 
 
@@ -43,10 +19,5 @@
 
 
 
-/*swapModel3.3/*
-/*ICMLFigures/*
 
 
-/*training_data/*
-
-sbert_raw.pt

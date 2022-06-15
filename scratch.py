@@ -117,14 +117,13 @@ from turtle import position
 from instructRNN.data_loaders.dataset import TaskDataSet
 
 
-
 from instructRNN.tasks.task_factory import TaskFactory
-from models.full_models import *
-from model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
-from plotting.plotting import plot_model_response
-from tasks.tasks import SWAP_LIST, SWAPS_DICT, TASK_LIST 
-from instructions.instruct_utils import get_instructions, train_instruct_dict
-from tasks.task_criteria import isCorrect
+from instructRNN.models.full_models import *
+from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
+from instructRNN.plotting.plotting import plot_model_response
+from instructRNN.tasks.tasks import SWAP_LIST, SWAPS_DICT, TASK_LIST 
+from instructRNN.instructions.instruct_utils import get_instructions, train_instruct_dict
+from instructRNN.tasks.task_criteria import isCorrect
 import numpy as np
 import torch
 

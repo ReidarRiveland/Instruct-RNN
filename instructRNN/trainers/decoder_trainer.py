@@ -182,7 +182,7 @@ def check_decoder_trained(file_name, seed, use_holdouts):
 def train_decoder_set(exp_folder, model_names, seeds, holdout_dict, use_holdouts, overwrite=False, **train_config_kwargs): 
     for seed in seeds: 
         torch.manual_seed(seed)
-        for label, holdouts in holdout_dict:
+        for label, holdouts in holdout_dict.items():
             for model_name in model_names: 
                 file_name = exp_folder+'/'+label+'/'+model_name
 

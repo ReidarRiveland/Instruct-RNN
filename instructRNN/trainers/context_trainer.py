@@ -72,7 +72,7 @@ class ContextTrainer(BaseTrainer):
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
         #nn.init.uniform_(context, a=-4.5, b=4.5)
-        nn.init.xavier_normal_(context, gain=0.8)
+        nn.init.xavier_normal_(context, gain=0.4)
         return context
     
     def _init_optimizer(self, context):
@@ -86,7 +86,6 @@ class ContextTrainer(BaseTrainer):
         model.to(device)
         model.freeze_weights()
         model.eval()
-
 
         self.model_file_path = model.model_name+'_'+self.seed_suffix
         self._init_optimizer(contexts)
@@ -161,7 +160,7 @@ def train_context_set(exp_folder, model_names,  seeds, holdout_dict, layer,
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
-        for labels, _ in holdout_dict:
+        for labels, _ in holdout_dict.items():
             for model_name in model_names: 
                 model = make_default_model(model_name)
 
