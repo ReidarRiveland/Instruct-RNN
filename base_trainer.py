@@ -26,7 +26,7 @@ class BaseTrainer(ABC):
         assert not (config is None and from_checkpoint_dict is None), \
             'trainer must be initialized from training_config or from a checkpoint'
 
-        self.config = config
+        self.config = asdict(config, recurse=False)
         self.cur_epoch = 0 
         self.cur_step = 0
         self.correct_data = defaultdict(list)
@@ -36,12 +36,12 @@ class BaseTrainer(ABC):
             for name, value in from_checkpoint_dict.items(): 
                 setattr(self, name, value)
 
-        for name, value in asdict(self.config, recurse=False).items(): 
+        for name, value in self.config.items(): 
             setattr(self, name, value)
 
         self.seed_suffix = 'seed'+str(self.random_seed)
 
-    def _check_model_training(self, duration=3): 
+    def _check_model_training(self, duration=5): 
         min_run_elapsed = (self.cur_epoch >= self.min_run_epochs) or \
                             (self.cur_epoch == self.min_run_epochs-1 and self.cur_step == self.num_batches-1)
         if min_run_elapsed: 

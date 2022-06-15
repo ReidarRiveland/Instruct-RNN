@@ -5,12 +5,43 @@
 /COSYNEfig/*
 /PrezFig/*
 /figs (1)/*
+/*models/_pretrained_state_dicts/*
 
 
 /*ReLU*
 /*SigModels*
 /*shuffledModel1/*
-/*13.4models/*
+/*5.5models/*
+/*5.24models/*
+/*5.25models/*
+/*5.26models/*
+/*5.27models/*
+/*5.30models/*
+/*5.31models/*
+/*6.1models/*
+/*6.2models/*
+/*6.3models/*
+/*6.4models/*
+/*6.5models/*
+/*6.6models/*
+/*6.7models/*
+/*6.9models/*
+/*6.models/*
+
+
+
+
+
+*.pyc
+
+
+
+
+
+
+
+
+
 
 /*swapModel3.3/*
 /*ICMLFigures/*

@@ -1,10 +1,8 @@
-from random import uniform
-from matplotlib.style import context
-from utils.utils import get_holdout_file_name, training_lists_dict
 from models.full_models import make_default_model
+from tasks.tasks import TASK_LIST
 from base_trainer import masked_MSE_Loss, BaseTrainer
-from dataset import TaskDataSet
-from task import Task, isCorrect
+from data_loaders.dataset import TaskDataSet
+from tasks.task_criteria import isCorrect
 import warnings
 
 import torch
@@ -13,32 +11,29 @@ import torch.optim as optim
 
 import numpy as np
 import pickle
-import itertools
 from tqdm import tqdm
 from attrs import define
-from collections import defaultdict
 from copy import copy
+import os
 
 device = torch.device(0)
 
-EXP_FILE = '_ReLU128_4.11/swap_holdouts'
 
 @define 
 class ContextTrainerConfig(): 
     file_path: str
     random_seed: int
-
-    context_dim: int = 20
+    context_dim: int    
     num_contexts: int = 128
 
-    epochs: int = 60
-    min_run_epochs: int = 5
-    batch_len: int = 128
+    epochs: int = 5
+    min_run_epochs: int = 1
+    batch_len: int = 64
     num_batches: int = 500
     stream_data: bool = False
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.1
+    lr: float = 0.01
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
@@ -52,6 +47,8 @@ class ContextTrainer(BaseTrainer):
         super().__init__(context_training_config, from_checkpoint_dict)
 
     def _record_session(self, contexts, task):
+        if os.path.exists(self.file_path):pass
+        else: os.makedirs(self.file_path)
         checkpoint_attrs = super()._record_session()
         filename = self.file_path+'/'+self.seed_suffix+task+'_supervised'
         pickle.dump(checkpoint_attrs, open(self.file_path+'/'+task+'_attrs', 'wb'))
@@ -72,9 +69,8 @@ class ContextTrainer(BaseTrainer):
         print(status_str)
 
     def _init_contexts(self, batch_len): 
-        #context = nn.Parameter(torch.randn((batch_len, self.context_dim), device=device))
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        nn.init.uniform_(context, a=-0.1, b=0.1)
+        nn.init.uniform_(context, a=-4, b=4)
         return context
     
     def _init_optimizer(self, context):
@@ -98,11 +94,8 @@ class ContextTrainer(BaseTrainer):
             for self.cur_step, data in enumerate(self.streamer.stream_batch()): 
                 ins, tar, mask, tar_dir, task_type = data
                 self.optimizer.zero_grad()
-                if contexts.shape[0]==1: 
-                    #in_contexts = contexts.repeat(self.batch_len, 1).clamp(min=0.0)
-                    in_contexts = contexts.repeat(self.batch_len, 1)
-                else: 
-                    in_contexts = contexts.clamp(min=0.0)
+                in_contexts = contexts.repeat(self.batch_len, 1)
+                
 
                 out, _ = model(ins.to(device), context=in_contexts)
                 task_loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
@@ -127,7 +120,8 @@ class ContextTrainer(BaseTrainer):
         return False
     
     def train(self, model, task, as_batch=True):
-        self.streamer = TaskDataSet(self.stream_data, 
+        self.streamer = TaskDataSet(MODEL_FOLDER+'/training_data',
+                self.stream_data, 
                 self.batch_len, 
                 self.num_batches,
                 set_single_task=task)
@@ -160,43 +154,62 @@ def check_already_trained(file_name, seed, task, context_dim):
     except FileNotFoundError:
         return False
 
-def train_context_set(model_names, seeds, holdouts_folders, context_dim, as_batch = False, tasks = Task.TASK_LIST, overwrite=False, **train_config_kwargs): 
+def train_context_set(model_names,  seeds, label_holdout_list, layer, 
+                    as_batch = False, tasks = TASK_LIST, overwrite=False, **train_config_kwargs): 
     inspection_list = []
     for seed in seeds: 
         torch.manual_seed(seed)
-        for holdouts in holdouts_folders:
-            holdouts_file = get_holdout_file_name(holdouts)
+        for labels, _ in label_holdout_list:
             for model_name in model_names: 
-                file_name = EXP_FILE+'/'+holdouts_file+'/'+model_name+'/contexts'
-
                 model = make_default_model(model_name)
+
+                if layer=='emb': 
+                    context_dim = model.langModel.LM_out_dim
+                elif layer=='last': 
+                    context_dim = model.langModel.LM_intermediate_lang_dim 
+                file_name = EXP_FOLDER+'/'+labels+'/'+model_name+'/contexts'
+
                 for task in tasks: 
                     if not overwrite and check_already_trained(file_name, seed, task, context_dim):
                         continue 
                     else:        
                         print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ '\n')
-                        trainer_config = ContextTrainerConfig(file_name, seed, context_dim = context_dim, **train_config_kwargs)
+                        trainer_config = ContextTrainerConfig(file_name, seed, context_dim, **train_config_kwargs)
                         trainer = ContextTrainer(trainer_config)
                         is_trained = trainer.train(model, task, as_batch=as_batch)
                         if not is_trained: inspection_list.append((model.model_name, seed))
 
-                del model
-
         return inspection_list
 
 if __name__ == "__main__":
-    ##TEST BY BATCH WITH NEW INITIALIZATION AND CLIP!!!
-    # train_context_set(['sbertNet_tuned'], 
-    #                     [0], 
-    #                     training_lists_dict['swap_holdouts'][::-1],
-    #                     768, 
-    #                     as_batch=True,  
-    #                     batch_len = 128, lr=0.005, min_run_epochs=10, epochs=20, step_last_lr=True, checker_threshold=0.98)
+    import argparse
+    from tasks.tasks import SWAPS_DICT, ALIGNED_DICT
+    from models.full_models import _all_models
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('folder')
+    parser.add_argument('exp')
+    parser.add_argument('--models', default=_all_models, nargs='*')
+    parser.add_argument('--layer', default='last', help='the dim corresponding to the layer the contexts gets trained at, must be emd or last')
+    parser.add_argument('--holdouts', type=int, default=None,  nargs='*')
+    parser.add_argument('--overwrite', default=False, action='store_true')
+    parser.add_argument('--seeds', type=int, default=[0], nargs='+')
+    args = parser.parse_args()
 
-    train_context_set(['sbertNet_tuned'], 
-                        [0], 
-                        training_lists_dict['swap_holdouts'][::-1],
-                        768, 
-                        as_batch=False,  
-                        batch_len = 64, lr=0.005, min_run_epochs=1, epochs=5, step_last_lr=False)
+    os.environ['MODEL_FOLDER'] = args.folder
+    MODEL_FOLDER = args.folder
+    EXP_FOLDER =MODEL_FOLDER+'/'+args.exp+'_holdouts'
+
+    if args.exp == 'swap': 
+        _holdouts_list = list(SWAPS_DICT.items())
+    elif args.exp == 'algined': 
+        _holdouts_list = list(ALIGNED_DICT.items())
+
+    if args.holdouts is None: 
+        holdouts = _holdouts_list
+    else: 
+        holdouts = _holdouts_list[args.holdouts]
+
+    train_context_set(args.models, args.seeds, holdouts, args.layer, overwrite=args.overwrite,
+                        lr=0.005, num_contexts=10, tasks=TASK_LIST[2:])
 

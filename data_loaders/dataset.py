@@ -1,17 +1,17 @@
+from genericpath import exists
 import numpy as np
 import torch
-from task import Task, construct_batch
-
-task_list = Task.TASK_LIST
+from tasks.tasks import TASK_LIST, construct_trials
+import os
 
 class TaskDataSet():
-    DEFAULT_TASK_DICT = dict.fromkeys(Task.TASK_LIST, 1/len(Task.TASK_LIST)) 
-    def __init__(self, stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None): 
+    DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
+    def __init__(self, exp_file, stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None): 
         __len__ = num_batches
         self.stream = stream
         self.batch_len = batch_len
         self.num_batches = num_batches
-        self.data_folder = 'training_data'
+        self.data_folder = exp_file
         self.holdouts = holdouts
 
         if set_single_task is None: 
@@ -24,9 +24,9 @@ class TaskDataSet():
         self.stream_order = None
         self.memmap_dict = {}
 
-        self.__make_memmaps__()
         self.__init_task_distribution__()
         if not stream: 
+            self.__make_memmaps__()
             self.in_data, self.tar_data, self.mask_data, self.tar_dirs = self.__populate_data__()
         self.shuffle_stream_order()
 
@@ -84,4 +84,28 @@ class TaskDataSet():
             if not self.stream: 
                 yield self.in_data[i, ...], self.tar_data[i, ...], self.mask_data[i, ...], self.tar_dirs[i, ...], self.trial_types[i]
             else:
-                yield construct_batch(self.trial_types[i], self.batch_len, return_tensor=True)
+                yield construct_trials(self.trial_types[i], self.batch_len, return_tensor=True)
+
+
+def build_training_data(foldername):
+    for task in TASK_LIST: 
+        print(task)
+        path = foldername+'/training_data/' + task
+        if os.path.exists(path):
+            pass
+        else: os.makedirs(path)
+        input_data, target_data, masks_data, target_dirs, trial_indices = construct_trials(task, 10000)
+        np.save(path+'/input_data', input_data)
+        np.save(path+'/target_data', target_data)
+        np.save(path+'/masks_data', masks_data)
+        np.save(path +'/target_dirs', target_dirs)
+        np.save(path +'/type_indices', trial_indices)
+
+#build_training_data('6.models')
+
+if __name__ == "__main__":
+    import argparse    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('folder')
+    args = parser.parse_args()
+    build_training_data(args.folder)
