@@ -156,29 +156,26 @@ def check_already_trained(file_name, seed, task, context_dim):
     except FileNotFoundError:
         return False
 
-def train_context_set(exp_folder, model_names,  seeds, holdout_dict, layer, 
+def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, 
                     as_batch = False, tasks = TASK_LIST, overwrite=False, **train_config_kwargs): 
-    inspection_list = []
-    for seed in seeds: 
-        torch.manual_seed(seed)
-        for labels, _ in holdout_dict.items():
-            for model_name in model_names: 
-                model = make_default_model(model_name)
+     
+    torch.manual_seed(seed)
+    labels, _ = labeled_holdouts
+            
+    model = make_default_model(model_name)
 
-                if layer=='emb': 
-                    context_dim = model.langModel.LM_out_dim
-                elif layer=='last': 
-                    context_dim = model.langModel.LM_intermediate_lang_dim 
-                file_name = exp_folder+'/'+labels+'/'+model_name+'/contexts'
+    if layer=='emb': 
+        context_dim = model.langModel.LM_out_dim
+    elif layer=='last': 
+        context_dim = model.langModel.LM_intermediate_lang_dim 
+    file_name = exp_folder+'/'+labels+'/'+model_name+'/contexts'
 
-                for task in tasks: 
-                    if not overwrite and check_already_trained(file_name, seed, task, context_dim):
-                        continue 
-                    else:        
-                        print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ '\n')
-                        trainer_config = ContextTrainerConfig(file_name, seed, context_dim, **train_config_kwargs)
-                        trainer = ContextTrainer(trainer_config)
-                        is_trained = trainer.train(model, task, as_batch=as_batch)
-                        if not is_trained: inspection_list.append((model.model_name, seed))
+    for task in tasks: 
+        if not overwrite and check_already_trained(file_name, seed, task, context_dim):
+            continue 
+        else:        
+            print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ '\n')
+            trainer_config = ContextTrainerConfig(file_name, seed, context_dim, **train_config_kwargs)
+            trainer = ContextTrainer(trainer_config)
+            trainer.train(model, task, as_batch=as_batch)
 
-        return inspection_list

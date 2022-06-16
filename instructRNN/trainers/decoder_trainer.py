@@ -179,28 +179,26 @@ def check_decoder_trained(file_name, seed, use_holdouts):
     except FileNotFoundError:
         return False
 
-def train_decoder_set(exp_folder, model_names, seeds, holdout_dict, use_holdouts, overwrite=False, **train_config_kwargs): 
-    for seed in seeds: 
-        torch.manual_seed(seed)
-        for label, holdouts in holdout_dict.items():
-            for model_name in model_names: 
-                file_name = exp_folder+'/'+label+'/'+model_name
+def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, overwrite=False, **train_config_kwargs): 
+    torch.manual_seed(seed)
+    label, holdouts = labeled_holdouts
+    file_name = exp_folder+'/'+label+'/'+model_name
 
-                if not overwrite and check_decoder_trained(file_name+'/decoders', seed, use_holdouts):
-                    continue 
-                else:  
-                    print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts)+  '\n')
-                    model = make_default_model(model_name)   
-                    model.load_model(file_name, suffix='_seed'+str(seed))
-                    model.to(device)
+    if not overwrite and check_decoder_trained(file_name+'/decoders', seed, use_holdouts):
+        return
+    else:  
+        print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts)+  '\n')
+        model = make_default_model(model_name)   
+        model.load_model(file_name, suffix='_seed'+str(seed))
+        model.to(device)
 
-                    decoder = DecoderRNN(128)
-                    decoder.to(device)
+        decoder = DecoderRNN(128)
+        decoder.to(device)
 
-                    if use_holdouts: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)
-                    else: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, **train_config_kwargs)
-                    
-                    trainer = DecoderTrainer(trainer_config)
-                    trainer.train(model, decoder)
+        if use_holdouts: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)
+        else: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, **train_config_kwargs)
+        
+        trainer = DecoderTrainer(trainer_config)
+        trainer.train(model, decoder)
 
 

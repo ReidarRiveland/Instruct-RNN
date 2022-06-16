@@ -6,12 +6,13 @@ all_models = ['clipNet', 'clipNet_tuned',
             'sbertNet_lin', 'sbertNet_lin_tuned',
             'bertNet_tuned', 'bertNet', 
             'bertNet_lin_tuned', 'bertNet_lin', 
-            # 'gptNetXL_tuned', 
-            'gptNetXL', 
-            # 'gptNetXL_lin_tuned', 
-            'bowNet', 
+            'gptNetXL_tuned', 'gptNetXL', 
+            'gptNetXL_lin_tuned', 'bowNet', 
             'simpleNet', 'simpleNetPlus',
             'comNet', 'comNetPlus']
+
+untuned_models = [model_name for model_name in all_models if '_tuned' not in model_name]
+tuned_models = [model_name for model_name in all_models if '_tuned' in model_name]
 
 class SimpleNet(RuleNet):
     def __init__(self, **kw_args):

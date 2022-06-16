@@ -161,6 +161,7 @@ class ModelTrainer(BaseTrainer):
             warnings.warn('\n !!! Model has not reach specified performance threshold during training !!! \n')
             return False
 
+
 def check_already_trained(file_name, seed): 
     try: 
         pickle.load(open(file_name+'/seed'+str(seed)+'_training_correct', 'rb'))
@@ -179,75 +180,70 @@ def check_already_tested(file_name, seed, task):
     except FileNotFoundError:
         return False
 
-def train_model_set(exp_folder, model_names, seeds, holdout_dict, overwrite=False, **train_config_kwargs): 
-    for seed in seeds: 
+def train_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs): 
         torch.manual_seed(seed)
-        for model_name in model_names: 
-            if '_tuned' in model_name: 
-                warnings.warn('\n !!!TUNED MODELS SHOULD BE FINE TUNED USING THE TUNING FUNCTION!!!')
-                continue
-            for label, holdouts in holdout_dict.items(): 
-                file_name = exp_folder+'/'+label+'/'+model_name
+        if '_tuned' in model_name: 
+            raise Exception('\n !!!TUNED MODELS SHOULD BE FINE TUNED USING THE TUNING FUNCTION!!!')
+
+        label, holdouts = labeled_holdouts
+        file_name = exp_folder+'/'+label+'/'+model_name    
+        if check_already_trained(file_name, seed) and not overwrite:
+            return
+        
+        model = make_default_model(model_name)
+        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, 
+                                save_for_tuning_epoch=model._tuning_epoch, **train_config_kwargs)
+        trainer = ModelTrainer(trainer_config)
+        trainer.train(model)
+
+
+def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs): 
+    torch.manual_seed(seed)
+    
+    if '_tuned' not in model_name: 
+        raise Exception('\n !!!UNTUNED MODELS SHOULD BE TRAINED USING THE TRAIN FUNCTION!!!')
+        
+    label, holdouts = labeled_holdouts
+    untuned_model_name = model_name.replace('_tuned', '')
+    file_name = exp_folder+'/'+label
+    
+    if check_already_trained(file_name+'/'+model_name, seed) and not overwrite:
+        return
+    
+    for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
+                untuned_model_name+'_seed'+str(seed)+'_FOR_TUNING.pt'
+    for_tuning_data_path = file_name+'/'+untuned_model_name+\
+                '/seed'+str(seed)+'training_data_FOR_TUNING'
+
+    model = make_default_model(model_name)
+    model.load_state_dict(torch.load(for_tuning_model_path))
+
+    training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
+    tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, 
+                                    epochs=25, min_run_epochs=5, lr=2e-5, lang_lr=1e-5,
+                                    save_for_tuning_epoch=np.nan, 
+                                    **train_config_kwargs)
+
+    trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
+    trainer.train(model, is_tuning=True)
+
+
+def test_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs): 
+    torch.manual_seed(seed)
+    
+    label, holdouts = labeled_holdouts 
+    file_name = exp_folder+'/'+label+'/'+model_name
                 
-                if check_already_trained(file_name, seed) and not overwrite:
-                    continue 
-                
-                model = make_default_model(model_name)
-                trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, 
-                                        save_for_tuning_epoch=model._tuning_epoch, **train_config_kwargs)
-                trainer = ModelTrainer(trainer_config)
-                trainer.train(model)
-
-
-def tune_model_set(exp_folder, model_names, seeds, holdout_dict, overwrite=False, **train_config_kwargs): 
-    for seed in seeds: 
-        torch.manual_seed(seed)
-        for model_name in model_names: 
-            if '_tuned' not in model_name: 
-                warnings.warn('\n !!!UNTUNED MODELS SHOULD BE TRAINED USING THE TRAIN FUNCTION!!!')
-                continue
-            for label, holdouts in holdout_dict.items(): 
-                untuned_model_name = model_name.replace('_tuned', '')
-                file_name = exp_folder+'/'+label
-                
-                if check_already_trained(file_name+'/'+model_name, seed) and not overwrite:
-                    continue 
-                
-                for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
-                            untuned_model_name+'_seed'+str(seed)+'_FOR_TUNING.pt'
-                for_tuning_data_path = file_name+'/'+untuned_model_name+\
-                            '/seed'+str(seed)+'training_data_FOR_TUNING'
-            
-                model = make_default_model(model_name)
-                model.load_state_dict(torch.load(for_tuning_model_path))
-
-                training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
-                tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, 
-                                                epochs=25, min_run_epochs=5, lr=2e-5, lang_lr=1e-5,
-                                                save_for_tuning_epoch=np.nan, 
-                                                **train_config_kwargs)
-
-                trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
-                trainer.train(model, is_tuning=True)
-
-
-def test_model_set(exp_folder, model_names, seeds, holdout_dict, overwrite=False, **train_config_kwargs): 
-    for seed in seeds: 
-        torch.manual_seed(seed)
-        for model_name in model_names: 
-            for label, holdouts in holdout_dict: 
-                file_name = exp_folder+'/'+label+'/'+model_name
-                
-                model = make_default_model(model_name)
-                model.load_model(file_name, suffix='_seed'+str(seed))
-                for task in holdouts: 
-                    if check_already_tested(file_name, seed, task) and not overwrite:
-                        continue 
-                    else:
-                        print('\n testing '+model_name+' seed'+str(seed)+' on '+task)
-                    tuning_config = TrainerConfig(file_name, seed, set_single_task=task, 
-                                            batch_len=256, num_batches=100, epochs=1, lr = 0.0007,
-                                            **train_config_kwargs)
-                    trainer = ModelTrainer(tuning_config)
-                    trainer.train(model, is_testing=True)
+    model = make_default_model(model_name)
+    model.load_model(file_name, suffix='_seed'+str(seed))
+    for task in holdouts: 
+        if check_already_tested(file_name, seed, task) and not overwrite:
+            continue 
+        else:
+            print('\n testing '+model_name+' seed'+str(seed)+' on '+task)
+        tuning_config = TrainerConfig(file_name, seed, set_single_task=task, 
+                                batch_len=256, num_batches=100, epochs=1, lr = 0.0007,
+                                **train_config_kwargs)
+        trainer = ModelTrainer(tuning_config)
+        trainer.train(model, is_testing=True)
 
