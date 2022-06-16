@@ -35,6 +35,7 @@ class ComNetPlus(RuleNet):
 
 
 class GPTNetXL(InstructNet):
+    _tuning_epoch=50
     def __init__(self, **kw_args):
         config = InstructModelConfig('gptNetXL', 
                                     LM_class= GPT,
@@ -42,6 +43,7 @@ class GPTNetXL(InstructNet):
                                     LM_train_layers=[], 
                                     **kw_args)
         super().__init__(config)
+
 
 class GPTNetXL_tuned(InstructNet):
     def __init__(self, **kw_args):
@@ -72,6 +74,7 @@ class GPTNetXL_lin_tuned(InstructNet):
                                     LM_train_layers=['9', '10', '11', 'ln_f'], 
                                     **kw_args)
         super().__init__(config)
+
 
 class BERTNet(InstructNet):
     def __init__(self, **kw_args):
@@ -157,7 +160,7 @@ class CLIPNet(InstructNet):
         config = InstructModelConfig('clipNet', 
                                     LM_class= CLIP,
                                     LM_load_str = 'openai/clip-vit-base-patch32',
-                                    LM_train_layers=[],
+                                    LM_train_layers=['bias'],
                                     **kw_args)
         super().__init__(config)
         
@@ -230,3 +233,4 @@ def make_default_model(model_str):
         return CLIPNet_tuned()
     if model_str == 'bowNet': 
         return BoWNet()
+

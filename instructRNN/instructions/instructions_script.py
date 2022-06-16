@@ -164,40 +164,6 @@ train_instruct_dict['Anti_Go_Mod2'] = ('pay attention only to the second modalit
                                     'choose the opposite of the direction of the stimulus presented in the second modality')
                                 
 
-
-
-train_instruct_dict['Order1'] = ('Respond in the direction of the initial stimulus', 
-                                'select the first orientation that is presented in the trial', 
-                                'choose the stimulus that is presented first', 
-                                'go in the direction of the initial stimulus', 
-                                'opt for the stimulus that is displayed first in the trial', 
-                                'respond to the earlier stimulus', 
-                                'select the earlier displayed orientation', 
-                                'choose the direction that appears earlier in the trial', 
-                                'go in the direction of the stimulus which is presented first', 
-                                'opt for the orientation that is presented earlier in the trial', 
-                                'select the first stimulus', 
-                                'choose the initial orientation', 
-                                'pick the stimulus which is presented first', 
-                                'select the orientation which appears first', 
-                                'respond to the orientation that is displayed earlier in the trial') 
-
-train_instruct_dict['Order2'] = ('select the second orientation', 
-                                'choose the later stimulus presented in the trial', 
-                                'opt for the stimulus presented second in the trial', 
-                                'respond to the second displayed direction', 
-                                'pick the orientation which appears second', 
-                                'go in the direction of the stimulus presented last', 
-                                'respond to the final stimulus', 
-                                'choose the final orientation', 
-                                'respond to the orientation which appears last in the trial', 
-                                'pick the direction displayed second in the trial', 
-                                'opt for the final displayed direction', 
-                                'select the stimulus which appears later in the trial', 
-                                'choose the last stimulus', 
-                                'pick the direction which is presented later in the trial',
-                                'choose the stimulus that is presented second')
-
 train_instruct_dict['DM'] = ('respond in the direction of highest intensity', 
                             'choose the strongest stimulus',   
                             'go in the direction of the stimulus with maximal strength', 
@@ -717,10 +683,10 @@ test_instruct_dict['Go_Mod1'] = ('choose the orientation in the first modality',
                                 'select the orientation that is displayed in the first modality')
 
 test_instruct_dict['Go_Mod2'] =('respond to the stimulus in the second modality',
-                    'select the direction that is displayed in the second modality',
-                    'focus on the second modality and choose the displayed direction',
-                    'opt for the orientation in the second modality',
-                    'respond in the direction presented in the second modality')
+                              'select the direction that is displayed in the second modality',
+                              'focus on the second modality and choose the displayed direction',
+                              'opt for the orientation in the second modality',
+                              'respond in the direction presented in the second modality')
 
 test_instruct_dict['Anti_Go_Mod1'] =('go in the opposite direction of the stimulus presented in the first modality',
                                     'attend to the first modality and choose the converse direction',
@@ -740,7 +706,7 @@ test_instruct_dict['DM'] = ('select the stimulus of greatest strength',
                                 'select the orientation displayed with greatest intensity', 
                                 'go in the direction of the most intense stimulus')
 
-test_instruct_dict['Anti DM'] = ('choose the direction with lowest value', 
+test_instruct_dict['Anti_DM'] = ('choose the direction with lowest value', 
                                     'respond in the direction that is presented with least intensity', 
                                     'pick the orientation with the lowest strength', 
                                     'go in the direction with weakest presentation strength',
@@ -752,11 +718,35 @@ test_instruct_dict['MultiDM'] = ('choose the stimuli with highest intensity aver
                                     'pick the direction of stimulus with greatest intensity between two modalities',
                                     'select the stimuli with maximal combined strength over both modalities')
 
-test_instruct_dict['Anti MultiDM'] = ('pick the direction with minimal average value over modalities', 
+test_instruct_dict['Anti_MultiDM'] = ('pick the direction with minimal average value over modalities', 
                                             'select the orientation with lowest combined strength', 
                                             'go in the direction of the stimuli with weakest overall value between modalities', 
                                             'choose the direction with lowest presentation strength over modalities',
                                             'select the orientation with weakest intensity over both modalities')
+
+test_instruct_dict['ConDM']
+
+test_instruct_dict['Anti_ConDM']
+
+test_instruct_dict['ConMultiDM']
+
+test_instruct_dict['Anti_ConMultiDM']
+
+test_instruct_dict['DelayDM']
+
+test_instruct_dict['Anti_DelayDM']
+
+test_instruct_dict['DelayMultiDM']
+
+test_instruct_dict['Anti_DelayMultiDM']
+
+test_instruct_dict['DM_Mod1']
+
+test_instruct_dict['DM_Mod2']
+
+test_instruct_dict['Anti_DM_Mod1']
+
+test_instruct_dict['Anti_DM_Mod2']
 
 test_instruct_dict['COMP1'] = ('when the first stimulus is stronger pick the first orientation otherwise do not respond', 
                                     'choose the initial stimulus if it is the stronger of the two presented stimuli otherwise do not respond', 
@@ -811,13 +801,6 @@ def save_instruct_dicts(path):
 	pickle.dump(train_instruct_dict, open(path+'/train_instruct_dict', 'wb'))
 	pickle.dump(test_instruct_dict, open(path+'/test_instruct_dict', 'wb'))
 
-
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--path', default='instructions')
-    args = parser.parse_args()
-    save_instruct_dicts(args.path)
 
 
 	

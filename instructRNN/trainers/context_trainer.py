@@ -27,7 +27,7 @@ class ContextTrainerConfig():
     context_dim: int    
     num_contexts: int = 128
 
-    epochs: int = 5
+    epochs: int = 8
     min_run_epochs: int = 1
     batch_len: int = 64
     num_batches: int = 500
@@ -71,16 +71,19 @@ class ContextTrainer(BaseTrainer):
 
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        #nn.init.uniform_(context, a=-4.5, b=4.5)
-        nn.init.xavier_normal_(context, gain=0.4)
+        nn.init.xavier_normal_(context, gain=15)
         return context
     
     def _init_optimizer(self, context):
         self.optimizer = self.optim_alg([context], lr=self.lr, weight_decay=self.weight_decay)
-        self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
-        self.step_scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, 
-                            milestones=[self.epochs-5, self.epochs-2, self.epochs-1], gamma=0.25)
-        
+        if self.scheduler_class is not None:
+            self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
+            self.step_scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, 
+                                milestones=[self.epochs-5, self.epochs-2, self.epochs-1], gamma=0.5)
+        else:
+            self.scheduler = None
+            self.step_scheduler = None
+
     def _train(self, model, contexts): 
         model.load_model(self.file_path.replace('contexts', ''), suffix='_'+self.seed_suffix)
         model.to(device)
@@ -96,19 +99,17 @@ class ContextTrainer(BaseTrainer):
                 ins, tar, mask, tar_dir, task_type = data
                 self.optimizer.zero_grad()
                 in_contexts = contexts.repeat(self.batch_len, 1)
-                
 
                 out, _ = model(ins.to(device), context=in_contexts)
-                task_loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
+                loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
                 frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
-
-                loss = task_loss
                 self._log_step(task_type, frac_correct, loss.item())
 
                 loss.backward()
                 self.optimizer.step()
 
                 if self.cur_step%50 == 0:
+                    print(self.scheduler.get_last_lr())
                     self._print_training_status(task_type)
 
                 if self._check_model_training():

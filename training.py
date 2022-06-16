@@ -1,3 +1,4 @@
+from sched import scheduler
 from instructRNN.trainers.model_trainer import *
 from instructRNN.trainers.decoder_trainer import *
 from instructRNN.trainers.context_trainer import *
@@ -40,6 +41,7 @@ if __name__ == "__main__":
     if args.mode == 'test': 
         test_model_set(EXP_FOLDER, args.models, args.seeds, holdout_dict, overwrite=args.overwrite)   
     if args.mode == 'context' or args.mode == 'c': 
-        train_context_set(EXP_FOLDER, args.models, args.seeds, holdout_dict, args.layer, overwrite=args.overwrite, lr=0.005, num_contexts=5, tasks=TASK_LIST[::-1][5:])
+        train_context_set(EXP_FOLDER, args.models, args.seeds, holdout_dict, args.layer, overwrite=args.overwrite, 
+                            lr=0.005, num_contexts=5, tasks=TASK_LIST[::-1][5:])
     if args.mode == 'decoder' or args.mode == 'd': 
         train_decoder_set(EXP_FOLDER, args.models, args.seeds, holdout_dict, args.layer, args.use_holdouts, overwrite=args.overwrite)

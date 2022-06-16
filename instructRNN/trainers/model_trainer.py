@@ -67,7 +67,7 @@ class ModelTrainer(BaseTrainer):
             os.remove(self.file_path+'/attrs/'+self.model_file_path+'_CHECKPOINT_attrs')
 
             model.save_model(self.file_path, suffix='_'+self.seed_suffix)
-            os.remove(self.file_path+self.model_file_path+'_CHECKPOINT.pt')
+            os.remove(self.file_path+'/'+self.model_file_path+'_CHECKPOINT.pt')
 
         if mode=='TESTING': 
             task= self.set_single_task
@@ -193,7 +193,8 @@ def train_model_set(exp_folder, model_names, seeds, holdout_dict, overwrite=Fals
                     continue 
                 
                 model = make_default_model(model_name)
-                trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
+                trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, 
+                                        save_for_tuning_epoch=model._tuning_epoch, **train_config_kwargs)
                 trainer = ModelTrainer(trainer_config)
                 trainer.train(model)
 

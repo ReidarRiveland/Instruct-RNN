@@ -153,6 +153,7 @@ class RuleNet(BaseNet):
         self.rule_transform = self.rule_transform.to(cuda_device)
 
 class InstructNet(BaseNet): 
+    _tuning_epoch=30
     def __init__(self, config): 
         super().__init__(config)
         self.LM_config = LMConfig(self.LM_load_str, 
@@ -163,6 +164,7 @@ class InstructNet(BaseNet):
                                 self.LM_proj_out_layers)
 
         self.langModel = self.LM_class(self.LM_config)
+        
 
     def forward(self, x, instruction = None, context = None):
         assert instruction is not None or context is not None, 'must have instruction or context input'
