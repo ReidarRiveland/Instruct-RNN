@@ -67,6 +67,6 @@ if __name__ == "__main__":
             test_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)   
         if args.mode == 'context' or args.mode == 'c': 
             train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, 
-                                lr=0.005, num_contexts=5, tasks=TASK_LIST[::-1][5:])
+                                lr=0.001, num_contexts=5, tasks=TASK_LIST)
         if args.mode == 'decoder' or args.mode == 'd': 
-            train_decoder(EXP_FOLDER, model, _seed, holdouts, args.layer, args.use_holdouts, overwrite=args.overwrite)
+            train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, overwrite=args.overwrite)

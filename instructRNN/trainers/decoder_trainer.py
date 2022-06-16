@@ -1,5 +1,5 @@
 import numpy as np
-from attrs import define
+from attrs import define, asdict
 from tqdm import tqdm
 import pickle
 import os
@@ -39,7 +39,21 @@ class DecoderTrainerConfig():
 
 class DecoderTrainer(BaseTrainer):
     def __init__(self, config:DecoderTrainerConfig=None, from_checkpoint_dict:dict=None): 
-        super().__init__(config, from_checkpoint_dict)
+        
+        self.config = asdict(config, recurse=False)
+        self.cur_epoch = 0 
+        self.cur_step = 0
+        self.teacher_loss_data = []
+        self.loss_data = []
+
+        if from_checkpoint_dict is not None: 
+            for name, value in from_checkpoint_dict.items(): 
+                setattr(self, name, value)
+
+        for name, value in self.config.items(): 
+            setattr(self, name, value)
+
+        self.seed_suffix = 'seed'+str(self.random_seed)
 
     def _print_progress(self, decoder_loss, use_teacher_forcing, 
                                 decoded_sentence, target_instruct): 
@@ -63,7 +77,10 @@ class DecoderTrainer(BaseTrainer):
             self.loss_data.append(loss)
 
     def _record_session(self, decoder, mode):
-        checkpoint_attrs = super()._record_session()
+        record_attrs = ['config', 'optimizer', 'scheduler', 'cur_epoch', 'cur_step', 'teacher_loss_data', 'loss_data']
+        checkpoint_attrs = {}
+        for attr in record_attrs: 
+            checkpoint_attrs[attr]=getattr(self, attr)
         record_file = self.file_path+'/'+decoder.decoder_name+'_'+self.seed_suffix
 
         with_holdouts = bool(self.holdouts)
@@ -95,13 +112,13 @@ class DecoderTrainer(BaseTrainer):
                         None)
 
     def _init_optimizer(self, decoder):
-        self.decoder_optimizer = self.optim_alg([
+        self.optimizer = self.optim_alg([
             {'params' : decoder.gru.parameters()},
             {'params' : decoder.out.parameters()},
             {'params' : decoder.embedding.parameters()},
             {'params' : decoder.sm_decoder.parameters(), 'lr': self.lr}
         ], lr=self.lr, weight_decay=0.0)
-        self.scheduler = self.scheduler_class(self.decoder_optimizer, **self.scheduler_args)
+        self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
 
     def train(self, sm_model, decoder): 
 
@@ -124,7 +141,7 @@ class DecoderTrainer(BaseTrainer):
                 target_tensor = decoder.tokenizer(target_instruct).to(device)
                 _, sm_hidden = sm_model.forward(ins.to(device), target_instruct)
 
-                self.decoder_optimizer.zero_grad()
+                self.optimizer.zero_grad()
 
                 if use_teacher_forcing:
                     decoder_input = torch.tensor([[decoder.tokenizer.sos_token_id]*self.batch_len]).to(device)
@@ -154,7 +171,7 @@ class DecoderTrainer(BaseTrainer):
                 
                 self._log_step(loss.item(), use_teacher_forcing)
                 loss.backward()
-                self.decoder_optimizer.step()
+                self.optimizer.step()
 
                 if j%50==0: 
                     self._print_progress(loss.item(), use_teacher_forcing, 

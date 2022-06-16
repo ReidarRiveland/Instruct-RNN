@@ -38,7 +38,7 @@ class ContextTrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.99}
+    scheduler_args: dict = {'gamma': 0.8}
 
     checker_threshold: float = 0.95
     step_last_lr: bool = False
@@ -71,7 +71,7 @@ class ContextTrainer(BaseTrainer):
 
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        nn.init.normal_(context, std=0.08)
+        nn.init.normal_(context, std=1)
         return context
     
     def _init_optimizer(self, context):
@@ -98,7 +98,7 @@ class ContextTrainer(BaseTrainer):
             for self.cur_step, data in enumerate(self.streamer.stream_batch()): 
                 ins, tar, mask, tar_dir, task_type = data
                 self.optimizer.zero_grad()
-                in_contexts = contexts.repeat(self.batch_len, 1)
+                in_contexts = torch.mean(contexts.repeat(self.batch_len, 1, 1), axis=1)
 
                 out, _ = model(ins.to(device), context=in_contexts)
                 loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
@@ -141,9 +141,9 @@ class ContextTrainer(BaseTrainer):
                 is_trained = False 
                 while not is_trained: 
                     print('Training '+str(i)+'th context')
-                    context = self._init_contexts(1)
+                    context = self._init_contexts(20)
                     is_trained = self._train(model, context)
-                all_contexts[i, :] = context
+                all_contexts[i, :] = torch.mean(context, dim=0)
             self._record_session(all_contexts, task)                
 
 
