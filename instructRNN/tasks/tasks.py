@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 import instructRNN.tasks.task_factory as task_factory
 
-def invert_task_dict(task_dict):
+def invert_holdout_dict(task_dict):
     inv_swap_dict = {}
     for k, v in task_dict.items():
         for task in v:
@@ -61,7 +61,7 @@ ALIGNED_LIST = [
 
 SWAPS_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST.copy()))
 ALIGNED_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], ALIGNED_LIST.copy()))
-INV_SWAPS_DICT = invert_task_dict(SWAPS_DICT)
+INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
 
 
 class Task(): 

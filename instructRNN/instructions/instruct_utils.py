@@ -7,13 +7,20 @@ import pathlib
 
 from instructRNN.tasks.tasks import *
 
+def inv_instruct_dict(instruct_dict):
+    inv_dict = {}
+    for task, instructs in instruct_dict.items(): 
+        for instruct in instructs: 
+            inv_dict[instruct] = task
+    return inv_dict
+
 location = str(pathlib.Path(__file__).parent.absolute())
 train_instruct_dict = pickle.load(open(location+'/train_instruct_dict', 'rb'))
 test_instruct_dict = pickle.load(open(location+'/test_instruct_dict', 'rb'))
 
-inv_train_instruct_dict = inv_train_instruct_dict = dict(zip(list(itertools.chain(*[list(instructions) for instructions in train_instruct_dict.values()])), 
-                                            list(itertools.chain(*[[task]*15 for task in TASK_LIST]))))
-
+inv_train_instruct_dict = inv_instruct_dict(train_instruct_dict)
+ 
+ 
 def get_all_sentences():
     combined_instruct= {task: list(train_instruct_dict[task]) for task in TASK_LIST}
     all_sentences = list(itertools.chain.from_iterable(combined_instruct.values()))

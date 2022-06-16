@@ -71,7 +71,7 @@ class ContextTrainer(BaseTrainer):
 
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        nn.init.xavier_normal_(context, gain=15)
+        nn.init.normal_(context, std=0.08)
         return context
     
     def _init_optimizer(self, context):
@@ -109,7 +109,6 @@ class ContextTrainer(BaseTrainer):
                 self.optimizer.step()
 
                 if self.cur_step%50 == 0:
-                    print(self.scheduler.get_last_lr())
                     self._print_training_status(task_type)
 
                 if self._check_model_training():

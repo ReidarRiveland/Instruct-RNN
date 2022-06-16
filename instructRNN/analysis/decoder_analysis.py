@@ -2,7 +2,11 @@ import pickle
 import torch
 from instructRNN.decoding_models.decoder_models import DecoderRNN
 from instructRNN.decoding_models.encoder_decoder import EncoderDecoder
-from models.full_models import make_default_model
+from instructRNN.models.full_models import make_default_model
+
+from instructRNN.instructions.instruct_utils import inv_train_instruct_dict, train_instruct_dict
+from instructRNN.tasks.tasks import SWAPS_DICT
+
 
 load_str = '6.7models/swap_holdouts/swap0/sbertNet_tuned/'
 
@@ -24,15 +28,16 @@ encoder = EncoderDecoder(sm_model, rnn_decoder)
 #encoder.init_context_set('Go_Anti_DM', 0, 768)
 
 
-decoded_set, _ = encoder.decode_set(128, 1)
+decoded_set = encoder.plot_confuse_mat(128, 2)
 
-from collections import Counter
-Counter(decoded_set['COMP1']['other'])
+partner = make_default_model('sbertNet_tuned')
+partner.load_model('6.7models/swap_holdouts/swap1/sbertNet_tuned/', suffix='_seed'+str(seed))
 
-decoded_set['Anti DM']
+perf, _ = encoder.test_partner_model(partner, decoded_dict=decoded_set)
 
-encoder.plot_confuse_mat(128, 1, from_contexts=False)
 
+import numpy as np 
+np.mean(perf['others'], axis=1)
 
 
 

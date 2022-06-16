@@ -5,13 +5,13 @@ import numpy as np
 import pickle
 import itertools
 
-from tasks.tasks import TASK_LIST, construct_trials
-from tasks.task_criteria import isCorrect
-from collections import defaultdict
-from instructions.instruct_utils import inv_train_instruct_dict, get_instructions
-
 import seaborn as sns
 import matplotlib.pyplot as plt
+from collections import defaultdict
+
+from instructRNN.tasks.tasks import TASK_LIST, construct_trials
+from instructRNN.tasks.task_criteria import isCorrect
+from instructRNN.instructions.instruct_utils import inv_train_instruct_dict, get_instructions
 
 class EncoderDecoder(nn.Module): 
     def __init__(self, sm_model, decoder, load_folder=None): 
@@ -80,21 +80,21 @@ class EncoderDecoder(nn.Module):
     
     def plot_confuse_mat(self, num_trials, num_repeats, from_contexts=False, confusion_mat=None, fmt='g'): 
         if confusion_mat is None:
-            _, confusion_mat = self.decode_set(num_trials, num_repeats = num_repeats, from_contexts=from_contexts)
+            decoded_set, confusion_mat = self.decode_set(num_trials, num_repeats = num_repeats, from_contexts=from_contexts)
         res=sns.heatmap(confusion_mat, linewidths=0.5, linecolor='black', mask=confusion_mat == 0, xticklabels=TASK_LIST+['other'], yticklabels=TASK_LIST, annot=True, cmap='Blues', fmt=fmt, cbar=False)
         res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8)
         res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
         plt.show()
+        return decoded_set
 
-    def test_partner_model(self, partner_model, num_repeats=3, tasks=TASK_LIST, decoded_dict=None, use_others=False): 
+    def test_partner_model(self, partner_model, num_repeats=3, tasks=TASK_LIST, decoded_dict=None): 
         partner_model.eval()
         if decoded_dict is None: 
             decoded_dict, _ = self.decode_set(128, from_contexts=True)
-        batch_len = sum([len(item) for item in list(decoded_dict.values())[0].values()])
 
         perf_dict = {}
         with torch.no_grad():
-            for i, mode in enumerate(['context', 'instructions', 'others']): 
+            for i, mode in enumerate(['instructions', 'others']): 
                 perf_array = np.empty((len(tasks), num_repeats))
                 perf_array[:] = np.nan
                 for k in range(num_repeats): 
