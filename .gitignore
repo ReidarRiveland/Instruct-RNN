@@ -9,6 +9,8 @@
 *.pyc
 *.pt
 *_attrs
+*.sbatch
+
 
 
 
