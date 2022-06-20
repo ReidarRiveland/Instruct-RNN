@@ -96,7 +96,7 @@ class TaskDataSet():
 
 def build_training_data(foldername, task):
     print('Building training data for ' + task + '...')
-    path = foldername+'/training_data/' + task
+    path = foldername +'/'+ task
     if os.path.exists(path):
         pass
     else: os.makedirs(path)
