@@ -1,17 +1,15 @@
 from instructRNN.models.language_models import *
 from instructRNN.models.sensorimotor_models import *
 
-all_models = ['clipNet', 'clipNet_tuned', 
+all_models = ['simpleNet', 'simpleNetPlus',
+            'comNet', 'comNetPlus',
             'sbertNet_tuned', 'sbertNet',
-            'sbertNet_rand', 
             'sbertNet_lin', 'sbertNet_lin_tuned',
+            'clipNet', 'clipNet_tuned', 
             'bertNet_tuned', 'bertNet', 
             'bertNet_lin_tuned', 'bertNet_lin', 
             'gptNetXL_tuned', 'gptNetXL', 
-            'gptNetXL_lin_tuned', 'bowNet', 
-            'simpleNet', 'simpleNetPlus',
-            'simpleNetPlus_rand',
-            'comNet', 'comNetPlus']
+            'bowNet']
 
 untuned_models = [model_name for model_name in all_models if '_tuned' not in model_name]
 tuned_models = [model_name for model_name in all_models if '_tuned' in model_name]
@@ -29,7 +27,6 @@ class SimpleNetPlus_rand(RuleNet):
                                 use_rand_rnn=True,
                                  **kw_args)
         super().__init__(config)
-
 
 class SimpleNetPlus(RuleNet):
     def __init__(self, **kw_args):

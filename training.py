@@ -1,6 +1,4 @@
 import itertools
-
-from torch import seed
 from instructRNN.trainers.model_trainer import *
 from instructRNN.trainers.decoder_trainer import *
 from instructRNN.trainers.context_trainer import *

@@ -39,14 +39,14 @@ class TaskDataSet():
     
     def __make_memmaps__(self): 
         for task in self.task_ratio_dict.keys(): 
-            try:
-                self.memmap_dict[task] = (np.lib.format.open_memmap(self.data_folder+'/'+task+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (8000, 120, 65)),
-                        np.lib.format.open_memmap(self.data_folder+'/'+task+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (8000, 120, 33)),
-                        np.lib.format.open_memmap(self.data_folder+'/'+task+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (8000, 120, 33)),
-                        np.lib.format.open_memmap(self.data_folder+'/'+task+'/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (8000)))
-            except FileNotFoundError: 
+            if not os.path.exists(self.data_folder+'/'+task):
                 print('\n no training data for {task} discovered at {data_load_path} \n'.format(task=task, data_load_path=self.data_folder))
                 build_training_data(self.data_folder, task)
+
+            self.memmap_dict[task] = (np.lib.format.open_memmap(self.data_folder+'/'+task+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 65)),
+                    np.lib.format.open_memmap(self.data_folder+'/'+task+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 33)),
+                    np.lib.format.open_memmap(self.data_folder+'/'+task+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (10000, 120, 33)),
+                    np.lib.format.open_memmap(self.data_folder+'/'+task+'/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (10000)))
 
 
 
@@ -73,7 +73,7 @@ class TaskDataSet():
         for index, task in enumerate(self.trial_types):
             if index % 50 == 0: 
                 print('populating data ' + str(index))
-            batch_indices = list(np.random.choice(np.arange(8000), size=self.batch_len))
+            batch_indices = list(np.random.choice(np.arange(10000), size=self.batch_len))
             memmaps = self.memmap_dict[task]
             tmp_in_data[index, ...] = memmaps[0][batch_indices, ].copy()
             tmp_tar_data[index, ...]=memmaps[1][batch_indices, ].copy() 
