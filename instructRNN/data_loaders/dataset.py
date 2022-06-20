@@ -2,10 +2,7 @@ from genericpath import exists
 import numpy as np
 import torch
 import os
-
 from instructRNN.tasks.tasks import TASK_LIST, construct_trials
-location = str(os.pathlib.Path(__file__).parent.absolute())
-
 
 class TaskDataSet():
     DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
