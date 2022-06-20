@@ -3,12 +3,11 @@ from instructRNN.models.sensorimotor_models import *
 
 all_models = ['simpleNet', 'simpleNetPlus',
             'comNet', 'comNetPlus',
-            'sbertNet_tuned', 'sbertNet',
+             'sbertNet', 'sbertNet_tuned',
             'sbertNet_lin', 'sbertNet_lin_tuned',
             'clipNet', 'clipNet_tuned', 
-            'bertNet_tuned', 'bertNet', 
-            'bertNet_lin_tuned', 'bertNet_lin', 
-            'gptNetXL_tuned', 'gptNetXL', 
+            'bertNet', 'bertNet_tuned',
+            'gptNetXL', 'gptNetXL_tuned',
             'bowNet']
 
 untuned_models = [model_name for model_name in all_models if '_tuned' not in model_name]

@@ -9,7 +9,7 @@
 *.pyc
 *.pt
 *_attrs
-*.sbatch
+#*.sbatch
 
 
 
