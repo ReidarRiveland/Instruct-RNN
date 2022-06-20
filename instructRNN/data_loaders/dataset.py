@@ -2,9 +2,10 @@ from genericpath import exists
 import numpy as np
 import torch
 import os
+import pathlib
 
 from instructRNN.tasks.tasks import TASK_LIST, construct_trials
-location = str(os.pathlib.Path(__file__).parent.absolute())
+location = str(pathlib.Path(__file__).parent.absolute())
 
 
 class TaskDataSet():
