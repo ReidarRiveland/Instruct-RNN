@@ -5,7 +5,7 @@
 #SBATCH --array=1-153
 #SBATCH --output=logs/training.%a.out
 #SBATCH --ntasks=1
-#SBATCH --gpus=rtx:1
+#SBATCH --gpus=turing:1
 #SBATCH --mem=16GB
 
 module load CUDA
