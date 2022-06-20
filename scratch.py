@@ -129,7 +129,7 @@ import torch
 
 
 EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = CLIPNet(LM_out_dim=64, rnn_hidden_dim=256)
+sbertNet = CLIPNet_tuned(LM_out_dim=64, rnn_hidden_dim=256)
 #sbertNet = SimpleNet(rnn_hidden_dim=256)
 
 holdouts_file = 'Multitask'
@@ -140,8 +140,7 @@ comNet = ComNetPlus()
 #sbertNet = SimpleNet(rnn_hidden_dim=256)
 
 holdouts_file = 'swap0'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0_CHECKPOINT')
-
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 
 for task in SWAPS_DICT[holdouts_file]:

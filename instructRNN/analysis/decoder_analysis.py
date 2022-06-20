@@ -20,7 +20,7 @@ sm_model.to(device)
 rnn_decoder.to(device)
 sm_model.eval()
 
-rnn_decoder.load_model(load_str+'decoders/rnn_decoder_seed'+str(seed))
+rnn_decoder.load_model(load_str, suffix='_seed'+str(seed)+'_wHoldout')
 sm_model.load_model(load_str, suffix='_seed'+str(seed))
 
 encoder = EncoderDecoder(sm_model, rnn_decoder)
@@ -30,6 +30,8 @@ encoder = EncoderDecoder(sm_model, rnn_decoder)
 
 decoded_set = encoder.plot_confuse_mat(128, 2)
 
+
+
 partner = make_default_model('sbertNet_tuned')
 partner.load_model('6.7models/swap_holdouts/swap1/sbertNet_tuned/', suffix='_seed'+str(seed))
 
@@ -37,7 +39,7 @@ perf, _ = encoder.test_partner_model(partner, decoded_dict=decoded_set)
 
 
 import numpy as np 
-np.mean(perf['others'], axis=1)
+np.mean(perf['instructions'], axis=1)
 
 
 

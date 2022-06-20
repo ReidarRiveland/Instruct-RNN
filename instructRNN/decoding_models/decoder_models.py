@@ -96,8 +96,8 @@ class BaseDecoder(nn.Module):
         pickle.dump(self.teacher_loss_list, open(save_string+'_teacher_loss_list', 'wb'))
         pickle.dump(self.loss_list, open(save_string+'_loss_list', 'wb'))
 
-    def load_model(self, load_string): 
-        self.load_state_dict(torch.load(load_string+'.pt', map_location=torch.device('cpu')))
+    def load_model(self, load_string, suffix=''): 
+        self.load_state_dict(torch.load(load_string+'decoders/'+self.decoder_name+suffix+'.pt', map_location=torch.device('cpu')))
 
     def get_instruct_embedding_pair(self, task_index, instruct_index, training=True): 
         assert self.contexts is not None, 'must initalize decoder contexts with init_context_set'

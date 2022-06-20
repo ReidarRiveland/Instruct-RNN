@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from attrs import asdict, define, field
+import pathlib
 import pickle
 
 from instructRNN.models.script_gru import ScriptGRU
@@ -10,6 +11,8 @@ from instructRNN.tasks.task_factory import INPUT_DIM, OUTPUT_DIM
 
 SENSORY_INPUT_DIM = INPUT_DIM
 MOTOR_OUTPUT_DIM = OUTPUT_DIM
+location = str(pathlib.Path(__file__).parent.absolute())
+
 
 @define
 class BaseModelConfig(): 
@@ -19,6 +22,7 @@ class BaseModelConfig():
     rnn_layers: int = 1
     rnn_hiddenInitValue: int = 0.1
     rnn_activ_func: str = 'relu'
+    use_rand_rnn: bool = False
     _rnn_in_dim: int = field(kw_only=True)
     _sensorimotor_out_dim: int = MOTOR_OUTPUT_DIM
 
@@ -71,6 +75,9 @@ class BaseNet(nn.Module):
                                     nn.Linear(self.rnn_hidden_dim, self._sensorimotor_out_dim), 
                                     nn.Sigmoid())
 
+        if self.use_rand_rnn: 
+            self.freeze_rnn_weights()
+
         self.__device__ = torch.device('cpu')
 
     def __initHidden__(self, batch_size):
@@ -94,6 +101,10 @@ class BaseNet(nn.Module):
     def freeze_weights(self): 
         for p in self.parameters(): 
             p.requires_grad=False
+    
+    def freeze_rnn_weights(self): 
+        for n, p in self.recurrent_units.named_parameters(): 
+            if 'hh' in n: p.requires_grad=False
 
     def save_model(self, file_path, suffix=''): 
         torch.save(self.state_dict(),
@@ -103,7 +114,7 @@ class BaseNet(nn.Module):
         self.load_state_dict(torch.load(
             file_path+'/'+self.model_name+suffix+'.pt', 
             map_location='cpu'))
-        self.train_attrs = pickle.load(open(file_path+'/'+self.model_name+suffix+'_attrs', 'rb'))
+        self.train_attrs = pickle.load(open(file_path+'/attrs/'+self.model_name+suffix+'_attrs', 'rb'))
 
     def to(self, cuda_device): 
         super().to(cuda_device)
@@ -129,6 +140,7 @@ class RuleEncoder(nn.Module):
         return self.rule_out(self.rule_in(rule))
 
 class RuleNet(BaseNet):
+    _tuning_epoch=None
     def __init__(self, config):
         super().__init__(config)
         self._set_rule_transform()
@@ -138,8 +150,8 @@ class RuleNet(BaseNet):
             self.rule_encoder = nn.Identity()
 
     def _set_rule_transform(self):
-        rule_folder = 'models/ortho_rule_vecs/'
-        ortho_rules = pickle.load(open(rule_folder+'ortho_rules'+str(len(TASK_LIST))+'x'+str(self.rule_dim), 'rb'))
+        rule_folder = '/ortho_rule_vecs/'
+        ortho_rules = pickle.load(open(location+rule_folder+'ortho_rules'+str(len(TASK_LIST))+'x'+str(self.rule_dim), 'rb'))
         self.rule_transform = torch.Tensor(ortho_rules)
 
     def forward(self, x, task_rule):

@@ -9,6 +9,7 @@ from tqdm import tqdm
 from attrs import define
 import os
 import warnings
+from os.path import exists
 
 from instructRNN.trainers.base_trainer import *
 from instructRNN.data_loaders.dataset import *
@@ -161,7 +162,6 @@ class ModelTrainer(BaseTrainer):
             warnings.warn('\n !!! Model has not reach specified performance threshold during training !!! \n')
             return False
 
-
 def check_already_trained(file_name, seed): 
     try: 
         pickle.load(open(file_name+'/seed'+str(seed)+'_training_correct', 'rb'))
@@ -181,28 +181,25 @@ def check_already_tested(file_name, seed, task):
         return False
 
 def train_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs): 
-        torch.manual_seed(seed)
-        if '_tuned' in model_name: 
-            raise Exception('\n !!!TUNED MODELS SHOULD BE FINE TUNED USING THE TUNING FUNCTION!!!')
+    torch.manual_seed(seed)
+    if '_tuned' in model_name: 
+        print('Attempting to load model checkpoint for tuning \n')
+        tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs)
 
-        label, holdouts = labeled_holdouts
-        file_name = exp_folder+'/'+label+'/'+model_name    
-        if check_already_trained(file_name, seed) and not overwrite:
-            return
-        
-        model = make_default_model(model_name)
-        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, 
-                                save_for_tuning_epoch=model._tuning_epoch, **train_config_kwargs)
-        trainer = ModelTrainer(trainer_config)
-        trainer.train(model)
-
+    label, holdouts = labeled_holdouts
+    file_name = exp_folder+'/'+label+'/'+model_name    
+    if check_already_trained(file_name, seed) and not overwrite:
+        return
+    
+    model = make_default_model(model_name)
+    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, 
+                            save_for_tuning_epoch=model._tuning_epoch, **train_config_kwargs)
+    trainer = ModelTrainer(trainer_config)
+    trainer.train(model)
 
 def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs): 
     torch.manual_seed(seed)
     
-    if '_tuned' not in model_name: 
-        raise Exception('\n !!!UNTUNED MODELS SHOULD BE TRAINED USING THE TRAIN FUNCTION!!!')
-        
     label, holdouts = labeled_holdouts
     untuned_model_name = model_name.replace('_tuned', '')
     file_name = exp_folder+'/'+label
@@ -214,6 +211,12 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
                 untuned_model_name+'_seed'+str(seed)+'_FOR_TUNING.pt'
     for_tuning_data_path = file_name+'/'+untuned_model_name+\
                 '/seed'+str(seed)+'training_data_FOR_TUNING'
+    
+    if not exists(for_tuning_model_path): 
+        print('No model checkpoint for tuning found, training untuned model to create checkpoint \n')
+        train_model(exp_folder, untuned_model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs)
+    else:
+        pass
 
     model = make_default_model(model_name)
     model.load_state_dict(torch.load(for_tuning_model_path))
@@ -226,7 +229,6 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
 
     trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
     trainer.train(model, is_tuning=True)
-
 
 def test_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs): 
     torch.manual_seed(seed)

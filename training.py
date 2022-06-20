@@ -8,7 +8,7 @@ from instructRNN.trainers.context_trainer import *
 from instructRNN.tasks.tasks import SWAPS_DICT, ALIGNED_DICT
 from instructRNN.models.full_models import all_models, untuned_models, tuned_models
 
-def make_training_jobs(exp, mode, models, seeds, holdouts, job_index):
+def make_training_jobs(exp, models, seeds, holdouts, job_index):
     if exp == 'swap': 
         _holdout_dict = SWAPS_DICT
     elif args.exp == 'algined': 
@@ -18,17 +18,6 @@ def make_training_jobs(exp, mode, models, seeds, holdouts, job_index):
         holdout_dict = _holdout_dict
     else: 
         holdout_dict = dict([list(_holdout_dict.items())[i] for i in args.holdouts])
-
-    if mode == 'train': 
-        if models is None: models=untuned_models
-        for model_name in models: assert model_name in untuned_models, 'tuned model in train list, train should only be used on untuned models, \
-                    tuned models should be fine-tuned using the tuning mode from checkpoint created during training'
-    elif mode == 'tuned': 
-        if models is None: models=tuned_models
-        for model_name in models: assert model_name in tuned_models, 'untuned model in tune list, tune should only be used on tuned models, \
-                    untuned models should first be trained using the train mode'
-    else: 
-        if models is None: models=all_models
 
     jobs = list(itertools.product(models, seeds, holdout_dict.items()))
     if job_index is None: 
@@ -55,7 +44,7 @@ if __name__ == "__main__":
     MODEL_FOLDER = args.folder
     EXP_FOLDER =MODEL_FOLDER+'/'+args.exp+'_holdouts'
 
-    jobs = make_training_jobs(args.exp, args.mode, args.models, args.seeds, args.holdouts, args.job_index)
+    jobs = make_training_jobs(args.exp, args.models, args.seeds, args.holdouts, args.job_index)
     
     for job in jobs: 
         model, _seed, holdouts = job
@@ -67,6 +56,6 @@ if __name__ == "__main__":
             test_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)   
         if args.mode == 'context' or args.mode == 'c': 
             train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, 
-                                lr=0.001, num_contexts=5, tasks=TASK_LIST)
+                                lr=0.005, num_contexts=5, tasks=TASK_LIST[::-1][7:])
         if args.mode == 'decoder' or args.mode == 'd': 
             train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, overwrite=args.overwrite)
