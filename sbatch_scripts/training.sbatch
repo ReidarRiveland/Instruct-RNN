@@ -13,4 +13,4 @@ echo $CUDA_VISIBLE_DEVICES
 
 source ~/miniconda3/bin/activate
 conda activate instructRNN
-python training.py 6.20models swap
+python training.py 6.20models swap --job_index ${SLURM_ARRAY_TASK_ID}
