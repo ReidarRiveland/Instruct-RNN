@@ -4,6 +4,7 @@ import torch
 import os
 
 from instructRNN.tasks.tasks import TASK_LIST, construct_trials
+location = str(os.pathlib.Path(__file__).parent.absolute())
 
 
 class TaskDataSet():
@@ -39,15 +40,15 @@ class TaskDataSet():
     
     def __make_memmaps__(self): 
         for task in self.task_ratio_dict.keys(): 
-            if not os.path.exists(self.data_folder+'/'+task):
+            task_data_path = location +'/'+self.data_folder+'/'+task
+            if not os.path.exists(task_data_path):
                 print('\n no training data for {task} discovered at {data_load_path} \n'.format(task=task, data_load_path=self.data_folder))
                 build_training_data(self.data_folder, task)
 
-            self.memmap_dict[task] = (np.lib.format.open_memmap(self.data_folder+'/'+task+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 65)),
-                    np.lib.format.open_memmap(self.data_folder+'/'+task+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 33)),
-                    np.lib.format.open_memmap(self.data_folder+'/'+task+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (10000, 120, 33)),
-                    np.lib.format.open_memmap(self.data_folder+'/'+task+'/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (10000)))
-
+            self.memmap_dict[task] = (np.lib.format.open_memmap(task_data_path+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 65)),
+                    np.lib.format.open_memmap(task_data_path+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 33)),
+                    np.lib.format.open_memmap(task_data_path+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (10000, 120, 33)),
+                    np.lib.format.open_memmap(task_data_path+'/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (10000)))
 
 
     def __init_task_distribution__(self):
@@ -99,7 +100,8 @@ def build_training_data(foldername, task):
     path = foldername +'/'+ task
     if os.path.exists(path):
         pass
-    else: os.makedirs(path)
+    else: 
+        os.makedirs(path)
     input_data, target_data, masks_data, target_dirs, trial_indices = construct_trials(task, 10000)
     np.save(path+'/input_data', input_data)
     np.save(path+'/target_data', target_data)
