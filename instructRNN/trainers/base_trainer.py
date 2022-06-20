@@ -59,7 +59,7 @@ class BaseTrainer(ABC):
         print('\n Training Step: ' + str(self.cur_step)+
                 ' ----- Task Type: '+task_type+
                 ' ----- Performance: ' + str(self.correct_data[task_type][-1])+
-                ' ----- Loss: ' + "{:.3e}".format(self.loss_data[task_type][-1])+'\n'
+                ' ----- Loss: ' + "{:.3e}".format(self.loss_data[task_type][-1])+'\n', flush=True
                 )
 
     def _record_session(self): 

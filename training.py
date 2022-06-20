@@ -6,6 +6,7 @@ from instructRNN.trainers.context_trainer import *
 from instructRNN.tasks.tasks import SWAPS_DICT, ALIGNED_DICT
 from instructRNN.models.full_models import all_models
 
+
 def make_training_jobs(exp, models, seeds, holdouts, job_index):
     if exp == 'swap': 
         _holdout_dict = SWAPS_DICT

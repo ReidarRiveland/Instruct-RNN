@@ -109,6 +109,7 @@ class ModelTrainer(BaseTrainer):
         print('\n MODEL SAVED FOR TUNING')
 
     def train(self, model, is_tuning=False, is_testing=False): 
+        print('USING DEVICE '+str(device))
         model.to(device)
         model.train()
         self._init_streamer()
