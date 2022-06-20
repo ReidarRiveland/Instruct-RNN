@@ -22,7 +22,7 @@ def make_training_jobs(exp, models, seeds, holdouts, job_index):
     if job_index is None: 
         return jobs
     else:
-        return [jobs[job_index]]
+        return [jobs[job_index-1]]
 
 if __name__ == "__main__":
     import argparse
