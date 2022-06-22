@@ -83,10 +83,10 @@ class ModelTrainer(BaseTrainer):
             pickle.dump(self.correct_data, open(tests_path+'/'+task+'_'+self.seed_suffix+'_correct', 'wb'))
 
     def average_testing_data(self):
-        correct_array = np.array(self.correct_data).reshape(-1, self.test_repeats)
-        loss_array = np.array(self.correct_data).reshape(-1, self.test_repeats)
-        self.correct_data = list(correct_array.mean(axis=1))
-        self.loss_data = list(loss_array.mean(axis=1))
+        correct_array = np.array(self.correct_data[self.set_single_task]).reshape(self.test_repeats, -1)
+        loss_array = np.array(self.correct_data[self.set_single_task]).reshape(self.test_repeats, -1)
+        self.correct_data = list(correct_array.mean(axis=0))
+        self.loss_data = list(loss_array.mean(axis=0))
 
     def _init_streamer(self):
         self.streamer = TaskDataSet(self.file_path.partition('/')[0]+'/training_data', 
@@ -267,30 +267,3 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
         trainer._record_session(model, mode='TESTING')
 
 
-exp_folder='6.7models'
-model_name ='sbertNet_tuned'
-seed= 0
-labeled_holdouts = list(SWAPS_DICT.items())[0]
-overwrite=False
-repeats=5
-
-torch.manual_seed(seed)
-
-label, holdouts = labeled_holdouts 
-file_name = exp_folder+'/'+label+'/'+model_name
-            
-model = make_default_model(model_name)
-for task in holdouts: 
-    if check_already_tested(file_name, seed, task) and not overwrite:
-        continue 
-    else:
-        print('\n testing '+model_name+' seed'+str(seed)+' on '+task)
-
-    testing_config = TrainerConfig(file_name, seed, set_single_task=task, 
-                            batch_len=256, num_batches=100, epochs=1, lr = 0.0008,
-                            test_repeats = repeats)
-    trainer = ModelTrainer(testing_config)
-    for _ in range(repeats): 
-        model.load_model(file_name, suffix='_seed'+str(seed))
-        trainer.train(model, is_testing=True)
-    trainer._record_session(model, mode='TESTING')
