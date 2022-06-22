@@ -10,6 +10,7 @@ from attrs import define
 import os
 import warnings
 from os.path import exists
+from instructRNN.tasks.tasks import SWAPS_DICT
 
 from instructRNN.trainers.base_trainer import *
 from instructRNN.data_loaders.dataset import *
@@ -44,6 +45,7 @@ class TrainerConfig():
     save_for_tuning_epoch: int = 30
     checker_threshold: float = 0.95
     step_last_lr: bool = True
+    test_repeats: int = None
 
 class ModelTrainer(BaseTrainer): 
     def __init__(self, training_config:TrainerConfig=None, from_checkpoint_dict:dict=None): 
@@ -71,10 +73,20 @@ class ModelTrainer(BaseTrainer):
             os.remove(self.file_path+'/'+self.model_file_path+'_CHECKPOINT.pt')
 
         if mode=='TESTING': 
+            self.average_testing_data()
+            tests_path = self.file_path+'/holdouts'
+            if os.path.exists(tests_path):pass
+            else: os.makedirs(tests_path)
             task= self.set_single_task
-            pickle.dump(checkpoint_attrs, open(self.file_path+'/attrs/'+self.seed_suffix+task+'_holdout_attrs', 'wb'))
-            pickle.dump(self.loss_data, open(self.file_path+'/'+task + '_'+self.seed_suffix+'_holdout_loss', 'wb'))
-            pickle.dump(self.correct_data, open(self.file_path+'/'+task+'_'+self.seed_suffix+'_holdout_correct', 'wb'))
+            pickle.dump(checkpoint_attrs, open(self.file_path+'/attrs/'+self.seed_suffix+'_'+task+'_attrs', 'wb'))
+            pickle.dump(self.loss_data, open(tests_path+'/'+task +'_'+self.seed_suffix+'_loss', 'wb'))
+            pickle.dump(self.correct_data, open(tests_path+'/'+task+'_'+self.seed_suffix+'_correct', 'wb'))
+
+    def average_testing_data(self):
+        correct_array = np.array(self.correct_data).reshape(-1, self.test_repeats)
+        loss_array = np.array(self.correct_data).reshape(-1, self.test_repeats)
+        self.correct_data = list(correct_array.mean(axis=1))
+        self.loss_data = list(loss_array.mean(axis=1))
 
     def _init_streamer(self):
         self.streamer = TaskDataSet(self.file_path.partition('/')[0]+'/training_data', 
@@ -157,9 +169,7 @@ class ModelTrainer(BaseTrainer):
             if self.scheduler is not None: self.scheduler.step()  
             if self.step_last_lr: self.step_scheduler.step()
 
-        if is_testing:
-            self._record_session(model, mode='TESTING')
-        else:
+        if not is_testing:
             warnings.warn('\n !!! Model has not reach specified performance threshold during training !!! \n')
             return False
 
@@ -234,22 +244,53 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
     trainer.train(model, is_tuning=True)
 
-def test_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs): 
+def test_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, repeats=5, **train_config_kwargs): 
     torch.manual_seed(seed)
     
     label, holdouts = labeled_holdouts 
     file_name = exp_folder+'/'+label+'/'+model_name
                 
     model = make_default_model(model_name)
-    model.load_model(file_name, suffix='_seed'+str(seed))
     for task in holdouts: 
         if check_already_tested(file_name, seed, task) and not overwrite:
             continue 
         else:
             print('\n testing '+model_name+' seed'+str(seed)+' on '+task)
-        tuning_config = TrainerConfig(file_name, seed, set_single_task=task, 
-                                batch_len=256, num_batches=100, epochs=1, lr = 0.0007,
-                                **train_config_kwargs)
-        trainer = ModelTrainer(tuning_config)
-        trainer.train(model, is_testing=True)
 
+        testing_config = TrainerConfig(file_name, seed, set_single_task=task, 
+                                batch_len=256, num_batches=100, epochs=1, lr = 0.0008,
+                                test_repeats = repeats, **train_config_kwargs)
+        trainer = ModelTrainer(testing_config)
+        for _ in range(repeats): 
+            model.load_model(file_name, suffix='_seed'+str(seed))
+            trainer.train(model, is_testing=True)
+        trainer._record_session(model, mode='TESTING')
+
+
+exp_folder='6.7models'
+model_name ='sbertNet_tuned'
+seed= 0
+labeled_holdouts = list(SWAPS_DICT.items())[0]
+overwrite=False
+repeats=5
+
+torch.manual_seed(seed)
+
+label, holdouts = labeled_holdouts 
+file_name = exp_folder+'/'+label+'/'+model_name
+            
+model = make_default_model(model_name)
+for task in holdouts: 
+    if check_already_tested(file_name, seed, task) and not overwrite:
+        continue 
+    else:
+        print('\n testing '+model_name+' seed'+str(seed)+' on '+task)
+
+    testing_config = TrainerConfig(file_name, seed, set_single_task=task, 
+                            batch_len=256, num_batches=100, epochs=1, lr = 0.0008,
+                            test_repeats = repeats)
+    trainer = ModelTrainer(testing_config)
+    for _ in range(repeats): 
+        model.load_model(file_name, suffix='_seed'+str(seed))
+        trainer.train(model, is_testing=True)
+    trainer._record_session(model, mode='TESTING')
