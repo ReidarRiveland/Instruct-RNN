@@ -1,8 +1,8 @@
 #!/bin/sh
 #SBATCH --job-name=training
-#SBATCH --time=02:00:00
+#SBATCH --time=02:30:00
 #SBATCH --partition=shared-gpu
-#SBATCH --array=0-1
+#SBATCH --array=0-675
 #SBATCH --output=logs/training.%a.out
 #SBATCH --ntasks=1
 #SBATCH --gpus=ampere:1
