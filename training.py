@@ -18,7 +18,7 @@ def make_training_jobs(exp, models, seeds, holdouts, job_index):
     else: 
         holdout_dict = dict([list(_holdout_dict.items())[i] for i in args.holdouts])
 
-    jobs = list(itertools.product(models, seeds, holdout_dict.items()))
+    jobs = list(itertools.product(seeds, models, holdout_dict.items()))
 
     if job_index is None: 
         return jobs
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     parser.add_argument('--models', default=all_models, nargs='*', help='list of model names to train, default is all models')
     parser.add_argument('--holdouts', type=int, default=None,  nargs='*', help='list of ints that index the holdout sets to use')
     parser.add_argument('--overwrite', default=False, action='store_true', help='whether or not to overwrite existing files')
-    parser.add_argument('--seeds', type=int, default=[0], nargs='+', help='random seeds to use when training')
+    parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')
     parser.add_argument('--layer', default='last', help='the dim corresponding to the layer the contexts gets trained at, \
                                                     must be emd or last, only for use if mode is context')
     parser.add_argument('--use_holdouts', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
@@ -45,12 +45,11 @@ if __name__ == "__main__":
     EXP_FOLDER =MODEL_FOLDER+'/'+args.exp+'_holdouts'
 
     jobs = make_training_jobs(args.exp, args.models, args.seeds, args.holdouts, args.job_index)
-    print(len(jobs))
 
     for job in jobs: 
-        model, _seed, holdouts = job
+        _seed, model, holdouts = job
         if args.mode == 'train': 
-            train_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite, num_batches=1, epochs=1)     
+            train_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)     
         if args.mode == 'tune': 
             tune_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)     
         if args.mode == 'test': 
