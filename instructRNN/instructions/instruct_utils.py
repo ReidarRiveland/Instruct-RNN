@@ -86,7 +86,7 @@ def one_hot_input_rule(batch_size, task_type, shuffled=False):
     return one_hot
 
 def get_comp_rep(batch_size, task_type): 
-    ref_tasks = construct_trials(task_type, 0).comp_ref_tasks
+    ref_tasks = construct_trials(task_type, None).comp_ref_tasks
     comp_rep = one_hot_input_rule(batch_size, ref_tasks[0])-one_hot_input_rule(batch_size, ref_tasks[1]) \
                         +one_hot_input_rule(batch_size, ref_tasks[2])
     return comp_rep

@@ -45,11 +45,12 @@ if __name__ == "__main__":
     EXP_FOLDER =MODEL_FOLDER+'/'+args.exp+'_holdouts'
 
     jobs = make_training_jobs(args.exp, args.models, args.seeds, args.holdouts, args.job_index)
-    
+    print(len(jobs))
+
     for job in jobs: 
         model, _seed, holdouts = job
         if args.mode == 'train': 
-            train_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)     
+            train_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite, num_batches=1, epochs=1)     
         if args.mode == 'tune': 
             tune_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)     
         if args.mode == 'test': 

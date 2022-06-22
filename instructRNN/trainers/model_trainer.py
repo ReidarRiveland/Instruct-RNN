@@ -163,13 +163,13 @@ class ModelTrainer(BaseTrainer):
             warnings.warn('\n !!! Model has not reach specified performance threshold during training !!! \n')
             return False
 
-def check_already_trained(file_name, seed): 
+def check_already_trained(file_name, seed, mode='training'): 
     try: 
         pickle.load(open(file_name+'/seed'+str(seed)+'_training_correct', 'rb'))
         print('\n Model at ' + file_name + ' for seed '+str(seed)+' aleady trained')
         return True
     except FileNotFoundError:
-        print('\n Training at ' + file_name + ' at seed '+str(seed))
+        print('\n ' + mode+' at ' + file_name + ' at seed '+str(seed))
         return False
 
 def check_already_tested(file_name, seed, task):
@@ -184,9 +184,9 @@ def check_already_tested(file_name, seed, task):
 def train_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs): 
     torch.manual_seed(seed)
     if '_tuned' in model_name: 
-        print('Attempting to load model checkpoint for tuning \n')
-        tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs)
-
+        print('\n Attempting to load model checkpoint for tuning')
+        return tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs)
+        
     label, holdouts = labeled_holdouts
     file_name = exp_folder+'/'+label+'/'+model_name    
     if check_already_trained(file_name, seed) and not overwrite:
@@ -205,7 +205,7 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     untuned_model_name = model_name.replace('_tuned', '')
     file_name = exp_folder+'/'+label
     
-    if check_already_trained(file_name+'/'+model_name, seed) and not overwrite:
+    if check_already_trained(file_name+'/'+model_name, seed, 'tuning') and not overwrite:
         return
     
     for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
@@ -215,7 +215,10 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     
     if not exists(for_tuning_model_path): 
         print('No model checkpoint for tuning found, training untuned model to create checkpoint \n')
-        train_model(exp_folder, untuned_model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs)
+        is_trained = train_model(exp_folder, untuned_model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs)
+        if not is_trained: 
+            warnings.warn('Failed to build checkpoint for tuning')
+            return False
     else:
         pass
 

@@ -66,7 +66,7 @@ INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
 
 class Task(): 
     def __init__(self, num_trials, noise, factory, **factory_kwargs):
-        if num_trials == 0: return
+        if num_trials == None: return
         if noise is None: 
             noise = np.random.uniform(0.05, 0.1)
         self.num_trials = num_trials
