@@ -309,78 +309,93 @@ plt.show()
 
 
 import numpy as np
-from instructions.instruct_utils import get_task_info
-from task_criteria import isCorrect
-from models.full_models import SBERTNet, SBERTNet_tuned, SimpleNet
-from model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
-from plotting import plot_model_response
-from tasks_utils import SWAPS_DICT 
-from tasks import TASK_LIST, construct_trials
-import torch
-from tasks import Task
-from task_factory import DMFactory
-import task_factory
-from models.full_models import SBERTNet
-from instructions.instruct_utils import get_instructions
-from tqdm import tqdm
-from task_factory import TaskFactory
+from instructRNN.instructions.instruct_utils import get_task_info
+from instructRNN.tasks.task_criteria import isCorrect
+from instructRNN.models.full_models import SBERTNet_tuned, SimpleNet
+from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 
-EXP_FILE = '6.3models/swap_holdouts'
-sbertNet = SBERTNet()
+from instructRNN.tasks.tasks import *
+import torch
+from instructRNN.models.full_models import SBERTNet
+from instructRNN.instructions.instruct_utils import get_instructions
+
+EXP_FILE = '6.7models/swap_holdouts'
+sbertNet = SBERTNet_tuned()
 
 holdouts_file = 'swap0'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
+
 
 
 CLUSTER_TASK_LIST = ['Go', 'RT_Go','DelayGo','Go_Mod1','Go_Mod2',
                     'Anti_Go',  'Anti_RT_Go', 'Anti_DelayGo', 'Anti_Go_Mod1',  'Anti_Go_Mod2',
                     'DM', 'RT_DM', 'MultiDM', 'DelayDM', 'DelayMultiDM', 'ConDM','ConMultiDM','DM_Mod1',  'DM_Mod2',
                     'Anti_DM', 'Anti_RT_DM', 'Anti_MultiDM',    'Anti_DelayDM',  'Anti_DelayMultiDM','Anti_ConDM', 'Anti_ConMultiDM', 'Anti_DM_Mod1', 'Anti_DM_Mod2',        
-                    
-                    #'RT_DM_Mod1', 'Anti_RT_DM_Mod1', 'RT_DM_Mod2', 'Anti_RT_DM_Mod2', 
-
                     'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
-
-                    #'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2',
-
                     'DMS', 'DNMS', 'DMC', 'DNMC']
 
 
 def get_hidden_reps(model, num_trials, tasks=CLUSTER_TASK_LIST, instruct_mode=None):
-    hidden_reps = np.empty((num_trials, 120, 128, len(tasks)))
+    hidden_reps = np.empty((num_trials, 120, 256, len(tasks)))
     with torch.no_grad():
         for i, task in enumerate(tasks): 
+            print(task)
             ins, _, _, _, _ =  construct_trials(task, num_trials)
 
-            task_info = get_task_info(num_trials, task, model.is_instruct, instruct_mode=instruct_mode)
+            task_info = get_task_info(num_trials, task, model.info_type, instruct_mode=instruct_mode)
             _, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
             hidden_reps[..., i] = hid.cpu().numpy()
     return hidden_reps
 
-hid_reps = get_hidden_reps(sbertNet, 256)
 
-A = np.matrix(np.mean(np.var(hid_reps, axis=0), axis=0))
+recurrent_units = sbertNet.state_dict()['recurrent_units.layers.0.cell.weight_hh'].numpy()
 
-B = (A-A.min(axis=0))/(A.max(axis=0)-A.min(axis=0))
-np.sum(B, axis=0)
+from numpy.linalg import matrix_rank, svd
+svd(recurrent_units)[1]>2
 
-#HOW TO SORT?
 
-def NormalizeData(data):
-    return (data[:,] - np.min(data, axis=1)) / (np.max(data, axis=1) - np.min(data, axis=1))
+hid_reps = get_hidden_reps(sbertNet, 150)
 
-NormalizeData(task_var)
+import pickle
+hid_reps = pickle.load(open('hidden_reps', 'rb'))[:, 20:, :, :]
+task_var = np.mean(np.var(hid_reps, axis=0), axis=0)
+ind_active = np.where(task_var.sum(axis=1) > 1e-3)[0]
+task_var = task_var[ind_active, :]
+norm_task_var = task_var.T/(np.sum(task_var, axis=1)).T
+
+
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
+def get_optim_clusters(norm_task_var):
+    score_list = []
+    for i in range(3,25):
+        km = KMeans(n_clusters=i, random_state=42)
+        km.fit_predict(norm_task_var.T)
+        score = silhouette_score(norm_task_var.T, km.labels_, metric='euclidean')
+        score_list.append(score)
+
+    return list(range(3, 25))[np.argmax(np.array(score_list))]
+
+get_optim_clusters(norm_task_var)
+
+km = KMeans(n_clusters=4, random_state=42)
+km.fit_predict(norm_task_var.T)
+
+from sklearn.manifold import TSNE
+
+tSNE = TSNE(n_components=2)
+fitted = tSNE.fit_transform(norm_task_var.T)
+
+fitted.shape
+
 
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-sns.heatmap(B.T, yticklabels=CLUSTER_TASK_LIST)
+sns.heatmap(norm_task_var, yticklabels=CLUSTER_TASK_LIST, vmin=0)
 plt.show()
 
-
-from scipy.stats import ortho_group  # Requires version 0.18 of scipy
-
-m = ortho_group.rvs(dim=64)
-
-# import pickle 
-# pickle.dump(m[:11, ], open('models/ortho_rule_vecs/ortho_comp_rules64', 'wb'))
+import matplotlib.pyplot as plt
+plt.scatter(fitted[:, 0], fitted[:, 1])
+plt.show()
