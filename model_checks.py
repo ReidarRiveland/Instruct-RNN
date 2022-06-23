@@ -34,7 +34,7 @@ if __name__ == "__main__":
                 if os.path.exists(load_folder+'/'+model_name+'_'+suffix+'.pt'):
                     print('loading model at ' + load_folder + ' for seed ' + str(seed)+ '\n')
                     model = make_default_model(model_name)
-                    model.load_model(load_folder, suffix=suffix)
+                    model.load_model(load_folder, suffix='_'+suffix)
                     if args.mode == 'perf':
                         perf = get_model_performance(model)
                         print(list(zip(TASK_LIST, perf)))
