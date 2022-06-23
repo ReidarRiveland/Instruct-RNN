@@ -114,7 +114,7 @@ class BaseNet(nn.Module):
         self.load_state_dict(torch.load(
             file_path+'/'+self.model_name+suffix+'.pt', 
             map_location='cpu'))
-        self.train_attrs = torch.load(open(file_path+'/attrs/'+self.model_name+suffix+'_attrs', 'rb'))
+        self.train_attrs = pickle.load(open(file_path+'/attrs/'+self.model_name+suffix+'_attrs', 'rb'))
 
     def to(self, cuda_device): 
         super().to(cuda_device)
