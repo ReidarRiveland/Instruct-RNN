@@ -1,6 +1,6 @@
 #!/bin/sh
 #SBATCH --job-name=training_big
-#SBATCH --time=04:00:00
+#SBATCH --time=06:00:00
 #SBATCH --partition=shared-gpu
 #SBATCH --array=0-90
 #SBATCH --output=logs/training_big.%a.out
