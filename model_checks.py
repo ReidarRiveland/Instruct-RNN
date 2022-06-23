@@ -30,8 +30,8 @@ if __name__ == "__main__":
             holdout_file = args.exp+'_holdouts'
             load_folder = MODEL_FOLDER + '/'+ holdout_file+'/'+args.exp+str(holdout)+'/'+model_name
             for seed in args.seeds: 
-                suffix = '_seed'+str(seed)
-                if os.path.exists(load_folder+'/'+model_name+suffix+'.pt'):
+                suffix = 'seed'+str(seed)
+                if os.path.exists(load_folder+'/'+model_name+'_'+suffix+'.pt'):
                     print('loading model at ' + load_folder + ' for seed ' + str(seed)+ '\n')
                     model = make_default_model(model_name)
                     model.load_model(load_folder, suffix=suffix)
@@ -42,6 +42,13 @@ if __name__ == "__main__":
                         for task in holdout_dict[holdout_file]:
                             perf = task_eval(model, task, 256)
                             print((task, perf)+'\n')
+                    elif args.mode == 'data_len':                         
+                        data = pickle.load(open(load_folder+'/'+suffix+'_training_correct', 'rb'))
+                        for task in TASK_LIST:
+                            print(str(len(data[task])+'\n'))
+                    else:
+                        raise 'invalid mode type'
+
                 else: 
                     print('no model found at ' + load_folder + ' for seed '+str(seed))
                     print(load_folder+'/'+model_name+suffix)
