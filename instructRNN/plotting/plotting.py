@@ -1,18 +1,15 @@
-import enum
-from math import nan
 import matplotlib
 from numpy.core.fromnumeric import ndim, size
 from numpy.core.numeric import indices
 from scipy.ndimage.measurements import label
 from torch.nn.modules.container import T
 from torch.random import seed
-from model_analysis import get_hid_var_resp, get_model_performance, get_instruct_reps
+from instructRNN.analysis.model_analysis import get_hid_var_resp, get_model_performance, get_instruct_reps
 from data_loaders.perfDataFrame import HoldoutDataFrame
 from tasks.task_criteria import isCorrect
 from tasks import TASK_LIST
 
-from model_analysis import get_hid_var_resp
-from instructions.instruct_utils import train_instruct_dict, test_instruct_dict
+from instructRNN.instructions.instruct_utils import train_instruct_dict, test_instruct_dict
 
 
 import numpy as np
@@ -34,8 +31,11 @@ import warnings
 
 
 
-MODEL_STYLE_DICT = {'simpleNet': ('blue', None), 'simpleNetPlus': ('blue', '+'), 'bowNet': ('orange', None), 'gptNet': ('red', None), 'gptNet_tuned': ('red', 'v'), 'bertNet_tuned': ('green', 'v'),
-                    'bertNet': ('green', None), 'sbertNet': ('purple', None), 'sbertNet_tuned': ('purple', 'v')}
+MODEL_STYLE_DICT = {'simpleNet': ('blue', None), 'simpleNetPlus': ('blue', '+'), 
+                    'bowNet': ('orange', None), 
+                    'gptXLNet': ('red', None), 'gptNetXL_tuned': ('red', 'v'), 
+                    'bertNet_tuned': ('green', 'v'), 'bertNet': ('green', None), 
+                    'sbertNet': ('purple', None), 'sbertNet_tuned': ('purple', 'v')}
 
 
 plt.rcParams['figure.dpi'] = 300
@@ -74,16 +74,14 @@ def split_axes():
     axn.set_yticks(np.linspace(0, 1, 11))
     return axn, ax2
 
+def _plot_performance_curve(avg_perf, std_perf, plt_ax, model_name, **plt_args):
+        color = MODEL_STYLE_DICT[model_name][0] 
+        marker = MODEL_STYLE_DICT[model_name][1]
+        plt_ax.fill_between(np.linspace(0, avg_perf.shape[-1], avg_perf.shape[-1]), np.min(np.array([np.ones(avg_perf.shape[-1]), avg_perf+std_perf]), axis=0), 
+                                        avg_perf-std_perf, color = color, alpha= 0.08)
+        plt_ax.plot(avg_perf, color = color, marker=marker, markeredgewidth=0.25, **plt_args)
 
-def _plot_performance_curve(avg_perf, all_perf, plt_ax, model_name, **plt_args): 
-        if all_perf is not None: 
-            std_dev_perf = np.std(all_perf, axis=0)
-
-            plt_ax.fill_between(np.linspace(0, avg_perf.shape[-1], avg_perf.shape[-1]), np.min(np.array([np.ones(avg_perf.shape[-1]), avg_perf+std_dev_perf]), axis=0), 
-                                            avg_perf-std_dev_perf, color = MODEL_STYLE_DICT[model_name][0], alpha= 0.08)
-        plt_ax.plot(avg_perf, color = MODEL_STYLE_DICT[model_name][0], marker=MODEL_STYLE_DICT[model_name][1], markeredgewidth=0.25, **plt_args)
-
-def plot_avg_curves(foldername, model_list, exp_type, perf_type='correct', plot_swaps = False, seeds=np.array(range(5)), split_axes=False):
+def plot_avg_holdout_curve(foldername, model_list, exp_type, perf_type='correct', plot_swaps = False, seeds=np.array(range(5)), split_axes=False):
 
     if split_axes: 
         axn, ax2 = split_axes()
@@ -111,6 +109,7 @@ def plot_avg_curves(foldername, model_list, exp_type, perf_type='correct', plot_
                 _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, ax2, model_name, plt_args=plt_args)
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.7, 0.48), title='Models', title_fontsize = 'small', fontsize='x-small')
     plt.show()
+
 
 def plot_task_curves(foldername, model_list, correct_or_loss='correct',  seeds=np.array(range(5)), plot_contexts=None, plot_swaps=False):
     if train_folder is None: 

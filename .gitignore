@@ -11,6 +11,7 @@
 *.pyc
 *.pt
 *_attrs
+*hidden_reps
 #*.sbatch
 
 

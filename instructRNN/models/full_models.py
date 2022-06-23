@@ -3,12 +3,15 @@ from instructRNN.models.sensorimotor_models import *
 
 all_models = ['simpleNet', 'simpleNetPlus',
             'comNet', 'comNetPlus',
-            'sbertNet', 'sbertNet_tuned',
-            'sbertNet_lin', 'sbertNet_lin_tuned',
-            'clipNet', 'clipNet_tuned', 
-            'bertNet', 'bertNet_tuned',
-            'gptNetXL', 'gptNetXL_tuned',
-            'bowNet']
+            'sbertNet', 'sbertNet_lin',
+            'clipNet','bertNet',
+            'bowNet',
+            'sbertNet_tuned', 
+            'sbertNet_lin_tuned',
+            'clipNet_tuned', 
+            'bertNet_tuned',
+            'gptNetXL', 'gptNetXL_tuned'
+            ]
 
 untuned_models = [model_name for model_name in all_models if '_tuned' not in model_name]
 tuned_models = [model_name for model_name in all_models if '_tuned' in model_name]
@@ -215,7 +218,6 @@ class BoWNet(InstructNet):
             
 
 def make_default_model(model_str): 
-    assert model_str in all_models, 'invalid model name'
     if model_str == 'simpleNet':
         return SimpleNet()
     if model_str == 'simpleNetPlus':

@@ -28,6 +28,11 @@ class HoldoutDataFrame():
     def get_task(self, task:str): 
         return self.data[:, TASK_LIST.index(task), :]
 
+    def avg_seeds(self): 
+        mean = np.nanmean(self.data, axis=0)
+        std = np.nanstd(self.data, axis=0)
+        return mean, std
+
     def load_data(self): 
         if self.exp_type == 'swaps': 
             training_sets = SWAPS_DICT
@@ -52,8 +57,13 @@ class TrainingDataFrame():
     def __post_init__(self):
         self.load_data()
 
+    def avg_seeds(self): 
+        mean = np.nanmean(self.data, axis=0)
+        var = np.nanstd(self.data, axis=0)
+        return mean, std
+
     def load_data(self): 
-        data = np.full((2, 5, len(TASK_LIST), 2000), np.NaN)
+        data = np.full((5, len(TASK_LIST), 2000), np.NaN)
         for i in range(5):
             seed_name = 'seed' + str(i)
             load_path = self.file_path+'/'+self.model_name+'/'+seed_name
@@ -69,4 +79,5 @@ class TrainingDataFrame():
                 except KeyError: 
                     print('No training data for '+ self.model_name + ' '+seed_name+' '+task)
         super().__setattr__('data', data)
+
 
