@@ -18,8 +18,8 @@ from instructRNN.tasks.task_criteria import *
 from instructRNN.instructions.instruct_utils import get_task_info
 from instructRNN.models.full_models import make_default_model
 
-
 device = torch.device(0)
+print(torch.cuda.get_device_name(device), flush=True)
 
 @define
 class TrainerConfig(): 
