@@ -16,6 +16,8 @@ from transformers import GPTNeoForCausalLM
 
 from instructRNN.instructions.instruct_utils import get_all_sentences, sort_vocab
 
+from transformers import logging
+logging.set_verbosity_error()
 
 location = str(pathlib.Path(__file__).parent.absolute())
 
@@ -113,7 +115,6 @@ class SBERT(TransformerEmbedder):
         self.transformer.load_state_dict(self._convert_state_dict_format(location+'/_pretrained_state_dicts/'+self.LM_load_str))
 
     def _convert_state_dict_format(self, state_dict_file): 
-        print('converting state dict keys to BERT format')
         sbert_state_dict = torch.load(state_dict_file, map_location='cpu')
         for key in list(sbert_state_dict.keys()):
             sbert_state_dict[key.replace('0.auto_model.', '')] = sbert_state_dict.pop(key)
