@@ -23,7 +23,7 @@ if __name__ == "__main__":
             load_folder = MODEL_FOLDER + '/'+ args.exp+'_holdouts/'+args.exp+str(holdout)+'/'+model_name
             for seed in args.seeds: 
                 suffix = '_seed'+str(seed)
-                if os.path.exists(load_folder+'/'+model_name+suffix):
+                if os.path.exists(load_folder+'/'+model_name+suffix+'.pt'):
                     print('loading model at ' + load_folder + ' for seed ' + str(seed)+ '\n')
                     model = make_default_model(model_name)
                     model.load_model(load_folder, suffix=suffix)
@@ -31,3 +31,4 @@ if __name__ == "__main__":
                     print(list(zip(TASK_LIST, perf)))
                 else: 
                     print('no model found at ' + load_folder + ' for seed '+str(seed))
+                    print(load_folder+'/'+model_name+suffix)
