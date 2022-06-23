@@ -7,6 +7,9 @@ from instructRNN.analysis.model_analysis import get_model_performance, task_eval
 from instructRNN.tasks.tasks import SWAPS_DICT, ALIGNED_DICT
 from instructRNN.models.full_models import all_models, untuned_models, tuned_models
 
+device = torch.device(0)
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
@@ -35,6 +38,8 @@ if __name__ == "__main__":
                     print('loading model at ' + load_folder + ' for seed ' + str(seed)+ '\n')
                     model = make_default_model(model_name)
                     model.load_model(load_folder, suffix='_'+suffix)
+                    model.to(device)
+                    
                     if args.mode == 'perf':
                         perf = get_model_performance(model)
                         print(list(zip(TASK_LIST, perf)))
