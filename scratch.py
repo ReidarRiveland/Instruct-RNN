@@ -311,7 +311,7 @@ plt.show()
 import numpy as np
 from instructRNN.instructions.instruct_utils import get_task_info
 from instructRNN.tasks.task_criteria import isCorrect
-from instructRNN.models.full_models import SBERTNet_tuned, SimpleNet
+from instructRNN.models.full_models import SBERTNet_tuned, SimpleNet, CLIPNet
 from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 
 from instructRNN.tasks.tasks import *
@@ -320,11 +320,12 @@ from instructRNN.models.full_models import SBERTNet
 from instructRNN.instructions.instruct_utils import get_instructions
 
 EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = SimpleNet()
+sbertNet = CLIPNet()
 
 holdouts_file = 'swap0'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
+sbertNet.train_attrs
 
 
 CLUSTER_TASK_LIST = ['Go', 'RT_Go','DelayGo','Go_Mod1','Go_Mod2',
@@ -354,7 +355,7 @@ from numpy.linalg import matrix_rank, svd
 matrix_rank(recurrent_units)
 
 
-hid_reps = get_hidden_reps(sbertNet, 256)
+hid_reps = get_hidden_reps(sbertNet, 256) 
 
 import pickle
 hid_reps = pickle.load(open('hidden_reps', 'rb'))
@@ -380,7 +381,7 @@ def get_optim_clusters(norm_task_var):
 
     return list(range(2, 50))[np.argmax(np.array(score_list))]
 
-get_optim_clusters(norm_task_var)
+get_optim_clusters(task_var.T)
 
 km = KMeans(n_clusters=4, random_state=42)
 labels = km.fit_predict(norm_task_var.T)
@@ -393,7 +394,7 @@ colors[labels]
 
 from sklearn.manifold import TSNE
 tSNE = TSNE(n_components=2)
-fitted = tSNE.fit_transform(norm_task_var.T)
+fitted = tSNE.fit_transform(task_var.T)
 
 fitted.shape
 
