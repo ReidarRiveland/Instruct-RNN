@@ -45,7 +45,6 @@ if __name__ == "__main__":
     EXP_FOLDER =MODEL_FOLDER+'/'+args.exp+'_holdouts'
 
     jobs = make_training_jobs(args.exp, args.models, args.seeds, args.holdouts, args.job_index)
-    print(len(jobs))
 
     for job in jobs: 
         _seed, model, holdouts = job
