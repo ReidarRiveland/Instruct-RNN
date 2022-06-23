@@ -47,16 +47,16 @@ if __name__ == "__main__":
     jobs = make_training_jobs(args.exp, args.models, args.seeds, args.holdouts, args.job_index)
     print(len(jobs))
 
-    # for job in jobs: 
-    #     _seed, model, holdouts = job
-    #     if args.mode == 'train': 
-    #         train_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)     
-    #     if args.mode == 'tune': 
-    #         tune_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)     
-    #     if args.mode == 'test': 
-    #         test_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)   
-    #     if args.mode == 'context' or args.mode == 'c': 
-    #         train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, 
-    #                             lr=0.005, num_contexts=5, tasks=TASK_LIST[::-1][7:])
-    #     if args.mode == 'decoder' or args.mode == 'd': 
-    #         train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, overwrite=args.overwrite)
+    for job in jobs: 
+        _seed, model, holdouts = job
+        if args.mode == 'train': 
+            train_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)     
+        if args.mode == 'tune': 
+            tune_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)     
+        if args.mode == 'test': 
+            test_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)   
+        if args.mode == 'context' or args.mode == 'c': 
+            train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, 
+                                lr=0.005, num_contexts=5, tasks=TASK_LIST[::-1][7:])
+        if args.mode == 'decoder' or args.mode == 'd': 
+            train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, overwrite=args.overwrite)
