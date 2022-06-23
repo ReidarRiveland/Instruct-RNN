@@ -39,7 +39,7 @@ if __name__ == "__main__":
                         perf = get_model_performance(model)
                         print(list(zip(TASK_LIST, perf)))
                     elif args.mode == 'holdout':                         
-                        for task in holdout_dict[holdout_file]:
+                        for task in holdout_dict[args.exp+str(holdout)]:
                             perf = task_eval(model, task, 256)
                             print((task, perf)+'\n')
                     elif args.mode == 'data_len':                         
@@ -47,7 +47,7 @@ if __name__ == "__main__":
                         for task in TASK_LIST:
                             print(str(len(data[task])+'\n'))
                     else:
-                        raise 'invalid mode type'
+                        raise Exception('invalid mode type')
 
                 else: 
                     print('no model found at ' + load_folder + ' for seed '+str(seed))
