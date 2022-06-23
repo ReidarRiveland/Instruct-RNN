@@ -320,7 +320,7 @@ from instructRNN.models.full_models import SBERTNet
 from instructRNN.instructions.instruct_utils import get_instructions
 
 EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = SBERTNet_tuned()
+sbertNet = SimpleNet()
 
 holdouts_file = 'swap0'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
@@ -351,16 +351,19 @@ def get_hidden_reps(model, num_trials, tasks=CLUSTER_TASK_LIST, instruct_mode=No
 recurrent_units = sbertNet.state_dict()['recurrent_units.layers.0.cell.weight_hh'].numpy()
 
 from numpy.linalg import matrix_rank, svd
-svd(recurrent_units)[1]>2
+matrix_rank(recurrent_units)
 
 
-hid_reps = get_hidden_reps(sbertNet, 150)
+hid_reps = get_hidden_reps(sbertNet, 256)
 
 import pickle
-hid_reps = pickle.load(open('hidden_reps', 'rb'))[:, 20:, :, :]
+hid_reps = pickle.load(open('hidden_reps', 'rb'))
+
 task_var = np.mean(np.var(hid_reps, axis=0), axis=0)
-ind_active = np.where(task_var.sum(axis=1) > 1e-3)[0]
-task_var = task_var[ind_active, :]
+task_var.shape
+
+task_var
+
 norm_task_var = task_var.T/(np.sum(task_var, axis=1)).T
 
 
@@ -369,26 +372,30 @@ from sklearn.metrics import silhouette_score
 
 def get_optim_clusters(norm_task_var):
     score_list = []
-    for i in range(3,25):
-        km = KMeans(n_clusters=i, random_state=42)
-        km.fit_predict(norm_task_var.T)
-        score = silhouette_score(norm_task_var.T, km.labels_, metric='euclidean')
+    for i in range(3,50):
+        km = KMeans(n_clusters=i, random_state=12)
+        labels = km.fit_predict(norm_task_var.T)
+        score = silhouette_score(norm_task_var.T, labels, metric='euclidean')
         score_list.append(score)
 
-    return list(range(3, 25))[np.argmax(np.array(score_list))]
+    return list(range(2, 50))[np.argmax(np.array(score_list))]
 
 get_optim_clusters(norm_task_var)
 
 km = KMeans(n_clusters=4, random_state=42)
-km.fit_predict(norm_task_var.T)
+labels = km.fit_predict(norm_task_var.T)
+
+labels
+
+colors = np.array(['blue', 'green', 'red', 'yellow', 'organe', 'purple'])
+
+colors[labels]
 
 from sklearn.manifold import TSNE
-
 tSNE = TSNE(n_components=2)
 fitted = tSNE.fit_transform(norm_task_var.T)
 
 fitted.shape
-
 
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -397,5 +404,5 @@ sns.heatmap(norm_task_var, yticklabels=CLUSTER_TASK_LIST, vmin=0)
 plt.show()
 
 import matplotlib.pyplot as plt
-plt.scatter(fitted[:, 0], fitted[:, 1])
+plt.scatter(fitted[:, 0], fitted[:, 1], c=colors[labels])
 plt.show()
