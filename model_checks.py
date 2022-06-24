@@ -10,6 +10,12 @@ from instructRNN.models.full_models import all_models, untuned_models, tuned_mod
 device = torch.device(0)
 
 
+def train_check_data(data_path):
+    data = pickle.load(open(data_path, 'rb'))
+    truth_values = []
+    for data_values in data.values():
+        truth_values.append(len(data_values)>1000)
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
@@ -26,7 +32,7 @@ if __name__ == "__main__":
     elif args.exp =='aligned': 
         holdout_dict = ALIGNED_DICT
 
-
+    inspection_list =[]
     MODEL_FOLDER = args.folder
     for model_name in args.models: 
         for holdout in args.holdouts: 
@@ -35,6 +41,12 @@ if __name__ == "__main__":
             for seed in args.seeds: 
                 suffix = 'seed'+str(seed)
                 if os.path.exists(load_folder+'/'+model_name+'_'+suffix+'.pt'):
+                    data_check = train_check_data(load_folder+'/'+suffix+'_training_correct')
+                    if not data_check: 
+                        print('DATA CHECK FAILED for ' + load_folder+'/'+model_name+'_'+suffix)
+                    if args.mode=='trained': 
+                        print(load_folder+'/'+model_name+'_'+suffix+' TRAINED')
+                        continue
                     print('loading model at ' + load_folder + ' for seed ' + str(seed)+ '\n')
                     model = make_default_model(model_name)
                     model.load_model(load_folder, suffix='_'+suffix)
@@ -47,13 +59,10 @@ if __name__ == "__main__":
                         for task in holdout_dict[args.exp+str(holdout)]:
                             perf = task_eval(model, task, 256)
                             print((task, perf)+'\n')
-                    elif args.mode == 'data_len':                         
-                        data = pickle.load(open(load_folder+'/'+suffix+'_training_correct', 'rb'))
-                        for task in TASK_LIST:
-                            print(str(len(data[task])+'\n'))
                     else:
                         raise Exception('invalid mode type')
 
                 else: 
                     print('no model found at ' + load_folder + ' for seed '+str(seed))
                     print(load_folder+'/'+model_name+suffix)
+                    inspection_list.append((model_name, holdout_file, seed))

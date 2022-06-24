@@ -1,11 +1,11 @@
 #!/bin/sh
 #SBATCH --job-name=training_big
-#SBATCH --time=12:00:00
-#SBATCH --partition=shared-gpu
+#SBATCH --time=18:00:00
+#SBATCH --partition=private-huber-gpu
 #SBATCH --array=0-90
 #SBATCH --output=logs/training_big.%a.out
 #SBATCH --ntasks=1
-#SBATCH --gpus=ampere:1
+#SBATCH --gpus=1
 #SBATCH --mem=16GB
 
 module load CUDA
