@@ -242,7 +242,10 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
                                     **train_config_kwargs)
 
     trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
-    trainer.train(model, is_tuning=True)
+    is_tuned = trainer.train(model, is_tuning=True)
+    if is_tuned:
+        os.remove(for_tuning_model_path)
+        os.remove(for_tuning_data_path)
 
 def test_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, repeats=5, **train_config_kwargs): 
     torch.manual_seed(seed)
