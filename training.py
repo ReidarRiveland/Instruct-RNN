@@ -10,7 +10,7 @@ from instructRNN.models.full_models import all_models
 def make_training_jobs(exp, models, seeds, holdouts, job_index):
     if exp == 'swap': 
         _holdout_dict = SWAPS_DICT
-    elif args.exp == 'algined': 
+    elif args.exp == 'aligned': 
         _holdout_dict = ALIGNED_DICT
 
     if holdouts is None: 
