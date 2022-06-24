@@ -13,4 +13,4 @@ echo $CUDA_VISIBLE_DEVICES
 
 source ~/miniconda3/bin/activate
 conda activate instruct-rnn
-python training.py 6.20models swap --models simpleNet simpleNetPlus comNet comNetPlus sbertNet sbertNet_lin clipNet bertNet bowNet sbertNet_tuned sbertNet_lin_tuned clipNet_tuned bertNet_tuned --job_index ${SLURM_ARRAY_TASK_ID}
+python training.py 6.20models aligned --models simpleNet simpleNetPlus comNet comNetPlus sbertNet sbertNet_lin clipNet bertNet bowNet sbertNet_tuned sbertNet_lin_tuned clipNet_tuned bertNet_tuned --job_index ${SLURM_ARRAY_TASK_ID}
