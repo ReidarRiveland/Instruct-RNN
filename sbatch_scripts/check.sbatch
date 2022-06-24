@@ -2,7 +2,7 @@
 #SBATCH --job-name=check
 #SBATCH --time=00:20:00
 #SBATCH --partition=shared-gpu
-#SBATCH --output=logs/check.%a.out
+#SBATCH --output=logs/check.0.out
 #SBATCH --ntasks=1
 #SBATCH --gpus=turing:1
 #SBATCH --mem=16GB

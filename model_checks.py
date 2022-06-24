@@ -1,20 +1,25 @@
 import itertools
+import torch
 import os
-from instructRNN.trainers.model_trainer import *
+import pickle
 from instructRNN.models.full_models import make_default_model
 from instructRNN.analysis.model_analysis import get_model_performance, task_eval
 
-from instructRNN.tasks.tasks import SWAPS_DICT, ALIGNED_DICT
+from instructRNN.tasks.tasks import SWAPS_DICT, ALIGNED_DICT, TASK_LIST
 from instructRNN.models.full_models import all_models, untuned_models, tuned_models
 
-device = torch.device(0)
-
+if torch.cuda.is_available():
+    device = torch.device(0)
+    print(torch.cuda.get_device_name(device))
+else: 
+    device = torch.device('cpu')
 
 def train_check_data(data_path):
     data = pickle.load(open(data_path, 'rb'))
     truth_values = []
-    for data_values in data.values():
+    for task, data_values in data.items():
         truth_values.append(len(data_values)>1000)
+    return all(truth_values)
 
 if __name__ == "__main__":
     import argparse
@@ -58,7 +63,8 @@ if __name__ == "__main__":
                     elif args.mode == 'holdout':                         
                         for task in holdout_dict[args.exp+str(holdout)]:
                             perf = task_eval(model, task, 256)
-                            print((task, perf)+'\n')
+                            print((task, perf))
+                            print('\n')
                     else:
                         raise Exception('invalid mode type')
 
