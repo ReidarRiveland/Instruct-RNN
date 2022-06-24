@@ -47,20 +47,19 @@ SWAP_LIST = [
             
 ALIGNED_LIST = [
             ('DM', 'Anti_DM', 'MultiCOMP1', 'MultiCOMP2'), 
-            ('Go', 'Anti_Go', 'COMP1_Mod1', 'COMP1_Mod2'), 
-            ('DM_Mod1', 'DM_Mod2', 'COMP2_Mod1', 'COMP2_Mod2'), 
+            ('Go', 'Anti_Go', 'Anti_DM_Mod1', 'Anti_DM_Mod2'), 
+            ('DM_Mod1', 'DM_Mod2', 'RT_Go', 'Anti_RT_Go'), 
             ('Go_Mod1', 'Go_Mod2', 'ConDM', 'Anti_ConDM'), 
             ('Anti_Go_Mod1', 'Anti_Go_Mod2', 'DelayMultiDM', 'Anti_DelayMultiDM'), 
             ('DelayGo', 'Anti_DelayGo', 'ConMultiDM', 'Anti_ConMultiDM'), 
             ('MultiDM', 'Anti_MultiDM', 'DMS', 'DNMS'), 
             ('RT_DM', 'Anti_RT_DM', 'COMP1', 'COMP2'), 
-            ('DelayDM', 'Anti_DelayDM', 'DMC', 'DNMC'), 
-            ('RT_Go', 'Anti_RT_Go', 'Anti_DM_Mod1', 'Anti_DM_Mod2')
+            ('DelayDM', 'Anti_DelayDM', 'DMC', 'DNMC')
             ]
 
 
 SWAPS_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST.copy()))
-ALIGNED_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], ALIGNED_LIST.copy()))
+ALIGNED_DICT = dict(zip(['aligned'+str(num) for num in range(len(ALIGNED_LIST))], ALIGNED_LIST.copy()))
 INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
 
 
