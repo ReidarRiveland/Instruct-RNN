@@ -1,6 +1,6 @@
 #!/bin/sh
 #SBATCH --job-name=training_aligned
-#SBATCH --time=01:30:00
+#SBATCH --time=02:00:00
 #SBATCH --partition=shared-gpu
 #SBATCH --array=0-585
 #SBATCH --output=logs/aligned.%a.out
