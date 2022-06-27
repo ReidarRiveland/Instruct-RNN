@@ -203,8 +203,7 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False,
         return
     
     model = make_default_model(model_name)
-    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, 
-                            save_for_tuning_epoch=model._tuning_epoch, **train_config_kwargs)
+    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
     trainer = ModelTrainer(trainer_config)
     trainer.train(model)
 

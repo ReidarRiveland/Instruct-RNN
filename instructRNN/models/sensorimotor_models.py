@@ -166,7 +166,6 @@ class RuleNet(BaseNet):
         self.rule_transform = self.rule_transform.to(cuda_device)
 
 class InstructNet(BaseNet): 
-    _tuning_epoch=30
     def __init__(self, config): 
         super().__init__(config)
         self.LM_config = LMConfig(self.LM_load_str, 

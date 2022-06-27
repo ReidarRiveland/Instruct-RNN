@@ -47,7 +47,6 @@ class ComNetPlus(RuleNet):
 
 
 class GPTNetXL(InstructNet):
-    _tuning_epoch=50
     def __init__(self, **kw_args):
         config = InstructModelConfig('gptNetXL', 
                                     LM_class= GPT,

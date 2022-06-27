@@ -17,7 +17,7 @@ else:
 def train_check_data(data_path):
     data = pickle.load(open(data_path, 'rb'))
     truth_values = []
-    for task, data_values in data.items():
+    for data_values in data.values():
         truth_values.append(len(data_values)>1000)
     return all(truth_values)
 
@@ -45,13 +45,16 @@ if __name__ == "__main__":
             load_folder = MODEL_FOLDER + '/'+ holdout_file+'/'+args.exp+str(holdout)+'/'+model_name
             for seed in args.seeds: 
                 suffix = 'seed'+str(seed)
+
                 if os.path.exists(load_folder+'/'+model_name+'_'+suffix+'.pt'):
                     data_check = train_check_data(load_folder+'/'+suffix+'_training_correct')
                     if not data_check: 
                         print('DATA CHECK FAILED for ' + load_folder+'/'+model_name+'_'+suffix)
+
                     if args.mode=='trained': 
                         print(load_folder+'/'+model_name+'_'+suffix+' TRAINED')
                         continue
+
                     print('loading model at ' + load_folder + ' for seed ' + str(seed)+ '\n')
                     model = make_default_model(model_name)
                     model.load_model(load_folder, suffix='_'+suffix)
@@ -60,6 +63,7 @@ if __name__ == "__main__":
                     if args.mode == 'perf':
                         perf = get_model_performance(model)
                         print(list(zip(TASK_LIST, perf)))
+
                     elif args.mode == 'holdout':                         
                         for task in holdout_dict[args.exp+str(holdout)]:
                             perf = task_eval(model, task, 256)
