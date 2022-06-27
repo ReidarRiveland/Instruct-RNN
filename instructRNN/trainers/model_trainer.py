@@ -223,11 +223,7 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
                 '/seed'+str(seed)+'training_data_FOR_TUNING'
     
     if not exists(for_tuning_model_path): 
-        print('No model checkpoint for tuning found, training untuned model to create checkpoint \n')
-        is_trained = train_model(exp_folder, untuned_model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs)
-        if not is_trained: 
-            warnings.warn('Failed to build checkpoint for tuning')
-            return False
+        raise Exception('No model checkpoint for tuning found, train untuned version to create checkpoint \n')
     else:
         pass
 
