@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import seaborn as sns
 import matplotlib.pyplot as plt
+import sys
 
 import instructRNN.tasks.task_factory as task_factory
 
@@ -65,7 +66,6 @@ INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
 
 class Task(): 
     def __init__(self, num_trials, noise, factory, **factory_kwargs):
-        if num_trials == None: return
         if noise is None: 
             noise = np.random.uniform(0.05, 0.1)
         self.num_trials = num_trials
@@ -105,12 +105,14 @@ class Task():
    
 class Go(Task): 
     comp_ref_tasks = ('RT_Go', 'Anti_RT_Go', 'Anti_Go')
-    def __init__(self, num_trials, noise=None): 
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
-                        dir_chooser = task_factory.choose_pro
+                        dir_chooser = task_factory.choose_pro, 
+                        **factory_kwargs
                         )
         self.task_type = 'Go'
+
 
 class AntiGo(Task): 
     comp_ref_tasks = ('Anti_RT_Go', 'RT_Go', 'Go')
@@ -559,110 +561,14 @@ class DNMC(Task):
  
 def construct_trials(task_type, num_trials=None, noise = None, return_tensor=False):
     assert task_type in TASK_LIST, "entered invalid task type"
-    if task_type == 'Go':
-        trial = Go(num_trials, noise=noise)
-    if task_type == 'RT_Go':
-        trial = RTGo(num_trials, noise=noise)
-    if task_type == 'Anti_Go':
-        trial = AntiGo(num_trials, noise=noise)
-    if task_type == 'Anti_RT_Go':
-        trial = AntiRTGo(num_trials, noise=noise)
-
-    if task_type == 'DelayGo': 
-        trial = DelayGo(num_trials, noise=noise)
-    if task_type == 'Anti_DelayGo': 
-        trial = AntiDelayGo(num_trials, noise=noise)
-
-    if task_type == 'DelayGo_Mod1':
-        trial = DelayGoMod1(num_trials, noise=noise)
-    if task_type == 'DelayGo_Mod2':
-        trial = DelayGoMod2(num_trials, noise=noise)
-    if task_type == 'Anti_DelayGo_Mod1':
-        trial = AntiDelayGoMod1(num_trials, noise=noise)
-    if task_type == 'Anti_DelayGo_Mod2':
-        trial = AntiDelayGoMod2(num_trials, noise=noise)
-
-    if task_type == 'Go_Mod1':
-        trial = GoMod1(num_trials, noise=noise)
-    if task_type == 'Go_Mod2':
-        trial = GoMod2(num_trials, noise=noise)
-    if task_type == 'Anti_Go_Mod1':
-        trial = AntiGoMod1(num_trials, noise=noise)
-    if task_type == 'Anti_Go_Mod2':
-        trial = AntiGoMod2(num_trials, noise=noise)
-
-    if task_type == 'DM':
-        trial = DM(num_trials, noise=noise)
-    if task_type == 'Anti_DM': 
-        trial = AntiDM(num_trials, noise=noise)
-
-    if task_type == 'ConDM':
-        trial = ConDM(num_trials, noise=noise)
-    if task_type == 'Anti_ConDM': 
-        trial = ConAntiDM(num_trials, noise=noise)
-    if task_type == 'ConMultiDM':
-        trial = ConMultiDM(num_trials, noise=noise)
-    if task_type == 'Anti_ConMultiDM': 
-        trial = ConAntiMultiDM(num_trials, noise=noise)
-
-    if task_type == 'RT_DM':
-        trial = RTDM(num_trials, noise=noise)
-    if task_type == 'Anti_RT_DM': 
-        trial = AntiRTDM(num_trials, noise=noise)
-
-    if task_type == 'MultiDM':
-        trial = MultiDM(num_trials, noise=noise)
-    if task_type == 'Anti_MultiDM': 
-        trial = AntiMultiDM(num_trials, noise=noise)
-
-    if task_type == 'DelayDM': 
-        trial = DelayDM(num_trials, noise=noise)
-    if task_type == 'Anti_DelayDM': 
-        trial = DelayAntiDM(num_trials, noise=noise)
-    if task_type == 'DelayMultiDM': 
-        trial = DelayMultiDM(num_trials, noise=noise)
-    if task_type == 'Anti_DelayMultiDM': 
-        trial = DelayAntiMultiDM(num_trials, noise=noise)
-    if task_type == 'DM_Mod1': 
-        trial = DMMod1(num_trials, noise=noise)
-    if task_type == 'DM_Mod2': 
-        trial = DMMod2(num_trials, noise=noise)
-    if task_type == 'Anti_DM_Mod1': 
-        trial = AntiDMMod1(num_trials, noise=noise)
-    if task_type == 'Anti_DM_Mod2': 
-        trial = AntiDMMod2(num_trials, noise=noise)
-
-    if task_type == 'RT_DM_Mod1': 
-        trial = RTDMMod1(num_trials, noise=noise)
-    if task_type == 'RT_DM_Mod2': 
-        trial = RTDMMod2(num_trials, noise=noise)
-    if task_type == 'Anti_RT_DM_Mod1': 
-        trial = AntiRTDMMod1(num_trials, noise=noise)
-    if task_type == 'Anti_RT_DM_Mod2': 
-        trial = AntiRTDMMod2(num_trials, noise=noise)
-
-    if task_type == 'COMP1': 
-        trial = COMP1(num_trials, noise=noise)
-    if task_type == 'COMP2': 
-        trial = COMP2(num_trials, noise=noise)
-    if task_type == 'MultiCOMP1': 
-        trial = MultiCOMP1(num_trials, noise=noise)
-    if task_type == 'MultiCOMP2': 
-        trial = MultiCOMP2(num_trials, noise=noise)
-
-    if task_type == 'DMS': 
-        trial = DMS(num_trials, noise=noise)
-    if task_type == 'DNMS': 
-        trial = DNMS(num_trials, noise=noise)
-    if task_type == 'DMC': 
-        trial = DMC(num_trials, noise=noise)
-    if task_type == 'DNMC': 
-        trial = DNMC(num_trials, noise=noise)
+    trial = getattr(sys.modules[__name__], task_type)
 
     if num_trials is None: 
         return trial
-        
-    elif return_tensor: 
+    else: 
+        trial = trial(num_trials, noise=noise)
+    
+    if return_tensor: 
         return (torch.tensor(trial.inputs), 
                 torch.tensor(trial.targets), 
                 torch.tensor(trial.masks), 
@@ -676,16 +582,24 @@ def construct_trials(task_type, num_trials=None, noise = None, return_tensor=Fal
                 TASK_LIST.index(task_type))
 
 
+trials = construct_trials('Go', None)
 
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('task')
-    parser.add_argument('-num', default=1)
-    args = parser.parse_args()
+trials = trials(100)
 
-    _task = construct_trials(args.task)
-    trials = _task(args.num)
+trials.factory._make_cond_arr(None)
 
-    for index in range(args.num):
-        trials.plot_trial(index)
+trials.plot_trial(30)
+
+
+# if __name__ == "__main__":
+#     import argparse
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument('task')
+#     parser.add_argument('-num', default=1)
+#     args = parser.parse_args()
+
+#     _task = construct_trials(args.task)
+#     trials = _task(args.num)
+
+#     for index in range(args.num):
+#         trials.plot_trial(index)

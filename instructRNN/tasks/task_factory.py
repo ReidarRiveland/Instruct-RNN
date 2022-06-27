@@ -11,6 +11,43 @@ INPUT_DIM = 1 + STIM_DIM*2
 OUTPUT_DIM = STIM_DIM + 1
 DELTA_T = 20
 
+def max_var_dir(num_trials, mod, shuffle=True): 
+    dirs0 = np.linspace(0, 2*np.pi, num=num_trials)
+    if mod is not None: 
+        dirs1 = np.linspace(0, 2*np.pi, num=num_trials)
+    else: 
+        dirs1 = np.full_like(dirs0, fill_value=np.NaN)
+
+    if shuffle: 
+        dirs0 = np.random.permutation(dirs0)
+        dirs1 = np.random.permutation(dirs1)
+
+    dirs = np.array([dirs0, dirs1]).T
+    for i, r in enumerate(dirs): 
+        dirs[i] = np.random.permutation(r)
+
+    return dirs
+
+max_var_dir(100, None).T
+
+
+
+def max_var_contrast(num_trials, max_contrast=0.3, min_contrast=0.05, base_str=1, mod=1, shuffle=True): 
+    contrasts = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(num_trials/2)), 
+                np.linspace(min_contrast, max_contrast, num=int(num_trials/2))))
+    str0 = np.array([base_str+contrasts/2, base_str-contrasts/2]).T
+    if mod is not None: 
+        str1 = np.array([base_str+contrasts/2, base_str-contrasts/2]).T
+    else: 
+        str1 = np.full_like(str0, np.NaN)
+
+    if shuffle: 
+        str0=np.random.permutation(str0)
+        str1=np.random.permutation(str1)
+
+    strs = np.random.permutation(np.array((str0, str1)))
+    return strs
+
 def choose_pro(x): 
     return x
 
@@ -182,12 +219,11 @@ class TaskFactory():
         trial_target = self._expand_along_intervals(self.intervals, (no_resp, no_resp, no_resp, no_resp, resp))
         return trial_target
     
-
-
 class GoFactory(TaskFactory): 
     def __init__(self, num_trials,  noise, dir_chooser,
                             timing= 'full', mod=None, multi=False, 
-                            intervals= None, cond_arr=None):
+                            cond_arr=None, dir_arr=None,
+                            intervals= None,  max_var=False):
         super().__init__(num_trials, timing, noise, intervals)
         self.cond_arr = cond_arr
         self.timing = timing
@@ -195,26 +231,32 @@ class GoFactory(TaskFactory):
         self.mod = mod
         self.multi = multi
 
+        if max_var: 
+            dir_arr = max_var_dir(self.num_trials, self.mod)
+
         if self.cond_arr is None: 
-            self.cond_arr = self._make_cond_arr()
+            self.cond_arr = self._make_cond_arr(dir_arr)
 
         self.target_dirs = self._set_target_dirs()
 
-    def _make_cond_arr(self):        
+    def _make_cond_arr(self, dir_arr):        
         #mod, stim, dir_strengths, num_trials
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
-        for i in range(self.num_trials):
-            if self.multi:    
-                dir1 = np.random.uniform(0, 2*np.pi)
-                #dir1, dir2 = _draw_ortho_dirs()
-                conditions_arr[:, 0, 0, i] = (dir1, dir1+np.random.uniform(np.pi/4, 3*np.pi/4))
-                conditions_arr[:, 0, 1, i] = np.random.uniform(0.8, 1.2, size=2)
+        conditions_arr[:, 0, 1, :] = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
+    
+        if dir_arr is not None: 
+            conditions_arr[:, 0, 0, :] = dir_arr.T
+        else: 
+            for i in range(self.num_trials):
+                if self.multi:
+                    dir1 = np.random.uniform(0, 2*np.pi)
+                    conditions_arr[:, 0, 0, i] = (dir1, dir1+np.random.uniform(np.pi/4, 3*np.pi/4))
+                else:
+                    tmp_mod = np.random.choice([0, 1])
+                    direction = np.random.uniform(0, 2*np.pi)
+                    conditions_arr[tmp_mod, 0, 0, i] = direction
+                    conditions_arr[((tmp_mod+1)%2), 0, 1, i] = np.NaN
 
-            else:
-                direction = np.random.uniform(0, 2*np.pi)
-                base_strength = np.random.uniform(0.8, 1.2)    
-                tmp_mod = np.random.choice([0, 1])
-                conditions_arr[tmp_mod, 0, :, i] = [direction, base_strength]
         return conditions_arr
         
     def _set_target_dirs(self): 
