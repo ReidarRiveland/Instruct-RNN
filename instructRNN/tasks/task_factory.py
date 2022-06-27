@@ -28,10 +28,6 @@ def max_var_dir(num_trials, mod, shuffle=True):
 
     return dirs
 
-max_var_dir(100, None).T
-
-
-
 def max_var_contrast(num_trials, max_contrast=0.3, min_contrast=0.05, base_str=1, mod=1, shuffle=True): 
     contrasts = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(num_trials/2)), 
                 np.linspace(min_contrast, max_contrast, num=int(num_trials/2))))
@@ -219,6 +215,9 @@ class TaskFactory():
         trial_target = self._expand_along_intervals(self.intervals, (no_resp, no_resp, no_resp, no_resp, resp))
         return trial_target
     
+
+np.isnan(np.nan)
+
 class GoFactory(TaskFactory): 
     def __init__(self, num_trials,  noise, dir_chooser,
                             timing= 'full', mod=None, multi=False, 
@@ -242,8 +241,7 @@ class GoFactory(TaskFactory):
     def _make_cond_arr(self, dir_arr):        
         #mod, stim, dir_strengths, num_trials
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
-        conditions_arr[:, 0, 1, :] = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
-    
+
         if dir_arr is not None: 
             conditions_arr[:, 0, 0, :] = dir_arr.T
         else: 
@@ -256,6 +254,10 @@ class GoFactory(TaskFactory):
                     direction = np.random.uniform(0, 2*np.pi)
                     conditions_arr[tmp_mod, 0, 0, i] = direction
                     conditions_arr[((tmp_mod+1)%2), 0, 1, i] = np.NaN
+        
+        conditions_arr[:, 0, 1, :] = np.where(np.isnan(conditions_arr[:, 0, 0, :]), 
+                            np.full_like(conditions_arr[:, 0, 0, :], np.NaN), 
+                            np.random.uniform(0.8, 1.2, size=(2, self.num_trials)))
 
         return conditions_arr
         
