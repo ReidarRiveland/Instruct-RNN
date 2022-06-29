@@ -12,4 +12,4 @@ echo $CUDA_VISIBLE_DEVICES
 
 source ~/miniconda3/bin/activate
 conda activate instruct-rnn
-python model_checks.py 6.20models swap --mode holdout --models sbertNet_tuned 
+python model_checks.py 6.20models swap --mode trained
