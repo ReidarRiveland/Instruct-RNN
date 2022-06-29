@@ -1,3 +1,4 @@
+from importlib_metadata import requires
 import numpy as np
 import pickle
 import pathlib
@@ -19,8 +20,13 @@ def choose_pro(x):
 def choose_anti(x): 
     return (x + np.pi)%(2*np.pi)
 
+
+arr = np.array([0, 1, 2])
+isinstance(arr, np.ndarray)
+
+
 def _add_noise(array, noise):
-    if type(noise) is list: 
+    if isinstance(noise, np.ndarray): 
         noise_arr = np.empty_like(array)
         for i, sd in enumerate(noise):
             noise_arr[i, ...] = sd * np.random.normal(size=array.shape[1:])
@@ -40,16 +46,35 @@ def _permute_mod(dir_arr):
     permuted = np.array([np.random.permutation(dir_arr[:,:,idx]) for idx in range(num_trials)])
     return np.moveaxis(permuted, 0, -1)
 
-def _draw_multi_contrast(num_trials): 
+def _draw_multi_contrast(num_trials, draw_vals=[-0.25, 0.2, -0.15, -0.1, 0.1, 0.15, 0.2, 0.25]): 
     coh_arr = np.array(2, num_trials)
     for i in num_trials: 
         redraw = True
         while redraw: 
-            coh = np.random.choice([-0.25, 0.2, -0.15, -0.1, 0.1, 0.15, 0.2, 0.25], size=2, replace=False)
+            coh = np.random.choice(draw_vals, size=2, replace=False)
             if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
                 redraw = False
         coh_arr[:, i] = coh
     return coh_arr
+
+def _draw_requires_resp(num_trials): 
+    if num_trials >1: 
+        requires_response_list = list(np.random.permutation([True]*np.floor(int(num_trials/2)) + [False] * np.ceil(int(num_trials/2))))
+    else: 
+        requires_response_list = [np.random.choice([True, False])]
+    return requires_response_list
+
+def _draw_confidence_threshold(requires_resp_list, pos_thresholds, neg_thresholds): 
+    contrasts = []
+    noises = []
+    for requires_response in requires_resp_list:
+        if requires_response: 
+            noise, contrast = pos_thresholds[:, np.random.randint(0, pos_thresholds.shape[-1])]
+        else: 
+            noise, contrast = neg_thresholds[:, np.random.randint(0, neg_thresholds.shape[-1])]
+        noises.append(noise)
+        contrasts.append(contrast)
+    return np.array(noises), np.array(contrasts)
 
 def max_var_dir(num_trials, mod, multi, num_stims, shuffle=True): 
     mod_dirs = _max_var_dir(num_trials, num_stims, shuffle)
@@ -372,11 +397,11 @@ class DMFactory(TaskFactory):
         target_dirs = np.where(chosen_str, directions[1, :], directions[0, :])
         return target_dirs
 
-
 class ConDMFactory(TaskFactory): 
     def __init__(self, num_trials,  noise, str_chooser, threshold_folder,
-                    timing= 'full', mod=None, multi=False,                        
-                    intervals= None, cond_arr=None):
+                    timing= 'full', mod=None, multi=False,  
+                    dir_arr = None, coh_arr = None, noises=None,                      
+                    max_var=False, intervals= None, cond_arr=None):
         super().__init__(num_trials, timing, noise, intervals)
         self.threshold_folder = threshold_folder
         self.multi = multi
@@ -385,55 +410,49 @@ class ConDMFactory(TaskFactory):
         self.str_chooser = str_chooser
         self.mod = mod
         self.pos_thresholds, self.neg_thresholds = pickle.load(open(location+'/noise_thresholds/'+self.threshold_folder, 'rb'))
-        self.noise= []
+
+        if max_var: 
+            dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
 
         if self.cond_arr is None: 
-            self.cond_arr = self._make_cond_arr()
+            self.cond_arr = self._make_cond_arr(dir_arr, coh_arr, noises)
+            
         self.target_dirs = self._set_target_dirs()
 
-    def _make_cond_arr(self):
-        if self.num_trials >1: 
-            self.requires_response_list = list(np.random.permutation([True]*int(self.num_trials/2) + [False] * int(self.num_trials/2)))
-        else: 
-            self.requires_response_list = [np.random.choice([True, False])]
-
+    def _make_cond_arr(self, dir_arr, coh_arr, noises):
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
-        for i in range(self.num_trials):
-            self.intervals[i, :] = ((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))    
+        self.requires_response_list = _draw_requires_resp(self.num_trials)
+        
+        self.intervals = np.array([((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))]*self.num_trials)
+        dirs0 = _draw_ortho_dirs(self.num_trials)
+        noises, contrasts = _draw_confidence_threshold(self.requires_response_list, self.pos_thresholds, self.neg_thresholds)
+        self.noise = noises
 
-            requires_response = self.requires_response_list[i]
-            directions1 = _draw_ortho_dirs()
+        if dir_arr is not None: 
+            coh = coh_arr
+            dirs = dir_arr
+            base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
 
-            if requires_response: 
-                noise, contrast = self.pos_thresholds[:, np.random.randint(0, self.pos_thresholds.shape[-1])]
-            else: 
-                noise, contrast = self.neg_thresholds[:, np.random.randint(0, self.neg_thresholds.shape[-1])]
+        elif self.multi:    
+            dirs1 = dirs0
+            dirs = np.array([dirs0, dirs1])
+            mod_coh = contrasts/2
+            base_strs = np.array([1-mod_coh, 1+mod_coh])
+            coh = _draw_multi_contrast(self.num_trials, draw_vals=[-0.05, -0.1, 0.1, 0.05])
+        else:
+            nan_dirs = np.full_like(dirs0, np.NaN)
+            dirs = np.random.permutation(np.array([dirs0, nan_dirs]))
+            dirs = _permute_mod(dirs)
+            base_strs = np.full((2, self.num_trials), 1)
+            coh = np.array([1+contrasts/2, 1-contrasts/2], 
+                                    [1+contrasts/2, 1-contrasts/2])
 
-            self.noise.append(noise)
+        _strs= np.array([[base_strs[0]+coh[0], base_strs[0]-coh[0]],
+                        [base_strs[1]+coh[1], base_strs[1]-coh[1]]])
 
-            if self.multi:    
-                mod_coh = contrast/2
-                mod_base_strs = np.array([1-mod_coh, 1+mod_coh])
-                redraw = True
-                while redraw: 
-                    coh = np.random.choice([-0.05, -0.1, 0.1, 0.05], size=2, replace=False)
-                    if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
-                        redraw = False
-
-                mod_swap = np.random.choice([0,1])
-                _mod_swap = (mod_swap+1)%2
-                strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
-                                    [mod_base_strs[_mod_swap] - coh[_mod_swap], mod_base_strs[_mod_swap] + coh[_mod_swap]] ])
-
-                conditions_arr[:, :, 0, i] = np.array([directions1, directions1])
-                conditions_arr[:, :, 1, i] = strengths.T
-
-            else:
-                mod = np.random.choice([0, 1])
-                strengths = np.array([1+contrast/2, 1-contrast/2])
-                conditions_arr[mod, :, 0, i] = directions1
-                conditions_arr[mod, :, 1, i] = strengths
-
+        strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _permute_mod(_strs))
+        conditions_arr[:, :, 0, :] = dirs
+        conditions_arr[:, :, 1, :] = strs
 
         return conditions_arr
 
@@ -467,73 +486,67 @@ class COMPFactory(TaskFactory):
     def _make_cond_tar_dirs(self): 
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
         target_dirs = np.empty(self.num_trials)
-
-        if self.num_trials >1: 
-            requires_response_list = list(np.random.permutation([True]*int(self.num_trials/2) + [False] * int(self.num_trials/2)))
-        else: 
-            requires_response_list = [np.random.choice([True, False])]
-
-        for i in range(self.num_trials): 
-            requires_response = requires_response_list[i]
+        requires_response_list = _draw_requires_resp()
+        dirs0 = _draw_ortho_dirs()
 
 
-            if self.multi:        
-                directions1 = _draw_ortho_dirs()
-                directions2 = directions1
+        if self.multi:        
+            dirs0 = _draw_ortho_dirs()
+            directions2 = directions1
 
-                mod_coh = np.random.choice([0.2, 0.175, 0.15, 0.125, -0.125, -0.15, -0.175, -0.2])
+            mod_coh = np.random.choice([0.2, 0.175, 0.15, 0.125, -0.125, -0.15, -0.175, -0.2])
 
-                base_strength = np.random.uniform(0.8, 1.2)
-                mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
+            base_strength = np.random.uniform(0.8, 1.2)
+            mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
 
-                redraw = True
-                while redraw: 
-                    coh = np.random.choice([-0.25, 0.2, -0.15, -0.1, 0.1, 0.15, 0.2, 0.25], size=2, replace=False)
-                    if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
-                        redraw = False
+            redraw = True
+            while redraw: 
+                coh = np.random.choice([-0.25, 0.2, -0.15, -0.1, 0.1, 0.15, 0.2, 0.25], size=2, replace=False)
+                if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
+                    redraw = False
 
-                mod_swap = np.random.choice([0,1])
-                _mod_swap = (mod_swap+1)%2
-                tmp_strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
-                                    [mod_base_strs[_mod_swap] - coh[_mod_swap], mod_base_strs[_mod_swap] + coh[_mod_swap]] ])
+            mod_swap = np.random.choice([0,1])
+            _mod_swap = (mod_swap+1)%2
+            tmp_strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
+                                [mod_base_strs[_mod_swap] - coh[_mod_swap], mod_base_strs[_mod_swap] + coh[_mod_swap]] ])
 
-                candidate_strs = np.sum(tmp_strengths, axis=0)
+            candidate_strs = np.sum(tmp_strengths, axis=0)
 
-                positive_index = np.argmax(candidate_strs)
-                positive_strength = tmp_strengths[:, positive_index]
-                negative_strength = tmp_strengths[:, (positive_index+1)%2]
-                strs = self._set_comp_strs(positive_strength, negative_strength, requires_response, self.resp_stim)
-                directions = np.array([directions1, directions2])
-                conditions_arr[:, :, 0, i] = directions
-                conditions_arr[:, :, 1, i] = strs.T
+            positive_index = np.argmax(candidate_strs)
+            positive_strength = tmp_strengths[:, positive_index]
+            negative_strength = tmp_strengths[:, (positive_index+1)%2]
+            strs = self._set_comp_strs(positive_strength, negative_strength, requires_response, self.resp_stim)
+            directions = np.array([directions1, directions2])
+            conditions_arr[:, :, 0, i] = directions
+            conditions_arr[:, :, 1, i] = strs.T
 
-                if requires_response and self.resp_stim==1:
-                    target_dirs[i] = directions[0, 0]
-                elif requires_response and self.resp_stim==2: 
-                    target_dirs[i] = directions[0, 1]
-                else: 
-                    target_dirs[i] = None
+            if requires_response and self.resp_stim==1:
+                target_dirs[i] = directions[0, 0]
+            elif requires_response and self.resp_stim==2: 
+                target_dirs[i] = directions[0, 1]
+            else: 
+                target_dirs[i] = None
 
-            else:  
-                base_strength = np.random.uniform(0.8, 1.2)
-                coh = np.random.choice([0.1, 0.15, 0.2])
-                positive_strength = base_strength + coh
-                negative_strength = base_strength - coh
-                strs = self._set_comp_strs(positive_strength, negative_strength, requires_response, self.resp_stim)
-                mod = np.random.choice([0, 1])
-                directions = _draw_ortho_dirs()
-                conditions_arr[mod, :, 0, i] = np.array([directions])
-                conditions_arr[mod, :, 1, i] = strs
-                conditions_arr[((mod+1)%2), :, :, i] = np.NaN
+        else:  
+            base_strength = np.random.uniform(0.8, 1.2)
+            coh = np.random.choice([0.1, 0.15, 0.2])
+            positive_strength = base_strength + coh
+            negative_strength = base_strength - coh
+            strs = self._set_comp_strs(positive_strength, negative_strength, requires_response, self.resp_stim)
+            mod = np.random.choice([0, 1])
+            directions = _draw_ortho_dirs()
+            conditions_arr[mod, :, 0, i] = np.array([directions])
+            conditions_arr[mod, :, 1, i] = strs
+            conditions_arr[((mod+1)%2), :, :, i] = np.NaN
 
-                if requires_response and self.resp_stim==1:
-                    target_dirs[i] = directions[0]
-                elif requires_response and self.resp_stim==2: 
-                    target_dirs[i] = directions[1]
-                else: 
-                    target_dirs[i] = None
-        
-        return conditions_arr, target_dirs
+            if requires_response and self.resp_stim==1:
+                target_dirs[i] = directions[0]
+            elif requires_response and self.resp_stim==2: 
+                target_dirs[i] = directions[1]
+            else: 
+                target_dirs[i] = None
+    
+    return conditions_arr, target_dirs
     
     def _set_comp_strs(self, pos_str, neg_str, req_resp, resp_stim):
         if (resp_stim==1 and req_resp) or (resp_stim==2 and not req_resp): 
