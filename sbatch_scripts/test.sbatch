@@ -2,7 +2,7 @@
 #SBATCH --job-name=test
 #SBATCH --time=00:30:00
 #SBATCH --partition=shared-gpu
-#SBATCH --array=0-675
+#SBATCH --array=0-585
 #SBATCH --output=logs/test.%a.out
 #SBATCH --ntasks=1
 #SBATCH --gpus=ampere:1

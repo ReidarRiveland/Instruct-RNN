@@ -2,6 +2,8 @@ import numpy as np
 import pickle
 import pathlib
 
+from torch import permute
+
 location = str(pathlib.Path(__file__).parent.absolute())
 
 STIM_DIM = 32
@@ -10,39 +12,6 @@ TRIAL_LEN = int(120)
 INPUT_DIM = 1 + STIM_DIM*2
 OUTPUT_DIM = STIM_DIM + 1
 DELTA_T = 20
-
-def max_var_dir(num_trials, mod, shuffle=True): 
-    dirs0 = np.linspace(0, 2*np.pi, num=num_trials)
-    if mod is not None: 
-        dirs1 = np.linspace(0, 2*np.pi, num=num_trials)
-    else: 
-        dirs1 = np.full_like(dirs0, fill_value=np.NaN)
-
-    if shuffle: 
-        dirs0 = np.random.permutation(dirs0)
-        dirs1 = np.random.permutation(dirs1)
-
-    dirs = np.array([dirs0, dirs1]).T
-    for i, r in enumerate(dirs): 
-        dirs[i] = np.random.permutation(r)
-
-    return dirs
-
-def max_var_contrast(num_trials, max_contrast=0.3, min_contrast=0.05, base_str=1, mod=1, shuffle=True): 
-    contrasts = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(num_trials/2)), 
-                np.linspace(min_contrast, max_contrast, num=int(num_trials/2))))
-    str0 = np.array([base_str+contrasts/2, base_str-contrasts/2]).T
-    if mod is not None: 
-        str1 = np.array([base_str+contrasts/2, base_str-contrasts/2]).T
-    else: 
-        str1 = np.full_like(str0, np.NaN)
-
-    if shuffle: 
-        str0=np.random.permutation(str0)
-        str1=np.random.permutation(str1)
-
-    strs = np.random.permutation(np.array((str0, str1)))
-    return strs
 
 def choose_pro(x): 
     return x
@@ -60,11 +29,64 @@ def _add_noise(array, noise):
     noise_arr[:, :, 0] = 0 
     return array+noise_arr
 
-def _draw_ortho_dirs(dir1=None): 
-    if dir1 is None: 
-        dir1 = np.random.uniform(0, 2*np.pi)
-    dir2 = (dir1+np.pi)%(2*np.pi)
-    return (dir1, dir2)
+def _draw_ortho_dirs(num=1, dir0=None): 
+    if dir0 is None: 
+        dir0 = np.random.uniform(0, 2*np.pi, num)
+    dir1 = (dir0+np.pi)%(2*np.pi)
+    return np.array((dir0, dir1))
+
+def _permute_mod(dir_arr):
+    num_trials = dir_arr.shape[-1]
+    permuted = np.array([np.random.permutation(dir_arr[:,:,idx]) for idx in range(num_trials)])
+    return np.moveaxis(permuted, 0, -1)
+
+def _draw_multi_contrast(num_trials): 
+    coh_arr = np.array(2, num_trials)
+    for i in num_trials: 
+        redraw = True
+        while redraw: 
+            coh = np.random.choice([-0.25, 0.2, -0.15, -0.1, 0.1, 0.15, 0.2, 0.25], size=2, replace=False)
+            if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
+                redraw = False
+        coh_arr[:, i] = coh
+    return coh_arr
+
+def max_var_dir(num_trials, mod, multi, num_stims, shuffle=True): 
+    mod_dirs = _max_var_dir(num_trials, num_stims, shuffle)
+    if mod is not None: 
+        _mod_dirs = _max_var_dir(num_trials, num_stims, shuffle)
+    elif multi: 
+        _mod_dirs = mod_dirs
+    else: 
+        _mod_dirs = np.full_like(mod_dirs, np.NaN)
+    dirs = np.random.permutation(np.array([mod_dirs, _mod_dirs]))
+    return _permute_mod(dirs)
+
+def _max_var_dir(num_trials, num_stims, shuffle): 
+    dirs0 = np.linspace(0, 2*np.pi, num=num_trials)
+    if num_stims==1: 
+        dirs1 = np.full_like(dirs0, fill_value=np.NaN)
+    else: 
+        dirs1 = _draw_ortho_dirs(dir0=dirs0)[1,:]
+    
+    dirs = np.array([dirs0, dirs1])
+
+    if shuffle: 
+        dirs = np.random.permutation(dirs.T).T
+
+    return dirs
+
+def max_var_coh(num_trials, max_contrast=0.3, min_contrast=0.05, shuffle=True): 
+    coh = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(num_trials/2)), 
+                np.linspace(min_contrast, max_contrast, num=int(num_trials/2))))
+
+    if shuffle: 
+        coh0=np.random.permutation(coh)
+        coh1=np.random.permutation(coh)
+
+    coh = np.random.permutation(np.array((coh0, coh1)))
+    return coh
+
 
 class TaskFactory(): 
     def __init__(self, num_trials, timing, noise, intervals):
@@ -215,9 +237,6 @@ class TaskFactory():
         trial_target = self._expand_along_intervals(self.intervals, (no_resp, no_resp, no_resp, no_resp, resp))
         return trial_target
     
-
-np.isnan(np.nan)
-
 class GoFactory(TaskFactory): 
     def __init__(self, num_trials,  noise, dir_chooser,
                             timing= 'full', mod=None, multi=False, 
@@ -231,7 +250,7 @@ class GoFactory(TaskFactory):
         self.multi = multi
 
         if max_var: 
-            dir_arr = max_var_dir(self.num_trials, self.mod)
+            dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 1)
 
         if self.cond_arr is None: 
             self.cond_arr = self._make_cond_arr(dir_arr)
@@ -243,21 +262,26 @@ class GoFactory(TaskFactory):
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
 
         if dir_arr is not None: 
-            conditions_arr[:, 0, 0, :] = dir_arr.T
-        else: 
-            for i in range(self.num_trials):
-                if self.multi:
-                    dir1 = np.random.uniform(0, 2*np.pi)
-                    conditions_arr[:, 0, 0, i] = (dir1, dir1+np.random.uniform(np.pi/4, 3*np.pi/4))
-                else:
-                    tmp_mod = np.random.choice([0, 1])
-                    direction = np.random.uniform(0, 2*np.pi)
-                    conditions_arr[tmp_mod, 0, 0, i] = direction
-                    conditions_arr[((tmp_mod+1)%2), 0, 1, i] = np.NaN
+            dirs = dir_arr
+        if self.multi: 
+            dirs0 = np.random.uniform(0, 2*np.pi, self.num_trials)
+            dirs1 = dirs0+np.random.uniform(np.pi/4, 3*np.pi/4, self.num_trials)
+            _dirs = np.array([dirs0, dirs1])
+            nan_stim = np.full_like(_dirs, np.NaN)
+            dirs = np.swapaxes(np.array([_dirs, nan_stim]), 0, 1)
+        else:
+            dirs0 = np.random.uniform(0, 2*np.pi, self.num_trials)
+            nan_dirs = np.full_like(dirs0, np.NaN)
+            _dirs = np.array([dirs0, nan_dirs])
+            nan_mod = np.full_like(_dirs, np.NaN)
+            dirs = np.swapaxes(np.array([_dirs, nan_mod]), 0, 1)
+            dirs = _permute_mod(dirs)
         
-        conditions_arr[:, 0, 1, :] = np.where(np.isnan(conditions_arr[:, 0, 0, :]), 
-                            np.full_like(conditions_arr[:, 0, 0, :], np.NaN), 
-                            np.random.uniform(0.8, 1.2, size=(2, self.num_trials)))
+        strs= np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), 
+                    np.random.uniform(0.8, 1.2, size=(2, self.num_trials)))
+
+        conditions_arr[:, :, 0, :] = dirs
+        conditions_arr[:, :, 1, :] = strs
 
         return conditions_arr
         
@@ -269,72 +293,66 @@ class GoFactory(TaskFactory):
 
         return self.dir_chooser(dirs)
 
-
 class DMFactory(TaskFactory):
     def __init__(self, num_trials,  noise, str_chooser,
                         timing= 'full', mod=None, multi=False, 
+                        dir_arr = None, coh_arr = None, max_var=False,
                         intervals= None, cond_arr=None):
         super().__init__(num_trials, timing, noise, intervals)
-
-        self.multi = multi
         self.cond_arr = cond_arr
         self.timing = timing
         self.str_chooser = str_chooser
         self.mod = mod
+        self.multi = multi
+
+        if max_var: 
+            dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
+            coh_arr = max_var_coh(self.num_trials)
+
         if self.cond_arr is None: 
-            self.cond_arr = self._make_cond_arr()
+            self.cond_arr = self._make_cond_arr(dir_arr, coh_arr)
+
         self.target_dirs = self._set_target_dirs()
 
-    def _make_cond_arr(self):
+    def _make_cond_arr(self, dir_arr, coh_arr):
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
-        for i in range(self.num_trials):
-            if self.mod is not None: 
-                directions1 = _draw_ortho_dirs()
-                directions2 = _draw_ortho_dirs()
-                base_strength = np.random.uniform(0.8, 1.2, size=2)
-                coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175], size=2)
 
-                strengths0 = np.array([base_strength[0]+coh[0], base_strength[0]-coh[0]])
-                strengths1 = np.array([base_strength[1]+coh[1], base_strength[1]-coh[1]])
+        if coh_arr is not None: 
+            coh = coh_arr
+            dirs = dir_arr
+            base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
 
-                
-                conditions_arr[:, :, 0, i] = np.array([directions1, directions2])
-                conditions_arr[:, :, 1, i] = np.array([strengths0, strengths1])
+        elif self.mod is not None: 
+            dirs0 = _draw_ortho_dirs(self.num_trials)
+            dirs1 = _draw_ortho_dirs(self.num_trials)
+            dirs = np.array([dirs0, dirs1])
+            base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
+            coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175], size=(2, self.num_trials))
 
-            elif self.multi: 
-                directions1 = _draw_ortho_dirs()
-                directions2 = directions1
+        elif not self.multi: 
+            dirs0 =  _draw_ortho_dirs(self.num_trials)
+            nan_dirs = np.full_like(dirs0, np.NaN)
+            dirs = np.random.permutation(np.array([dirs0, nan_dirs]))
+            dirs = _permute_mod(dirs)
+            base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
+            coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175], size=(2, self.num_trials))
 
-                if self.multi:   
-                    mod_coh = np.random.choice([0.2, 0.175, 0.15, 0.125, -0.125, -0.15, -0.175, -0.2])
+        else: 
+            dirs0 = _draw_ortho_dirs(self.num_trials)
+            dirs1 = dirs0
+            dirs = np.array([dirs0, dirs1])
+            mod_coh = np.random.choice([0.2, 0.175, 0.15, 0.125, -0.125, -0.15, -0.175, -0.2], self.num_trials)
+            mod_base_strength = np.random.uniform(0.8, 1.2, self.num_trials)
+            base_strs = np.array([mod_base_strength+mod_coh, mod_base_strength-mod_coh]) 
+            coh = _draw_multi_contrast(self.num_trials)
 
-                    base_strength = np.random.uniform(0.8, 1.2)
-                    mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
+        _strs= np.array([[base_strs[0]+coh[0], base_strs[0]-coh[0]],
+                        [base_strs[1]+coh[1], base_strs[1]-coh[1]]])
 
-                    redraw = True
-                    while redraw: 
-                        coh = np.random.choice([-0.25, 0.2, -0.15, -0.1, 0.1, 0.15, 0.2, 0.25], size=2, replace=False)
-                        if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
-                            redraw = False
+        strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _permute_mod(_strs))
+        conditions_arr[:, :, 0, :] = dirs
+        conditions_arr[:, :, 1, :] = strs
 
-                    mod_swap = np.random.choice([0,1])
-                    _mod_swap = (mod_swap+1)%2
-                    strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
-                                        [mod_base_strs[_mod_swap] - coh[_mod_swap], mod_base_strs[_mod_swap] + coh[_mod_swap]] ])
-
-                    conditions_arr[:, :, 0, i] = np.array([directions1, directions2])
-                    conditions_arr[:, :, 1, i] = strengths
-
-            else:
-                directions = _draw_ortho_dirs()
-                mod = np.random.choice([0, 1])
-                base_strength = np.random.uniform(0.8, 1.2)
-                coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175])
-
-                strengths = np.array([base_strength+coh, base_strength-coh])
-                
-                conditions_arr[mod, :, 0, i] = np.array(directions)
-                conditions_arr[mod, :, 1, i] = strengths
         return conditions_arr
 
     def _set_target_dirs(self): 
@@ -353,6 +371,7 @@ class DMFactory(TaskFactory):
         chosen_str = self.str_chooser(strs, axis=0)
         target_dirs = np.where(chosen_str, directions[1, :], directions[0, :])
         return target_dirs
+
 
 class ConDMFactory(TaskFactory): 
     def __init__(self, num_trials,  noise, str_chooser, threshold_folder,
