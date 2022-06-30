@@ -183,9 +183,8 @@ def check_already_trained(file_name, seed, mode='training'):
         return False
 
 def check_already_tested(file_name, seed, task):
-    task_file_name = task.replace(' ', '_')
     try: 
-        pickle.load(open(file_name+'/'+ task_file_name + '_seed'+str(seed)+'_holdout_correct', 'rb'))
+        pickle.load(open(file_name+'/holdouts/'+ task+ '_seed'+str(seed)+'_correct', 'rb'))
         print('\n Model at ' + file_name + ' for seed '+str(seed)+ 'and task '+task+' aleady trained')
         return True
     except FileNotFoundError:
