@@ -1,4 +1,4 @@
-from importlib_metadata import requires
+from turtle import position
 import numpy as np
 import pickle
 import pathlib
@@ -47,8 +47,8 @@ def _permute_mod(dir_arr):
     return np.moveaxis(permuted, 0, -1)
 
 def _draw_multi_contrast(num_trials, draw_vals=[-0.25, 0.2, -0.15, -0.1, 0.1, 0.15, 0.2, 0.25]): 
-    coh_arr = np.array(2, num_trials)
-    for i in num_trials: 
+    coh_arr = np.empty((2, num_trials))
+    for i in range(num_trials): 
         redraw = True
         while redraw: 
             coh = np.random.choice(draw_vals, size=2, replace=False)
@@ -59,10 +59,10 @@ def _draw_multi_contrast(num_trials, draw_vals=[-0.25, 0.2, -0.15, -0.1, 0.1, 0.
 
 def _draw_requires_resp(num_trials): 
     if num_trials >1: 
-        requires_response_list = list(np.random.permutation([True]*np.floor(int(num_trials/2)) + [False] * np.ceil(int(num_trials/2))))
+        requires_response_list = list(np.random.permutation([True]*int(np.floor(num_trials/2)) + [False] * int(np.ceil(num_trials/2))))
     else: 
         requires_response_list = [np.random.choice([True, False])]
-    return requires_response_list
+    return np.array(requires_response_list)
 
 def _draw_confidence_threshold(requires_resp_list, pos_thresholds, neg_thresholds): 
     contrasts = []
@@ -431,7 +431,7 @@ class ConDMFactory(TaskFactory):
         if dir_arr is not None: 
             coh = coh_arr
             dirs = dir_arr
-            base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
+            base_strs = np.full((2, self.num_trials), 1)
 
         elif self.multi:    
             dirs1 = dirs0
@@ -469,6 +469,59 @@ class ConDMFactory(TaskFactory):
 
         return target_dirs
         
+num_trials = 100
+dirs0 = _draw_ortho_dirs()
+dirs1 = dirs0
+
+dirs = np.array([dirs0, dirs1])
+
+mod_coh = np.random.choice([0.2, 0.175, 0.15, 0.125, -0.125, -0.15, -0.175, -0.2], size=num_trials)
+mod_base_str = np.random.uniform(0.8, 1.2, size=num_trials)
+base_strs = np.array([mod_base_str-mod_coh, mod_base_str+mod_coh]) 
+coh = _draw_multi_contrast(num_trials)
+
+
+_strs= np.array([[base_strs[0]+coh[0], base_strs[0]-coh[0]],
+            [base_strs[1]+coh[1], base_strs[1]-coh[1]]])
+
+tmp_strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _permute_mod(_strs))
+
+tmp_strs[:,:,1]
+np.nansum(tmp_strs, axis=0)[:,1]
+positive_index = np.argmax(np.nansum(tmp_strs, axis=0), axis=0)
+
+positive_index[1]
+
+
+positive_index = np.argmax(np.nansum(tmp_strs, axis=0), axis=0)
+positive_index
+pos_str = tmp_strs[:,positive_index, np.arange(tmp_strs.shape[-1])]
+neg_str = tmp_strs[:, (positive_index+1)%2, range(tmp_strs.shape[-1])]
+
+strs = np.empty((2,2,num_trials))
+
+
+req_resp = _draw_requires_resp(100)
+resp_stim = 0
+no_resp_stim = (resp_stim+1)%2
+sorted_strs = np.array([pos_str, neg_str]).T
+sorted_strs
+
+sorted_strs[range(num_trials), req_resp.astype(int), :].shape
+
+strs[:, resp_stim, :] = sorted_strs[range(num_trials), req_resp.astype(int), :].T
+
+
+
+    def _set_comp_strs(self, pos_str, neg_str, req_resp, resp_stim):
+        if (resp_stim==1 and req_resp) or (resp_stim==2 and not req_resp): 
+            strs = np.array([pos_str, neg_str])
+        elif (resp_stim==2 and req_resp) or (resp_stim==1 and not req_resp): 
+            strs = np.array([neg_str, pos_str])
+        return strs
+
+
+
 class COMPFactory(TaskFactory):
     def __init__(self, num_trials,  noise, resp_stim,
                             timing= 'delay', mod=None, multi=False, 
@@ -491,34 +544,24 @@ class COMPFactory(TaskFactory):
 
 
         if self.multi:        
-            dirs0 = _draw_ortho_dirs()
-            directions2 = directions1
+            dirs1 = dirs0
+            dirs = np.array([dirs0, dirs1])
+            mod_coh = np.random.choice([0.2, 0.175, 0.15, 0.125, -0.125, -0.15, -0.175, -0.2], size=self.num_trials)
+            mod_base_str = np.random.uniform(0.8, 1.2, size=self.num_trials)
+            base_strs = np.array([mod_base_str-mod_coh, mod_base_str+mod_coh]) 
+            coh = _draw_multi_contrast(self.num_trials)
 
-            mod_coh = np.random.choice([0.2, 0.175, 0.15, 0.125, -0.125, -0.15, -0.175, -0.2])
 
-            base_strength = np.random.uniform(0.8, 1.2)
-            mod_base_strs = np.array([base_strength-mod_coh, base_strength+mod_coh]) 
+        _strs= np.array([[base_strs[0]+coh[0], base_strs[0]-coh[0]],
+                        [base_strs[1]+coh[1], base_strs[1]-coh[1]]])
 
-            redraw = True
-            while redraw: 
-                coh = np.random.choice([-0.25, 0.2, -0.15, -0.1, 0.1, 0.15, 0.2, 0.25], size=2, replace=False)
-                if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
-                    redraw = False
+        tmp_strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _permute_mod(_strs))
 
-            mod_swap = np.random.choice([0,1])
-            _mod_swap = (mod_swap+1)%2
-            tmp_strengths = np.array([[mod_base_strs[mod_swap] - coh[mod_swap], mod_base_strs[mod_swap]+ coh[mod_swap]],
-                                [mod_base_strs[_mod_swap] - coh[_mod_swap], mod_base_strs[_mod_swap] + coh[_mod_swap]] ])
 
-            candidate_strs = np.sum(tmp_strengths, axis=0)
-
-            positive_index = np.argmax(candidate_strs)
-            positive_strength = tmp_strengths[:, positive_index]
-            negative_strength = tmp_strengths[:, (positive_index+1)%2]
-            strs = self._set_comp_strs(positive_strength, negative_strength, requires_response, self.resp_stim)
-            directions = np.array([directions1, directions2])
-            conditions_arr[:, :, 0, i] = directions
-            conditions_arr[:, :, 1, i] = strs.T
+            positive_index = np.argmax(np.nansum(tmp_strs, axis=0), axis=1)
+            positive_strength = tmp_strs[:, positive_index]
+            negative_strength = tmp_strs[:, (positive_index+1)%2]
+            strs = self._set_comp_strs(positive_strength, negative_strength, requires_response_list, self.resp_stim)
 
             if requires_response and self.resp_stim==1:
                 target_dirs[i] = directions[0, 0]
@@ -548,6 +591,8 @@ class COMPFactory(TaskFactory):
     
     return conditions_arr, target_dirs
     
+    def _set_target_dits()
+
     def _set_comp_strs(self, pos_str, neg_str, req_resp, resp_stim):
         if (resp_stim==1 and req_resp) or (resp_stim==2 and not req_resp): 
             strs = np.array([pos_str, neg_str])
