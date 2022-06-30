@@ -520,7 +520,7 @@ class COMP1(Task):
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
-                        resp_stim = 1, 
+                        resp_stim = 0, 
                         **factory_kwargs
                         )
         self.task_type = 'COMP1'
@@ -530,7 +530,7 @@ class COMP2(Task):
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
-                        resp_stim = 2, 
+                        resp_stim = 1, 
                         **factory_kwargs
                         )
         self.task_type = 'COMP2'
@@ -540,7 +540,7 @@ class MultiCOMP1(Task):
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
-                        resp_stim = 1, multi=True, 
+                        resp_stim = 0, multi=True, 
                         **factory_kwargs
                         )
         self.task_type = 'MultiCOMP1'
@@ -550,7 +550,7 @@ class MultiCOMP2(Task):
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
-                        resp_stim = 2, multi=True,
+                        resp_stim = 1, multi=True,
                         **factory_kwargs
                         )
         self.task_type = 'MultiCOMP2'
@@ -614,14 +614,16 @@ def construct_trials(task_type, num_trials=None, noise = None, return_tensor=Fal
                 TASK_LIST.index(task_type))
 
 
-trials = construct_trials('DM', None)
+trials = construct_trials('DNMC', None)
 
-trials = trials(100, max_var=True)
+trials = trials(100, max_var=True, intervals=np.array([((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))]*100
 
-np.mean(np.isnan(trials.factory.cond_arr[0,0,0,:]))
+trials.factory.cond_arr[:,:,1,8]
+trials.factory.target_dirs[8]
+np.mean(np.isnan(trials.factory.target_dirs))
 
 
-trials.plot_trial(6)
+trials.plot_trial(2)
 
 
 # if __name__ == "__main__":

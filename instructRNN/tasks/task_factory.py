@@ -2,6 +2,7 @@ from turtle import position
 import numpy as np
 import pickle
 import pathlib
+from sympy import re
 
 from torch import permute
 
@@ -357,11 +358,9 @@ class DMFactory(TaskFactory):
         elif not self.multi: 
             dirs0 =  _draw_ortho_dirs(self.num_trials)
             nan_dirs = np.full_like(dirs0, np.NaN)
-            dirs = np.random.permutation(np.array([dirs0, nan_dirs]))
-            dirs = _permute_mod(dirs)
+            dirs = _permute_mod(np.array([dirs0, nan_dirs]))
             base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
             coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175], size=(2, self.num_trials))
-
         else: 
             dirs0 = _draw_ortho_dirs(self.num_trials)
             dirs1 = dirs0
@@ -411,6 +410,9 @@ class ConDMFactory(TaskFactory):
         self.mod = mod
         self.pos_thresholds, self.neg_thresholds = pickle.load(open(location+'/noise_thresholds/'+self.threshold_folder, 'rb'))
 
+        if intervals is None: 
+            self.intervals = np.array([((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))]*self.num_trials)
+
         if max_var: 
             dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
 
@@ -423,11 +425,9 @@ class ConDMFactory(TaskFactory):
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
         self.requires_response_list = _draw_requires_resp(self.num_trials)
         
-        self.intervals = np.array([((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))]*self.num_trials)
         dirs0 = _draw_ortho_dirs(self.num_trials)
         noises, contrasts = _draw_confidence_threshold(self.requires_response_list, self.pos_thresholds, self.neg_thresholds)
         self.noise = noises
-
         if dir_arr is not None: 
             coh = coh_arr
             dirs = dir_arr
@@ -441,8 +441,7 @@ class ConDMFactory(TaskFactory):
             coh = _draw_multi_contrast(self.num_trials, draw_vals=[-0.05, -0.1, 0.1, 0.05])
         else:
             nan_dirs = np.full_like(dirs0, np.NaN)
-            dirs = np.random.permutation(np.array([dirs0, nan_dirs]))
-            dirs = _permute_mod(dirs)
+            dirs = _permute_mod(np.array([dirs0, nan_dirs]))
             base_strs = np.full((2, self.num_trials), 1)
             coh = np.array([1+contrasts/2, 1-contrasts/2], 
                                     [1+contrasts/2, 1-contrasts/2])
@@ -468,63 +467,11 @@ class ConDMFactory(TaskFactory):
         target_dirs = np.where(self.requires_response_list, tmp_target_dirs, np.full_like(tmp_target_dirs, np.NaN))            
 
         return target_dirs
-        
-num_trials = 100
-dirs0 = _draw_ortho_dirs()
-dirs1 = dirs0
-
-dirs = np.array([dirs0, dirs1])
-
-mod_coh = np.random.choice([0.2, 0.175, 0.15, 0.125, -0.125, -0.15, -0.175, -0.2], size=num_trials)
-mod_base_str = np.random.uniform(0.8, 1.2, size=num_trials)
-base_strs = np.array([mod_base_str-mod_coh, mod_base_str+mod_coh]) 
-coh = _draw_multi_contrast(num_trials)
-
-
-_strs= np.array([[base_strs[0]+coh[0], base_strs[0]-coh[0]],
-            [base_strs[1]+coh[1], base_strs[1]-coh[1]]])
-
-tmp_strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _permute_mod(_strs))
-
-tmp_strs[:,:,1]
-np.nansum(tmp_strs, axis=0)[:,1]
-positive_index = np.argmax(np.nansum(tmp_strs, axis=0), axis=0)
-
-positive_index[1]
-
-
-positive_index = np.argmax(np.nansum(tmp_strs, axis=0), axis=0)
-positive_index
-pos_str = tmp_strs[:,positive_index, np.arange(tmp_strs.shape[-1])]
-neg_str = tmp_strs[:, (positive_index+1)%2, range(tmp_strs.shape[-1])]
-
-strs = np.empty((2,2,num_trials))
-
-
-req_resp = _draw_requires_resp(100)
-resp_stim = 0
-no_resp_stim = (resp_stim+1)%2
-sorted_strs = np.array([pos_str, neg_str]).T
-sorted_strs
-
-sorted_strs[range(num_trials), req_resp.astype(int), :].shape
-
-strs[:, resp_stim, :] = sorted_strs[range(num_trials), req_resp.astype(int), :].T
-
-
-
-    def _set_comp_strs(self, pos_str, neg_str, req_resp, resp_stim):
-        if (resp_stim==1 and req_resp) or (resp_stim==2 and not req_resp): 
-            strs = np.array([pos_str, neg_str])
-        elif (resp_stim==2 and req_resp) or (resp_stim==1 and not req_resp): 
-            strs = np.array([neg_str, pos_str])
-        return strs
-
-
 
 class COMPFactory(TaskFactory):
     def __init__(self, num_trials,  noise, resp_stim,
                             timing= 'delay', mod=None, multi=False, 
+                            dir_arr=None, coh_arr=None, max_var = None, 
                             intervals= None, cond_arr=None, target_dirs=None):
         super().__init__(num_trials, timing, noise, intervals)
         self.cond_arr = cond_arr
@@ -533,76 +480,78 @@ class COMPFactory(TaskFactory):
         self.resp_stim = resp_stim
         self.mod = mod
         self.multi = multi
-        if self.cond_arr is None and self.target_dirs is None: 
-            self.cond_arr, self.target_dirs = self._make_cond_tar_dirs()
-    
-    def _make_cond_tar_dirs(self): 
+
+        if max_var: 
+            dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
+            coh_arr = max_var_coh(self.num_trials)
+
+        if self.cond_arr is None: 
+            self.cond_arr = self._make_cond_arr(dir_arr, coh_arr)
+
+        self.target_dirs = self._set_target_dirs()
+
+    def _make_cond_arr(self, dir_arr, coh_arr): 
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
-        target_dirs = np.empty(self.num_trials)
-        requires_response_list = _draw_requires_resp()
-        dirs0 = _draw_ortho_dirs()
+        self.req_resp = _draw_requires_resp(self.num_trials)
+        dirs0 = _draw_ortho_dirs(self.num_trials)
 
-
-        if self.multi:        
+        if dir_arr is not None: 
+            coh = coh_arr
+            dirs = dir_arr
+            base_strs = np.full((2, self.num_trials), 1)
+        elif self.multi:        
             dirs1 = dirs0
             dirs = np.array([dirs0, dirs1])
+
             mod_coh = np.random.choice([0.2, 0.175, 0.15, 0.125, -0.125, -0.15, -0.175, -0.2], size=self.num_trials)
             mod_base_str = np.random.uniform(0.8, 1.2, size=self.num_trials)
             base_strs = np.array([mod_base_str-mod_coh, mod_base_str+mod_coh]) 
             coh = _draw_multi_contrast(self.num_trials)
+        else:  
+            nan_dirs = np.full_like(dirs0, np.NaN)
+            dirs = _permute_mod(np.array([dirs0, nan_dirs]))
+
+            base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
+            coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=(2, self.num_trials))
 
 
         _strs= np.array([[base_strs[0]+coh[0], base_strs[0]-coh[0]],
                         [base_strs[1]+coh[1], base_strs[1]-coh[1]]])
+        _strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _permute_mod(_strs))
+        strs = self._set_comp_strs(_strs)
 
-        tmp_strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _permute_mod(_strs))
+        conditions_arr[:, :, 0, :] = dirs
+        conditions_arr[:, :, 1, :] = strs
 
-
-            positive_index = np.argmax(np.nansum(tmp_strs, axis=0), axis=1)
-            positive_strength = tmp_strs[:, positive_index]
-            negative_strength = tmp_strs[:, (positive_index+1)%2]
-            strs = self._set_comp_strs(positive_strength, negative_strength, requires_response_list, self.resp_stim)
-
-            if requires_response and self.resp_stim==1:
-                target_dirs[i] = directions[0, 0]
-            elif requires_response and self.resp_stim==2: 
-                target_dirs[i] = directions[0, 1]
-            else: 
-                target_dirs[i] = None
-
-        else:  
-            base_strength = np.random.uniform(0.8, 1.2)
-            coh = np.random.choice([0.1, 0.15, 0.2])
-            positive_strength = base_strength + coh
-            negative_strength = base_strength - coh
-            strs = self._set_comp_strs(positive_strength, negative_strength, requires_response, self.resp_stim)
-            mod = np.random.choice([0, 1])
-            directions = _draw_ortho_dirs()
-            conditions_arr[mod, :, 0, i] = np.array([directions])
-            conditions_arr[mod, :, 1, i] = strs
-            conditions_arr[((mod+1)%2), :, :, i] = np.NaN
-
-            if requires_response and self.resp_stim==1:
-                target_dirs[i] = directions[0]
-            elif requires_response and self.resp_stim==2: 
-                target_dirs[i] = directions[1]
-            else: 
-                target_dirs[i] = None
+        return conditions_arr
     
-    return conditions_arr, target_dirs
-    
-    def _set_target_dits()
+    def _set_comp_strs(self, tmp_strs):
+        strs = np.empty((2,2,self.num_trials))
+        no_resp_stim = (self.resp_stim+1)%2
+        req_resp = self.req_resp.astype(int)
+        not_req_resp = (req_resp+1)%2
 
-    def _set_comp_strs(self, pos_str, neg_str, req_resp, resp_stim):
-        if (resp_stim==1 and req_resp) or (resp_stim==2 and not req_resp): 
-            strs = np.array([pos_str, neg_str])
-        elif (resp_stim==2 and req_resp) or (resp_stim==1 and not req_resp): 
-            strs = np.array([neg_str, pos_str])
+        positive_index = np.argmax(np.nansum(tmp_strs, axis=0), axis=0)
+        pos_str = tmp_strs[:,positive_index, np.arange(tmp_strs.shape[-1])]
+        neg_str = tmp_strs[:, (positive_index+1)%2, range(tmp_strs.shape[-1])]
+        sorted_strs = np.array([neg_str, pos_str])
+        
+        strs[:,self.resp_stim, :] = sorted_strs[req_resp,:, range(self.num_trials)].T
+        strs[:, no_resp_stim, :] = sorted_strs[not_req_resp,:, range(self.num_trials)].T
         return strs
+
+    def _set_target_dirs(self):
+        if self.multi: 
+            stim_dirs = self.cond_arr[0,self.resp_stim,0,:]
+        else: 
+            stim_dirs = np.nansum(self.cond_arr[:,self.resp_stim,0,:], axis=0)
+        target_dirs = np.where(self.req_resp, stim_dirs, np.full(self.num_trials, np.NaN))
+        return target_dirs
 
 class MatchingFactory(TaskFactory):
     def __init__(self, num_trials,  noise, matching_task, match_type,
-                            timing= 'delay', intervals= None, cond_arr=None, target_dirs = None):
+                            timing= 'delay', intervals= None, dir0=None, 
+                            max_var=False, cond_arr=None, target_dirs = None):
         super().__init__(num_trials, timing, noise, intervals)
         self.timing = timing
         self.cond_arr = cond_arr
@@ -610,46 +559,48 @@ class MatchingFactory(TaskFactory):
 
         self.matching_task = matching_task
         self.match_type = match_type
-        if self.cond_arr is None and self.target_dirs is None: 
-            self.cond_arr, self.target_dirs = self._make_cond_tar_dirs()
 
-    def _make_cond_tar_dirs(self):
+        if max_var: 
+            dir0= _max_var_dir(self.num_trials, 1, True)[0,:]
+
+        if self.cond_arr is None and self.target_dirs is None: 
+            self.cond_arr, self.target_dirs = self._make_cond_tar_dirs(dir0)
+
+    def _make_cond_tar_dirs(self, dir0):
         #mod, stim, dir_strengths, num_trials
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
         target_dirs = np.empty(self.num_trials)
         cat_ranges = np.array([[0, np.pi], [np.pi, 2*np.pi]])
+        self.req_resp = _draw_requires_resp(self.num_trials)
 
-        if self.num_trials>1: 
-            match_trial_list = list(np.random.permutation([True]*int(self.num_trials/2) + [False] * int(self.num_trials/2)))
+        if dir0 is None: 
+            dir0 = np.random.uniform(0, 2*np.pi, self.num_trials)
+
+        if self.match_type=='stim':
+            matched = dir0
+            mismatched = (dir0+np.pi+np.random.uniform(-np.pi*0.5, np.pi*0.5, self.num_trials))%(2*np.pi)
+        elif self.match_type == 'cat':
+            range_index = (dir0>np.full_like(dir0, np.pi)).astype(int)
+            opp_range_index = (range_index+1)%2
+            cat_ranges = np.array([[0, np.pi], [np.pi, 2*np.pi]])
+            matched = np.random.uniform(cat_ranges[range_index, 0], cat_ranges[range_index, 1])
+            mismatched = np.random.uniform(cat_ranges[opp_range_index, 0]+np.pi/5, cat_ranges[opp_range_index, 1]-np.pi/5)
+
+        if self.matching_task: 
+            dir1 = np.where(self.req_resp, matched, mismatched)
+            target_dirs = np.where(self.req_resp, dir0, np.full(self.num_trials, np.NaN))
         else: 
-            match_trial_list = [np.random.choice([True, False])]
+            dir1 = np.where(self.req_resp, mismatched, matched)
+            target_dirs = np.where(self.req_resp, dir1, np.full(self.num_trials, np.NaN))
 
-        for i in range(self.num_trials): 
-            match_trial = match_trial_list.pop()
+        dirs0 = np.array([dir0,dir1])
+        nan_dirs = np.full_like(dirs0, np.NaN)
+        dirs = _permute_mod(np.array([dirs0, nan_dirs]))
 
-            direction1 = np.random.uniform(0, 2*np.pi)
-            if direction1 < np.pi: 
-                range_index=0
-            else: range_index=1
-            
-            if match_trial and self.match_type=='stim': 
-                direction2 = direction1
-            elif match_trial and self.match_type=='cat': 
-                direction2 = np.random.uniform(cat_ranges[range_index, 0], cat_ranges[range_index, 1])
-            elif not match_trial and self.match_type=='cat': 
-                opp_range_index = (range_index+1)%2
-                direction2 = np.random.uniform(cat_ranges[opp_range_index, 0]+np.pi/5, cat_ranges[opp_range_index, 1]-+np.pi/5)
-            else: direction2 = (direction1+np.pi+np.random.uniform(-np.pi*0.5, np.pi*0.5))%(2*np.pi)
-            
-            mod = np.random.choice([0, 1])
-            conditions_arr[mod, :, 0, i] = np.array([direction1, direction2])
-            conditions_arr[mod, :, 1, i] = np.random.uniform(0.8, 1.2, size=2)
+        strs= np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), 
+                    np.random.uniform(0.8, 1.2, size=(2, self.num_trials)))
 
-            
-            if match_trial and self.matching_task:
-                target_dirs[i] = direction1
-            elif not match_trial and not self.matching_task:
-                target_dirs[i] = direction2
-            else: target_dirs[i] = None
+        conditions_arr[:, :, 0, :] = dirs
+        conditions_arr[:, :, 1, :] = strs
+
         return conditions_arr, target_dirs
-
