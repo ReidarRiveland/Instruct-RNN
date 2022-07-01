@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
                 else: 
                     print('no model found at ' + load_folder + ' for seed '+str(seed))
-                    print(load_folder+'/'+model_name+suffix)
+                    print(load_folder+'/'+model_name+'_'+suffix+'.pt')
                     inspection_list.append((model_name, holdout_file, seed))
 
     print(inspection_list)

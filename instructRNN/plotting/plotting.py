@@ -20,8 +20,6 @@ import torch
 from sklearn.decomposition import PCA
 import warnings
 
-
-
 Blue = '#1C3FFD'
 lightBlue='#ACF0F2'
 Green = '#45BF55'
@@ -31,11 +29,11 @@ Yellow = '#FFEE58'
 Purple = '#512DA8'
 
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None), 'simpleNetPlus': (Blue, '+'), 
-                    'comNet': (lightBlue, 'v'), 'comNetPlus': (lightBlue, None), 
-                    'clipNet': (Yellow, 'v'), 'clipNet_tuned': (Yellow, None), 
+                    'comNet': (lightBlue, 'None'), 'comNetPlus': (lightBlue, '+'), 
+                    'clipNet': (Yellow, None), 'clipNet_tuned': (Yellow, 'v'), 
                     'bowNet': (Orange, None), 
-                    'gptXLNet': (Red, None), 'gptNetXL_tuned': (Red, 'v'), 
-                    'bertNet_tuned': (Green, 'v'), 'bertNet': (Green, None), 
+                    'gptNetXL': (Red, None), 'gptNetXL_tuned': (Red, 'v'), 
+                    'bertNet': (Green, None), 'bertNet_tuned': (Green, 'v'),  
                     'sbertNet': (Purple, None), 'sbertNet_tuned': (Purple, 'v'),
                     'sbertNet_lin': (Purple, 'X'), 'sbertNet_lin_tuned': (Purple, '*')}
 
@@ -45,7 +43,6 @@ plt.rcParams['savefig.dpi'] = 300
 
 from matplotlib import rc
 plt.rcParams["font.family"] = "serif"
-
 
 def get_task_color(task, cmap=matplotlib.cm.nipy_spectral):
     norm = matplotlib.colors.Normalize(0, len(TASK_LIST))
@@ -82,7 +79,7 @@ def _plot_performance_curve(avg_perf, std_perf, plt_ax, model_name, **plt_args):
         plt_ax.fill_between(np.linspace(0, avg_perf.shape[-1], avg_perf.shape[-1]), np.min(np.array([np.ones(avg_perf.shape[-1]), avg_perf+std_perf]), axis=0), 
                                         avg_perf-std_perf, color = color, alpha= 0.08)
 
-        plt_ax.plot(avg_perf, color = color, marker=marker, markeredgewidth=0.25, **plt_args)
+        plt_ax.plot(avg_perf, color = color, marker=marker, **plt_args)
 
 def _make_model_legend(model_list): 
     Patches = []
@@ -91,12 +88,11 @@ def _make_model_legend(model_list):
         marker = MODEL_STYLE_DICT[model_name][1]
         if marker is None: marker = 's'
         Patches.append(Line2D([], [], linestyle='None', marker=marker, color=color, label=model_name, 
-                    markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8))
+                    markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=4))
     plt.legend(handles=Patches)
 
-
 def plot_avg_holdout_curve(foldername, exp_type, model_list,  perf_type='correct', plot_swaps = False, seeds=range(5), split=False):
-    if split_axes: 
+    if split: 
         fig, axn, ax2 = split_axes()
     else: 
         fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
@@ -108,23 +104,19 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list,  perf_type='correct
         axn.yaxis.set_tick_params(labelsize=10)
         axn.set_yticks(np.linspace(0, 1, 11))
 
-    plt_args={'linewidth' : 1.2, 'linestyle' : '-', 'alpha':1, 'markersize':4, 'markevery':5}
-
     for model_name in model_list:
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
         mean, std = data.avg_tasks()
-        _plot_performance_curve(mean, std, axn, model_name, linestyle='-')
+        _plot_performance_curve(mean, std, axn, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
 
-        if split_axes:
-            plt_args['linestyle'] = '-'
-            _plot_performance_curve(mean, std, ax2, model_name, linestyle='-')
+        if split:
+            _plot_performance_curve(mean, std, ax2, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
             # if plot_swaps:
             #     data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type, seeds=seeds)
             #     plt_args['linestyle'] = '--'
             #     _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, ax2, model_name, plt_args=plt_args)
-    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.7, 0.48), title='Models', title_fontsize = 'small', fontsize='x-small')
+    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
-
 
 def plot_all_curves(dataframe, axn, **plt_args):
     for j, task in enumerate(TASK_LIST):
@@ -143,7 +135,7 @@ def plot_all_holdout_curves(foldername, exp_type, model_list,  perf_type='correc
 
     for model_name in model_list:
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
-        plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=3, markevery=5)
+        plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=0.8, markevery=10)
 
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
@@ -155,10 +147,11 @@ def plot_all_training_curves(foldername, exp_type, holdout_file, model_list, per
 
     for model_name in model_list:
         data = TrainingDataFrame(foldername, exp_type, holdout_file, model_name, perf_type=perf_type, seeds=seeds)
-        plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=3, markevery=5)
+        plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=0.8, markevery=5)
 
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
+
 
 def plot_k_shot_learning(foldername, exp_type, model_list, ks=[0,1,3], seeds=range(5)): 
     barWidth = 0.1
@@ -202,9 +195,6 @@ def plot_k_shot_learning(foldername, exp_type, model_list, ks=[0,1,3], seeds=ran
     _make_model_legend(model_list)
     plt.show()
 
-plot_k_shot_learning('6.7models', 'swap', ['sbertNet'])
-
-
 
 def plot_trained_performance(all_perf_dict):
     barWidth = 0.1
@@ -213,7 +203,7 @@ def plot_trained_performance(all_perf_dict):
         values = list(np.mean(perf, axis=0))
         std = np.std(perf, axis=0)
         
-        len_values = len(task_list)
+        len_values = len(TASK_LIST)
         if i == 0:
             r = np.arange(len_values)
         else:
@@ -236,7 +226,7 @@ def plot_trained_performance(all_perf_dict):
     plt.xlabel('Task Type', fontweight='bold')
     plt.ylabel('Percentage Correct')
     r = np.arange(len_values)
-    plt.xticks([r + barWidth+0.25 for r in range(len_values)], task_list, fontsize='xx-small', fontweight='bold')
+    plt.xticks([r + barWidth+0.25 for r in range(len_values)], TASK_LIST, fontsize='xx-small', fontweight='bold')
     plt.tight_layout()
     Patches = [(Line2D([0], [0], linestyle='None', marker=MODEL_STYLE_DICT[model_name][1], color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
                 markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(all_perf_dict.keys()) if 'bert' in model_name or 'gpt' in model_name]

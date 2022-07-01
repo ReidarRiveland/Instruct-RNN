@@ -145,6 +145,7 @@ def get_zero_shot_perf(model):
             perf = task_eval(model, task, 256) 
             perf_array[TASK_LIST.index(task)] = perf
     return perf_array
+
 sbertNet.to(torch.device(0))
 perf = get_zero_shot_perf(sbertNet)
 perf

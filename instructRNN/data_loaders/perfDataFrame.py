@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import warnings
 
-from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT
+from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT, ALIGNED_DICT
 
 @dataclass(frozen=True)
 class HoldoutDataFrame(): 
@@ -13,6 +13,9 @@ class HoldoutDataFrame():
     perf_type: str = 'correct'
     mode: str = ''
     seeds: range = range(5)
+
+    verbose: bool = True
+
 
     def __post_init__(self):
         self.load_data()
@@ -52,6 +55,9 @@ class HoldoutDataFrame():
     def load_data(self): 
         if self.exp_type == 'swap': 
             training_sets = SWAPS_DICT
+        elif self.exp_type == 'aligned': 
+            training_sets = ALIGNED_DICT
+
         data = np.full((5, len(TASK_LIST), 100), np.nan) #seeds, task, num_batches        
         for i in self.seeds:
             seed_name = 'seed' + str(i)
@@ -62,7 +68,8 @@ class HoldoutDataFrame():
                     try:
                         data[i, TASK_LIST.index(task), :] = pickle.load(open(load_path+'_' + self.perf_type, 'rb'))
                     except FileNotFoundError: 
-                        print('No holdout data for '+ load_path)
+                        if self.verbose:
+                            print('No holdout data for '+ load_path)
         super().__setattr__('data', data)
 
 @dataclass(frozen=True)
@@ -73,6 +80,8 @@ class TrainingDataFrame():
     model_name: str
     perf_type: str = 'correct'
     seeds: range = range(5)
+    verbose: bool = True
+
 
     def __post_init__(self):
         self.load_data()
@@ -95,14 +104,16 @@ class TrainingDataFrame():
             try:
                 data_dict = pickle.load(open(load_path+'_training_'+self.perf_type, 'rb'))
             except FileNotFoundError: 
-                print('No folder for '+ load_path)
+                if self.verbose:
+                    print('No folder for '+ load_path)
                 
             for k, task in enumerate(TASK_LIST): 
                 try:
                     num_examples = len(data_dict[task])
                     data[i, k,:num_examples] = data_dict[task]
                 except KeyError: 
-                    print('No training data for '+ self.model_name + ' '+seed_name+' '+task)
+                    if self.verbose: 
+                        print('No training data for '+ self.model_name + ' '+seed_name+' '+task)
         super().__setattr__('data', data)
 
 
