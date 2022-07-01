@@ -582,14 +582,6 @@ def construct_trials(task_type, num_trials=None, noise = None, return_tensor=Fal
                 TASK_LIST.index(task_type))
 
 
-trials = construct_trials('Go', None)
-
-trials = trials(100)
-
-trials.factory._make_cond_arr(None)
-
-trials.plot_trial(30)
-
 
 # if __name__ == "__main__":
 #     import argparse

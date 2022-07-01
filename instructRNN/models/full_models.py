@@ -3,15 +3,14 @@ from instructRNN.models.sensorimotor_models import *
 
 all_models = ['simpleNet', 'simpleNetPlus',
             'comNet', 'comNetPlus',
-            'sbertNet', 'sbertNet_lin',
-            'clipNet','bertNet',
-            'bowNet',
-            'sbertNet_tuned', 
-            'sbertNet_lin_tuned',
-            'clipNet_tuned', 
-            'bertNet_tuned',
-            'gptNetXL', 'gptNetXL_tuned'
+            'gptNetXL', 'gptNetXL_tuned',
+            'bertNet', 'bertNet_tuned',
+            'sbertNet', 'sbertNet_tuned', 
+            'sbertNet_lin', 'sbertNet_lin_tuned',
+            'clipNet',
+            'bowNet', 'clipNet_tuned', 
             ]
+            
 small_models = ['simpleNet', 'simpleNetPlus',
             'comNet', 'comNetPlus',
             'sbertNet', 'sbertNet_lin',

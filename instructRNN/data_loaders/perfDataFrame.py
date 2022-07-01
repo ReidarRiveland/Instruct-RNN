@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import warnings
 
-from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT
+from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT, ALIGNED_DICT
 
 @dataclass(frozen=True)
 class HoldoutDataFrame(): 
@@ -13,6 +13,8 @@ class HoldoutDataFrame():
     perf_type: str = 'correct'
     mode: str = ''
     seeds: range = range(5)
+    tasks: list = TASK_LIST
+
     verbose: bool = True
 
 
@@ -54,7 +56,10 @@ class HoldoutDataFrame():
     def load_data(self): 
         if self.exp_type == 'swap': 
             training_sets = SWAPS_DICT
-        data = np.full((5, len(TASK_LIST), 100), np.nan) #seeds, task, num_batches        
+        elif self.exp_type == 'aligned': 
+            training_sets = ALIGNED_DICT
+
+        data = np.full((5, len(self.tasks), 100), np.nan) #seeds, task, num_batches        
         for i in self.seeds:
             seed_name = 'seed' + str(i)
             for label, tasks in training_sets.items():
@@ -62,7 +67,7 @@ class HoldoutDataFrame():
                     load_path = self.file_path+'/'+self.exp_type+'_holdouts/'+label+'/'+self.model_name+'/holdouts/'\
                                     +self.mode+task+'_'+seed_name
                     try:
-                        data[i, TASK_LIST.index(task), :] = pickle.load(open(load_path+'_' + self.perf_type, 'rb'))
+                        data[i, self.tasks.index(task), :] = pickle.load(open(load_path+'_' + self.perf_type, 'rb'))
                     except FileNotFoundError: 
                         if self.verbose:
                             print('No holdout data for '+ load_path)
