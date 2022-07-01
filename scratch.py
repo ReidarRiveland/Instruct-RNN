@@ -120,7 +120,6 @@ from instructRNN.data_loaders.dataset import TaskDataSet
 from instructRNN.tasks.task_factory import TaskFactory
 from instructRNN.models.full_models import *
 from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
-from instructRNN.plotting.plotting import plot_model_response
 from instructRNN.tasks.tasks import SWAP_LIST, SWAPS_DICT, TASK_LIST 
 from instructRNN.instructions.instruct_utils import get_instructions, train_instruct_dict
 from instructRNN.tasks.task_criteria import isCorrect
@@ -129,25 +128,8 @@ import torch
 
 
 EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = CLIPNet_tuned(LM_out_dim=64, rnn_hidden_dim=256)
+sbertNet = SBERTNet_tuned(LM_out_dim=64, rnn_hidden_dim=256)
 #sbertNet = SimpleNet(rnn_hidden_dim=256)
-
-holdouts_file = 'Multitask'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
-
-EXP_FILE = '6.7models/swap_holdouts'
-comNet = ComNetPlus()
-#sbertNet = SimpleNet(rnn_hidden_dim=256)
-
-holdouts_file = 'swap0'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
-
-
-for task in SWAPS_DICT[holdouts_file]:
-    print(task)
-    perf = task_eval(sbertNet, task, 256)
-    print((task, perf))
-
 
 def get_zero_shot_perf(model): 
     perf_array = np.empty(len(TASK_LIST))
@@ -163,7 +145,7 @@ def get_zero_shot_perf(model):
             perf = task_eval(model, task, 256) 
             perf_array[TASK_LIST.index(task)] = perf
     return perf_array
-
+sbertNet.to(torch.device(0))
 perf = get_zero_shot_perf(sbertNet)
 perf
 list(zip(TASK_LIST, perf))

@@ -1,10 +1,6 @@
-from turtle import position
 import numpy as np
 import pickle
 import pathlib
-from sympy import re
-
-from torch import permute
 
 location = str(pathlib.Path(__file__).parent.absolute())
 
@@ -20,11 +16,6 @@ def choose_pro(x):
 
 def choose_anti(x): 
     return (x + np.pi)%(2*np.pi)
-
-
-arr = np.array([0, 1, 2])
-isinstance(arr, np.ndarray)
-
 
 def _add_noise(array, noise):
     if isinstance(noise, np.ndarray): 
@@ -77,6 +68,9 @@ def _draw_confidence_threshold(requires_resp_list, pos_thresholds, neg_threshold
         contrasts.append(contrast)
     return np.array(noises), np.array(contrasts)
 
+
+
+
 def max_var_dir(num_trials, mod, multi, num_stims, shuffle=True): 
     mod_dirs = _max_var_dir(num_trials, num_stims, shuffle)
     if mod is not None: 
@@ -126,14 +120,14 @@ class TaskFactory():
             self.intervals = self.make_intervals()
                 
     def make_intervals(self): 
-        intervals = np.empty((self.num_trials, 5), dtype=tuple)
+        intervals = np.empty((5,2, self.num_trials), dtype=int)
         for i in range(self.num_trials):
             T_go = (int(TRIAL_LEN - np.floor(np.random.uniform(300, 400)/DELTA_T)), TRIAL_LEN)
             T_stim2 = (int(T_go[0]-np.floor(np.random.uniform(500, 800)/DELTA_T)), T_go[0])
             T_delay = (int(T_stim2[0]-np.floor(np.random.uniform(200, 300)/DELTA_T)), T_stim2[0])
             T_stim1 = (int(T_delay[0]-np.floor(np.random.uniform(500, 800)/DELTA_T)), T_delay[0])
             T_fix = (0, T_stim1[0])
-            intervals[i] = (T_fix, T_stim1, T_delay, T_stim2, T_go)
+            intervals[:,:,i] = np.array([T_fix, T_stim1, T_delay, T_stim2, T_go])
         return intervals
 
     def _expand_along_intervals(self, intervals: np.ndarray, activity_vecs: np.ndarray) -> np.ndarray:
@@ -147,18 +141,17 @@ class TaskFactory():
             batch_array[num_trials, TRIAL_LEN, activity_dim]: ndarray with activity vectors expanded across time intervals 
                 for a given number of trials
         '''
-        num_trials = intervals.shape[0]
+        
         activity_fills = np.swapaxes(activity_vecs, 1, 2)
-        intervals = np.expand_dims(intervals.T, axis= 1)
-        zipped_fill = np.reshape(np.concatenate((activity_fills, intervals), axis = 1), (-1, num_trials))
+        zipped_fill = np.concatenate((activity_fills, intervals), axis = 1).reshape(-1, self.num_trials)
 
-        def _filler(zipped_filler): 
-            filler_array = zipped_filler.reshape(5, -1)
-            trial_array = np.empty((filler_array.shape[1]-1, TRIAL_LEN))
+        def _filler(to_fill): 
+            to_fill = to_fill.reshape(5, -1)
+            filler_array = to_fill[:, :-2]
+            interval_array = to_fill[:, -2:]
+            trial_array = np.empty((filler_array.shape[1], TRIAL_LEN))
             for i in range(filler_array.shape[0]): 
-                start, stop, filler_vec = filler_array[i, -1][0], filler_array[i, -1][1], filler_array[i, :-1]
-                if start == stop:
-                    continue
+                start, stop, filler_vec = int(interval_array[i][0]), int(interval_array[i][1]), filler_array[i, :]
                 trial_array[:, start:stop] = np.repeat(np.expand_dims(filler_vec, axis=1), stop-start, axis=1)
             return trial_array
 
@@ -228,20 +221,20 @@ class TaskFactory():
         Returns: 
             ndarray[num_trials, TRIAL_LEN, OUTPUT_DIM]: ndarray of weights for loss function
         '''
-        def __make_loss_mask__(intervals): 
+        pre_go_t = self.intervals[-1, 0, :]
+        def __make_loss_mask__(pre_go_t): 
             ones = np.ones((1, OUTPUT_DIM))
             zeros = np.zeros((1, OUTPUT_DIM))
             go_weights = np.full((1, OUTPUT_DIM), 5)
             go_weights[:,0] = 10
 
-            pre_go = intervals[-1][0]
             zero_per = int(np.floor(100/DELTA_T))
 
-            pre_go_mask = ones.repeat(pre_go, axis = 0)
+            pre_go_mask = ones.repeat(pre_go_t, axis = 0)
             zero_mask = zeros.repeat(zero_per, axis=0)
-            go_mask = go_weights.repeat((TRIAL_LEN-(pre_go+zero_per)), axis = 0)
+            go_mask = go_weights.repeat((TRIAL_LEN-(pre_go_t+zero_per)), axis = 0)
             return np.concatenate((pre_go_mask, zero_mask, go_mask), 0)
-        return np.array(list(map(__make_loss_mask__, self.intervals)))
+        return np.array(list(map(__make_loss_mask__, pre_go_t)))
         
 
     def make_trial_targets(self) -> np.ndarray: 
@@ -396,6 +389,7 @@ class DMFactory(TaskFactory):
         target_dirs = np.where(chosen_str, directions[1, :], directions[0, :])
         return target_dirs
 
+
 class ConDMFactory(TaskFactory): 
     def __init__(self, num_trials,  noise, str_chooser, threshold_folder,
                     timing= 'full', mod=None, multi=False,  
@@ -411,8 +405,8 @@ class ConDMFactory(TaskFactory):
         self.pos_thresholds, self.neg_thresholds = pickle.load(open(location+'/noise_thresholds/'+self.threshold_folder, 'rb'))
 
         if intervals is None: 
-            self.intervals = np.array([((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))]*self.num_trials)
-
+            _intervals = np.array([(0, 20), (20, 50), (50, 70), (70, 100), (100, 120)])
+            intervals = _intervals[:,:,None].repeat(self.num_trials, -1)
         if max_var: 
             dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
 
@@ -443,9 +437,8 @@ class ConDMFactory(TaskFactory):
             nan_dirs = np.full_like(dirs0, np.NaN)
             dirs = _permute_mod(np.array([dirs0, nan_dirs]))
             base_strs = np.full((2, self.num_trials), 1)
-            coh = np.array([1+contrasts/2, 1-contrasts/2], 
-                                    [1+contrasts/2, 1-contrasts/2])
-
+            coh = np.array([1+contrasts/2, 1-contrasts/2])
+            
         _strs= np.array([[base_strs[0]+coh[0], base_strs[0]-coh[0]],
                         [base_strs[1]+coh[1], base_strs[1]-coh[1]]])
 

@@ -2,7 +2,7 @@ import matplotlib
 from instructRNN.analysis.model_analysis import get_hid_var_resp, get_instruct_reps
 from instructRNN.tasks.tasks import TASK_LIST
 from instructRNN.data_loaders.perfDataFrame import HoldoutDataFrame, TrainingDataFrame
-from tasks.task_criteria import isCorrect
+from instructRNN.tasks.task_criteria import isCorrect
 
 from instructRNN.instructions.instruct_utils import train_instruct_dict, test_instruct_dict
 from instructRNN.tasks.task_factory import STIM_DIM

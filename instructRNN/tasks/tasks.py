@@ -116,490 +116,548 @@ class Go(Task):
 
 class AntiGo(Task): 
     comp_ref_tasks = ('Anti_RT_Go', 'RT_Go', 'Go')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
-                        dir_chooser = task_factory.choose_anti,
-                        **factory_kwargs
+                        dir_chooser = task_factory.choose_anti
                         )
         self.task_type = 'Anti_Go'
 
 
 class RTGo(Task):
     comp_ref_tasks = ('Go', 'Anti_Go', 'Anti_RT_Go')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         timing = 'RT',
-                        dir_chooser = task_factory.choose_pro,
-                        **factory_kwargs
+                        dir_chooser = task_factory.choose_pro
                         )
         self.task_type = 'RT_Go'
 
 class AntiRTGo(Task):
     comp_ref_tasks = ('Anti_Go', 'Go', 'RT_Go')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         timing = 'RT',
-                        dir_chooser = task_factory.choose_anti,
-                        **factory_kwargs
+                        dir_chooser = task_factory.choose_anti
                         )
         self.task_type = 'Anti_RT_Go'
 
 
 class DelayGo(Task): 
     comp_ref_tasks = ('Go', 'Anti_Go', 'Anti_DelayGo')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         timing='delay', 
-                        dir_chooser = task_factory.choose_pro,
-                        **factory_kwargs
+                        dir_chooser = task_factory.choose_pro
                         )
         self.task_type = 'DelayGo'
 
 class AntiDelayGo(Task): 
     comp_ref_tasks = ('Anti_Go', 'Go', 'DelayGo')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         timing='delay', 
-                        dir_chooser = task_factory.choose_anti,
-                        **factory_kwargs
+                        dir_chooser = task_factory.choose_anti
                         )
         self.task_type = 'Anti_DelayGo'
 
 class DelayGoMod1(Task): 
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         timing='delay', 
                         mod=0,
                         multi=True,
-                        dir_chooser = task_factory.choose_pro,
-                        **factory_kwargs
+                        dir_chooser = task_factory.choose_pro
                         )
         self.task_type = 'DelayGo_Mod1'
 
 class DelayGoMod2(Task): 
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         timing='delay', 
                         mod=1,
                         multi=True,
-                        dir_chooser = task_factory.choose_pro,
-                        **factory_kwargs
+                        dir_chooser = task_factory.choose_pro
                         )
         self.task_type = 'DelayGo_Mod2'
 
 
 class AntiDelayGoMod1(Task): 
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         timing='delay', 
                         mod=0,
                         multi=True,
-                        dir_chooser = task_factory.choose_anti,
-                        **factory_kwargs
+                        dir_chooser = task_factory.choose_anti
                         )
         self.task_type = 'Anti_DelayGo_Mod1'
 
 class AntiDelayGoMod2(Task): 
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         timing='delay', 
                         mod=1,
                         multi=True,
-                        dir_chooser = task_factory.choose_anti,
-                        **factory_kwargs
+                        dir_chooser = task_factory.choose_anti
                         )
         self.task_type = 'Anti_DelayGo_Mod2'
 
 class GoMod1(Task): 
     comp_ref_tasks = ('Go_Mod2', 'Anti_Go_Mod2', 'Anti_Go_Mod1')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         mod = 0, 
                         dir_chooser = task_factory.choose_pro, 
-                        multi=True,
-                        **factory_kwargs
+                        multi=True
                         )
         self.task_type = 'Go_Mod1'
 
 class GoMod2(Task): 
     comp_ref_tasks = ('Go_Mod1', 'Anti_Go_Mod1', 'Anti_Go_Mod2')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         mod = 1, 
                         dir_chooser = task_factory.choose_pro,
-                        multi=True,
-                        **factory_kwargs
+                        multi=True
                         )
         self.task_type = 'Go_Mod2'
 
 class AntiGoMod1(Task): 
     comp_ref_tasks = ('Anti_Go_Mod2', 'Go_Mod2', 'Go_Mod1')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         mod = 0, 
                         dir_chooser = task_factory.choose_anti, 
-                        multi=True,
-                        **factory_kwargs
+                        multi=True
                         )
         self.task_type = 'Anti_Go_Mod1'
 
 class AntiGoMod2(Task): 
     comp_ref_tasks = ('Anti_Go_Mod1', 'Go_Mod1', 'Go_Mod2')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         mod = 1, 
                         dir_chooser = task_factory.choose_anti, 
-                        multi=True,
-                        **factory_kwargs
+                        multi=True
                         )
         self.task_type = 'Anti_Go_Mod2'
 
 class DM(Task):
     comp_ref_tasks = ('MultiDM', 'Anti_MultiDM', 'Anti_DM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
-                        **factory_kwargs
                         )
         self.task_type = 'DM'
 
 class AntiDM(Task):
     comp_ref_tasks = ('Anti_MultiDM', 'MultiDM', 'DM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
-                        **factory_kwargs
                         )
         self.task_type = 'Anti_DM'
 
 class MultiDM(Task):
     comp_ref_tasks = ('DM', 'Anti_DM', 'Anti_MultiDM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
-                        multi=True,
-                        **factory_kwargs
+                        multi=True
                         )
         self.task_type = 'MultiDM'
 
 class AntiMultiDM(Task):
     comp_ref_tasks = ('Anti_DM', 'DM', 'MultiDM')
-    def __init__(self, num_trials, noise=None,**factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
-                        multi=True,
-                        **factory_kwargs
+                        multi=True
                         )
         self.task_type = 'Anti_MultiDM'
 
 class ConDM(Task):
     comp_ref_tasks = ('ConMultiDM', 'Anti_ConMultiDM', 'Anti_ConDM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs):
+    def __init__(self, num_trials, noise=None):
         noise = np.random.uniform(0.1, 0.4)
         super().__init__(num_trials, noise,
                         task_factory.ConDMFactory, 
                         str_chooser = np.argmax,
-                        threshold_folder = 'dm_noise_thresholds',
-                        **factory_kwargs
+                        threshold_folder = 'dm_noise_thresholds'
                         )
         self.task_type = 'ConDM'
 
 class ConAntiDM(Task):
     comp_ref_tasks = ('Anti_ConMultiDM', 'ConMultiDM', 'ConDM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         noise = np.random.uniform(0.1, 0.4)
 
         super().__init__(num_trials, noise,
                         task_factory.ConDMFactory, 
                         str_chooser = np.argmin,
-                        threshold_folder = 'anti_dm_noise_thresholds',
-                        **factory_kwargs
+                        threshold_folder = 'anti_dm_noise_thresholds'
                         )
         self.task_type = 'Anti_ConDM'
 
 class ConMultiDM(Task):
     comp_ref_tasks = ('ConDM', 'Anti_ConDM', 'Anti_ConMultiDM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.ConDMFactory, 
                         str_chooser = np.argmax,
                         multi=True,
-                        threshold_folder = 'multi_dm_noise_thresholds',
-                        **factory_kwargs
+                        threshold_folder = 'multi_dm_noise_thresholds'
                         )
         self.task_type = 'ConMultiDM'
 
 class ConAntiMultiDM(Task):
     comp_ref_tasks = ( 'Anti_ConDM', 'ConDM', 'ConMultiDM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         noise = np.random.uniform(0.01, 0.4) 
         super().__init__(num_trials, noise,
                         task_factory.ConDMFactory, 
                         str_chooser = np.argmin,
                         multi=True,
-                        threshold_folder = 'anti_multi_dm_noise_thresholds', 
-                        **factory_kwargs
+                        threshold_folder = 'anti_multi_dm_noise_thresholds'
                         )
         self.task_type = 'Anti_ConMultiDM'
 
 class RTDM(Task):
     comp_ref_tasks = ('RT_Go', 'Go', 'DM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
-                        timing = 'RT',
-                        **factory_kwargs
+                        timing = 'RT'
                         )
         self.task_type = 'RT_DM'
 
 class AntiRTDM(Task):
     comp_ref_tasks = ('RT_Go', 'Go', 'Anti_DM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
-                        timing = 'RT',
-                        **factory_kwargs
+                        timing = 'RT'
                         )
         self.task_type = 'Anti_RT_DM'
 
 class DelayDM(Task):
     comp_ref_tasks = ('DelayGo', 'Go', 'DM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
-                        timing='delay',
-                        **factory_kwargs
+                        timing='delay'
                         )
         self.task_type = 'DelayDM'
 
 class DelayAntiDM(Task):
     comp_ref_tasks = ('DelayGo', 'Go', 'Anti_DM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
-                        timing='delay', 
-                        **factory_kwargs
+                        timing='delay'
                         )
         self.task_type = 'Anti_DelayDM'
 
 class DelayMultiDM(Task):
     comp_ref_tasks = ('DelayGo', 'Go', 'MultiDM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
                         timing='delay',
-                        multi=True, 
-                        **factory_kwargs
+                        multi=True
                         )
         self.task_type = 'DelayMultiDM'
 
 class DelayAntiMultiDM(Task):
     comp_ref_tasks = ('DelayGo', 'Go', 'Anti_MultiDM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
                         timing='delay',
-                        multi=True, 
-                        **factory_kwargs
+                        multi=True
                         )
         self.task_type = 'Anti_DelayMultiDM'
 
 class DMMod1(Task):
     comp_ref_tasks = ('DM_Mod2', 'Anti_DM_Mod2', 'Anti_DM_Mod1')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
-                        mod=0, multi=True, 
-                        **factory_kwargs
+                        mod=0, 
+                        multi=True
                         )
         self.task_type = 'DM_Mod1'
 
 class DMMod2(Task):
     comp_ref_tasks = ('DM_Mod1', 'Anti_DM_Mod1', 'Anti_DM_Mod2')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
-                        mod=1, multi=True, 
-                        **factory_kwargs
+                        mod=1, 
+                        multi=True
                         )
         self.task_type = 'DM_Mod2'
         
 class AntiDMMod1(Task):
     comp_ref_tasks = ('Anti_DM_Mod2', 'DM_Mod2', 'DM_Mod1')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
-                        mod=0, multi=True, 
-                        **factory_kwargs
+                        mod=0, 
+                        multi=True
                         )
         self.task_type = 'Anti_DM_Mod1'
 
 class AntiDMMod2(Task):
     comp_ref_tasks = ('Anti_DM_Mod1', 'DM_Mod1', 'DM_Mod2')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
-                        mod=1, multi=True, 
-                        **factory_kwargs
+                        mod=1,
+                        multi=True
                         )
         self.task_type = 'Anti_DM_Mod2'
 
 class RTDMMod1(Task):
-    def __init__(self, num_trials, noise=None,**factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
                         timing='RT',
-                        mod=0, multi=True, 
-                        **factory_kwargs
+                        mod=0,
+                        multi=True
                         )
         self.task_type = 'RT_DM_Mod1'
 
 class RTDMMod2(Task):
-    def __init__(self, num_trials, noise=None,**factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
                         timing='RT',
-                        mod=1, multi=True, 
-                        **factory_kwargs
+                        mod=1,
+                        multi=True
                         )
         self.task_type = 'RT_DM_Mod2'
 
 class AntiRTDMMod1(Task):
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
                         timing='RT',
-                        mod=0, multi=True, 
-                        **factory_kwargs
+                        mod=0,
+                        multi=True
                         )
         self.task_type = 'Anti_RT_DM_Mod1'
 
 class AntiRTDMMod2(Task):
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
                         timing='RT',
-                        mod=1, multi=True,
-                        **factory_kwargs
+                        mod=1,
+                        multi=True
                         )
         self.task_type = 'Anti_RT_DM_Mod2'
 
 class COMP1(Task): 
     comp_ref_tasks = ('MultiCOMP1', 'MultiCOMP2', 'COMP2')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
-                        resp_stim = 0, 
-                        **factory_kwargs
+                        resp_stim = 0
                         )
         self.task_type = 'COMP1'
 
 class COMP2(Task): 
     comp_ref_tasks = ('MultiCOMP2', 'MultiCOMP1', 'COMP1')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
-                        resp_stim = 1, 
-                        **factory_kwargs
+                        resp_stim = 1
                         )
         self.task_type = 'COMP2'
 
 class MultiCOMP1(Task): 
     comp_ref_tasks = ('COMP1', 'COMP2', 'MultiCOMP2')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
-                        resp_stim = 0, multi=True, 
-                        **factory_kwargs
+                        resp_stim = 0, 
+                        multi=True
                         )
         self.task_type = 'MultiCOMP1'
 
 class MultiCOMP2(Task): 
     comp_ref_tasks = ('COMP2', 'COMP1', 'MultiCOMP1')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+    def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
-                        resp_stim = 1, multi=True,
-                        **factory_kwargs
+                        resp_stim = 1,
+                        multi=True
                         )
         self.task_type = 'MultiCOMP2'
 
 class DMS(Task):
     comp_ref_tasks = ('DMC', 'DNMC', 'DNMS')
-    def __init__(self, num_trials, noise=None, **factory_kwargs):
+    def __init__(self, num_trials, noise=None):
         super().__init__(num_trials, noise,
                         task_factory.MatchingFactory,                        
-                        matching_task = True, match_type = 'stim',
-                        **factory_kwargs)
+                        matching_task = True, match_type = 'stim')
         self.task_type = 'DMS'
 
 class DNMS(Task):
     comp_ref_tasks = ('DNMC', 'DMC', 'DMS')
-    def __init__(self, num_trials, noise=None, **factory_kwargs):
+    def __init__(self, num_trials, noise=None):
         super().__init__(num_trials, noise,
                         task_factory.MatchingFactory,                        
-                        matching_task = False, match_type = 'stim', 
-                        **factory_kwargs)
+                        matching_task = False, match_type = 'stim')
         self.task_type = 'DNMS'
 
 class DMC(Task):
     comp_ref_tasks = ('DMS', 'DNMS', 'DNMC')
-    def __init__(self, num_trials, noise=None, **factory_kwargs):
+    def __init__(self, num_trials, noise=None):
         super().__init__(num_trials, noise,
                         task_factory.MatchingFactory,                        
-                        matching_task = True, match_type = 'cat',
-                        **factory_kwargs)
+                        matching_task = True, match_type = 'cat')
         self.task_type = 'DMC'
 
 class DNMC(Task):
     comp_ref_tasks = ('DNMS', 'DMS', 'DMC')
-    def __init__(self, num_trials, noise=None, **factory_kwargs):
+    def __init__(self, num_trials, noise=None):
         super().__init__(num_trials, noise,
                         task_factory.MatchingFactory,                        
-                        matching_task = False, match_type = 'cat', 
-                        **factory_kwargs)
+                        matching_task = False, match_type = 'cat')
         self.task_type = 'DNMC'
- 
+
+
 def construct_trials(task_type, num_trials=None, noise = None, return_tensor=False):
     assert task_type in TASK_LIST, "entered invalid task type"
-    trial = getattr(sys.modules[__name__], task_type)
-
+    if task_type == 'Go':
+        trial = Go
+    if task_type == 'RT_Go':
+        trial = RTGo
+    if task_type == 'Anti_Go':
+        trial = AntiGo
+    if task_type == 'Anti_RT_Go':
+        trial = AntiRTGo
+    if task_type == 'DelayGo': 
+        trial = DelayGo
+    if task_type == 'Anti_DelayGo': 
+        trial = AntiDelayGo
+    if task_type == 'DelayGo_Mod1':
+        trial = DelayGoMod1
+    if task_type == 'DelayGo_Mod2':
+        trial = DelayGoMod2
+    if task_type == 'Anti_DelayGo_Mod1':
+        trial = AntiDelayGoMod1
+    if task_type == 'Anti_DelayGo_Mod2':
+        trial = AntiDelayGoMod2
+    if task_type == 'Go_Mod1':
+        trial = GoMod1
+    if task_type == 'Go_Mod2':
+        trial = GoMod2
+    if task_type == 'Anti_Go_Mod1':
+        trial = AntiGoMod1
+    if task_type == 'Anti_Go_Mod2':
+        trial = AntiGoMod2
+    if task_type == 'DM':
+        trial = DM
+    if task_type == 'Anti_DM': 
+        trial = AntiDM
+    if task_type == 'ConDM':
+        trial = ConDM
+    if task_type == 'Anti_ConDM': 
+        trial = ConAntiDM
+    if task_type == 'ConMultiDM':
+        trial = ConMultiDM
+    if task_type == 'Anti_ConMultiDM': 
+        trial = ConAntiMultiDM
+    if task_type == 'RT_DM':
+        trial = RTDM
+    if task_type == 'Anti_RT_DM': 
+        trial = AntiRTDM
+    if task_type == 'MultiDM':
+        trial = MultiDM
+    if task_type == 'Anti_MultiDM': 
+        trial = AntiMultiDM
+    if task_type == 'DelayDM': 
+        trial = DelayDM
+    if task_type == 'Anti_DelayDM': 
+        trial = DelayAntiDM
+    if task_type == 'DelayMultiDM': 
+        trial = DelayMultiDM
+    if task_type == 'Anti_DelayMultiDM': 
+        trial = DelayAntiMultiDM
+    if task_type == 'DM_Mod1': 
+        trial = DMMod1
+    if task_type == 'DM_Mod2': 
+        trial = DMMod2
+    if task_type == 'Anti_DM_Mod1': 
+        trial = AntiDMMod1
+    if task_type == 'Anti_DM_Mod2': 
+        trial = AntiDMMod2
+    if task_type == 'RT_DM_Mod1': 
+        trial = RTDMMod1
+    if task_type == 'RT_DM_Mod2': 
+        trial = RTDMMod2
+    if task_type == 'Anti_RT_DM_Mod1': 
+        trial = AntiRTDMMod1
+    if task_type == 'Anti_RT_DM_Mod2': 
+        trial = AntiRTDMMod2
+    if task_type == 'COMP1': 
+        trial = COMP1
+    if task_type == 'COMP2': 
+        trial = COMP2
+    if task_type == 'MultiCOMP1': 
+        trial = MultiCOMP1
+    if task_type == 'MultiCOMP2': 
+        trial = MultiCOMP2
+    if task_type == 'DMS': 
+        trial = DMS
+    if task_type == 'DNMS': 
+        trial = DNMS
+    if task_type == 'DMC': 
+        trial = DMC
+    if task_type == 'DNMC': 
+        trial = DNMC
     if num_trials is None: 
         return trial
+        
+    if num_trials is None: 
+        return trial 
     else: 
         trial = trial(num_trials, noise=noise)
-    
+
     if return_tensor: 
         return (torch.tensor(trial.inputs), 
                 torch.tensor(trial.targets), 
@@ -612,19 +670,6 @@ def construct_trials(task_type, num_trials=None, noise = None, return_tensor=Fal
                 trial.masks.astype(int), 
                 trial.target_dirs.astype(np.float32), 
                 TASK_LIST.index(task_type))
-
-
-trials = construct_trials('DNMC', None)
-
-trials = trials(100, max_var=True, intervals=np.array([((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))]*100
-
-trials.factory.cond_arr[:,:,1,8]
-trials.factory.target_dirs[8]
-np.mean(np.isnan(trials.factory.target_dirs))
-
-
-trials.plot_trial(2)
-
 
 # if __name__ == "__main__":
 #     import argparse
