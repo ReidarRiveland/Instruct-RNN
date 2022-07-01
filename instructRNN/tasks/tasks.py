@@ -558,16 +558,101 @@ class DNMC(Task):
                         task_factory.MatchingFactory,                        
                         matching_task = False, match_type = 'cat')
         self.task_type = 'DNMC'
- 
+
+
 def construct_trials(task_type, num_trials=None, noise = None, return_tensor=False):
     assert task_type in TASK_LIST, "entered invalid task type"
-    trial = getattr(sys.modules[__name__], task_type)
-
+    if task_type == 'Go':
+        trial = Go(num_trials, noise=noise)
+    if task_type == 'RT_Go':
+        trial = RTGo(num_trials, noise=noise)
+    if task_type == 'Anti_Go':
+        trial = AntiGo(num_trials, noise=noise)
+    if task_type == 'Anti_RT_Go':
+        trial = AntiRTGo(num_trials, noise=noise)
+    if task_type == 'DelayGo': 
+        trial = DelayGo(num_trials, noise=noise)
+    if task_type == 'Anti_DelayGo': 
+        trial = AntiDelayGo(num_trials, noise=noise)
+    if task_type == 'DelayGo_Mod1':
+        trial = DelayGoMod1(num_trials, noise=noise)
+    if task_type == 'DelayGo_Mod2':
+        trial = DelayGoMod2(num_trials, noise=noise)
+    if task_type == 'Anti_DelayGo_Mod1':
+        trial = AntiDelayGoMod1(num_trials, noise=noise)
+    if task_type == 'Anti_DelayGo_Mod2':
+        trial = AntiDelayGoMod2(num_trials, noise=noise)
+    if task_type == 'Go_Mod1':
+        trial = GoMod1(num_trials, noise=noise)
+    if task_type == 'Go_Mod2':
+        trial = GoMod2(num_trials, noise=noise)
+    if task_type == 'Anti_Go_Mod1':
+        trial = AntiGoMod1(num_trials, noise=noise)
+    if task_type == 'Anti_Go_Mod2':
+        trial = AntiGoMod2(num_trials, noise=noise)
+    if task_type == 'DM':
+        trial = DM(num_trials, noise=noise)
+    if task_type == 'Anti_DM': 
+        trial = AntiDM(num_trials, noise=noise)
+    if task_type == 'ConDM':
+        trial = ConDM(num_trials, noise=noise)
+    if task_type == 'Anti_ConDM': 
+        trial = ConAntiDM(num_trials, noise=noise)
+    if task_type == 'ConMultiDM':
+        trial = ConMultiDM(num_trials, noise=noise)
+    if task_type == 'Anti_ConMultiDM': 
+        trial = ConAntiMultiDM(num_trials, noise=noise)
+    if task_type == 'RT_DM':
+        trial = RTDM(num_trials, noise=noise)
+    if task_type == 'Anti_RT_DM': 
+        trial = AntiRTDM(num_trials, noise=noise)
+    if task_type == 'MultiDM':
+        trial = MultiDM(num_trials, noise=noise)
+    if task_type == 'Anti_MultiDM': 
+        trial = AntiMultiDM(num_trials, noise=noise)
+    if task_type == 'DelayDM': 
+        trial = DelayDM(num_trials, noise=noise)
+    if task_type == 'Anti_DelayDM': 
+        trial = DelayAntiDM(num_trials, noise=noise)
+    if task_type == 'DelayMultiDM': 
+        trial = DelayMultiDM(num_trials, noise=noise)
+    if task_type == 'Anti_DelayMultiDM': 
+        trial = DelayAntiMultiDM(num_trials, noise=noise)
+    if task_type == 'DM_Mod1': 
+        trial = DMMod1(num_trials, noise=noise)
+    if task_type == 'DM_Mod2': 
+        trial = DMMod2(num_trials, noise=noise)
+    if task_type == 'Anti_DM_Mod1': 
+        trial = AntiDMMod1(num_trials, noise=noise)
+    if task_type == 'Anti_DM_Mod2': 
+        trial = AntiDMMod2(num_trials, noise=noise)
+    if task_type == 'RT_DM_Mod1': 
+        trial = RTDMMod1(num_trials, noise=noise)
+    if task_type == 'RT_DM_Mod2': 
+        trial = RTDMMod2(num_trials, noise=noise)
+    if task_type == 'Anti_RT_DM_Mod1': 
+        trial = AntiRTDMMod1(num_trials, noise=noise)
+    if task_type == 'Anti_RT_DM_Mod2': 
+        trial = AntiRTDMMod2(num_trials, noise=noise)
+    if task_type == 'COMP1': 
+        trial = COMP1(num_trials, noise=noise)
+    if task_type == 'COMP2': 
+        trial = COMP2(num_trials, noise=noise)
+    if task_type == 'MultiCOMP1': 
+        trial = MultiCOMP1(num_trials, noise=noise)
+    if task_type == 'MultiCOMP2': 
+        trial = MultiCOMP2(num_trials, noise=noise)
+    if task_type == 'DMS': 
+        trial = DMS(num_trials, noise=noise)
+    if task_type == 'DNMS': 
+        trial = DNMS(num_trials, noise=noise)
+    if task_type == 'DMC': 
+        trial = DMC(num_trials, noise=noise)
+    if task_type == 'DNMC': 
+        trial = DNMC(num_trials, noise=noise)
     if num_trials is None: 
         return trial
-    else: 
-        trial = trial(num_trials, noise=noise)
-    
+        
     if return_tensor: 
         return (torch.tensor(trial.inputs), 
                 torch.tensor(trial.targets), 

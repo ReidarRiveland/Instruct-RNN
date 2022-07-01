@@ -2,7 +2,7 @@ import matplotlib
 from instructRNN.analysis.model_analysis import get_hid_var_resp, get_instruct_reps
 from instructRNN.tasks.tasks import TASK_LIST
 from instructRNN.data_loaders.perfDataFrame import HoldoutDataFrame, TrainingDataFrame
-from tasks.task_criteria import isCorrect
+from instructRNN.tasks.task_criteria import isCorrect
 
 from instructRNN.instructions.instruct_utils import train_instruct_dict, test_instruct_dict
 from instructRNN.tasks.task_factory import STIM_DIM
@@ -118,13 +118,6 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list,  perf_type='correct
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
 
-from instructRNN.models.full_models import all_models, small_models
-plot_avg_holdout_curve('6.20models', 'aligned', all_models, split=True, seeds=[0])
-data = HoldoutDataFrame('6.20models', 'swap', 'bowNet')
-list(zip(TASK_LIST, np.round(np.mean(data.get_k_shot(0), axis=0), 3)))
-
-
-
 def plot_all_curves(dataframe, axn, **plt_args):
     for j, task in enumerate(TASK_LIST):
         ax = axn.flat[j]
@@ -158,8 +151,6 @@ def plot_all_training_curves(foldername, exp_type, holdout_file, model_list, per
 
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
-
-plot_all_holdout_curves('6.20models', 'aligned', all_models)
 
 
 def plot_k_shot_learning(foldername, exp_type, model_list, ks=[0,1,3], seeds=range(5)): 
@@ -203,9 +194,6 @@ def plot_k_shot_learning(foldername, exp_type, model_list, ks=[0,1,3], seeds=ran
     plt.xticks([r + barWidth + 0.2 for r in range(len_values)], [0, 1, 3], size=8)
     _make_model_legend(model_list)
     plt.show()
-
-plot_k_shot_learning('6.7models', 'swap', ['sbertNet'])
-
 
 
 def plot_trained_performance(all_perf_dict):

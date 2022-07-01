@@ -129,7 +129,7 @@ import torch
 
 
 EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = CLIPNet_tuned(LM_out_dim=64, rnn_hidden_dim=256)
+sbertNet = SBERTNet_tuned(LM_out_dim=64, rnn_hidden_dim=256)
 #sbertNet = SimpleNet(rnn_hidden_dim=256)
 
 holdouts_file = 'Multitask'
@@ -164,6 +164,7 @@ def get_zero_shot_perf(model):
             perf_array[TASK_LIST.index(task)] = perf
     return perf_array
 
+sbertNet.to(torch.device(0))
 perf = get_zero_shot_perf(sbertNet)
 perf
 list(zip(TASK_LIST, perf))
