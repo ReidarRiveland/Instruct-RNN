@@ -131,7 +131,7 @@ class ModelTrainer(BaseTrainer):
         if not is_tuning and model.info_type=='lang': 
             model.langModel.eval()
         
-        if is_testing and model.info_type=='lang':
+        if is_testing and hasattr(model.langModel, 'transformer'):
             model.langModel.freeze_transformer()
 
         if self.cur_epoch>0: 

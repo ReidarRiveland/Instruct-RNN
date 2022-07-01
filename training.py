@@ -4,7 +4,7 @@ from instructRNN.trainers.decoder_trainer import *
 from instructRNN.trainers.context_trainer import *
 
 from instructRNN.tasks.tasks import SWAPS_DICT, ALIGNED_DICT
-from instructRNN.models.full_models import all_models
+from instructRNN.models.full_models import all_models, small_models, big_models
 
 
 def make_training_jobs(exp, models, seeds, holdouts, job_index):
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     parser.add_argument('folder', help='folder where models and data will be stored')
     parser.add_argument('exp', help='type of experiment, refering to which holdout sets to use, must be \'swap\' or \'aligned\' ')
     parser.add_argument('--mode', default='train', help='training mode to use, must be \'train\', \'tune\', \'test\', \'decoder\' ( \'d\'),\'context\' ( \'c\')')
-    parser.add_argument('--models', default=all_models, nargs='*', help='list of model names to train, default is all models')
+    parser.add_argument('--models', default=small_models, nargs='*', help='list of model names to train, default is all models')
     parser.add_argument('--holdouts', type=int, default=None,  nargs='*', help='list of ints that index the holdout sets to use')
     parser.add_argument('--overwrite', default=False, action='store_true', help='whether or not to overwrite existing files')
     parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')

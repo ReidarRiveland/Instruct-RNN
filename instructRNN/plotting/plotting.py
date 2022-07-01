@@ -94,9 +94,8 @@ def _make_model_legend(model_list):
                     markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8))
     plt.legend(handles=Patches)
 
-
 def plot_avg_holdout_curve(foldername, exp_type, model_list,  perf_type='correct', plot_swaps = False, seeds=range(5), split=False):
-    if split_axes: 
+    if split: 
         fig, axn, ax2 = split_axes()
     else: 
         fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
@@ -115,7 +114,7 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list,  perf_type='correct
         mean, std = data.avg_tasks()
         _plot_performance_curve(mean, std, axn, model_name, linestyle='-')
 
-        if split_axes:
+        if split:
             plt_args['linestyle'] = '-'
             _plot_performance_curve(mean, std, ax2, model_name, linestyle='-')
             # if plot_swaps:
@@ -124,6 +123,10 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list,  perf_type='correct
             #     _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, ax2, model_name, plt_args=plt_args)
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.7, 0.48), title='Models', title_fontsize = 'small', fontsize='x-small')
     plt.show()
+
+from instructRNN.models.full_models import all_models
+plot_avg_holdout_curve('6.20models', 'swap', all_models)
+
 
 
 def plot_all_curves(dataframe, axn, **plt_args):

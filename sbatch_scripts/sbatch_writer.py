@@ -30,3 +30,5 @@ def make_batch_slurm(filename,
     return
 
 make_batch_slurm('make_dataset_test.sbatch', 'Instruct-RNN/dataset.py', partition='debug-cpu')
+
+rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*/training_data/*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/6.20models/ /home/reidar/Projects/Instruct-RNN/6.20models
