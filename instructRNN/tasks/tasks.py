@@ -494,7 +494,7 @@ class COMP1(Task):
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
-                        resp_stim = 1
+                        resp_stim = 0
                         )
         self.task_type = 'COMP1'
 
@@ -503,7 +503,7 @@ class COMP2(Task):
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
-                        resp_stim = 2
+                        resp_stim = 1
                         )
         self.task_type = 'COMP2'
 
@@ -512,7 +512,7 @@ class MultiCOMP1(Task):
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
-                        resp_stim = 1, 
+                        resp_stim = 0, 
                         multi=True
                         )
         self.task_type = 'MultiCOMP1'
@@ -522,7 +522,7 @@ class MultiCOMP2(Task):
     def __init__(self, num_trials, noise=None): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
-                        resp_stim = 2,
+                        resp_stim = 1,
                         multi=True
                         )
         self.task_type = 'MultiCOMP2'
@@ -563,96 +563,101 @@ class DNMC(Task):
 def construct_trials(task_type, num_trials=None, noise = None, return_tensor=False):
     assert task_type in TASK_LIST, "entered invalid task type"
     if task_type == 'Go':
-        trial = Go(num_trials, noise=noise)
+        trial = Go
     if task_type == 'RT_Go':
-        trial = RTGo(num_trials, noise=noise)
+        trial = RTGo
     if task_type == 'Anti_Go':
-        trial = AntiGo(num_trials, noise=noise)
+        trial = AntiGo
     if task_type == 'Anti_RT_Go':
-        trial = AntiRTGo(num_trials, noise=noise)
+        trial = AntiRTGo
     if task_type == 'DelayGo': 
-        trial = DelayGo(num_trials, noise=noise)
+        trial = DelayGo
     if task_type == 'Anti_DelayGo': 
-        trial = AntiDelayGo(num_trials, noise=noise)
+        trial = AntiDelayGo
     if task_type == 'DelayGo_Mod1':
-        trial = DelayGoMod1(num_trials, noise=noise)
+        trial = DelayGoMod1
     if task_type == 'DelayGo_Mod2':
-        trial = DelayGoMod2(num_trials, noise=noise)
+        trial = DelayGoMod2
     if task_type == 'Anti_DelayGo_Mod1':
-        trial = AntiDelayGoMod1(num_trials, noise=noise)
+        trial = AntiDelayGoMod1
     if task_type == 'Anti_DelayGo_Mod2':
-        trial = AntiDelayGoMod2(num_trials, noise=noise)
+        trial = AntiDelayGoMod2
     if task_type == 'Go_Mod1':
-        trial = GoMod1(num_trials, noise=noise)
+        trial = GoMod1
     if task_type == 'Go_Mod2':
-        trial = GoMod2(num_trials, noise=noise)
+        trial = GoMod2
     if task_type == 'Anti_Go_Mod1':
-        trial = AntiGoMod1(num_trials, noise=noise)
+        trial = AntiGoMod1
     if task_type == 'Anti_Go_Mod2':
-        trial = AntiGoMod2(num_trials, noise=noise)
+        trial = AntiGoMod2
     if task_type == 'DM':
-        trial = DM(num_trials, noise=noise)
+        trial = DM
     if task_type == 'Anti_DM': 
-        trial = AntiDM(num_trials, noise=noise)
+        trial = AntiDM
     if task_type == 'ConDM':
-        trial = ConDM(num_trials, noise=noise)
+        trial = ConDM
     if task_type == 'Anti_ConDM': 
-        trial = ConAntiDM(num_trials, noise=noise)
+        trial = ConAntiDM
     if task_type == 'ConMultiDM':
-        trial = ConMultiDM(num_trials, noise=noise)
+        trial = ConMultiDM
     if task_type == 'Anti_ConMultiDM': 
-        trial = ConAntiMultiDM(num_trials, noise=noise)
+        trial = ConAntiMultiDM
     if task_type == 'RT_DM':
-        trial = RTDM(num_trials, noise=noise)
+        trial = RTDM
     if task_type == 'Anti_RT_DM': 
-        trial = AntiRTDM(num_trials, noise=noise)
+        trial = AntiRTDM
     if task_type == 'MultiDM':
-        trial = MultiDM(num_trials, noise=noise)
+        trial = MultiDM
     if task_type == 'Anti_MultiDM': 
-        trial = AntiMultiDM(num_trials, noise=noise)
+        trial = AntiMultiDM
     if task_type == 'DelayDM': 
-        trial = DelayDM(num_trials, noise=noise)
+        trial = DelayDM
     if task_type == 'Anti_DelayDM': 
-        trial = DelayAntiDM(num_trials, noise=noise)
+        trial = DelayAntiDM
     if task_type == 'DelayMultiDM': 
-        trial = DelayMultiDM(num_trials, noise=noise)
+        trial = DelayMultiDM
     if task_type == 'Anti_DelayMultiDM': 
-        trial = DelayAntiMultiDM(num_trials, noise=noise)
+        trial = DelayAntiMultiDM
     if task_type == 'DM_Mod1': 
-        trial = DMMod1(num_trials, noise=noise)
+        trial = DMMod1
     if task_type == 'DM_Mod2': 
-        trial = DMMod2(num_trials, noise=noise)
+        trial = DMMod2
     if task_type == 'Anti_DM_Mod1': 
-        trial = AntiDMMod1(num_trials, noise=noise)
+        trial = AntiDMMod1
     if task_type == 'Anti_DM_Mod2': 
-        trial = AntiDMMod2(num_trials, noise=noise)
+        trial = AntiDMMod2
     if task_type == 'RT_DM_Mod1': 
-        trial = RTDMMod1(num_trials, noise=noise)
+        trial = RTDMMod1
     if task_type == 'RT_DM_Mod2': 
-        trial = RTDMMod2(num_trials, noise=noise)
+        trial = RTDMMod2
     if task_type == 'Anti_RT_DM_Mod1': 
-        trial = AntiRTDMMod1(num_trials, noise=noise)
+        trial = AntiRTDMMod1
     if task_type == 'Anti_RT_DM_Mod2': 
-        trial = AntiRTDMMod2(num_trials, noise=noise)
+        trial = AntiRTDMMod2
     if task_type == 'COMP1': 
-        trial = COMP1(num_trials, noise=noise)
+        trial = COMP1
     if task_type == 'COMP2': 
-        trial = COMP2(num_trials, noise=noise)
+        trial = COMP2
     if task_type == 'MultiCOMP1': 
-        trial = MultiCOMP1(num_trials, noise=noise)
+        trial = MultiCOMP1
     if task_type == 'MultiCOMP2': 
-        trial = MultiCOMP2(num_trials, noise=noise)
+        trial = MultiCOMP2
     if task_type == 'DMS': 
-        trial = DMS(num_trials, noise=noise)
+        trial = DMS
     if task_type == 'DNMS': 
-        trial = DNMS(num_trials, noise=noise)
+        trial = DNMS
     if task_type == 'DMC': 
-        trial = DMC(num_trials, noise=noise)
+        trial = DMC
     if task_type == 'DNMC': 
-        trial = DNMC(num_trials, noise=noise)
+        trial = DNMC
     if num_trials is None: 
         return trial
         
+    if num_trials is None: 
+        return trial 
+    else: 
+        trial = trial(num_trials, noise=noise)
+
     if return_tensor: 
         return (torch.tensor(trial.inputs), 
                 torch.tensor(trial.targets), 
@@ -665,8 +670,6 @@ def construct_trials(task_type, num_trials=None, noise = None, return_tensor=Fal
                 trial.masks.astype(int), 
                 trial.target_dirs.astype(np.float32), 
                 TASK_LIST.index(task_type))
-
-
 
 # if __name__ == "__main__":
 #     import argparse
