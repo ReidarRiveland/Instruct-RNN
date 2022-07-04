@@ -6,8 +6,9 @@ import pickle
 from attrs import define
 import pathlib
 
-# from fse.models import SIF
-# from fse import IndexedList, Vectors, SIF
+from fse.models import SIF
+from fse import IndexedList, Vectors
+
 
 from transformers import GPT2Model, GPT2Tokenizer, GPTNeoForCausalLM
 from transformers import CLIPTokenizer, CLIPTextModel
@@ -158,26 +159,21 @@ class GPTNeo(TransformerEmbedder):
 # class SIF(InstructionEmbedder): 
 #     def __init__(self, config): 
 #         super().__init__(config)
-#         self.sif_model = pickle.load(open('models/_pretrained_lang_models/'+self.LM_load_str, 'rb'))    
+#         self.load_sent_model()
+#         self._all_instructions = get_all_sentences()
 #         if self.LM_out_dim == None: 
 #             self.out_dim=300
 #         self.LM_intermediate_lang_dim = 300
 #         self.set_train_layers(self.LM_train_layers)
 #         self.__init_proj_out__()
 
-#     def _train_SIF_embeddings(word_vectors='glove-wiki-gigaword-300', sent_model=SIF): 
-#         wv = Vectors.from_pretrained(word_vectors, mmap="r")
-#         model = sent_model(wv, workers=1, lang_freq='en')
-#         s = IndexedList([sent.split() for sent in get_all_sentences()])
-#         model.train(s)
-#         return s, model
+#     def load_sent_model(self, sent_model=SIF): 
+#         wv = Vectors.from_pretrained('glove-wiki-gigaword-300', mmap="r")
+#         self.sent_model = sent_model(wv, workers=1, lang_freq='en')        
 
 #     def get_embedding_vecs(self, instructions): 
-#         try: 
-#             embeddings = self.sif_model.sv[[instructions.index(sent) for sent in instructions]]
-#         except ValueError: 
-#             tmp = [(instruct.split(), i) for i, instruct in enumerate(instructions)]
-#             embeddings = self.sif_model.infer(tmp)
+#         tmp = [(instruct.split(), i) for i, instruct in enumerate(instructions)]
+#         embeddings = self.sif_model.infer(tmp)
 #         return embeddings
 
 #     def forward(self, x):
@@ -206,4 +202,3 @@ class BoW(InstructionEmbedder):
         freq_tensor = torch.stack(tuple(map(self._make_freq_tensor, x))).to(self.__device__)
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
-

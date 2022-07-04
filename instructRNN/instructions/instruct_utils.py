@@ -14,10 +14,9 @@ def inv_instruct_dict(instruct_dict):
             inv_dict[instruct] = task
     return inv_dict
 
-location = str(pathlib.Path(__file__).parent.absolute())
+location = '6.20models/instructs'
 train_instruct_dict = pickle.load(open(location+'/train_instruct_dict', 'rb'))
 test_instruct_dict = pickle.load(open(location+'/test_instruct_dict', 'rb'))
-
 inv_train_instruct_dict = inv_instruct_dict(train_instruct_dict)
  
  
@@ -44,13 +43,11 @@ def shuffle_instruction(instruct):
     instruct = ' '.join(list(shuffled))
     return instruct
 
-
 def get_swap_task(task):
     swap_label = INV_SWAPS_DICT[task]
     pos = SWAPS_DICT[swap_label].index(task)
     swap_index = (pos+1)%len(SWAPS_DICT[swap_label])
     return SWAPS_DICT[swap_label][swap_index]
-
 
 def get_instruction_dict(instruct_mode): 
     assert instruct_mode in [None, 'swap', 'validation']
@@ -122,3 +119,10 @@ def get_task_info(batch_len, task_type, info_type, instruct_mode=None):
         return get_input_rule(batch_len, task_type, instruct_mode = instruct_mode)
 
 
+# class TaskInfoLoader():
+#     def __init__(folder, info_type): 
+#         train_instruct_dict = pickle.load(open(location+'/train_instruct_dict', 'rb'))
+#         test_instruct_dict = pickle.load(open(location+'/test_instruct_dict', 'rb'))
+#         inv_train_instruct_dict = inv_instruct_dict(train_instruct_dict)
+ 
+        

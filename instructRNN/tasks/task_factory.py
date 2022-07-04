@@ -68,9 +68,6 @@ def _draw_confidence_threshold(requires_resp_list, pos_thresholds, neg_threshold
         contrasts.append(contrast)
     return np.array(noises), np.array(contrasts)
 
-
-
-
 def max_var_dir(num_trials, mod, multi, num_stims, shuffle=True): 
     mod_dirs = _max_var_dir(num_trials, num_stims, shuffle)
     if mod is not None: 

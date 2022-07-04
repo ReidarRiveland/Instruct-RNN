@@ -11,5 +11,5 @@ module load CUDA
 echo $CUDA_VISIBLE_DEVICES
 
 source ~/miniconda3/bin/activate
-conda activate instruct-rnn
+conda activate instructRNN
 python model_checks.py 6.20models swap --mode trained

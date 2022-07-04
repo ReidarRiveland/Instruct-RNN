@@ -168,7 +168,6 @@ def plot_k_shot_learning(foldername, exp_type, model_list, ks=[0,1,3], seeds=ran
             all_mean.append(mean)
             all_std.append(std)
 
-
         std = np.array(all_std)
         len_values = len(ks)
         if i == 0:

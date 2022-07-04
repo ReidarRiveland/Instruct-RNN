@@ -2,7 +2,6 @@
 #SBATCH --job-name=training
 #SBATCH --time=02:00:00
 #SBATCH --partition=shared-gpu
-#SBATCH --array=0-585
 #SBATCH --output=logs/training.%a.out
 #SBATCH --ntasks=1
 #SBATCH --gpus=ampere:1
@@ -12,5 +11,5 @@ module load CUDA
 echo $CUDA_VISIBLE_DEVICES
 
 source ~/miniconda3/bin/activate
-conda activate instruct-rnn
-python training.py 6.20models swap --models simpleNet simpleNetPlus comNet comNetPlus sbertNet sbertNet_lin clipNet bertNet bowNet sbertNet_tuned sbertNet_lin_tuned clipNet_tuned bertNet_tuned --job_index ${SLURM_ARRAY_TASK_ID}
+conda activate instructRNN
+python training.py 6.21models swap --job_index ${SLURM_ARRAY_TASK_ID}

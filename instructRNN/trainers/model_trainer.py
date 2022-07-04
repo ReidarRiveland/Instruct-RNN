@@ -10,7 +10,6 @@ from attrs import define
 import os
 import warnings
 from os.path import exists
-from instructRNN.tasks.tasks import SWAPS_DICT
 
 from instructRNN.trainers.base_trainer import *
 from instructRNN.data_loaders.dataset import *
@@ -181,6 +180,8 @@ class ModelTrainer(BaseTrainer):
             warnings.warn('\n !!! Model has not reach specified performance threshold during training !!! \n')
             return False
 
+###change to model file directory exists
+
 def check_already_trained(file_name, seed, mode='training'): 
     try: 
         pickle.load(open(file_name+'/seed'+str(seed)+'_training_correct', 'rb'))
@@ -272,9 +273,9 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, over
         trainer._record_session(model, mode='TESTING')
 
 
-def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite, **train_config_kwargs):
+def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs):
     if not '_tuned' in model_name:
-        is_trained = train_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs) 
+        is_trained = train_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs) 
     else: 
         is_trained = tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs)
         
