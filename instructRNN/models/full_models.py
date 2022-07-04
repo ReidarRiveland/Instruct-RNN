@@ -12,17 +12,6 @@ all_models = ['simpleNet', 'simpleNetPlus',
             'bowNet', 'clipNet_tuned', 
             ]
             
-small_models = ['simpleNet', 'simpleNetPlus',
-            'comNet', 'comNetPlus',
-            'sbertNet', 'sbertNet_lin',
-            'gptNet', 
-            'clipNet','bertNet',
-            'bowNet', 'gptNet_tuned',
-            'sbertNet_tuned', 'sbertNet_lin_tuned',
-            'clipNet_tuned', 'bertNet_tuned']
-
-big_models = ['gptNetXL', 'gptNetXL_tuned']
-
 untuned_models = [model_name for model_name in all_models if '_tuned' not in model_name]
 tuned_models = [model_name for model_name in all_models if '_tuned' in model_name]
 
@@ -55,24 +44,21 @@ class ComNetPlus(RuleNet):
         super().__init__(config)
 
 class GPTNet(InstructNet):
-    DEFAULT_CONFIG = InstructModelConfig(model_name = 'gptNet', 
-                        LM_class=GPT, 
-                        LM_config=LMConfig(
-                                    LM_load_str = 'gpt2',
-                                    LM_train_layers=[])
-                                    )
-    def __init__(self, config=DEFAULT_CONFIG): 
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('gptNet', 
+                                LM_class=GPT, 
+                                LM_load_str = 'gpt2',
+                                LM_train_layers=[],
+                                **kw_args)
         super().__init__(config)
 
 class GPTNet_tuned(InstructNet):
-    DEFAULT_CONFIG = InstructModelConfig(model_name = 'gptNet_tuned', 
-                        LM_class=GPT, 
-                        LM_config=LMConfig(
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('gptNet_tuned', 
+                                LM_class=GPT, 
                                 LM_load_str = 'gpt2',
-                                LM_train_layers=['9', '10', '11', 'ln_f'])
-                                )
-
-    def __init__(self, config=DEFAULT_CONFIG): 
+                                LM_train_layers=['9', '10', '11', 'ln_f'],
+                                **kw_args)
         super().__init__(config)
 
 class GPTNetXL(InstructNet):
@@ -203,6 +189,10 @@ def make_default_model(model_str):
         return ComNet()
     if model_str == 'comNetPlus':
         return ComNetPlus()
+    if model_str == 'gptNet': 
+        return GPTNet()
+    if model_str == 'gptNet_tuned': 
+        return GPTNet_tuned()
     if model_str == 'bertNet': 
         return BERTNet()
     if model_str == 'bertNet_tuned': 

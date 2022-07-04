@@ -6,7 +6,7 @@ from instructRNN.tasks.tasks import TASK_LIST, construct_trials
 
 class TaskDataSet():
     DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
-    def __init__(self, exp_file, stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None): 
+    def __init__(self, exp_file, stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None):
         __len__ = num_batches
         self.stream = stream
         self.batch_len = batch_len
@@ -19,6 +19,7 @@ class TaskDataSet():
         else: 
             assert not bool(holdouts), 'cannot have holdouts and set a single task'
             self.task_ratio_dict={set_single_task:1}
+        self.check_data_build() 
 
         self.trial_types = None
         self.stream_order = None
@@ -37,17 +38,17 @@ class TaskDataSet():
     
     def __make_memmaps__(self): 
         for task in self.task_ratio_dict.keys(): 
-            task_data_path = self.data_folder+'/'+task
+            self.memmap_dict[task] = (np.lib.format.open_memmap(self.data_folder+'/training_data'+task+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 65)),
+                    np.lib.format.open_memmap(self.data_folder+'/training_data'+task+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 33)),
+                    np.lib.format.open_memmap(self.data_folder+'/training_data'+task+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (10000, 120, 33)),
+                    np.lib.format.open_memmap(self.data_folder+'/training_data'+task+'/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (10000)))
+
+    def check_data_build(self): 
+        for task in TASK_LIST:
+            task_data_path = self.data_folder+'/training_data'+task
             if not os.path.exists(task_data_path):
                 print('\n no training data for {task} discovered at {data_load_path} \n'.format(task=task, data_load_path=self.data_folder))
                 build_training_data(self.data_folder, task)
-
-            self.memmap_dict[task] = (np.lib.format.open_memmap(self.data_folder+'/'+task+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 65)),
-                    np.lib.format.open_memmap(self.data_folder+'/'+task+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 33)),
-                    np.lib.format.open_memmap(self.data_folder+'/'+task+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (10000, 120, 33)),
-                    np.lib.format.open_memmap(self.data_folder+'/'+task+'/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (10000)))
-
-
 
     def __init_task_distribution__(self):
         #rescale sampling ratio of tasks to deal with holdouts 
@@ -95,7 +96,7 @@ class TaskDataSet():
 
 def build_training_data(foldername, task):
     print('Building training data for ' + task + '...')
-    path = foldername +'/'+ task
+    path = foldername +'/training_data'+ task
     if os.path.exists(path):
         pass
     else: os.makedirs(path)
@@ -105,3 +106,11 @@ def build_training_data(foldername, task):
     np.save(path+'/masks_data', masks_data)
     np.save(path +'/target_dirs', target_dirs)
     np.save(path +'/type_indices', trial_indices)
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('path')
+    args = parser.parse_args()
+    for task in TASK_LIST: 
+        build_training_data(args.path, task)

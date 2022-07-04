@@ -724,29 +724,29 @@ test_instruct_dict['Anti_MultiDM'] = ('pick the direction with minimal average v
                                             'choose the direction with lowest presentation strength over modalities',
                                             'select the orientation with weakest intensity over both modalities')
 
-test_instruct_dict['ConDM']
+# test_instruct_dict['ConDM']
 
-test_instruct_dict['Anti_ConDM']
+# test_instruct_dict['Anti_ConDM']
 
-test_instruct_dict['ConMultiDM']
+# test_instruct_dict['ConMultiDM']
 
-test_instruct_dict['Anti_ConMultiDM']
+# test_instruct_dict['Anti_ConMultiDM']
 
-test_instruct_dict['DelayDM']
+# test_instruct_dict['DelayDM']
 
-test_instruct_dict['Anti_DelayDM']
+# test_instruct_dict['Anti_DelayDM']
 
-test_instruct_dict['DelayMultiDM']
+# test_instruct_dict['DelayMultiDM']
 
-test_instruct_dict['Anti_DelayMultiDM']
+# test_instruct_dict['Anti_DelayMultiDM']
 
-test_instruct_dict['DM_Mod1']
+# test_instruct_dict['DM_Mod1']
 
-test_instruct_dict['DM_Mod2']
+# test_instruct_dict['DM_Mod2']
 
-test_instruct_dict['Anti_DM_Mod1']
+# test_instruct_dict['Anti_DM_Mod1']
 
-test_instruct_dict['Anti_DM_Mod2']
+# test_instruct_dict['Anti_DM_Mod2']
 
 test_instruct_dict['COMP1'] = ('when the first stimulus is stronger pick the first orientation otherwise do not respond', 
                                     'choose the initial stimulus if it is the stronger of the two presented stimuli otherwise do not respond', 
@@ -798,8 +798,8 @@ test_instruct_dict['DNMC'] = ('pick the second direction if both stimuli are on 
 
 
 def save_instruct_dicts(path):
-	pickle.dump(train_instruct_dict, open(path+'/train_instruct_dict', 'wb'))
-	pickle.dump(test_instruct_dict, open(path+'/test_instruct_dict', 'wb'))
+	pickle.dump(train_instruct_dict, open(path+'/instructs/train_instruct_dict', 'wb'))
+	pickle.dump(test_instruct_dict, open(path+'/instructs/test_instruct_dict', 'wb'))
 
 
 
