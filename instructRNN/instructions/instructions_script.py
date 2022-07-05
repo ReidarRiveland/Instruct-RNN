@@ -1,3 +1,4 @@
+import os
 import pickle
 
 train_instruct_dict = {}
@@ -931,6 +932,11 @@ test_instruct_dict['DNMC'] = ('pick the second direction if both stimuli are on 
 
 
 def save_instruct_dicts(path):
+	if os.path.exists(path):
+		pass
+	else: 
+		os.makedirs(path)
+
 	pickle.dump(train_instruct_dict, open(path+'/instructs/train_instruct_dict', 'wb'))
 	pickle.dump(test_instruct_dict, open(path+'/instructs/test_instruct_dict', 'wb'))
 
