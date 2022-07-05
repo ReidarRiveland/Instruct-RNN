@@ -521,6 +521,73 @@ train_instruct_dict['Anti_RT_DM_Mod2'] = ('focus on the second modality and sele
                                         )
 
 
+train_instruct_dict['Dur1'] =('respond to the first direction if it lasts for longer than the second direction otherwise do not respond',
+							'if the first stimulus is presented for a greater period of time than the second stimulus then respond to the first stimulus otherwise do not respond', 
+							'select the initial orientation if it has a duration which is greater than the second orientation otherwise do not respond', 
+							'opt for the initial stimulus if it is displayed for more time than the second stimulus otherwise do not respond', 
+							'choose the first orientation if it has a greater duration than the second orientation otherwise do not respond',
+							'if the first stimulus is presented for longer than the second stimulus respond to the first stimulus otherwise do not respond', 
+							'if the initial orientation is displayed for more time than the second orientation then choose the first orientation otherwise do not respond', 
+							'go in the first direction if it appears for a greater amount of time than the second stimulus otherwise do not respond', 
+							'select the initial direction if it appears for longer than the second direction otherwise do not respond', 
+							'if the first direction is displayed for more time than the second stimulus respond to the first direction otherwise do not respond', 
+							'choose the initial orientation if it has a greater duration than the second orientation otherwise do not respond', 
+							'if the duration of the first orientation is greater than the second orientation respond to the first orientation otherwise do not respond', 
+							'if the duration of the initial stimulus is greater than the duration of the second stimulus respond to the first stimulus otherwise do not respond', 
+							'pick the first direction if it lasts for more time than the second direction otherwise do not respond',
+							'pick the initial stimulus if it lasts for a greater period of time than the second stimulus otherwise do not respond'
+							)
+
+train_instruct_dict['Dur2'] = ('select the second direction if it lasts for longer than the first direction otherwise do not respond', 
+								'if the duration of the second orientation is greater than the duration of the first orientation respond to the first orientation otherwise do not respond', 
+								'if the duration of the second stimulus is greater than the duration of the first stimulus respond to the first stimulus otherwise do not respond', 
+								'pick the second direction if it has a duration that is greater than the first direction otherwise do not respond', 
+								'choose the second direction if it is displayed for more time than the first direction otherwise do not respond', 
+								'opt for the second orientation if it lasts for longer than the first orientation otherwise do not respond', 
+								'if the second stimulus is presented for a longer time period than the first stimulus then respond to the second stimulus otherwise do not respond', 
+								'if the second direction is displayed for more time than the first direction respond to the second direction otherwise do not respond', 
+								'respond to the second orientation if is displayed for more time than the first orientation otherwise do not respond',
+								'select the second stimulus if it is longer than the first stimulus otherwise do not respond', 
+								'if the duration of the second direction is greater than the duration of the first direction respond to the second direction otherwise do not respond', 
+								'choose the second direction if it is presented for longer than the first direction otherwise do not respond', 
+								'if the second stimulus appears for more time than the first stimulus than select the second stimulus otherwise do not respond',
+								'if the duration of the second stimulus is greater than the duration of the first stimulus than respond to the second stimulus otherwise do not respond',
+								'choose the second direction if it lasts for a greater period of time than the first direction otherwise do not respond'
+								)
+
+train_instruct_dict['DurLong'] = ('respond to the displayed stimulus if it has a duration greater than one second otherwise do not respond', 
+								'if the stimulus is displayed for longer than one second then respond otherwise do not respond', 
+								'go in the direction of the orientation if it is presented for a period of time greater than one second otherwise do not respond', 
+								'select the presented stimulus if it last longer than one second otherwise do not respond', 
+								'if the displayed orientation has a duration of more than one second then respond otherwise do not respond', 
+								'go in the presented direction if the stimulus lasts for more than one second otherwise do not respond', 
+								'if the stimulus appears for more than one second then respond otherwise do not respond', 
+								'select the presented orientation if it lasts for more than one second otherwise do not respond', 
+								'go in the direction displayed if it has a duration greater than one second otherwise do not respond',
+								'respond to the stimulus if is appears for longer than one second otherwise do not respond', 
+								'choose the orientation if it is presented for more than one second otherwise do not respond',
+								'if the orientation appears for a duration greater than one second respond otherwise do not respond', 
+								'respond to the presented orientation if it is longer than one second otherwise do not respond', 
+								'choose the displayed direction if it lasts for longer than one second otherwise do not respond', 
+								'respond if the stimulus duration is greater than one second otherwise do not respond')
+
+train_instruct_dict['DurShort'] = ('respond to the stimulus if it has a duration less than one second otherwise do not respond', 
+									'if the orientation is displayed for less than one second then respond otherwise do not respond',
+									'choose the presented direction if it is shorter than one second otherwise do not respond', 
+									'if the stimulus appears for a period of time less than one second then respond otherwise do not respond', 
+									'go in the displayed direction if it lasts for less than one second otherwise do not respond', 
+									'respond to the presented orientaton if it is shorter than one second otherwise do not respond', 
+									'go in the direction of the stimulus if it is displayed for a duration less than one second otherwise do not respond', 
+									'if the presented direction has a duration shorter than one second then respond otherwise do not respond', 
+									'choose the displayed orientation if it lasts less than one second otherwise do not respond', 
+									'if the duration of the stimulus is shorter than one second then respond otherwise do not respond', 
+									'select the orientation displayed if it is shorter than one second otherwise do not respond', 
+									'if the stimulus lasts for less than one second then respond otherwise do not respond', 
+									'go in the presented direction if it has a duration less than one second otherwise do not respond', 
+									'respond in the direction of the stimulus if it lasts for less than one second otherwise do not respond',
+									'go if the duration of the stimulus is less than one second otherwise do not respond'
+									) 
+
 train_instruct_dict['COMP1'] = ('if the first stimulus is greater than the second stimulus respond to the first stimulus otherwise do not respond', 
                                 'if the first stimulus has higher intensity than the second go in the first direction otherwise do not respond', 
                                 'go in the direction of the first stimulus if it is stronger than the second stimulus otherwise do not respond', 

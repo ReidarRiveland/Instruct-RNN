@@ -33,14 +33,14 @@ TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go',
 
 SWAP_LIST = [            
             ('Anti_DM_Mod2', 'RT_Go', 'Anti_ConDM', 'COMP1'), 
-            ('DelayDM', 'Anti_Go_Mod2', 'ConMultiDM', 'DMS'),
+            ('COMP1_Mod1', 'Anti_Go_Mod2', 'ConMultiDM', 'DMS'),
             ('DM_Mod2', 'Anti_RT_Go',  'Go', 'MultiCOMP1'), 
-            ('Go_Mod2', 'Anti_ConMultiDM', 'Anti_DelayGo', 'COMP2'), 
-            ('Anti_DelayMultiDM', 'MultiDM', 'Anti_RT_DM', 'DMC'),             
+            ('Go_Mod2', 'Anti_ConMultiDM', 'DurLong', 'COMP2'), 
+            ('Dur1', 'MultiDM', 'COMP2_Mod2', 'DMC'),             
             ('DM', 'Anti_Go', 'Go_Mod1', 'MultiCOMP2'), 
-            ('Anti_DM', 'DelayMultiDM', 'Anti_Go_Mod1',  'DNMS'), 
-            ('RT_DM', 'Anti_MultiDM', 'DM_Mod1', 'DNMC'),
-            ('ConDM', 'Anti_DelayDM', 'DelayGo', 'Anti_DM_Mod1')
+            ('Anti_DM', 'Dur2', 'Anti_Go_Mod1',  'DNMS'), 
+            ('COMP2_Mod1', 'Anti_MultiDM', 'DM_Mod1', 'DNMC'),
+            ('ConDM', 'DurShort', 'COMP1_Mod2', 'Anti_DM_Mod1')
             ]
 
             
