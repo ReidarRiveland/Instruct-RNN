@@ -67,9 +67,9 @@ class TaskDataSet():
             self.trial_types.append(list(self.task_ratio_dict.keys())[-(self.num_batches-len(self.trial_types))])
 
     def __populate_data__(self): 
-        tmp_in_data = np.empty((self.num_batches, self.batch_len, 120, 65), dtype=np.float32)
-        tmp_tar_data = np.empty((self.num_batches, self.batch_len, 120, 33), dtype=np.float32)
-        tmp_mask_data = np.empty((self.num_batches, self.batch_len, 120, 33), dtype=np.int)
+        tmp_in_data = np.empty((self.num_batches, self.batch_len, TRIAL_LEN, 65), dtype=np.float32)
+        tmp_tar_data = np.empty((self.num_batches, self.batch_len, TRIAL_LEN, 33), dtype=np.float32)
+        tmp_mask_data = np.empty((self.num_batches, self.batch_len, TRIAL_LEN, 33), dtype=np.int)
         tmp_tar_dirs = np.empty((self.num_batches, self.batch_len), dtype = np.float32)
         for index, task in enumerate(self.trial_types):
             if index % 50 == 0: 
