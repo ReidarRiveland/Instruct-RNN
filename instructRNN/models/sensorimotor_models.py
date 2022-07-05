@@ -7,7 +7,7 @@ import pickle
 from instructRNN.models.script_gru import ScriptGRU
 from instructRNN.tasks.tasks import TASK_LIST
 from instructRNN.models.language_models import InstructionEmbedder, LMConfig
-from instructRNN.tasks.task_factory import INPUT_DIM, OUTPUT_DIM
+from instructRNN.tasks.task_factory import INPUT_DIM, OUTPUT_DIM, TRIAL_LEN
 
 SENSORY_INPUT_DIM = INPUT_DIM
 MOTOR_OUTPUT_DIM = OUTPUT_DIM
@@ -85,12 +85,12 @@ class BaseNet(nn.Module):
                 self.rnn_hiddenInitValue, device=torch.device(self.__device__))
 
     def expand_info(self, task_info, duration, onset): 
-        task_info_block = torch.zeros((task_info.shape[0], 120, task_info.shape[-1]))
+        task_info_block = torch.zeros((task_info.shape[0], TRIAL_LEN, task_info.shape[-1]))
         task_info = task_info.unsqueeze(1).repeat(1, duration, 1)
         task_info_block[:, onset:onset+duration, :] = task_info
         return task_info_block
 
-    def forward(self, x, task_info, info_duration=120, info_onset=0): 
+    def forward(self, x, task_info, info_duration=TRIAL_LEN, info_onset=0): 
         h0 = self.__initHidden__(x.shape[0])
         task_info_block = self.expand_info(task_info, info_duration, info_onset)
         rnn_ins = torch.cat((task_info_block.to(self.__device__), x.type(torch.float32)), 2)
