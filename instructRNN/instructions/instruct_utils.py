@@ -15,9 +15,9 @@ def inv_instruct_dict(instruct_dict):
     return inv_dict
 
 
-INSTRUCT_PATH = os.environ['MODEL_FOLDER']
-train_instruct_dict = pickle.load(open(INSTRUCT_PATH+'instructs/train_instruct_dict', 'rb'))
-test_instruct_dict = pickle.load(open(INSTRUCT_PATH+'instructs/test_instruct_dict', 'rb'))
+INSTRUCT_PATH = os.environ['MODEL_FOLDER']+'/instructs/'
+train_instruct_dict = pickle.load(open(INSTRUCT_PATH+'train_instruct_dict', 'rb'))
+test_instruct_dict = pickle.load(open(INSTRUCT_PATH+'test_instruct_dict', 'rb'))
 inv_train_instruct_dict = inv_instruct_dict(train_instruct_dict)
  
  
