@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import os
 from instructRNN.tasks.tasks import TASK_LIST, construct_trials
+from instructRNN.tasks.task_factory import TRIAL_LEN
 
 class TaskDataSet():
     DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
@@ -38,14 +39,14 @@ class TaskDataSet():
     
     def __make_memmaps__(self): 
         for task in self.task_ratio_dict.keys(): 
-            self.memmap_dict[task] = (np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 65)),
-                    np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 33)),
-                    np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (10000, 120, 33)),
+            self.memmap_dict[task] = (np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (10000, TRIAL_LEN, 65)),
+                    np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (10000, TRIAL_LEN, 33)),
+                    np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (10000, TRIAL_LEN, 33)),
                     np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (10000)))
 
     def check_data_build(self): 
         for task in TASK_LIST:
-            task_data_path = self.data_folder+'/training_data'+task
+            task_data_path = self.data_folder+'/training_data/'+task
             if not os.path.exists(task_data_path):
                 print('\n no training data for {task} discovered at {data_load_path} \n'.format(task=task, data_load_path=self.data_folder))
                 build_training_data(self.data_folder, task)
