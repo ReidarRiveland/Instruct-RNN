@@ -13,34 +13,34 @@ def invert_holdout_dict(task_dict):
             inv_swap_dict[task] = k
     return inv_swap_dict
 
-TASK_LIST = ['Go', 'Anti_Go', 'RT_Go', 'Anti_RT_Go', 
+TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo', 
             
-            'Go_Mod1', 'Anti_Go_Mod1', 'Go_Mod2', 'Anti_Go_Mod2',
+            'GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2',
 
-            'DM', 'Anti_DM', 'MultiDM', 'Anti_MultiDM', 
+            'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
 
-            'ConDM', 'Anti_ConDM', 'ConMultiDM', 'Anti_ConMultiDM',            
+            'ConDM', 'AntiConDM', 'ConMultiDM', 'AntiConMultiDM',            
 
-            'DM_Mod1', 'Anti_DM_Mod1', 'DM_Mod2', 'Anti_DM_Mod2',
+            'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2',
             
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
 
-            'COMP1_Mod1', 'COMP2_Mod1', 'COMP1_Mod2', 'COMP2_Mod2', 
+            'COMP1Mod1', 'COMP2Mod1', 'COMP1Mod2', 'COMP2Mod2', 
 
             'Dur1', 'Dur2', 'DurLong', 'DurShort',
             
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
 SWAP_LIST = [            
-            ('Anti_DM_Mod2', 'RT_Go', 'Anti_ConDM', 'COMP1'), 
-            ('COMP1_Mod1', 'Anti_Go_Mod2', 'ConMultiDM', 'DMS'),
-            ('DM_Mod2', 'Anti_RT_Go',  'Go', 'MultiCOMP1'), 
-            ('Go_Mod2', 'Anti_ConMultiDM', 'DurLong', 'COMP2'), 
-            ('Dur1', 'MultiDM', 'COMP2_Mod2', 'DMC'),             
-            ('DM', 'Anti_Go', 'Go_Mod1', 'MultiCOMP2'), 
-            ('Anti_DM', 'Dur2', 'Anti_Go_Mod1',  'DNMS'), 
-            ('COMP2_Mod1', 'Anti_MultiDM', 'DM_Mod1', 'DNMC'),
-            ('ConDM', 'DurShort', 'COMP1_Mod2', 'Anti_DM_Mod1')
+            ('AntiDMMod2', 'RTGo', 'AntiConDM', 'COMP1'), 
+            ('COMP1_Mod1', 'AntiGoMod2', 'ConMultiDM', 'DMS'),
+            ('DM_Mod2', 'AntiRTGo',  'Go', 'MultiCOMP1'), 
+            ('Go_Mod2', 'AntiConMultiDM', 'DurLong', 'COMP2'), 
+            ('Dur1', 'MultiDM', 'COMP2Mod2', 'DMC'),             
+            ('DM', 'AntiGo', 'GoMod1', 'MultiCOMP2'), 
+            ('AntiDM', 'Dur2', 'AntiGoMod1',  'DNMS'), 
+            ('COMP2Mod1', 'AntiMultiDM', 'DMMod1', 'DNMC'),
+            ('ConDM', 'DurShort', 'COMP1Mod2', 'AntiDMMod1')
             ]
 
             
@@ -491,89 +491,8 @@ class DNMC(Task):
 
 def construct_trials(task_type, num_trials=None, noise = None, return_tensor=False):
     assert task_type in TASK_LIST, "entered invalid task type"
-    if task_type == 'Go':
-        trial = Go
-    if task_type == 'RT_Go':
-        trial = RTGo
-    if task_type == 'Anti_Go':
-        trial = AntiGo
-    if task_type == 'Anti_RT_Go':
-        trial = AntiRTGo
-    
-    if task_type == 'Go_Mod1':
-        trial = GoMod1
-    if task_type == 'Go_Mod2':
-        trial = GoMod2
-    if task_type == 'Anti_Go_Mod1':
-        trial = AntiGoMod1
-    if task_type == 'Anti_Go_Mod2':
-        trial = AntiGoMod2
-    
-    if task_type == 'DM':
-        trial = DM
-    if task_type == 'Anti_DM': 
-        trial = AntiDM
-    if task_type == 'MultiDM':
-        trial = MultiDM
-    if task_type == 'Anti_MultiDM': 
-        trial = AntiMultiDM
-        
-    if task_type == 'ConDM':
-        trial = ConDM
-    if task_type == 'Anti_ConDM': 
-        trial = ConAntiDM
-    if task_type == 'ConMultiDM':
-        trial = ConMultiDM
-    if task_type == 'Anti_ConMultiDM': 
-        trial = ConAntiMultiDM
+    trial = getattr(sys.modules[__name__], task_type)
 
-    if task_type == 'DM_Mod1':     
-        trial = DMMod1
-    if task_type == 'DM_Mod2': 
-        trial = DMMod2
-    if task_type == 'Anti_DM_Mod1': 
-        trial = AntiDMMod1
-    if task_type == 'Anti_DM_Mod2': 
-        trial = AntiDMMod2
-
-    if task_type == 'Dur1': 
-        trial = Dur1
-    if task_factory == 'Dur2': 
-        trial = Dur2
-    if task_type == 'DurLong': 
-        trial = DurLong
-    if task_factory == 'DurShort': 
-        trial = DurShort
-
-    if task_type == 'COMP1': 
-        trial = COMP1
-    if task_type == 'COMP2': 
-        trial = COMP2
-    if task_type == 'MultiCOMP1': 
-        trial = MultiCOMP1
-    if task_type == 'MultiCOMP2': 
-        trial = MultiCOMP2
-    
-    if task_type == 'COMP1_Mod1': 
-        trial = COMP1Mod1
-    if task_type == 'COMP1_Mod2': 
-        trial = COMP1Mod2
-    if task_type == 'COMP2_Mod1': 
-        trial = COMP2Mod1
-    if task_type == 'COMP2_Mod2': 
-        trial = COMP2Mod2
-
-    if task_type == 'DMS': 
-        trial = DMS
-    if task_type == 'DNMS': 
-        trial = DNMS
-    if task_type == 'DMC': 
-        trial = DMC
-    if task_type == 'DNMC': 
-        trial = DNMC
-    if num_trials is None: 
-        return trial
-        
     if num_trials is None: 
         return trial 
     else: 

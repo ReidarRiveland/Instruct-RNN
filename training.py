@@ -42,8 +42,6 @@ if __name__ == "__main__":
     parser.add_argument('--models', default=small_models, nargs='*', help='list of model names to train, default is all models')
     parser.add_argument('--holdouts', type=int, default=None,  nargs='*', help='list of ints that index the holdout sets to use')
     parser.add_argument('--overwrite', default=False, action='store_true', help='whether or not to overwrite existing files')
-    parser.add_argument('--o_task_data', default=False, action='store_true', help='overwrite training data before run')
-    parser.add_argument('--o_instructs', default=False, action='store_true', help='overwrite instructs before run')
     parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')
     parser.add_argument('--layer', default='last', help='the dim corresponding to the layer the contexts gets trained at, \
                                                     must be emd or last, only for use if mode is context')
