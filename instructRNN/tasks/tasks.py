@@ -282,45 +282,49 @@ class AntiConMultiDM(Task):
 
 class DMMod1(Task):
     comp_ref_tasks = ('DM_Mod2', 'Anti_DM_Mod2', 'Anti_DM_Mod1')
-    def __init__(self, num_trials, noise=None): 
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
                         mod=0, 
-                        multi=True
+                        multi=True,
+                        **factory_kwargs
                         )
         self.task_type = 'DM_Mod1'
 
 class DMMod2(Task):
     comp_ref_tasks = ('DM_Mod1', 'Anti_DM_Mod1', 'Anti_DM_Mod2')
-    def __init__(self, num_trials, noise=None): 
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
                         mod=1, 
-                        multi=True
+                        multi=True,
+                        **factory_kwargs
                         )
         self.task_type = 'DM_Mod2'
         
 class AntiDMMod1(Task):
     comp_ref_tasks = ('Anti_DM_Mod2', 'DM_Mod2', 'DM_Mod1')
-    def __init__(self, num_trials, noise=None): 
+    def __init__(self, num_trials, noise=None,**factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
                         mod=0, 
-                        multi=True
+                        multi=True,
+                        **factory_kwargs
                         )
         self.task_type = 'Anti_DM_Mod1'
 
 class AntiDMMod2(Task):
     comp_ref_tasks = ('Anti_DM_Mod1', 'DM_Mod1', 'DM_Mod2')
-    def __init__(self, num_trials, noise=None): 
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
                         mod=1,
-                        multi=True
+                        multi=True,
+                        **factory_kwargs
                         )
         self.task_type = 'Anti_DM_Mod2'
 
@@ -510,7 +514,6 @@ def construct_trials(task_type, num_trials=None, noise = None, return_tensor=Fal
                 trial.masks.astype(int), 
                 trial.target_dirs.astype(np.float32), 
                 TASK_LIST.index(task_type))
-
 
 
 # if __name__ == "__main__":

@@ -94,7 +94,7 @@ def _max_var_dir(num_trials, num_stims, shuffle):
 
     return dirs
 
-def max_var_coh(num_trials, max_contrast=0.3, min_contrast=0.05, shuffle=True): 
+def max_var_coh(num_trials, max_contrast=0.8, min_contrast=0.05, shuffle=True): 
     coh = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(num_trials/2)), 
                 np.linspace(min_contrast, max_contrast, num=int(num_trials/2))))
 
@@ -119,7 +119,7 @@ class TaskFactory():
         if stim_durs is None: 
             stim_durs = np.floor(np.random.uniform(400, 1000, (2, self.num_trials))/DELTA_T)
 
-        T_go = np.array([TRIAL_LEN - np.floor(np.random.uniform(300, 500, self.num_trials)/DELTA_T), [TRIAL_LEN]*self.num_trials]).astype(int)
+        T_go = np.array([TRIAL_LEN - np.floor(np.random.uniform(400, 500, self.num_trials)/DELTA_T), [TRIAL_LEN]*self.num_trials]).astype(int)
         T_stim2 = np.array([T_go[0,]-stim_durs[1,], T_go[0,]])
         T_delay = np.array([T_stim2[0,]-np.floor(np.random.uniform(200, 500, self.num_trials)/DELTA_T), T_stim2[0,]])
         T_stim1 = np.array([T_delay[0,]-stim_durs[0,], T_delay[0,]])
@@ -393,7 +393,7 @@ class ConDMFactory(TaskFactory):
     def __init__(self, num_trials,  noise, str_chooser, threshold_folder,
                     timing= 'full', mod=None, multi=False,  
                     dir_arr = None, coh_arr = None, noises=None,                      
-                    max_var=False, intervals= None, cond_arr=None):
+                    intervals= None, cond_arr=None):
         super().__init__(num_trials, timing, noise)
         self.threshold_folder = threshold_folder
         self.multi = multi
@@ -404,30 +404,26 @@ class ConDMFactory(TaskFactory):
         self.pos_thresholds, self.neg_thresholds = pickle.load(open(location+'/noise_thresholds/'+self.threshold_folder, 'rb'))
 
         if intervals is None: 
-            _intervals = np.array([(0, 20), (20, 50), (50, 70), (70, 100), (100, 120)])
+            _intervals = np.array([(0, 20), (20, 50), (50, 70), (70, 100), (100, TRIAL_LEN)])
             intervals = _intervals[:,:,None].repeat(self.num_trials, -1)
-        if max_var: 
-            dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
+        # if max_var: 
+        #     dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
 
         if self.cond_arr is None: 
-            self.cond_arr = self._make_cond_arr(dir_arr, coh_arr, noises)
+            self.cond_arr = self._make_cond_arr()
             
         self.target_dirs = self._set_target_dirs()
         self.intervals = self.make_intervals(intervals)
 
-    def _make_cond_arr(self, dir_arr, coh_arr, noises):
+    def _make_cond_arr(self):
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
         self.requires_response_list = _draw_requires_resp(self.num_trials)
         
         dirs0 = _draw_ortho_dirs(self.num_trials)
         noises, contrasts = _draw_confidence_threshold(self.requires_response_list, self.pos_thresholds, self.neg_thresholds)
         self.noise = noises
-        if dir_arr is not None: 
-            coh = coh_arr
-            dirs = dir_arr
-            base_strs = np.full((2, self.num_trials), 1)
 
-        elif self.multi:    
+        if self.multi:    
             dirs1 = dirs0
             dirs = np.array([dirs0, dirs1])
             mod_coh = contrasts/2
@@ -437,8 +433,10 @@ class ConDMFactory(TaskFactory):
             nan_dirs = np.full_like(dirs0, np.NaN)
             dirs = _permute_mod(np.array([dirs0, nan_dirs]))
             base_strs = np.full((2, self.num_trials), 1)
-            coh = np.array([1+contrasts/2, 1-contrasts/2])
-            
+            coh = np.array([contrasts/2, contrasts/2])
+
+
+
         _strs= np.array([[base_strs[0]+coh[0], base_strs[0]-coh[0]],
                         [base_strs[1]+coh[1], base_strs[1]-coh[1]]])
 
@@ -545,48 +543,6 @@ class DurFactory(TaskFactory):
             stim_dirs = np.nansum(self.cond_arr[:,self.resp_stim,0,:], axis=0)
         target_dirs = np.where(self.req_resp, stim_dirs, np.full(self.num_trials, np.NaN))
         return target_dirs
-
-# num_trials = 100
-# resp_stim = 1
-# _req_resp = _draw_requires_resp(num_trials)
-
-# req_resp = _req_resp.astype(int)
-
-# dur_array = np.empty((2,num_trials))
-# no_resp_stim = (resp_stim+1)%2
-# not_req_resp = (req_resp+1)%2
-
-# long_dur = np.floor(np.random.uniform(500, 800, num_trials)/DELTA_T).astype(int)
-# short_dur = np.floor(np.random.uniform(400, (long_dur*DELTA_T)-80, num_trials)/DELTA_T).astype(int)
-# _durs = np.array([short_dur, long_dur])
-
-# dur_array[resp_stim, :] = _durs[req_resp, range(num_trials)]
-# dur_array[no_resp_stim, :] = _durs[not_req_resp, range(num_trials)]
-
-# index = 2
-# _req_resp[index]
-# dur_array[:, index]
-
-
-# dur1=dur_array[0,]
-# dur2=dur_array[1,]
-
-
-# stim_durs = dur_array
-# if stim_durs is None: 
-#     stim_durs = np.floor(np.random.uniform(500, 800, (2, num_trials))/DELTA_T)
-
-# T_go = np.array([TRIAL_LEN - np.floor(np.random.uniform(300, 400, num_trials)/DELTA_T), [TRIAL_LEN]*num_trials]).astype(int)
-# T_stim2 = np.array([T_go[0,]-stim_durs[1,], T_go[0,]])
-# T_delay = np.array([T_stim2[0,]-np.floor(np.random.uniform(200, 300, num_trials)/DELTA_T), T_stim2[0,]])
-# T_stim1 = np.array([T_delay[0,]-stim_durs[0,], T_delay[0,]])
-# T_fix = np.array([np.zeros(num_trials), T_stim1[0,]])
-
-
-# intervals = np.array([T_fix, T_stim1, T_delay, T_stim2, T_go])
-
-# intervals
-
 
 
 class COMPFactory(TaskFactory):

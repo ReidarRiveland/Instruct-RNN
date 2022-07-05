@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from instructRNN.tasks.task_factory import TUNING_DIRS
+from instructRNN.tasks.task_factory import TRIAL_LEN, TUNING_DIRS
 
 def gpu_to_np(t):
     """removes tensor from gpu and converts to np.array""" 
@@ -57,7 +57,7 @@ def isCorrect(nn_out, nn_target, target_dirs):
     isFixed = np.all(np.where(nn_target[:, :, 0] == 0.85, nn_out[:, :, 0] > 0.5, True), axis=1)
 
     #checks for repressed responses
-    isRepressed = np.all(nn_out[:, 114:119, :].reshape(batch_size, -1) < 0.15, axis = 1)
+    isRepressed = np.all(nn_out[:, TRIAL_LEN-6:TRIAL_LEN-1, :].reshape(batch_size, -1) < 0.15, axis = 1)
 
     #checks is responses are in the correct direction 
     is_response = np.max(nn_out[:, -1, 1:]) > 0.6

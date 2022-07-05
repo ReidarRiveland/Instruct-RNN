@@ -280,7 +280,7 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
             is_task_instruct = all([instruct in train_instruct_dict or instruct in test_instruct_dict for instruct in instructions])
             if not is_task_instruct: warnings.warn('Not all instructions correspond to given task!')
         else: 
-            task_info = get_task_info(ins.shape[0], trials.task_type, model.is_instruct)
+            task_info = get_task_info(ins.shape[0], trials.task_type, model.info_type)
         
         out, hid = model(torch.Tensor(ins), task_info)
 

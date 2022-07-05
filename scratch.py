@@ -112,6 +112,12 @@
 # ('DMS', 0.61328125), ('DNMS', 0.859375), ('DMC', 0.578125), ('DNMC', 0.734375)]
 #82%
 
+from instructRNN.tasks.tasks import *
+trials = ConMultiDM(100)
+trials.plot_trial(0)
+trials.factory.cond_arr[:,:,0,0]
+trials.factory.intervals[:,:,0]
+
 
 from turtle import position
 from instructRNN.data_loaders.dataset import TaskDataSet
@@ -190,13 +196,6 @@ task_eval(sbertNet, 'Anti_Go_Mod2', 128)
 
 
 get_instructions(128, 'DMC', None)
-
-from plotting import plot_model_response
-
-from tasks import AntiGoMod1
-trials = AntiGoMod1(128)
-task_instructions = get_instructions(128, 'Anti_Go_Mod1', None)
-plot_model_response(sbertNet, trials, instructions=task_instructions)
 
 
 task_instructions[2]
@@ -303,53 +302,57 @@ from instructRNN.models.full_models import SBERTNet
 from instructRNN.instructions.instruct_utils import get_instructions
 
 EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = CLIPNet()
+sbertNet = SBERTNet()
 
 holdouts_file = 'swap0'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-sbertNet.train_attrs
+
+from instructRNN.plotting.plotting import plot_model_response
+from instructRNN.tasks.tasks import DMS
 
 
-CLUSTER_TASK_LIST = ['Go', 'RT_Go','DelayGo','Go_Mod1','Go_Mod2',
-                    'Anti_Go',  'Anti_RT_Go', 'Anti_DelayGo', 'Anti_Go_Mod1',  'Anti_Go_Mod2',
-                    'DM', 'RT_DM', 'MultiDM', 'DelayDM', 'DelayMultiDM', 'ConDM','ConMultiDM','DM_Mod1',  'DM_Mod2',
-                    'Anti_DM', 'Anti_RT_DM', 'Anti_MultiDM',    'Anti_DelayDM',  'Anti_DelayMultiDM','Anti_ConDM', 'Anti_ConMultiDM', 'Anti_DM_Mod1', 'Anti_DM_Mod2',        
+task_instructions = get_instructions(128, 'Anti_Go_Mod1', None)
+plot_model_response(sbertNet, ConDM(100))
+
+
+CLUSTER_TASK_LIST = ['Go', 'RTGo', 'GoMod1','GoMod2',
+                    'AntiGo',  'AntiRTGo', 'AntiGoMod1',  'AntiGoMod2',
+                    'DM',  'MultiDM',  
+                    #'ConDM','ConMultiDM', 'AntiConDM', 'AntiConMultiDM',
+                    'DMMod1', 'DMMod2',
+                    'AntiDM', 'AntiMultiDM',  'AntiDMMod1', 'AntiDMMod2',        
                     'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
                     'DMS', 'DNMS', 'DMC', 'DNMC']
 
 
 def get_hidden_reps(model, num_trials, tasks=CLUSTER_TASK_LIST, instruct_mode=None):
-    hidden_reps = np.empty((num_trials, 120, 256, len(tasks)))
+    hidden_reps = np.empty((num_trials, 150, 256, len(tasks)))
     with torch.no_grad():
         for i, task in enumerate(tasks): 
             print(task)
-            ins, _, _, _, _ =  construct_trials(task, num_trials)
+            trial = construct_trials(task, None)
+            ins = trial(num_trials, max_var=True).inputs
 
             task_info = get_task_info(num_trials, task, model.info_type, instruct_mode=instruct_mode)
             _, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
             hidden_reps[..., i] = hid.cpu().numpy()
     return hidden_reps
 
+perf = get_model_performance(sbertNet)
 
-recurrent_units = sbertNet.state_dict()['recurrent_units.layers.0.cell.weight_hh'].numpy()
+print(list(zip(TASK_LIST, perf)))
 
-from numpy.linalg import matrix_rank, svd
-matrix_rank(recurrent_units)
-
-
-hid_reps = get_hidden_reps(sbertNet, 256) 
-
-import pickle
-hid_reps = pickle.load(open('hidden_reps', 'rb'))
+hid_reps = get_hidden_reps(sbertNet, 128) 
 
 task_var = np.mean(np.var(hid_reps, axis=0), axis=0)
-task_var.shape
-
-task_var
-
 norm_task_var = task_var.T/(np.sum(task_var, axis=1)).T
 
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+sns.heatmap(norm_task_var, yticklabels=CLUSTER_TASK_LIST, vmin=0)
+plt.show()
 
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
@@ -364,32 +367,24 @@ def get_optim_clusters(norm_task_var):
 
     return list(range(2, 50))[np.argmax(np.array(score_list))]
 
-get_optim_clusters(task_var.T)
+get_optim_clusters(norm_task_var)
 
-km = KMeans(n_clusters=4, random_state=42)
+
+km = KMeans(n_clusters=7, random_state=42)
 labels = km.fit_predict(norm_task_var.T)
 
-labels
 
-colors = np.array(['blue', 'green', 'red', 'yellow', 'organe', 'purple'])
-
-colors[labels]
 
 from sklearn.manifold import TSNE
 tSNE = TSNE(n_components=2)
-fitted = tSNE.fit_transform(task_var.T)
+fitted = tSNE.fit_transform(norm_task_var.T)
+
+import matplotlib.pyplot as plt
+plt.scatter(fitted[:, 0], fitted[:, 1], cmap = plt.cm.gist_ncar, c = labels)
+plt.show()
 
 fitted.shape
 
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-sns.heatmap(norm_task_var, yticklabels=CLUSTER_TASK_LIST, vmin=0)
-plt.show()
-
-import matplotlib.pyplot as plt
-plt.scatter(fitted[:, 0], fitted[:, 1], c=colors[labels])
-plt.show()
 
 from pathlib import Path
 
