@@ -245,7 +245,7 @@ class ConDM(Task):
                         )
         self.task_type = 'ConDM'
 
-class ConAntiDM(Task):
+class AntiConDM(Task):
     comp_ref_tasks = ('Anti_ConMultiDM', 'ConMultiDM', 'ConDM')
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
@@ -268,7 +268,7 @@ class ConMultiDM(Task):
                         )
         self.task_type = 'ConMultiDM'
 
-class ConAntiMultiDM(Task):
+class AntiConMultiDM(Task):
     comp_ref_tasks = ( 'Anti_ConDM', 'ConDM', 'ConMultiDM')
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
