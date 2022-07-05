@@ -1,14 +1,10 @@
 /__pycache__/*
 /figs/*
 /*models/_pretrained_state_dicts/*
-/*training_data/*
-/*6.6models/*
-/*6.7models/*
-/*6.9models/*
-/*6.20models/*
-/*4.11/*
+/*.sbatch*
 
-/*6.models/*
+/*models/*
+
 *.pyc
 *.pt
 *_attrs

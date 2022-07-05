@@ -407,6 +407,51 @@ class MultiCOMP2(Task):
                         )
         self.task_type = 'MultiCOMP2'
 
+class COMP1Mod1(Task): 
+    comp_ref_tasks = ('MultiCOMP1', 'MultiCOMP2', 'COMP2')
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
+                        resp_stim = 0,
+                        mod = 0,
+                        **factory_kwargs
+                        )
+        self.task_type = 'COMP1_Mod1'
+
+class COMP1Mod2(Task): 
+    comp_ref_tasks = ('MultiCOMP1', 'MultiCOMP2', 'COMP2')
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
+                        resp_stim = 0,
+                        mod = 1,
+                        **factory_kwargs
+                        )
+        self.task_type = 'COMP1_Mod2'
+
+class COMP2Mod1(Task): 
+    comp_ref_tasks = ('MultiCOMP1', 'MultiCOMP2', 'COMP2')
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
+                        resp_stim = 1,
+                        mod = 0,
+                        **factory_kwargs
+                        )
+        self.task_type = 'COMP2_Mod1'
+
+
+class COMP2Mod2(Task): 
+    comp_ref_tasks = ('MultiCOMP1', 'MultiCOMP2', 'COMP2')
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.COMPFactory, 
+                        resp_stim = 1,
+                        mod = 1,
+                        **factory_kwargs
+                        )
+        self.task_type = 'COMP2_Mod2'
+
 class DMS(Task):
     comp_ref_tasks = ('DMC', 'DNMC', 'DNMS')
     def __init__(self, num_trials, noise=None, **factory_kwargs):
@@ -454,6 +499,7 @@ def construct_trials(task_type, num_trials=None, noise = None, return_tensor=Fal
         trial = AntiGo
     if task_type == 'Anti_RT_Go':
         trial = AntiRTGo
+    
     if task_type == 'Go_Mod1':
         trial = GoMod1
     if task_type == 'Go_Mod2':
@@ -462,10 +508,16 @@ def construct_trials(task_type, num_trials=None, noise = None, return_tensor=Fal
         trial = AntiGoMod1
     if task_type == 'Anti_Go_Mod2':
         trial = AntiGoMod2
+    
     if task_type == 'DM':
         trial = DM
     if task_type == 'Anti_DM': 
         trial = AntiDM
+    if task_type == 'MultiDM':
+        trial = MultiDM
+    if task_type == 'Anti_MultiDM': 
+        trial = AntiMultiDM
+        
     if task_type == 'ConDM':
         trial = ConDM
     if task_type == 'Anti_ConDM': 
@@ -474,11 +526,8 @@ def construct_trials(task_type, num_trials=None, noise = None, return_tensor=Fal
         trial = ConMultiDM
     if task_type == 'Anti_ConMultiDM': 
         trial = ConAntiMultiDM
-    if task_type == 'MultiDM':
-        trial = MultiDM
-    if task_type == 'Anti_MultiDM': 
-        trial = AntiMultiDM
-    if task_type == 'DM_Mod1': 
+
+    if task_type == 'DM_Mod1':     
         trial = DMMod1
     if task_type == 'DM_Mod2': 
         trial = DMMod2
@@ -491,6 +540,10 @@ def construct_trials(task_type, num_trials=None, noise = None, return_tensor=Fal
         trial = Dur1
     if task_factory == 'Dur2': 
         trial = Dur2
+    if task_type == 'DurLong': 
+        trial = DurLong
+    if task_factory == 'DurShort': 
+        trial = DurShort
 
     if task_type == 'COMP1': 
         trial = COMP1
@@ -500,6 +553,16 @@ def construct_trials(task_type, num_trials=None, noise = None, return_tensor=Fal
         trial = MultiCOMP1
     if task_type == 'MultiCOMP2': 
         trial = MultiCOMP2
+    
+    if task_type == 'COMP1_Mod1': 
+        trial = COMP1Mod1
+    if task_type == 'COMP1_Mod2': 
+        trial = COMP1Mod2
+    if task_type == 'COMP2_Mod1': 
+        trial = COMP2Mod1
+    if task_type == 'COMP2_Mod2': 
+        trial = COMP2Mod2
+
     if task_type == 'DMS': 
         trial = DMS
     if task_type == 'DNMS': 
