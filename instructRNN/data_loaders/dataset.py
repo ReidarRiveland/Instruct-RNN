@@ -38,10 +38,10 @@ class TaskDataSet():
     
     def __make_memmaps__(self): 
         for task in self.task_ratio_dict.keys(): 
-            self.memmap_dict[task] = (np.lib.format.open_memmap(self.data_folder+'/training_data'+task+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 65)),
-                    np.lib.format.open_memmap(self.data_folder+'/training_data'+task+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 33)),
-                    np.lib.format.open_memmap(self.data_folder+'/training_data'+task+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (10000, 120, 33)),
-                    np.lib.format.open_memmap(self.data_folder+'/training_data'+task+'/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (10000)))
+            self.memmap_dict[task] = (np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 65)),
+                    np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 33)),
+                    np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (10000, 120, 33)),
+                    np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (10000)))
 
     def check_data_build(self): 
         for task in TASK_LIST:
@@ -96,7 +96,7 @@ class TaskDataSet():
 
 def build_training_data(foldername, task):
     print('Building training data for ' + task + '...')
-    path = foldername +'/training_data'+ task
+    path = foldername +'/training_data/'+ task
     if os.path.exists(path):
         pass
     else: os.makedirs(path)
