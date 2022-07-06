@@ -39,10 +39,10 @@ class scriptGRULayer(jit.ScriptModule):
     def __init__(self, cell, *cell_args):
         super(scriptGRULayer, self).__init__()
         self.cell = cell(*cell_args)
-        self.inactiv_mask = torch.ones(self.cell.hidden_size)
+        self.inactiv_mask = Parameter(torch.ones(self.cell.hidden_size), requires_grad=False)
 
-    def _set_inactiv_mask(self, units_idx): 
-        self.inactiv_mask = torch.ones(self.cell.hidden_size)
+    def _set_inactiv_mask(self, units_idx, device): 
+        self.inactiv_mask = torch.ones(self.cell.hidden_size).to(device)
         self.inactiv_mask[units_idx] = 0
 
     @jit.script_method
@@ -74,9 +74,9 @@ class ScriptGRU(jit.ScriptModule):
         self.hidden_dim = hidden_dim
         self.__weights_init__()
     
-    def set_inactiv_mask(self, units_idx): 
+    def _set_inactiv_mask(self, units_idx, device): 
         for layer in self.layers: 
-            layer._set_inactiv_mask(units_idx)
+            layer._set_inactiv_mask(units_idx, device)
 
     def __weights_init__(self):
         for n, p in self.named_parameters():
