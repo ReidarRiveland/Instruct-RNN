@@ -269,7 +269,7 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, over
                                 test_repeats = repeats, **train_config_kwargs)
         trainer = ModelTrainer(testing_config)
         for _ in range(repeats): 
-            model.load_model(file_name, suffix='_seed'+str(seed))
+            model.load_model(file_name, suffix='_seed'+str(seed)+'_CHECKPOINT')
             trainer.train(model, is_testing=True, instruct_mode=mode)
         trainer._record_session(model, mode='TESTING')
 

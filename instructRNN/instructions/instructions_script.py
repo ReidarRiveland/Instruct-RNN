@@ -294,7 +294,7 @@ train_instruct_dict['AntiConMultiDM'] = ('opt for the stimulus with least combin
                                         'if you have high confidence then select the stimulus with least intensity over modalities otherwise do not respond', 
                                         'pick the weakest direction averaged over modalities if you have confidence in your decision otherwise do not respond')
 
-train_instruct_dict['RT_DM'] = ('respond to the strongest direction as soon as the stimulus appears',
+train_instruct_dict['RTDM'] = ('respond to the strongest direction as soon as the stimulus appears',
                                 'immediately select the direction with greatest strength', 
                                 'choose the direction displayed with greatest strength as soon as the stimuli appears', 
                                 'select the orientation displayed with highest intensity as soon as the stimuli appears', 
@@ -310,7 +310,7 @@ train_instruct_dict['RT_DM'] = ('respond to the strongest direction as soon as t
                                 'at stimulus onset respond to the direction displayed with greatest strength',
                                 'pick the orientation presented with most strength at stimulus onset')
 
-train_instruct_dict['Anti_RT_DM'] = ('at stimulus onset select the weakest stimulus',
+train_instruct_dict['AntiRTDM'] = ('at stimulus onset select the weakest stimulus',
                                     'opt for the stimulus displayed with minimal strength as soon as stimulus appears', 
                                     'pick the orientation that is presented with least intensity immediately', 
                                     'at stimulus onset choose the stimulus with lowest intensity', 
