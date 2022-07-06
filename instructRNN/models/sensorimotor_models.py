@@ -61,7 +61,6 @@ class BaseNet(nn.Module):
         self.config=config
         for name, value in asdict(config, recurse=False).items(): 
             setattr(self, name, value)
-        self.set_inactiv_units(None)
 
         if self.rnn_activ_func == 'relu':
             self._activ_func = torch.relu
