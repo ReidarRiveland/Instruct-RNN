@@ -302,7 +302,7 @@ from instructRNN.models.full_models import SBERTNet
 from instructRNN.instructions.instruct_utils import get_instructions
 
 EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = SBERTNet()
+sbertNet = SBERTNet(LM_output_nonlinearity='relu')
 
 holdouts_file = 'swap0'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
@@ -313,7 +313,7 @@ from instructRNN.tasks.tasks import DMS
 
 
 task_instructions = get_instructions(128, 'Anti_Go_Mod1', None)
-plot_model_response(sbertNet, ConDM(100))
+plot_model_response(sbertNet, AntiDM(100))
 
 
 CLUSTER_TASK_LIST = ['Go', 'RTGo', 'GoMod1','GoMod2',
@@ -332,62 +332,80 @@ def get_hidden_reps(model, num_trials, tasks=CLUSTER_TASK_LIST, instruct_mode=No
         for i, task in enumerate(tasks): 
             print(task)
             trial = construct_trials(task, None)
-            ins = trial(num_trials, max_var=True).inputs
+            _intervals = np.array([(0, 30), (30, 60), (60, 90), (90, 120), (120, 150)])
+            intervals = _intervals[:,:,None].repeat(num_trials, -1)
+            ins = trial(num_trials, max_var=True, intervals=intervals).inputs
 
             task_info = get_task_info(num_trials, task, model.info_type, instruct_mode=instruct_mode)
             _, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
             hidden_reps[..., i] = hid.cpu().numpy()
     return hidden_reps
 
-perf = get_model_performance(sbertNet)
+from sklearn.preprocessing import normalize
+def get_norm_task_var(hid_reps): 
+    task_var = np.mean(np.var(hid_reps[:, 30:,:,:], axis=0), axis=0)
+    task_var = np.delete(task_var, np.where(np.sum(task_var, axis=1)<0.001)[0], axis=0)
+    return normalize(task_var, axis=1)
+    
 
-print(list(zip(TASK_LIST, perf)))
+def plot_task_var_heatmap(task_var):
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    sns.heatmap(task_var.T, yticklabels=CLUSTER_TASK_LIST, vmin=0)
+    plt.show()
 
-
-hid_reps = get_hidden_reps(sbertNet, 128) 
-
-task_var = np.mean(np.var(hid_reps, axis=0), axis=0)
-norm_task_var = task_var/(np.sum(task_var, axis=0))
-
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-sns.heatmap(norm_task_var.T, yticklabels=CLUSTER_TASK_LIST, vmin=0)
-plt.show()
 
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+from sklearn.manifold import TSNE
+
 
 def get_optim_clusters(norm_task_var):
     score_list = []
     for i in range(3,50):
         km = KMeans(n_clusters=i, random_state=12)
-        labels = km.fit_predict(norm_task_var.T)
-        score = silhouette_score(norm_task_var.T, labels, metric='euclidean')
+        labels = km.fit_predict(norm_task_var)
+        score = silhouette_score(norm_task_var, labels)
         score_list.append(score)
-
-    return list(range(2, 50))[np.argmax(np.array(score_list))]
-
-get_optim_clusters(norm_task_var.T)
+    return list(range(3, 50))[np.argmax(np.array(score_list))]
 
 
-km = KMeans(n_clusters=6, random_state=42)
-labels = km.fit_predict(norm_task_var)
+def cluster_units(n_clusters, task_var):
+    km = KMeans(n_clusters=n_clusters, random_state=42)
+    labels = km.fit_predict(task_var)
+    tSNE = TSNE(n_components=2)
+    fitted = tSNE.fit_transform(task_var)
+    return labels, fitted
 
 
-from sklearn.manifold import TSNE
-tSNE = TSNE(n_components=2)
-fitted = tSNE.fit_transform(norm_task_var)
+def plot_clustering(n_clusters, task_var):
+    km = KMeans(n_clusters=n_clusters, random_state=42)
+    labels = km.fit_predict(task_var)
+    tSNE = TSNE(n_components=2)
+    fitted = tSNE.fit_transform(task_var)
+    import matplotlib.pyplot as plt
+    plt.scatter(fitted[:, 0], fitted[:, 1], cmap = plt.cm.tab10, c = labels)
+    plt.show()
 
-import matplotlib.pyplot as plt
-plt.scatter(fitted[:, 0], fitted[:, 1], cmap = plt.cm.gist_ncar, c = labels)
-plt.show()
+hid_reps = get_hidden_reps(sbertNet, 100)
+norm_task_var = get_norm_task_var(hid_reps)
+optim_clusters = get_optim_clusters(norm_task_var)
+labels, _ = cluster_units(optim_clusters, norm_task_var)
 
-fitted.shape
+labels.max()
+sorted_indices = list(zip(*sorted(zip(labels, range(256)))))[1]
+sorted_array = norm_task_var[sorted_indices, :]
+
+plot_task_var_heatmap(sorted_array)
+
+
+
+
+
+
 
 
 from pathlib import Path
-
 def make_batch_slurm(filename,
                      scriptpath,
                      job_name='model_training',

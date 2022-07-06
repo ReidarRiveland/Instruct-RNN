@@ -122,7 +122,7 @@ class AntiGo(Task):
                         dir_chooser = task_factory.choose_anti,
                         **factory_kwargs
                         )
-        self.task_type = 'Anti_Go'
+        self.task_type = 'AntiGo'
 
 
 class RTGo(Task):
@@ -134,7 +134,7 @@ class RTGo(Task):
                         dir_chooser = task_factory.choose_pro, 
                         **factory_kwargs
                         )
-        self.task_type = 'RT_Go'
+        self.task_type = 'RTGo'
 
 class AntiRTGo(Task):
     comp_ref_tasks = ('Anti_Go', 'Go', 'RT_Go')
@@ -145,7 +145,7 @@ class AntiRTGo(Task):
                         dir_chooser = task_factory.choose_anti,
                         **factory_kwargs
                         )
-        self.task_type = 'Anti_RT_Go'
+        self.task_type = 'AntiRTGo'
 
 
 class GoMod1(Task): 
@@ -157,7 +157,7 @@ class GoMod1(Task):
                         dir_chooser = task_factory.choose_pro, 
                         **factory_kwargs
                         )
-        self.task_type = 'Go_Mod1'
+        self.task_type = 'GoMod1'
 
 class GoMod2(Task): 
     comp_ref_tasks = ('Go_Mod1', 'Anti_Go_Mod1', 'Anti_Go_Mod2')
@@ -168,7 +168,7 @@ class GoMod2(Task):
                         dir_chooser = task_factory.choose_pro,
                         **factory_kwargs
                         )
-        self.task_type = 'Go_Mod2'
+        self.task_type = 'GoMod2'
 
 class AntiGoMod1(Task): 
     comp_ref_tasks = ('Anti_Go_Mod2', 'Go_Mod2', 'Go_Mod1')
@@ -179,7 +179,7 @@ class AntiGoMod1(Task):
                         dir_chooser = task_factory.choose_anti,
                         **factory_kwargs 
                         )
-        self.task_type = 'Anti_Go_Mod1'
+        self.task_type = 'AntiGoMod1'
 
 class AntiGoMod2(Task): 
     comp_ref_tasks = ('Anti_Go_Mod1', 'Go_Mod1', 'Go_Mod2')
@@ -190,7 +190,7 @@ class AntiGoMod2(Task):
                         dir_chooser = task_factory.choose_anti, 
                         **factory_kwargs
                         )
-        self.task_type = 'Anti_Go_Mod2'
+        self.task_type = 'AntiGoMod2'
 
 class DM(Task):
     comp_ref_tasks = ('MultiDM', 'Anti_MultiDM', 'Anti_DM')
@@ -210,7 +210,7 @@ class AntiDM(Task):
                         str_chooser = np.argmin,
                         **factory_kwargs
                         )
-        self.task_type = 'Anti_DM'
+        self.task_type = 'AntiDM'
 
 class MultiDM(Task):
     comp_ref_tasks = ('DM', 'Anti_DM', 'Anti_MultiDM')
@@ -232,7 +232,7 @@ class AntiMultiDM(Task):
                         multi=True,
                         **factory_kwargs
                         )
-        self.task_type = 'Anti_MultiDM'
+        self.task_type = 'AntiMultiDM'
 
 class ConDM(Task):
     comp_ref_tasks = ('ConMultiDM', 'Anti_ConMultiDM', 'Anti_ConDM')
@@ -254,7 +254,7 @@ class AntiConDM(Task):
                         threshold_folder = 'anti_dm_noise_thresholds',
                         **factory_kwargs
                         )
-        self.task_type = 'Anti_ConDM'
+        self.task_type = 'AntiConDM'
 
 class ConMultiDM(Task):
     comp_ref_tasks = ('ConDM', 'Anti_ConDM', 'Anti_ConMultiDM')
@@ -278,7 +278,7 @@ class AntiConMultiDM(Task):
                         threshold_folder = 'anti_multi_dm_noise_thresholds',
                         **factory_kwargs
                         )
-        self.task_type = 'Anti_ConMultiDM'
+        self.task_type = 'AntiConMultiDM'
 
 class DMMod1(Task):
     comp_ref_tasks = ('DM_Mod2', 'Anti_DM_Mod2', 'Anti_DM_Mod1')
@@ -290,7 +290,7 @@ class DMMod1(Task):
                         multi=True,
                         **factory_kwargs
                         )
-        self.task_type = 'DM_Mod1'
+        self.task_type = 'DMMod1'
 
 class DMMod2(Task):
     comp_ref_tasks = ('DM_Mod1', 'Anti_DM_Mod1', 'Anti_DM_Mod2')
@@ -302,7 +302,7 @@ class DMMod2(Task):
                         multi=True,
                         **factory_kwargs
                         )
-        self.task_type = 'DM_Mod2'
+        self.task_type = 'DMMod2'
         
 class AntiDMMod1(Task):
     comp_ref_tasks = ('Anti_DM_Mod2', 'DM_Mod2', 'DM_Mod1')
@@ -314,7 +314,7 @@ class AntiDMMod1(Task):
                         multi=True,
                         **factory_kwargs
                         )
-        self.task_type = 'Anti_DM_Mod1'
+        self.task_type = 'AntiDMMod1'
 
 class AntiDMMod2(Task):
     comp_ref_tasks = ('Anti_DM_Mod1', 'DM_Mod1', 'DM_Mod2')
@@ -326,7 +326,7 @@ class AntiDMMod2(Task):
                         multi=True,
                         **factory_kwargs
                         )
-        self.task_type = 'Anti_DM_Mod2'
+        self.task_type = 'AntiDMMod2'
 
 class Dur1(Task): 
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
@@ -420,7 +420,7 @@ class COMP1Mod1(Task):
                         mod = 0,
                         **factory_kwargs
                         )
-        self.task_type = 'COMP1_Mod1'
+        self.task_type = 'COMP1Mod1'
 
 class COMP1Mod2(Task): 
     comp_ref_tasks = ('MultiCOMP1', 'MultiCOMP2', 'COMP2')
@@ -431,7 +431,7 @@ class COMP1Mod2(Task):
                         mod = 1,
                         **factory_kwargs
                         )
-        self.task_type = 'COMP1_Mod2'
+        self.task_type = 'COMP1Mod2'
 
 class COMP2Mod1(Task): 
     comp_ref_tasks = ('MultiCOMP1', 'MultiCOMP2', 'COMP2')
@@ -442,7 +442,7 @@ class COMP2Mod1(Task):
                         mod = 0,
                         **factory_kwargs
                         )
-        self.task_type = 'COMP2_Mod1'
+        self.task_type = 'COMP2Mod1'
 
 
 class COMP2Mod2(Task): 
@@ -454,7 +454,7 @@ class COMP2Mod2(Task):
                         mod = 1,
                         **factory_kwargs
                         )
-        self.task_type = 'COMP2_Mod2'
+        self.task_type = 'COMP2Mod2'
 
 class DMS(Task):
     comp_ref_tasks = ('DMC', 'DNMC', 'DNMS')

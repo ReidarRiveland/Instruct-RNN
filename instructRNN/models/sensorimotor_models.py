@@ -80,6 +80,9 @@ class BaseNet(nn.Module):
 
         self.__device__ = torch.device('cpu')
 
+    def set_inactiv_units(self, units_idx): 
+        self.recurrent_units.set_inactiv_mask(units_idx)
+
     def __initHidden__(self, batch_size):
         return torch.full((self.rnn_layers, batch_size, self.rnn_hidden_dim), 
                 self.rnn_hiddenInitValue, device=torch.device(self.__device__))

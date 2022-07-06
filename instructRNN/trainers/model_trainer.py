@@ -282,6 +282,6 @@ def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False
         
     if is_trained: 
         for test_mode in [None, 'swap']:
-            test_model(exp_folder, model_name, seed, labeled_holdouts, mode = test_mode)
+            test_model(exp_folder, model_name, seed, labeled_holdouts, mode = test_mode, overwrite=overwrite)
 
 

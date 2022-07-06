@@ -39,13 +39,18 @@ class scriptGRULayer(jit.ScriptModule):
     def __init__(self, cell, *cell_args):
         super(scriptGRULayer, self).__init__()
         self.cell = cell(*cell_args)
+        self.inactiv_mask = torch.ones(self.cell.hidden_size)
+
+    def _set_inactiv_mask(self, units_idx): 
+        self.inactiv_mask = torch.ones(self.cell.hidden_size)
+        self.inactiv_mask[units_idx] = 0
 
     @jit.script_method
     def forward(self, input, hx):
         inputs = input.unbind(1)
         outputs = jit.annotate(List[Tensor], [])
         for i in range(len(inputs)):
-            hx = self.cell(inputs[i], hx)
+            hx = self.cell(inputs[i], hx)*self.inactiv_mask
             outputs.append(hx)
         return torch.stack(outputs), hx
 
@@ -69,6 +74,10 @@ class ScriptGRU(jit.ScriptModule):
         self.hidden_dim = hidden_dim
         self.__weights_init__()
     
+    def set_inactiv_mask(self, units_idx): 
+        for layer in self.layers: 
+            layer._set_inactiv_mask(units_idx)
+
     def __weights_init__(self):
         for n, p in self.named_parameters():
             if 'weight_ih' in n:
@@ -91,3 +100,4 @@ class ScriptGRU(jit.ScriptModule):
 
 
         return output.transpose(0,1), torch.stack(output_states)
+
