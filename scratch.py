@@ -1,3 +1,7 @@
+from instructRNN.tasks.tasks import *
+
+DM(100)
+
 # from collections import defaultdict
 # from math import inf
 # import pickle

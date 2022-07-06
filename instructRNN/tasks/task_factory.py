@@ -164,35 +164,23 @@ class TaskFactory():
         Returns: 
             np.ndarray[num_trials, STIM_DIM*mod]: array representing hills of activity for both modalities in a given stimulus 
         '''
-        mod_dim = mod_dir_str_conditions.shape[0]
+        #mod_dim = mod_dir_str_conditions.shape[0]
         num_trials = mod_dir_str_conditions.shape[-1]
-        centered_dir = np.repeat(np.array([[0.8*np.exp(-0.5*(((12*abs(np.pi-i))/np.pi)**2)) for i in TUNING_DIRS]]), num_trials*2, axis=0)
-        roll = np.nan_to_num(np.floor((mod_dir_str_conditions[: , 0, :]/(2*np.pi))*STIM_DIM)- np.floor(STIM_DIM/2)).astype(int)
-        rolled = np.array(list(map(np.roll, centered_dir, np.expand_dims(roll.flatten(), axis=1)))) * np.expand_dims(np.nan_to_num(mod_dir_str_conditions[:, 1, :]).flatten() , axis=1)
-        if mod_dim>1: 
-            rolled_reshaped = np.concatenate((rolled.reshape(mod_dim, num_trials, STIM_DIM)[0, :, :], rolled.reshape(mod_dim, num_trials, STIM_DIM)[1, :, :]), axis=1)
-        else:
-            rolled_reshaped = rolled.reshape(num_trials, -1)
+        centered_dir = np.repeat(np.array([[0.8*np.exp(-0.5*(((12*abs(np.pi-i))/np.pi)**2)) for i in TUNING_DIRS]]), num_trials, axis=0)
+        roll = np.nan_to_num(np.floor((mod_dir_str_conditions[0, :]/(2*np.pi))*STIM_DIM)- np.floor(STIM_DIM/2)).astype(int)
+        rolled = np.array(list(map(np.roll, centered_dir, np.expand_dims(roll.flatten(), axis=1)))) 
+        rolled = rolled * np.nan_to_num(mod_dir_str_conditions[1, :])
+        # if mod_dim>1: 
+        #     rolled_reshaped = np.concatenate((rolled.reshape(mod_dim, num_trials, STIM_DIM)[0, :, :], rolled.reshape(mod_dim, num_trials, STIM_DIM)[1, :, :]), axis=1)
+        # else:
+        rolled_reshaped = rolled.reshape(num_trials, -1)
 
         return rolled_reshaped
-
-    def make_trial_inputs(self) -> np.ndarray:
-        '''
-        Creates stimulus activity arrays for given trials of a particular task type 
-        Parameters: 
-            task_type: string identifying the task type
-            conditions_arr[mods, stim, dir_str, num_trials]: array defining the stimulus conditions for a batch of task trials 
-        Returns: 
-            ndarray[num_trials, TRIAL_LEN, INPUT_DIM]: array conditing stimulus inputs for a batch of task trials 
-        '''
-        num_trials = self.cond_arr.shape[-1]
-        fix = np.ones((num_trials,1)) 
-        no_fix = np.zeros((num_trials,1))
-        null_stim = np.zeros((num_trials, STIM_DIM*2))
-
-
-        stim1 = self._make_activity_vectors(self.cond_arr[:, 0, :, :])
-        stim2 = self._make_activity_vectors(self.cond_arr[:, 1, :, :])
+    
+    def format_timings(self, stim1, stim2):
+        fix = np.ones((self.num_trials,1)) 
+        no_fix = np.zeros((self.num_trials,1))
+        null_stim = np.zeros((self.num_trials, STIM_DIM))
 
         if self.timing=='full': 
                 input_activity_vecs = np.array([np.concatenate((fix, null_stim), 1), np.concatenate((fix, stim1+stim2), 1), np.concatenate((fix, stim1+stim2), 1),  
@@ -205,8 +193,27 @@ class TaskFactory():
         elif self.timing == 'delay':
             input_activity_vecs = np.array([np.concatenate((fix, null_stim), 1), np.concatenate((fix, stim1), 1), np.concatenate((fix, null_stim), 1),  
                                 np.concatenate((fix, stim2), 1), np.concatenate((no_fix, null_stim), 1)])
+        return input_activity_vecs
 
-        return _add_noise(self._expand_along_intervals(self.intervals, input_activity_vecs), self.noise)
+
+    def make_trial_inputs(self) -> np.ndarray:
+        '''
+        Creates stimulus activity arrays for given trials of a particular task type 
+        Parameters: 
+            task_type: string identifying the task type
+            conditions_arr[mods, stim, dir_str, num_trials]: array defining the stimulus conditions for a batch of task trials 
+        Returns: 
+            ndarray[num_trials, TRIAL_LEN, INPUT_DIM]: array conditing stimulus inputs for a batch of task trials 
+        '''
+        mod_inputs = []
+        for mod in [0, 1]: 
+            stim1 = self._make_activity_vectors(self.cond_arr[mod, 0, :, :])
+            stim2 = self._make_activity_vectors(self.cond_arr[mod, 1, :, :])
+            input_activity_vecs = self.format_timings(stim1, stim2)
+            mod_inputs.append(self._expand_along_intervals(self.intervals, input_activity_vecs))
+            
+        inputs = np.concatenate((mod_inputs[0], mod_inputs[1][..., 1:]), axis=-1)
+        return _add_noise(inputs, self.noise)
 
     def make_loss_mask(self) -> np.ndarray: 
         '''
