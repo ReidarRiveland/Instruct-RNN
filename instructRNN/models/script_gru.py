@@ -39,18 +39,18 @@ class scriptGRULayer(jit.ScriptModule):
     def __init__(self, cell, *cell_args):
         super(scriptGRULayer, self).__init__()
         self.cell = cell(*cell_args)
-        self.inactiv_mask = Parameter(torch.ones(self.cell.hidden_size), requires_grad=False)
 
     def _set_inactiv_mask(self, units_idx, device): 
         self.inactiv_mask = torch.ones(self.cell.hidden_size).to(device)
-        self.inactiv_mask[units_idx] = 0
+        if units_idx is not None: 
+            self.inactiv_mask[units_idx] = 0
 
     @jit.script_method
     def forward(self, input, hx):
         inputs = input.unbind(1)
         outputs = jit.annotate(List[Tensor], [])
         for i in range(len(inputs)):
-            hx = self.cell(inputs[i], hx)*self.inactiv_mask
+            hx = self.cell(inputs[i], hx)
             outputs.append(hx)
         return torch.stack(outputs), hx
 

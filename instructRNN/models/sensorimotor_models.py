@@ -61,6 +61,7 @@ class BaseNet(nn.Module):
         self.config=config
         for name, value in asdict(config, recurse=False).items(): 
             setattr(self, name, value)
+        self.set_inactiv_units(None)
 
         if self.rnn_activ_func == 'relu':
             self._activ_func = torch.relu
@@ -123,6 +124,7 @@ class BaseNet(nn.Module):
     def to(self, cuda_device): 
         super().to(cuda_device)
         self.__device__ = cuda_device
+        
 
 class RuleEncoder(nn.Module):
     def __init__(self, rule_dim, hidden_size):
