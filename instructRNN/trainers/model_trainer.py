@@ -246,9 +246,9 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
 
     trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
     is_tuned = trainer.train(model, is_tuning=True)
-    if is_tuned:
-        os.remove(for_tuning_model_path)
-        os.remove(for_tuning_data_path)
+    # if is_tuned:
+    #     os.remove(for_tuning_model_path)
+    #     os.remove(for_tuning_data_path)
     return is_tuned
 
 def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, overwrite=False, repeats=5, **train_config_kwargs): 
@@ -269,7 +269,7 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, over
                                 test_repeats = repeats, **train_config_kwargs)
         trainer = ModelTrainer(testing_config)
         for _ in range(repeats): 
-            model.load_model(file_name, suffix='_seed'+str(seed)+'_CHECKPOINT')
+            model.load_model(file_name, suffix='_seed'+str(seed))
             trainer.train(model, is_testing=True, instruct_mode=mode)
         trainer._record_session(model, mode='TESTING')
 

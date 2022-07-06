@@ -312,7 +312,7 @@ class GoFactory(TaskFactory):
 
 class DMFactory(TaskFactory):
     def __init__(self, num_trials,  noise, str_chooser,
-                        timing= 'full', mod=None, multi=False, 
+                        timing= 'delay', mod=None, multi=False, 
                         dir_arr = None, coh_arr = None, max_var=False,
                         intervals= None, cond_arr=None):
         super().__init__(num_trials, timing, noise)
@@ -403,7 +403,7 @@ class ConDMFactory(TaskFactory):
         self.pos_thresholds, self.neg_thresholds = pickle.load(open(location+'/noise_thresholds/'+self.threshold_folder, 'rb'))
 
         if intervals is None: 
-            _intervals = np.array([(0, 30), (30, 60), (60, 90), (90, 120), (120, TRIAL_LEN)])
+            _intervals = np.array([(0, 30), (30, 60), (60, 90), (90, 130), (130, TRIAL_LEN)])
             intervals = _intervals[:,:,None].repeat(self.num_trials, -1)
         # if max_var: 
         #     dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
@@ -670,10 +670,10 @@ class MatchingFactory(TaskFactory):
 
         if self.matching_task: 
             dir1 = np.where(self.req_resp, matched, mismatched)
-            target_dirs = np.where(self.req_resp, dir0, np.full(self.num_trials, np.NaN))
+            target_dirs = np.where(self.req_resp, dir1, np.full(self.num_trials, np.NaN))
         else: 
             dir1 = np.where(self.req_resp, mismatched, matched)
-            target_dirs = np.where(self.req_resp, dir1, np.full(self.num_trials, np.NaN))
+            target_dirs = np.where(self.req_resp, dir0, np.full(self.num_trials, np.NaN))
 
         dirs0 = np.array([dir0,dir1])
         nan_dirs = np.full_like(dirs0, np.NaN)

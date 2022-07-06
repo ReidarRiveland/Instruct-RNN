@@ -152,9 +152,6 @@ def plot_all_training_curves(foldername, exp_type, holdout_file, model_list, per
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
 
-# plot_all_holdout_curves('7.1models', 'swap', ['bowNet', 'sbertNet'], seeds=[0])
-# data = HoldoutDataFrame('7.1models', 'swap', 'sbertNet', seeds=[0])
-# data.get_k_shot(0)
 
 def plot_k_shot_learning(foldername, exp_type, model_list, ks=[0,1,3], seeds=range(5)): 
     barWidth = 0.1

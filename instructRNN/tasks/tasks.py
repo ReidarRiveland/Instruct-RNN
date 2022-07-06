@@ -19,6 +19,8 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
 
             'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
 
+            'RTDM', 'AntiRTDM',
+
             'ConDM', 'AntiConDM', 'ConMultiDM', 'AntiConMultiDM',            
 
             'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2',
@@ -26,8 +28,6 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
 
             'COMP1Mod1', 'COMP2Mod1', 'COMP1Mod2', 'COMP2Mod2', 
-
-            'Dur1', 'Dur2', 'DurLong', 'DurShort',
             
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
@@ -35,12 +35,12 @@ SWAP_LIST = [
             ('AntiDMMod2', 'RTGo', 'AntiConDM', 'COMP1'), 
             ('COMP1Mod1', 'AntiGoMod2', 'ConMultiDM', 'DMS'),
             ('DMMod2', 'AntiRTGo',  'Go', 'MultiCOMP1'), 
-            ('GoMod2', 'AntiConMultiDM', 'DurLong', 'COMP2'), 
-            ('Dur1', 'MultiDM', 'COMP2Mod2', 'DMC'),             
+            ('GoMod2', 'AntiConMultiDM', 'COMP2'), 
+            ('AntiRTDM', 'MultiDM', 'COMP2Mod2', 'DMC'),             
             ('DM', 'AntiGo', 'GoMod1', 'MultiCOMP2'), 
-            ('AntiDM', 'Dur2', 'AntiGoMod1',  'DNMS'), 
+            ('AntiDM', 'RTDM', 'AntiGoMod1',  'DNMS'), 
             ('COMP2Mod1', 'AntiMultiDM', 'DMMod1', 'DNMC'),
-            ('ConDM', 'DurShort', 'COMP1Mod2', 'AntiDMMod1')
+            ('ConDM', 'COMP1Mod2', 'AntiDMMod1')
             ]
 
             
@@ -233,6 +233,28 @@ class AntiMultiDM(Task):
                         **factory_kwargs
                         )
         self.task_type = 'AntiMultiDM'
+
+class RTDM(Task):
+    comp_ref_tasks = ('MultiDM', 'Anti_MultiDM', 'Anti_DM')
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise, 
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmax,
+                        timing='RT',
+                        **factory_kwargs
+                        )
+        self.task_type = 'RTDM'
+
+class AntiRTDM(Task):
+    comp_ref_tasks = ('Anti_MultiDM', 'MultiDM', 'DM')
+    def __init__(self, num_trials, noise=None,**factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.DMFactory, 
+                        str_chooser = np.argmin,
+                        timing='RT',
+                        **factory_kwargs
+                        )
+        self.task_type = 'AntiRTDM'
 
 class ConDM(Task):
     comp_ref_tasks = ('ConMultiDM', 'Anti_ConMultiDM', 'Anti_ConDM')
