@@ -343,15 +343,16 @@ perf = get_model_performance(sbertNet)
 
 print(list(zip(TASK_LIST, perf)))
 
+
 hid_reps = get_hidden_reps(sbertNet, 128) 
 
 task_var = np.mean(np.var(hid_reps, axis=0), axis=0)
-norm_task_var = task_var.T/(np.sum(task_var, axis=1)).T
+norm_task_var = task_var/(np.sum(task_var, axis=0))
 
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-sns.heatmap(norm_task_var, yticklabels=CLUSTER_TASK_LIST, vmin=0)
+sns.heatmap(norm_task_var.T, yticklabels=CLUSTER_TASK_LIST, vmin=0)
 plt.show()
 
 from sklearn.cluster import KMeans
@@ -367,17 +368,16 @@ def get_optim_clusters(norm_task_var):
 
     return list(range(2, 50))[np.argmax(np.array(score_list))]
 
-get_optim_clusters(norm_task_var)
+get_optim_clusters(norm_task_var.T)
 
 
-km = KMeans(n_clusters=7, random_state=42)
-labels = km.fit_predict(norm_task_var.T)
-
+km = KMeans(n_clusters=6, random_state=42)
+labels = km.fit_predict(norm_task_var)
 
 
 from sklearn.manifold import TSNE
 tSNE = TSNE(n_components=2)
-fitted = tSNE.fit_transform(norm_task_var.T)
+fitted = tSNE.fit_transform(norm_task_var)
 
 import matplotlib.pyplot as plt
 plt.scatter(fitted[:, 0], fitted[:, 1], cmap = plt.cm.gist_ncar, c = labels)
@@ -420,4 +420,4 @@ def make_batch_slurm(filename,
 make_batch_slurm('make_dataset_test.sbatch', 'Instruct-RNN/dataset.py', partition='debug-cpu')
 
 # rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/6.20models/ /home/reidar/Projects/Instruct-RNN/6.20models
-# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/6.20models/ /home/reidar/Projects/Instruct-RNN/6.20models
+# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.1models/ /home/reidar/Projects/Instruct-RNN/7.1models

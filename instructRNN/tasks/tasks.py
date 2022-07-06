@@ -515,7 +515,6 @@ def construct_trials(task_type, num_trials=None, noise = None, return_tensor=Fal
                 trial.target_dirs.astype(np.float32), 
                 TASK_LIST.index(task_type))
 
-
 # if __name__ == "__main__":
 #     import argparse
 #     parser = argparse.ArgumentParser()
