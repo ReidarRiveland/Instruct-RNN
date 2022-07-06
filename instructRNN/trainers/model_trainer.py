@@ -191,9 +191,10 @@ def check_already_trained(file_name, seed, mode='training'):
         print('\n ' + mode+' at ' + file_name + ' at seed '+str(seed))
         return False
 
-def check_already_tested(file_name, seed, task):
+def check_already_tested(file_name, seed, task, mode):
+    if mode is None: mode = ''
     try: 
-        pickle.load(open(file_name+'/holdouts/'+ task+ '_seed'+str(seed)+'_correct', 'rb'))
+        pickle.load(open(file_name+'/holdouts/'+ mode+task+ '_seed'+str(seed)+'_correct', 'rb'))
         print('\n Model at ' + file_name + ' for seed '+str(seed)+ 'and task '+task+' aleady trained')
         return True
     except FileNotFoundError:
@@ -258,7 +259,7 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, over
                 
     model = make_default_model(model_name)
     for task in holdouts: 
-        if check_already_tested(file_name, seed, task) and not overwrite:
+        if check_already_tested(file_name, seed, task, mode) and not overwrite:
             continue 
         else:
             print('\n testing '+model_name+' seed'+str(seed)+' on '+task)

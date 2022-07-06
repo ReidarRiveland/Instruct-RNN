@@ -404,7 +404,7 @@ class ConDMFactory(TaskFactory):
         self.pos_thresholds, self.neg_thresholds = pickle.load(open(location+'/noise_thresholds/'+self.threshold_folder, 'rb'))
 
         if intervals is None: 
-            _intervals = np.array([(0, 20), (20, 50), (50, 70), (70, 100), (100, TRIAL_LEN)])
+            _intervals = np.array([(0, 30), (30, 60), (60, 90), (90, 120), (120, TRIAL_LEN)])
             intervals = _intervals[:,:,None].repeat(self.num_trials, -1)
         # if max_var: 
         #     dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)

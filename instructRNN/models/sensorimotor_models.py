@@ -45,7 +45,7 @@ class InstructModelConfig(BaseModelConfig):
     LM_train_layers: list = field(kw_only=True)
     LM_reducer: str = 'mean' 
     LM_out_dim: int = 64
-    LM_output_nonlinearity: str ='relu'
+    LM_output_nonlinearity: str ='lin'
     LM_proj_out_layers: int = 1
 
     _rnn_in_dim: int = field(kw_only=True)
