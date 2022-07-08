@@ -30,11 +30,11 @@ def _add_noise(array, noise):
 def _draw_ortho_dirs(num=1, dir0=None): 
     if dir0 is None: 
         dir0 = np.random.uniform(0, 2*np.pi, num)
-    _draws = np.array([np.random.uniform(-np.pi*0.75, np.pi*0.25, num),
-                    np.random.uniform(np.pi*0.25, np.pi*0.75, num)])
-    offset = _draws[np.random.choice([0,1], num), range(num)]
-    dir1 = (dir0+np.pi+offset)%(2*np.pi)
-    #dir1 = (dir0+np.pi)%(2*np.pi)
+    # _draws = np.array([np.random.uniform(-np.pi*0.75, np.pi*0.25, num),
+    #                 np.random.uniform(np.pi*0.25, np.pi*0.75, num)])
+    # offset = _draws[np.random.choice([0,1], num), range(num)]
+    # dir1 = (dir0+np.pi+offset)%(2*np.pi)
+    dir1 = (dir0+np.pi)%(2*np.pi)
     return np.array((dir0, dir1))
 
 def _permute_mod(dir_arr):
