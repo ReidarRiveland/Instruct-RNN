@@ -34,7 +34,9 @@ def _draw_ortho_dirs(num=1, dir0=None):
     #                 np.random.uniform(np.pi*0.25, np.pi*0.75, num)])
     # offset = _draws[np.random.choice([0,1], num), range(num)]
     # dir1 = (dir0+np.pi+offset)%(2*np.pi)
-    dir1 = (dir0+np.pi)%(2*np.pi)
+    dir1 = np.random.uniform(0, 2*np.pi, num)
+
+    #dir1 = (dir0+np.pi)%(2*np.pi)
     return np.array((dir0, dir1))
 
 def _permute_mod(dir_arr):
@@ -116,24 +118,28 @@ class TaskFactory():
         self.noise = noise
         
     def make_intervals(self, intervals, stim_durs=None): 
-        _intervals_list = []
         if intervals is not None: 
             return intervals
-
-        if stim_durs is None: 
-            stim_durs = np.floor(np.random.uniform(750, 1000, (2, self.num_trials))/DELTA_T)
-            stim_durs = np.repeat(stim_durs[None, ...], 2, 0)
-        
         
         T_go = np.array([TRIAL_LEN - np.floor(np.random.uniform(400, 500, self.num_trials)/DELTA_T), [TRIAL_LEN]*self.num_trials]).astype(int)
-
-        for mod in range(2):
-            T_stim2 = np.array([T_go[0,]-stim_durs[mod, 1,], T_go[0,]])
+        
+        if stim_durs is not None: 
+            _intervals_list = []
+            for mod in range(2):
+                T_stim2 = np.array([T_go[0,]-stim_durs[mod, 1,], T_go[0,]])
+                T_delay = np.array([T_stim2[0,]-np.floor(np.random.uniform(300, 500, self.num_trials)/DELTA_T), T_stim2[0,]])
+                T_stim1 = np.array([T_delay[0,]-stim_durs[mod, 0,], T_delay[0,]])
+                T_fix = np.array([np.zeros(self.num_trials), T_stim1[0,]])
+                _intervals_list.append(np.array([T_fix, T_stim1, T_delay, T_stim2, T_go]))
+            return np.stack((_intervals_list[0], _intervals_list[1]))
+        else:
+            stim_durs = np.floor(np.random.uniform(750, 1000, (2, self.num_trials))/DELTA_T)
+            T_stim2 = np.array([T_go[0,]-stim_durs[1,], T_go[0,]])
             T_delay = np.array([T_stim2[0,]-np.floor(np.random.uniform(300, 500, self.num_trials)/DELTA_T), T_stim2[0,]])
-            T_stim1 = np.array([T_delay[0,]-stim_durs[mod, 0,], T_delay[0,]])
+            T_stim1 = np.array([T_delay[0,]-stim_durs[0,], T_delay[0,]])
             T_fix = np.array([np.zeros(self.num_trials), T_stim1[0,]])
-            _intervals_list.append(np.array([T_fix, T_stim1, T_delay, T_stim2, T_go]))
-        return np.stack((_intervals_list[0], _intervals_list[1]))
+            _intervals = np.array([T_fix, T_stim1, T_delay, T_stim2, T_go])
+            return np.repeat(_intervals[None, ...], 2, axis=0)
 
 
 

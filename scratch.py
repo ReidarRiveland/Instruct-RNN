@@ -1,138 +1,51 @@
-# from instructRNN.tasks.tasks import *
-# from instructRNN.tasks.task_factory import _permute_mod
-
-# trials = DM(10)
-# trials.plot_trial(0)
-
-# fac = trials.factory
-# fac.req_resp
-
-# dur0 = fac._get_comp_stim_durs(fac.req_resp)
-# dur1 = fac._get_comp_stim_durs(fac.req_resp)
-# dummy_dur = fac._get_comp_stim_durs(~fac.req_resp)
-# dur_array = np.where(fac.req_resp, np.stack((dur0, dur1)), np.stack((dur0, dummy_dur)))
-# _permute_mod(dur_array)
-
-
-# from collections import defaultdict
-# from math import inf
-# import pickle
-# from models.model_trainer import config_model
-# from re import I
-# from matplotlib.cbook import flatten
-
-# from matplotlib.pyplot import axis
-# from numpy.core.fromnumeric import size, var
-# from numpy.lib.function_base import append
-# from numpy.ma import cos
-# import transformers
-
-# from utils.utils import train_instruct_dict
-# from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_layer_sim_scores, get_hid_var_group_resp, get_hid_var_resp, get_all_CCGP
-# import numpy as np
-# from utils.utils import train_instruct_dict, task_swaps_map, all_models
-# from task import DM
-# from plotting import plot_RDM, plot_rep_scatter, plot_CCGP_scores, plot_model_response, plot_hid_traj_quiver, plot_dPCA, plot_neural_resp, plot_trained_performance, plot_tuning_curve
-# import torch
-
-# from task import Task, make_test_trials
-
-# import torch
-# from transformers import CLIPTokenizer, GPT2Tokenizer, GPT2LMHeadModel
-
-# tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-# model = GPT2LMHeadModel.from_pretrained("gpt2")
-
-# model.__dict__
-# model.config.n_embd
-
-# model.lm_head.state_dict()['weight'].shape
-
-# inputs = tokenizer("Hello, my dog is cute", return_tensors="pt")
-# outputs = model(**inputs, labels=inputs["input_ids"])
-# loss = outputs.loss
-# logits = outputs.logits
-
-
-# cur_sentences = "Hello, my dog is"
-# for i in range(20): 
-#     inputs = tokenizer(cur_sentences, return_tensors="pt")
-#     outputs = model(**inputs, labels=inputs["input_ids"])
-#     loss = outputs.loss
-#     logits = outputs.logits
-#     scores = torch.softmax(logits, dim=-1)
-#     append_word = tokenizer.batch_decode(torch.max(scores, 2).indices[:, -1])
-#     cur_sentences+=append_word[0]
-
-# cur_sentences
-
-# from PIL import Image
-# import requests
-# from transformers import CLIPTokenizer, CLIPModel
-
-# model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-# tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
-
-
-
-# url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-# image = Image.open(requests.get(url, stream=True).raw)
-
-# instruct = tokenizer(['go in the direction of stimulus with greatest strength'], return_tensors='pt')
-
-# model.get_text_features(**instruct).shape
-
-
-# from transformers import CLIPTokenizer, CLIPTextModel
-
-# model = CLIPTextModel.from_pretrained("openai/clip-vit-base-patch32")
-# tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
-
-# model.config
-
-# inputs = tokenizer(["a photo of a cat", "a photo of a dog"], padding=True, return_tensors="pt")
-
-# model
-
-# outputs = model(**inputs, output_hidden_states=True)
-# last_hidden_state = outputs.hidden_states
-
-# outputs.hidden_states[3].shape
-# last_hidden_state.shape
-# pooled_output = outputs.pooler_output  # pooled (EOS token) states
-# pooled_output.unsqueeze(0)[0].shape
-
-# SIMPLENET
-# [('Go', 0.9921875), ('Anti_Go', 0.04296875), ('RT_Go', 0.40234375), ('Anti_RT_Go', 0.05078125), 
-# ('Go_Mod1', 0.2734375), ('Anti_Go_Mod1', 0.3046875), ('Go_Mod2', 0.46875), ('Anti_Go_Mod2', 0.16796875), 
-# ('DelayGo', 0.1484375), ('Anti_DelayGo', 0.171875), 
-# ('DM', 0.7734375), ('Anti_DM', 0.40234375), ('MultiDM', 0.4453125), ('Anti_MultiDM', 0.52734375), 
-# ('RT_DM', 0.07421875), ('Anti_RT_DM', 0.4453125), 
-# ('ConDM', 0.5859375), ('Anti_ConDM', 0.7109375), ('ConMultiDM', 0.73828125), ('Anti_ConMultiDM', 0.6953125), 
-# ('DelayDM', 0.32421875), ('Anti_DelayDM', 0.1953125), ('DelayMultiDM', 0.30859375), ('Anti_DelayMultiDM', 0.16796875), 
-# ('DM_Mod1', 0.37109375), ('Anti_DM_Mod1', 0.16796875), ('DM_Mod2', 0.36328125), ('Anti_DM_Mod2', 0.3359375), 
-# ('COMP1', 0.39453125), ('COMP2', 0.453125), ('MultiCOMP1', 0.2109375), ('MultiCOMP2', 0.3828125), 
-# ('DMS', 0.4375), ('DNMS', 0.359375), ('DMC', 0.21875), ('DNMC', 0.33984375)]
-# 37%
-
-# SBERTNET
-# [('Go', 1.0), ('Anti_Go', 1.0), ('RT_Go', 0.98828125), ('Anti_RT_Go', 0.6484375), 
-# ('Go_Mod1', 0.70703125), ('Anti_Go_Mod1', 0.86328125), ('Go_Mod2', 0.8515625), ('Anti_Go_Mod2', 0.96875), 
-# ('DelayGo', 1.0), ('Anti_DelayGo', 1.0), 
-# ('DM', 1.0), ('Anti_DM', 1.0), ('MultiDM', 0.953125), ('Anti_MultiDM', 0.8984375), 
-# ('RT_DM', 0.96484375), ('Anti_RT_DM', 0.62890625), 
-# ('ConDM', 0.9375), ('Anti_ConDM', 0.953125), ('ConMultiDM', 0.90234375), ('Anti_ConMultiDM', 0.953125), 
-# ('DelayDM', 0.98828125), ('Anti_DelayDM', 0.8515625), ('DelayMultiDM', 0.91796875), ('Anti_DelayMultiDM', 0.58984375), 
-# ('DM_Mod1', 0.8125), ('Anti_DM_Mod1', 0.73828125), ('DM_Mod2', 0.765625), ('Anti_DM_Mod2', 0.69921875), 
-# ('COMP1', 0.72265625), ('COMP2', 0.6328125), ('MultiCOMP1', 0.4609375), ('MultiCOMP2', 0.4140625), 
-# ('DMS', 0.61328125), ('DNMS', 0.859375), ('DMC', 0.578125), ('DNMC', 0.734375)]
-#82%
-
+import numpy as np
 from instructRNN.tasks.tasks import *
-trials = ConMultiDM(100)
-trials.plot_trial(0)
-trials.factory.cond_arr[:,:,0,0]
-trials.factory.intervals[:,:,0]
+from instructRNN.analysis.model_analysis import *
+from instructRNN.models.full_models import BoWNet
+
+
+# _intervals = np.array([(0, 30), (30, 60), (60, 90), (90, 130), (130, TRIAL_LEN)])
+# intervals = np.repeat(_intervals[:,:, None],  100, axis=-1)
+
+#np.repeat(np.repeat(_intervals[..., None], 100, axis=-1)[None, ...], 2, axis=0)
+
+EXP_FILE = '7.3models'
+sbertNet = BoWNet()
+
+holdouts_file = 'multitask_holdouts/Multitask'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
+
+noises = np.linspace(0.2, 0.6, 10)
+contrasts = np.concatenate((np.linspace(-0.1, -0.01, 5), np.linspace(0.01, 0.1, 5)))
+
+correct, _, _ = get_DM_perf(sbertNet, noises, contrasts)
+
+from matplotlib import pyplot as plt
+
+from scipy.ndimage.filters import gaussian_filter1d
+import matplotlib.pyplot as plt
+
+for x in range(len(contrasts)):
+    plt.plot(noises, np.mean(correct[:, :, x], axis=0))
+plt.legend(labels=list(np.round(contrasts, 2)))
+plt.xlabel('Noise Level')
+plt.ylabel('Correct Rate')
+plt.show()
+
+
+
+
+#THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2
+for x in range(10):
+    smoothed = gaussian_filter1d(np.mean(pstim1_stats[:, x, :], axis=0), 1)
+    plt.plot(diff_strength, smoothed)
+plt.legend(labels=list(np.round(noises, 2)[:10]))
+plt.xlabel('Contrast')
+plt.ylabel('p_stim1')
+plt.show()
+
+
+
 
 
 from turtle import position
@@ -145,13 +58,26 @@ from instructRNN.analysis.model_analysis import get_model_performance, get_task_
 from instructRNN.tasks.tasks import SWAP_LIST, SWAPS_DICT, TASK_LIST 
 from instructRNN.instructions.instruct_utils import get_instructions, train_instruct_dict
 from instructRNN.tasks.task_criteria import isCorrect
+from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
 
 EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = SBERTNet_tuned(LM_out_dim=64, rnn_hidden_dim=256)
+sbertNet = SBERTNet_tuned(LM_out_dim=64, rnn_hidden_dim=256, LM_output_nonlinearity='relu')
+holdouts_file = 'swap0'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
+
 #sbertNet = SimpleNet(rnn_hidden_dim=256)
+plot_scatter(sbertNet, ['Go', 'AntiGo'])
+
+
+
+
+
+
+
+
 
 def get_zero_shot_perf(model): 
     perf_array = np.empty(len(TASK_LIST))
@@ -413,10 +339,6 @@ sorted_indices = list(zip(*sorted(zip(labels, range(256)))))[1]
 sorted_array = norm_task_var[sorted_indices, :]
 
 plot_task_var_heatmap(sorted_array)
-
-
-
-
 
 
 

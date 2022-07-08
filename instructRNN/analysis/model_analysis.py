@@ -9,7 +9,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 from instructRNN.tasks.tasks import *
-from instructRNN.tasks.task_factory import _draw_ortho_dirs, DMFactory
+from instructRNN.tasks.task_factory import _draw_ortho_dirs, DMFactory, TRIAL_LEN
 from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.instructions.instruct_utils import train_instruct_dict, get_task_info, get_instruction_dict
 
@@ -147,27 +147,26 @@ def get_DM_perf(model, noises, diff_strength, num_repeats=100, mod=0, task='DM')
         for j, noise in enumerate(noises): 
 
             conditions_arr = np.full((2, 2, 2, num_trials), np.NaN)
-            intervals = np.empty((num_trials, 5), dtype=tuple)
             directions = np.empty((2, num_trials))
+            _intervals = np.array([(0, 30), (30, 60), (60, 90), (90, 130), (130, TRIAL_LEN)])
+            intervals = np.repeat(np.repeat(_intervals[..., None], 100, axis=-1)[None, ...], 2, axis=0)     
 
-            intervals = np.empty((num_trials, 5), dtype=tuple)
-            for k in range(num_trials): 
-                intervals[k, :] = ((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))    
-                directions[:, k]= _draw_ortho_dirs()
-
-
-                if 'Multi' in task:
-                    mod_coh = diff_strength[k]/2
-                    mod_base_strs = np.array([1-mod_coh, 1+mod_coh])
+            if 'Multi' in task:
+                dirs0 = _draw_ortho_dirs(num_trials)
+                mod_base_strs = np.array([1-diff_strength/2, 1+diff_strength/2])
+                _coh = np.empty((2, num_trials))
+                
+                for k in range(num_trials):
                     redraw = True
                     while redraw: 
                         coh = np.random.choice([-0.05, -0.1, 0.1, 0.05], size=2, replace=False)
                         if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
                             redraw = False
+                    coh[:, k] = coh
 
-                    strengths = np.array([mod_base_strs + coh, mod_base_strs- coh]).T
-                    conditions_arr[:, :, 0, k] = np.array([directions[:,k], directions[:,k]])
-                    conditions_arr[:, :, 1, k] = strengths.T
+                strengths = np.array([mod_base_strs + _coh, mod_base_strs-_coh]).T
+                conditions_arr[:, :, 0, :] = np.array([dirs0, dirs0])
+                conditions_arr[:, :, 1, :] = strengths.T
 
             if not 'Multi' in task: 
                 strengths = np.array([1+diff_strength/2, 1-diff_strength/2])
@@ -183,7 +182,7 @@ def get_DM_perf(model, noises, diff_strength, num_repeats=100, mod=0, task='DM')
             elif task =='Anti_MultiDM':
                 trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, multi=True, intervals=intervals, cond_arr=conditions_arr)
 
-            task_instructions = get_task_info(num_trials, task, False)
+            task_instructions = get_task_info(num_trials, task, model.info_type)
 
             out, hid = model(torch.Tensor(trial.inputs), task_instructions)
             correct_stats[i, j, :] =  isCorrect(out, torch.Tensor(trial.targets), trial.target_dirs)
@@ -197,8 +196,6 @@ def get_noise_thresholdouts(correct_stats, diff_strength, noises, pos_cutoff=0.9
     pos_thresholds = np.array((noises[pos_coords[0]], diff_strength[pos_coords[1]]))
     neg_thresholds = np.array((noises[neg_coords[0]], diff_strength[neg_coords[1]]))
     return pos_thresholds, neg_thresholds
-
-
 
 
 def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None): 
@@ -227,33 +224,33 @@ def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None):
 #             task_group_hid_traj[i, j,  ...] = hid_mean
 #     return task_group_hid_traj
 
-# def get_CCGP(reps): 
-#     num_trials = reps.shape[1]
-#     dim = reps.shape[-1]
-#     all_decoding_score = np.zeros((16, 2))
-#     dichotomies = np.array([[[0, 1], [2, 3]], [[0,2], [1, 3]]])
-#     for i in range(4): 
-#         conditions=dichotomies+(4*i)
-#         for j in [0, 1]: 
-#             for k in [0, 1]: 
+def get_CCGP(reps): 
+    num_trials = reps.shape[1]
+    dim = reps.shape[-1]
+    all_decoding_score = np.zeros((len(TASK_LIST), 2))
+    dichotomies = np.array([[[0, 1], [2, 3]], [[0,2], [1, 3]]])
+    for i in range(4): 
+        conditions=dichotomies+(4*i)
+        for j in [0, 1]: 
+            for k in [0, 1]: 
 
-#                 print('\n')
-#                 print('train condition ' +str(conditions[j][k]))
-#                 test_condition = conditions[j][(k+1)%2]
-#                 print('test condition' + str(test_condition))
-#                 print('\n')
+                print('\n')
+                print('train condition ' +str(conditions[j][k]))
+                test_condition = conditions[j][(k+1)%2]
+                print('test condition' + str(test_condition))
+                print('\n')
 
-#                 classifier = svm.LinearSVC(max_iter=5000)
-#                 classifier.classes_=[-1, 1]
-#                 classifier.fit(reps[conditions[j][k], ...].reshape(-1, dim), np.array([0]*num_trials+[1]*num_trials))
-#                 for index in [0, 1]: 
-#                     print('Task :' + str(test_condition[index]))
-#                     decoding_corrects = np.array([index]*num_trials) == classifier.predict(reps[test_condition[index], ...].reshape(-1, dim))
-#                     decoding_score = np.mean(decoding_corrects)
-#                     all_decoding_score[test_condition[index], j] = decoding_score
+                classifier = svm.LinearSVC(max_iter=5000)
+                classifier.classes_=[-1, 1]
+                classifier.fit(reps[conditions[j][k], ...].reshape(-1, dim), np.array([0]*num_trials+[1]*num_trials))
+                for index in [0, 1]: 
+                    print('Task :' + str(test_condition[index]))
+                    decoding_corrects = np.array([index]*num_trials) == classifier.predict(reps[test_condition[index], ...].reshape(-1, dim))
+                    decoding_score = np.mean(decoding_corrects)
+                    all_decoding_score[test_condition[index], j] = decoding_score
             
 
-#     return all_decoding_score
+    return all_decoding_score
 
 
 # def get_all_CCGP(model, task_rep_type, foldername, swap=False): 
