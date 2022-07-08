@@ -21,7 +21,7 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
 
             'RTDM', 'AntiRTDM',
 
-            'ConDM', 'AntiConDM', 
+            #'ConDM', 'AntiConDM', 
             
             #'ConMultiDM', 'AntiConMultiDM',            
 

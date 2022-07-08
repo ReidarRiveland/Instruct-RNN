@@ -1,6 +1,8 @@
 from instructRNN.tasks.tasks import *
 
-DM(100)
+trials = DM(100)
+trials.plot_trial(0)
+trials.factory.cond_arr[:,0,:,0]
 
 # from collections import defaultdict
 # from math import inf
