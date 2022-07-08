@@ -1,8 +1,18 @@
-from instructRNN.tasks.tasks import *
+# from instructRNN.tasks.tasks import *
+# from instructRNN.tasks.task_factory import _permute_mod
 
-trials = DM(100)
-trials.plot_trial(0)
-trials.factory.cond_arr[:,0,:,0]
+# trials = DM(10)
+# trials.plot_trial(0)
+
+# fac = trials.factory
+# fac.req_resp
+
+# dur0 = fac._get_comp_stim_durs(fac.req_resp)
+# dur1 = fac._get_comp_stim_durs(fac.req_resp)
+# dummy_dur = fac._get_comp_stim_durs(~fac.req_resp)
+# dur_array = np.where(fac.req_resp, np.stack((dur0, dur1)), np.stack((dur0, dummy_dur)))
+# _permute_mod(dur_array)
+
 
 # from collections import defaultdict
 # from math import inf

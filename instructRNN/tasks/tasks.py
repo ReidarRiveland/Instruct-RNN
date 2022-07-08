@@ -30,19 +30,21 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
 
             'COMP1Mod1', 'COMP2Mod1', 'COMP1Mod2', 'COMP2Mod2', 
+
+            'Dur1', 'Dur2', 'MultiDur1', 'MultiDur2',
             
             'DMS', 'DNMS', 'DMC', 'DNMC']
 
 SWAP_LIST = [            
-            ('AntiDMMod2', 'RTGo', 'AntiConDM', 'COMP1'), 
-            ('COMP1Mod1', 'AntiGoMod2', 'ConMultiDM', 'DMS'),
+            ('AntiDMMod2', 'RTGo', 'MultiDur1', 'COMP1'), 
+            ('COMP1Mod1', 'AntiGoMod2', 'MultiDur2', 'DMS'),
             ('DMMod2', 'AntiRTGo',  'Go', 'MultiCOMP1'), 
-            ('GoMod2', 'AntiConMultiDM', 'COMP2'), 
+            ('GoMod2', 'COMP2', 'Dur1'), 
             ('AntiRTDM', 'MultiDM', 'COMP2Mod2', 'DMC'),             
             ('DM', 'AntiGo', 'GoMod1', 'MultiCOMP2'), 
             ('AntiDM', 'RTDM', 'AntiGoMod1',  'DNMS'), 
             ('COMP2Mod1', 'AntiMultiDM', 'DMMod1', 'DNMC'),
-            ('ConDM', 'COMP1Mod2', 'AntiDMMod1')
+            ('COMP1Mod2', 'AntiDMMod1', 'Dur2')
             ]
 
             
@@ -357,7 +359,6 @@ class Dur1(Task):
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
                         resp_stim = 0,
-                        dur_type = 'comp',
                         **factory_kwargs
                         )
         self.task_type = 'Dur1'
@@ -368,30 +369,51 @@ class Dur2(Task):
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
                         resp_stim = 1,
-                        dur_type = 'comp',
                         **factory_kwargs
                         )
         self.task_type = 'Dur2'
 
 
-class DurLong(Task): 
+class MultiDur1(Task): 
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
-                        dur_type = 'long',
+                        multi=True, 
+                        resp_stim = 0,
                         **factory_kwargs
                         )
-        self.task_type = 'DurLong'
+        self.task_type = 'Dur1'
 
 
-class DurShort(Task): 
+class MultiDur2(Task): 
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
-                        dur_type = 'short',
+                        multi=True,
+                        resp_stim = 1,
                         **factory_kwargs
                         )
-        self.task_type = 'DurShort'
+        self.task_type = 'Dur2'
+
+
+# class DurLong(Task): 
+#     def __init__(self, num_trials, noise=None, **factory_kwargs): 
+#         super().__init__(num_trials, noise,
+#                         task_factory.DurFactory, 
+#                         dur_type = 'long',
+#                         **factory_kwargs
+#                         )
+#         self.task_type = 'DurLong'
+
+
+# class DurShort(Task): 
+#     def __init__(self, num_trials, noise=None, **factory_kwargs): 
+#         super().__init__(num_trials, noise,
+#                         task_factory.DurFactory, 
+#                         dur_type = 'short',
+#                         **factory_kwargs
+#                         )
+#         self.task_type = 'DurShort'
 
 class COMP1(Task): 
     comp_ref_tasks = ('MultiCOMP1', 'MultiCOMP2', 'COMP2')

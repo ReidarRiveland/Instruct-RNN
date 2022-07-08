@@ -556,6 +556,41 @@ train_instruct_dict['Dur2'] = ('select the second direction if it lasts for long
 								'choose the second direction if it lasts for a greater period of time than the first direction otherwise do not respond'
 								)
 
+
+train_instruct_dict['MultiDur1'] = ('respond to the first direction if it has longer duration over both modalities otherwise do not respond', 
+                                'if the first direction lasts for longer over both modalities then go in that direction otherwise do not respond', 
+                                'opt for the initial stimulus if it has a greater duration in both modalities than the second stimulus otherwise do not respond', 
+                                'if the initial orientation appears for longer then the second orientation when considered across both modalities than select that orientation otherwise do not respond', 
+                                'pick the initial direction if it last for a longer period of time than the second direction in both modalities otherwise do not respond', 
+                                'if the first direction appears for a longer period of time over both modalities then select that direction otherwise do  not respond', 
+                                'choose the initial stimulus if it has a greater duration when considered over both modalities otherwise do not respond', 
+                                'respond to the initial direction if it is displayed for a greater period of time than the second direction over both modalities otherwise do not respond', 
+                                'if the initial orientation lasts for longer than the second orientation when considered over both modalities then select that direction otherwise do not respond', 
+                                'choose the first displayed direction if it has a duration which is longer than the second direction in both modalities otherwise do not respond', 
+                                'if the initial stimulus appears for a longer period of time then the second stimulus in both modalities then choose that direction otherwise do not respond', 
+                                'select the first stimulus if it has a duration which is longer than the second direction across both modalities otherwise do not respond',
+                                'pick the initial orientation if if lasts for longer than the second direction across both modalities otherwise do not respond',
+                                'if the first direction lasts for a greater period of time than the second direction in both modalities than respond to the second direction otherwise do not respond',
+                                'select the initial orientation if it has a greater duration over both modalities than the second orientation otherwise do not respond'
+                                )
+
+train_instruct_dict['MultiDur2'] = ('respond to the second direction if it lasts for a longer period of time over both modalities than the first direction otherwise do not respond',
+                                    'choose the second direction if it has a greater duration than the first direction in each modality otherwise do not respond', 
+									'if the second orientation appears for a longer period of time than the initial direction choose the second direction otherwise do not respond',
+									'if the second stimulus has a greater duration than the first stimulus in both modalities than select the second stimulus otherwise do not respond', 
+									'choose the second direction if it is longer in both modalities than the first orientation otherwise do not respond', 
+									'if the duration of the second stimulus is longer than the initial stimulus in both modalities then choose the second stimulus otherwise do not respond', 
+									'select the second orientation if it appears for longer than the first orientation in both modalities otherwise do not respond', 
+									'opt for the second direction if it lasts for a greater period of time than the first direction in both modalities otherwise do not respond', 
+									'if the time period of the second orientation lasts for longer than the first orientation then respond to the second orientation otherwise do not respond', 
+									'pick the second direction if it appears for a greater duration than the first direction when considered over both modalities otherwise do not respond', 
+									'if the duration of the second direction across both modalities is greater than the first direction then choose the second direction otherwise do not respond', 
+									'if the second stimulus lasts for longer than the first stimulus in both modalities than select the second stimulus otherwise do not respond', 
+									'respond to the second direction if is lasts for a longer period of time than the first stimulus in both modalities otherwise do not respond',
+									'if the second stimulus has a duration which lasts for longer than the initial stimulus across both modalities then select the first stimulus otherwise do not respond',
+									'select the second direction if it is displayed for a greater period of time than the initial direction in both modalities otherwise do not respond'
+									)
+
 train_instruct_dict['DurLong'] = ('respond to the displayed stimulus if it has a duration greater than one second otherwise do not respond', 
 								'if the stimulus is displayed for longer than one second then respond otherwise do not respond', 
 								'go in the direction of the orientation if it is presented for a period of time greater than one second otherwise do not respond', 
