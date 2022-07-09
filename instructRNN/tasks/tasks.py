@@ -32,8 +32,14 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             'COMP1Mod1', 'COMP2Mod1', 'COMP1Mod2', 'COMP2Mod2', 
 
             'Dur1', 'Dur2', 'MultiDur1', 'MultiDur2',
+
+            #'Dur1Mod1', 'Dur2Mod1', 'Dur1Mod2', 'Dur2Mod2',
+
+            'DMS', 'DNMS', 'DMC', 'DNMC', 
             
-            'DMS', 'DNMS', 'DMC', 'DNMC']
+            #'DMSMod1', 'DMSMod2', 'DNMSMod1', 'DNMSMod2'
+            
+            ]
 
 SWAP_LIST = [            
             ('AntiDMMod2', 'RTGo', 'DM', 'COMP1'), 
