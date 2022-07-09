@@ -273,7 +273,7 @@ class TaskFactory():
     
 class GoFactory(TaskFactory): 
     def __init__(self, num_trials,  noise, dir_chooser,
-                            timing= 'delay', mod=None, multi=False, 
+                            timing= 'full', mod=None, multi=False, 
                             cond_arr=None, dir_arr=None,
                             intervals= None,  max_var=False):
         super().__init__(num_trials, timing, noise)

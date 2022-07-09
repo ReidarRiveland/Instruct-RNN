@@ -382,7 +382,7 @@ class MultiDur1(Task):
                         resp_stim = 0,
                         **factory_kwargs
                         )
-        self.task_type = 'Dur1'
+        self.task_type = 'MultiDur1'
 
 
 class MultiDur2(Task): 
@@ -393,7 +393,7 @@ class MultiDur2(Task):
                         resp_stim = 1,
                         **factory_kwargs
                         )
-        self.task_type = 'Dur2'
+        self.task_type = 'MultiDur2'
 
 
 # class DurLong(Task): 
@@ -560,6 +560,9 @@ def construct_trials(task_type, num_trials=None, noise = None, return_tensor=Fal
                 trial.masks.astype(int), 
                 trial.target_dirs.astype(np.float32), 
                 TASK_LIST.index(task_type))
+
+# trials = AntiDMMod2(100)
+# trials.plot_trial(0)
 
 # if __name__ == "__main__":
 #     import argparse
