@@ -504,8 +504,8 @@ class DurFactory(TaskFactory):
             dur_array = np.empty((2, 2, self.num_trials))
             dur_true = self._get_comp_stim_durs(self.req_resp)
             dur_dummy = self._get_comp_stim_durs(~self.req_resp)
-            dur_array[self.mod, ...] = dur_true
-            dur_array[(self.mod+1)%2, ...] = dur_dummy
+            dur_array[self.mod, ...] = dur_true[0, ...]
+            dur_array[(self.mod+1)%2, ...] = dur_dummy[0, ...]
 
         elif self.multi: 
             dirs0 = _draw_ortho_dirs(self.num_trials)    
