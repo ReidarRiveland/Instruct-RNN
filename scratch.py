@@ -1,3 +1,14 @@
+
+
+from instructRNN.tasks.tasks import *
+trials = MultiDur1(100)
+trials.plot_trial(0)
+trials.factory.intervals[:, [1,3], 0, 0]-trials.factory.intervals[:, [1,3], 1, 0]
+
+
+
+
+
 import numpy as np
 from instructRNN.tasks.tasks import *
 from instructRNN.analysis.model_analysis import *
@@ -52,7 +63,7 @@ from turtle import position
 from instructRNN.data_loaders.dataset import TaskDataSet
 
 
-from instructRNN.tasks.task_factory import TaskFactory
+from instructRNN.tasks.task_factory import DELTA_T, TaskFactory
 from instructRNN.models.full_models import *
 from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 from instructRNN.tasks.tasks import SWAP_LIST, SWAPS_DICT, TASK_LIST 
