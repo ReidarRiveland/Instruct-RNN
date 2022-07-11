@@ -589,6 +589,7 @@ class COMP1Mod1(Task):
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
+                        str_chooser = np.argmax,
                         resp_stim = 0,
                         mod = 0,
                         **factory_kwargs
@@ -600,6 +601,7 @@ class COMP1Mod2(Task):
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
+                        str_chooser = np.argmax,
                         resp_stim = 0,
                         mod = 1,
                         **factory_kwargs
@@ -611,6 +613,7 @@ class COMP2Mod1(Task):
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
+                        str_chooser = np.argmax,
                         resp_stim = 1,
                         mod = 0,
                         **factory_kwargs
@@ -623,6 +626,7 @@ class COMP2Mod2(Task):
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
+                        str_chooser = np.argmax,
                         resp_stim = 1,
                         mod = 1,
                         **factory_kwargs
