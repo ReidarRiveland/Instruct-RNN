@@ -536,8 +536,8 @@ class DurFactory(TaskFactory):
         if self.multi: 
             long_total = np.floor(np.random.uniform(1500, 2000, self.num_trials)/DELTA_T).astype(int)
             long0, long1 = long_total*0.55, long_total*0.45
-            short_total = long_total - np.floor(np.random.uniform(100, 300, self.num_trials)/DELTA_T).astype(int)
-            short1 = long1+np.floor(np.random.uniform(100, 300, self.num_trials)/DELTA_T).astype(int)
+            short_total = long_total - np.floor(np.random.uniform(300, 400, self.num_trials)/DELTA_T).astype(int)
+            short1 = long1+np.floor(np.random.uniform(100, 200, self.num_trials)/DELTA_T).astype(int)
             short0 = short_total-short1
             _durs = np.floor(np.array([[short0, long0],
                                 [short1, long1]]))
