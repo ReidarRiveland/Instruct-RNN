@@ -66,6 +66,38 @@ train_instruct_dict['AntiRTGo'] = ('respond opposite of the stimulus immediately
                                     'at stimulus onset go in the reverse direction', 
                                     'select the reverse of the displayed direction at stimulus onset')
 
+train_instruct_dict['DelayGo'] = ('remember the stimulus through the delay and go in the same direction', 
+                                    'maintain the displayed direction and respond in the identical direction', 
+                                    'during the delay maintain the presented orientation and then select the same direction', 
+                                    'remember the orientation and select that direction', 
+                                    'when the stimulus is displayed remember it through the delay then respond in the same direction', 
+                                    'when the orientation appears maintain it during the delay and then select the identical direction', 
+                                    'maintain the stimulus in memory and pick the identical direction',
+                                    'remember the orientation during the delay and choose the same direction', 
+                                    'during the delay remember the stimulus and respond in with the same orientation', 
+                                    'remember the presented direction and select the identical direction after the delay', 
+                                    'when the direction is displayed remember it and then respond in the same direction', 
+                                    'maintain the stimulus orientation through the delay and select the identical orientation', 
+                                    'remember the displayed direction and select the same orientation',
+                                    'during the delay maintain the presented orientation and select the identical direction',
+                                    'remember the displayed direction through the delay and opt for the same direction')
+
+train_instruct_dict['DelayAntiGo'] = ('remember the stimulus through the delay and select the opposite direction', 
+                                        'maintain the orientation during the delay and opt for the inverse of the displayed direction', 
+                                        'maintain the stimulus through the delay and go in the converse direction', 
+                                        'when the stimulus appears remember it and choose the opposite orientation', 
+                                        'when the direction is displayed remember it and respond with the inverse orientation', 
+                                        'remember the stimulus and then select the opposite orientation', 
+                                        'during the delay maintain the stimulus and respond with the reverse orientation',
+                                        'remember the stimulus and go in the reverse of the displayed direction', 
+                                        'during the delay remember the stimulus and choose the opposite direction', 
+                                        'remember the orientation and respond with the reverse direction', 
+                                        'remember the displayed direction the go in the converse direction', 
+                                        'when the stimulus appears remember it and select the opposite of the orientation', 
+                                        'during the delay maintain the displayed direction and then choose the inverse orientation', 
+                                        'when the orientation is presented remember it and opt for the reverse direction',
+                                        'during the delay remember the stimulus and go in the inverse direction'
+                                        )
 
 train_instruct_dict['GoMod1'] = ('respond to the direction displayed in the first modality', 
                                 'opt for the orientation of the stimulus that appears in the first modality', 

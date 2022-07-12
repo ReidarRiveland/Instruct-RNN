@@ -19,7 +19,7 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
 
             'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
 
-            'RTDM', 'AntiRTDM',
+            'DelayGo', 'DelayAntiGo'
 
             #'ConDM', 'AntiConDM', 
             
@@ -176,6 +176,28 @@ class AntiRTGo(Task):
                         )
         self.task_type = 'AntiRTGo'
 
+
+class DelayGo(Task):
+    comp_ref_tasks = ('Go', 'Anti_Go', 'Anti_RT_Go')
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing = 'delay',
+                        dir_chooser = task_factory.choose_pro, 
+                        **factory_kwargs
+                        )
+        self.task_type = 'DelayGo'
+
+class DelayAntiGo(Task):
+    comp_ref_tasks = ('Anti_Go', 'Go', 'RT_Go')
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing = 'RT',
+                        dir_chooser = task_factory.choose_anti,
+                        **factory_kwargs
+                        )
+        self.task_type = 'DelayAntiGo'
 
 class GoMod1(Task): 
     comp_ref_tasks = ('Go_Mod2', 'Anti_Go_Mod2', 'Anti_Go_Mod1')
