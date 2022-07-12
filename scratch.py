@@ -65,16 +65,20 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-plot_all_holdout_curves('7.11models', 'swap', ['gptNet'])
+plot_all_holdout_curves('7.11models', 'swap', ['sbertNet_lin_tuned', 'bowNet'])
+data = HoldoutDataFrame('7.11models', 'swap', 'bowNet')
+
+
 
 EXP_FILE = '7.11models/swap_holdouts'
 sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap7'
+holdouts_file = 'swap4'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 #sbertNet = SimpleNet(rnn_hidden_dim=256)
 
-plot_model_response(sbertNet, COMP2Mod2(100), 0)
+plot_model_response(sbertNet, Dur2Mod2(100), 0)
+
 
 test = np.random.randn(2,2)
 
@@ -83,11 +87,13 @@ test[1]
 task = 'Anti_Go_Mod2'
 instructions = ['pick the opposite of the orientation in the second modality' ]*128
 instructions[0] in train_instruct_dict[task]
-task_eval(sbertNet, 'COMP2', 128)
+task_eval(sbertNet, 'AntiMultiCOMP1', 128)
+
+
 
 repeats = []
-for instruct in train_instruct_dict['Dur1Mod1']:
-    perf = task_eval(sbertNet, 'Dur2Mod2', 128, 
+for instruct in train_instruct_dict['AntiMultiCOMP1']:
+    perf = task_eval(sbertNet, 'AntiMultiCOMP1', 128, 
             instructions=[instruct]*128)
     repeats.append((instruct, perf))
 
