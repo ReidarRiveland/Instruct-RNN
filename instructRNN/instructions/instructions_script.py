@@ -427,8 +427,8 @@ train_instruct_dict['MultiDur2'] = ('respond to the second direction if it lasts
 									)
 
 train_instruct_dict['Dur1Mod1'] = ('attend to the first modality and choose the first direction if has a longer duration than the second direction otherwise do not respond',
-									'attend only to the first modality and select the initial stimulus if it last for a longer period of time than the second stimulus otherwise do not respond', 
-									'if the the first orientation lasts for longer than the second orientation in the first modality then respond to the first orientation presented there otherwise do not respond', 
+									'attend only to the first modality and select the initial stimulus if it lasts for a longer period of time than the second stimulus otherwise do not respond', 
+									'if the first orientation lasts for longer than the second orientation in the first modality then respond to the first orientation otherwise do not respond', 
 									'focus only on the first modality and opt for the initial direction if it has a greater duration than the second direction otherwise do not respond', 
 									'pay attention only to the first modality and if the first stimulus lasts for more time than the second stimulus then respond to the first stimulus otherwise do not respond', 
 									'select the first direction if it is presented for a longer duration than the second direction in the first modality otherwise do not respond', 
@@ -464,8 +464,8 @@ train_instruct_dict['Dur2Mod1'] = ('attend only to the first modality and select
 									'select the second direction if it is displayed for a greater period of time than the first direction in the first modality otherwise do not respond', 
 									'focus only on the first modality and pick the second orientation if it has a longer duration than the initial direction otherwise do not respond', 
 									'pay attention only to the first modality and if the second stimulus is displayed for more time than the first stimulus respond to the second stimulus otherwise do not respond', 
-									'if the duration of the second stimulus in longer than the first stimulus in the first modality then respond to the second stimulus otherwise do not respond', 
-									'if the second direction lasts for a greater period of time than the first direction in the first modality then select the second stimulus otherwise do not respond', 
+									'if the duration of the second stimulus is longer than the first stimulus in the first modality then respond to the second stimulus otherwise do not respond', 
+									'if the second direction lasts for a greater period of time than the first direction in the first modality then select the second direction otherwise do not respond', 
 									'attend only to the first modality and opt for the second stimulus if it appears for a greater period of time than the initial stimulus otherwise do not respond', 
 									'choose the second orientation if it has a greater duration than the initial orientation in the first modality otherwise do not respond', 
 									'focus only on the first modality and choose the second direction if it is longer than the initial direction otherwise do not respond', 

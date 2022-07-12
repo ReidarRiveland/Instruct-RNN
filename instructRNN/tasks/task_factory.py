@@ -30,8 +30,8 @@ def _add_noise(array, noise):
 def _draw_ortho_dirs(num=1, dir0=None): 
     if dir0 is None: 
         dir0 = np.random.uniform(0, 2*np.pi, num)
-    _draws = np.array([np.random.uniform(-np.pi*0.7, -np.pi*0.3, num),
-                    np.random.uniform(np.pi*0.3, np.pi*0.7, num)])
+    _draws = np.array([np.random.uniform(-np.pi*0.6, -np.pi*0.2, num),
+                    np.random.uniform(np.pi*0.2, np.pi*0.6, num)])
     offset = _draws[np.random.choice([0,1], num), range(num)]
     dir1 = (dir0+np.pi+offset)%(2*np.pi)
     #dir1 = np.random.uniform(0, 2*np.pi, num)

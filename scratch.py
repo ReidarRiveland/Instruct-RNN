@@ -51,10 +51,6 @@
 # plt.ylabel('p_stim1')
 # plt.show()
 
-
-
-
-
 from turtle import position
 from instructRNN.data_loaders.dataset import TaskDataSet
 
@@ -69,13 +65,7 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-
-trials = COMP2Mod2(100)
-trials.plot_trial(0)
-
-trials.target_dirs[0]
-
-plot_all_holdout_curves('7.11models', 'swap', ['sbertNet_lin_tuned', 'bowNet'])
+plot_all_holdout_curves('7.11models', 'swap', ['gptNet'])
 
 EXP_FILE = '7.11models/swap_holdouts'
 sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
@@ -96,7 +86,7 @@ instructions[0] in train_instruct_dict[task]
 task_eval(sbertNet, 'COMP2', 128)
 
 repeats = []
-for instruct in train_instruct_dict['Dur2Mod2']:
+for instruct in train_instruct_dict['Dur1Mod1']:
     perf = task_eval(sbertNet, 'Dur2Mod2', 128, 
             instructions=[instruct]*128)
     repeats.append((instruct, perf))
