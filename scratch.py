@@ -1,18 +1,14 @@
-
-
-from instructRNN.tasks.tasks import *
-trials = MultiDur1(100)
-trials.plot_trial(0)
-trials.factory.intervals[:, [1,3], 0, 0]-trials.factory.intervals[:, [1,3], 1, 0]
-
+# from instructRNN.tasks.tasks import *
+# trials = MultiDur1(100)
+# trials.plot_trial(0)
+# trials.factory.intervals[:, [1,3], 0, 0]-trials.factory.intervals[:, [1,3], 1, 0]
 
 
 
-
-import numpy as np
-from instructRNN.tasks.tasks import *
-from instructRNN.analysis.model_analysis import *
-from instructRNN.models.full_models import BoWNet
+# import numpy as np
+# from instructRNN.tasks.tasks import *
+# from instructRNN.analysis.model_analysis import *
+# from instructRNN.models.full_models import BoWNet
 
 
 # _intervals = np.array([(0, 30), (30, 60), (60, 90), (90, 130), (130, TRIAL_LEN)])
@@ -20,40 +16,40 @@ from instructRNN.models.full_models import BoWNet
 
 #np.repeat(np.repeat(_intervals[..., None], 100, axis=-1)[None, ...], 2, axis=0)
 
-EXP_FILE = '7.3models'
-sbertNet = BoWNet()
+# EXP_FILE = '7.3models'
+# sbertNet = BoWNet()
 
-holdouts_file = 'multitask_holdouts/Multitask'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
+# holdouts_file = 'multitask_holdouts/Multitask'
+# sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-noises = np.linspace(0.2, 0.6, 10)
-contrasts = np.concatenate((np.linspace(-0.1, -0.01, 5), np.linspace(0.01, 0.1, 5)))
+# noises = np.linspace(0.2, 0.6, 10)
+# contrasts = np.concatenate((np.linspace(-0.1, -0.01, 5), np.linspace(0.01, 0.1, 5)))
 
-correct, _, _ = get_DM_perf(sbertNet, noises, contrasts)
+# correct, _, _ = get_DM_perf(sbertNet, noises, contrasts)
 
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 
-from scipy.ndimage.filters import gaussian_filter1d
-import matplotlib.pyplot as plt
+# from scipy.ndimage.filters import gaussian_filter1d
+# import matplotlib.pyplot as plt
 
-for x in range(len(contrasts)):
-    plt.plot(noises, np.mean(correct[:, :, x], axis=0))
-plt.legend(labels=list(np.round(contrasts, 2)))
-plt.xlabel('Noise Level')
-plt.ylabel('Correct Rate')
-plt.show()
-
-
+# for x in range(len(contrasts)):
+#     plt.plot(noises, np.mean(correct[:, :, x], axis=0))
+# plt.legend(labels=list(np.round(contrasts, 2)))
+# plt.xlabel('Noise Level')
+# plt.ylabel('Correct Rate')
+# plt.show()
 
 
-#THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2
-for x in range(10):
-    smoothed = gaussian_filter1d(np.mean(pstim1_stats[:, x, :], axis=0), 1)
-    plt.plot(diff_strength, smoothed)
-plt.legend(labels=list(np.round(noises, 2)[:10]))
-plt.xlabel('Contrast')
-plt.ylabel('p_stim1')
-plt.show()
+
+
+# #THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2
+# for x in range(10):
+#     smoothed = gaussian_filter1d(np.mean(pstim1_stats[:, x, :], axis=0), 1)
+#     plt.plot(diff_strength, smoothed)
+# plt.legend(labels=list(np.round(noises, 2)[:10]))
+# plt.xlabel('Contrast')
+# plt.ylabel('p_stim1')
+# plt.show()
 
 
 
@@ -74,19 +70,38 @@ import numpy as np
 import torch
 
 
-EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = SBERTNet_tuned(LM_out_dim=64, rnn_hidden_dim=256, LM_output_nonlinearity='relu')
-holdouts_file = 'swap0'
+trials = COMP2Mod2(100)
+trials.plot_trial(0)
+
+trials.target_dirs[0]
+
+plot_all_holdout_curves('7.11models', 'swap', ['sbertNet_lin_tuned', 'bowNet'])
+
+EXP_FILE = '7.11models/swap_holdouts'
+sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap7'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 #sbertNet = SimpleNet(rnn_hidden_dim=256)
-plot_scatter(sbertNet, ['Go', 'AntiGo'])
 
+plot_model_response(sbertNet, COMP2Mod2(100), 0)
 
+test = np.random.randn(2,2)
 
+test[1]
 
+task = 'Anti_Go_Mod2'
+instructions = ['pick the opposite of the orientation in the second modality' ]*128
+instructions[0] in train_instruct_dict[task]
+task_eval(sbertNet, 'COMP2', 128)
 
+repeats = []
+for instruct in train_instruct_dict['Dur2Mod2']:
+    perf = task_eval(sbertNet, 'Dur2Mod2', 128, 
+            instructions=[instruct]*128)
+    repeats.append((instruct, perf))
 
+repeats
 
 
 
@@ -95,11 +110,6 @@ def get_zero_shot_perf(model):
     for label, tasks in list(SWAPS_DICT.items()):
         model.load_model(EXP_FILE+'/'+label+'/'+model.model_name, suffix='_seed0')
         for task in tasks: 
-            # task_instructions = get_instructions(256, task, None)
-            # data = TaskDataSet('5.25models/training_data', batch_len=256, num_batches =1, set_single_task=task, stream=False)
-            # ins, tar, mask, tar_dirs, type = next(data.stream_batch())
-            # out, hid = sbertNet(ins, task_instructions)
-            # perf_array[TASK_LIST.index(task)] =  np.mean(isCorrect(out, tar, tar_dirs))
             print(task)
             perf = task_eval(model, task, 256) 
             perf_array[TASK_LIST.index(task)] = perf
@@ -112,66 +122,10 @@ list(zip(TASK_LIST, perf))
 np.mean(perf) 
 
 
-from data_loaders.dataset import TaskDataSet
-from task_factory import TaskFactory
-TASK_LIST
-
-data = TaskDataSet('6.5models/training_data', num_batches = 128, set_single_task='Anti_MultiDM', stream=False)
-ins, tar, mask, tar_dirs, type = next(data.stream_batch())
-task_instructions = get_instructions(128, 'Anti_MultiDM', None)
-
-out, _ = sbertNet(ins, task_instructions)
-
-isCorrect(out, tar, tar_dirs)
-
-for index in range(5):
-    TaskFactory.plot_trial(ins[index, ...], tar[index, ...], type)
-
-
-from instructions.instruct_utils import train_instruct_dict
-repeats = []
-for instruct in train_instruct_dict['Anti_DM_Mod2']:
-    perf = task_eval(sbertNet, 'Anti_DM_Mod2', 128, 
-            instructions=[instruct]*128)
-    repeats.append((instruct, perf))
-
-TASK_LIST
-
-
-task = 'Anti_Go_Mod2'
-instructions = ['pick the opposite of the orientation in the second modality' ]*128
-instructions[0] in train_instruct_dict[task]
-task_eval(sbertNet, task, 128, instructions=instructions)
-
-
-task_eval(sbertNet, 'Anti_Go_Mod2', 128)
-
-
-
-get_instructions(128, 'DMC', None)
-
-
-task_instructions[2]
-
-
-
-
-
-train_instruct_dict['Anti_DM_Mod2']
-
-perf = get_model_performance(sbertNet)
-list(zip(TASK_LIST, perf))
-np.mean(repeats)
-
-
-
 
 resp = get_task_reps(sbertNet)
 reps_reduced, _ = reduce_rep(resp)
 
-
-from model_analysis import get_layer_sim_scores, get_instruct_reps
-from plotting import plot_RDM
 
 reps = get_instruct_reps(sbertNet.langModel, depth='12')
 reps.shape

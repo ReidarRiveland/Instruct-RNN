@@ -30,8 +30,8 @@ def _add_noise(array, noise):
 def _draw_ortho_dirs(num=1, dir0=None): 
     if dir0 is None: 
         dir0 = np.random.uniform(0, 2*np.pi, num)
-    _draws = np.array([np.random.uniform(-np.pi*0.75, -np.pi*0.25, num),
-                    np.random.uniform(np.pi*0.25, np.pi*0.75, num)])
+    _draws = np.array([np.random.uniform(-np.pi*0.7, -np.pi*0.3, num),
+                    np.random.uniform(np.pi*0.3, np.pi*0.7, num)])
     offset = _draws[np.random.choice([0,1], num), range(num)]
     dir1 = (dir0+np.pi+offset)%(2*np.pi)
     #dir1 = np.random.uniform(0, 2*np.pi, num)
@@ -360,7 +360,8 @@ class DMFactory(TaskFactory):
 
         elif self.mod is not None: 
             dirs0 = _draw_ortho_dirs(self.num_trials)
-            dirs1 = _draw_ortho_dirs(self.num_trials)
+            #dirs1 = _draw_ortho_dirs(self.num_trials)
+            dirs1 = dirs0
             dirs = np.array([dirs0, dirs1])
             base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
             coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175], size=(2, self.num_trials))
@@ -499,7 +500,8 @@ class DurFactory(TaskFactory):
         self.req_resp = _draw_requires_resp(self.num_trials)
         if self.mod is not None: 
             dirs0 = _draw_ortho_dirs(self.num_trials)    
-            dirs1 = _draw_ortho_dirs(self.num_trials)
+            #dirs1 = _draw_ortho_dirs(self.num_trials)
+            dirs1 = dirs0
             dirs = np.array([dirs0, dirs1])
             dur_array = np.empty((2, 2, self.num_trials))
             dur_true = self._get_comp_stim_durs(self.req_resp)
@@ -597,7 +599,7 @@ class DurFactory(TaskFactory):
 
 class COMPFactory(TaskFactory):
     def __init__(self, num_trials,  noise, resp_stim, str_chooser,
-                            mod=None, multi=False,         timing= 'delay', 
+                            mod=None, multi=False, timing= 'delay', 
 
                             dir_arr=None, coh_arr=None, max_var = None, 
                             intervals= None, cond_arr=None, target_dirs=None):
@@ -629,6 +631,13 @@ class COMPFactory(TaskFactory):
             coh = coh_arr
             dirs = dir_arr
             base_strs = np.full((2, self.num_trials), 1)
+
+        elif self.mod is not None:        
+            dirs1 = dirs0
+            dirs = np.array([dirs0, dirs1])
+            base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
+            coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=(2, self.num_trials))
+
         elif self.multi:        
             dirs1 = dirs0
             dirs = np.array([dirs0, dirs1])
@@ -661,11 +670,14 @@ class COMPFactory(TaskFactory):
         req_resp = self.req_resp.astype(int)
         not_req_resp = (req_resp+1)%2
 
-        positive_index = chooser(np.nansum(tmp_strs, axis=0), axis=0)
-        pos_str = tmp_strs[:,positive_index, np.arange(tmp_strs.shape[-1])]
-        neg_str = tmp_strs[:, (positive_index+1)%2, range(tmp_strs.shape[-1])]
+        if self.mod is not None: 
+            positive_index = chooser(tmp_strs[self.mod], axis=0)
+        else: 
+            positive_index = chooser(np.nansum(tmp_strs, axis=0), axis=0)
+        pos_str = tmp_strs[:,positive_index, np.arange(self.num_trials)]
+        neg_str = tmp_strs[:, (positive_index+1)%2, range(self.num_trials)]
         sorted_strs = np.array([neg_str, pos_str])
-        
+
         strs[:,self.resp_stim, :] = sorted_strs[req_resp,:, range(self.num_trials)].T
         strs[:, no_resp_stim, :] = sorted_strs[not_req_resp,:, range(self.num_trials)].T
         return strs
