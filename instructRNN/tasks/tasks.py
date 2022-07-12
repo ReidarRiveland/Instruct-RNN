@@ -21,7 +21,7 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
 
             #'RTDM', 'AntiRTDM',
 
-            'DelayGo', 'DelayAntiGo'
+            'DelayGo', 'DelayAntiGo',
 
             #'ConDM', 'AntiConDM', 
             
