@@ -199,7 +199,7 @@ class TaskFactory():
 
         elif self.timing =='RT':
             input_activity_vecs = np.array([np.concatenate((fix, null_stim), 1), np.concatenate((fix, null_stim), 1), 
-                        np.concatenate((fix, null_stim), 1),  np.concatenate((fix, null_stim), 1), np.concatenate((fix, stim1+stim2), 1)])
+                        np.concatenate((fix, null_stim), 1),  np.concatenate((fix, null_stim), 1), np.concatenate((no_fix, stim1+stim2), 1)])
             
         elif self.timing == 'delay':
             input_activity_vecs = np.array([np.concatenate((fix, null_stim), 1), np.concatenate((fix, stim1), 1), np.concatenate((fix, null_stim), 1),  

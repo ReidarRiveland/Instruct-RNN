@@ -19,7 +19,9 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
 
             'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
 
-            'DelayGo', 'DelayAntiGo'
+            'RTDM', 'AntiRTDM',
+
+            #'DelayGo', 'DelayAntiGo'
 
             #'ConDM', 'AntiConDM', 
             
@@ -38,7 +40,6 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             'Dur1Mod1', 'Dur2Mod1', 'Dur1Mod2', 'Dur2Mod2',
 
             'DMS', 'DNMS', 'DMC', 'DNMC', 
-            
             
             ]
 
