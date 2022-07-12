@@ -194,7 +194,7 @@ class DelayAntiGo(Task):
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
-                        timing = 'RT',
+                        timing = 'delay',
                         dir_chooser = task_factory.choose_anti,
                         **factory_kwargs
                         )
