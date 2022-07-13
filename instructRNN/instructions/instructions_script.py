@@ -278,7 +278,7 @@ train_instruct_dict['ConDM'] = ('respond to the the strongest stimulus only if y
                                 'respond in the direction of greatest strength if you are confident otherwise do not respond', 
                                 'choose the strongest orientation if you have high confidence otherwise do not respond')
 
-train_instruct_dict['AntiConDM'] = ('opt for the stimulus presented with least strength if you are confident in your answer otherwise do not respond', 
+train_instruct_dict['ConAntiDM'] = ('opt for the stimulus presented with least strength if you are confident in your answer otherwise do not respond', 
                                     'if you have high confidence select the stimulus displayed with minimal intensity otherwise do not respond',
                                     'if you are confident in your answer pick the weakest stimulus otherwise do not respond', 
                                     'choose the orientation that appears with lowest intensity if you are confident otherwise do not respond', 

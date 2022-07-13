@@ -344,7 +344,7 @@ class ConDM(Task):
                         )
         self.task_type = 'ConDM'
 
-class AntiConDM(Task):
+class ConAntiDM(Task):
     comp_ref_tasks = ('Anti_ConMultiDM', 'ConMultiDM', 'ConDM')
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
@@ -353,31 +353,31 @@ class AntiConDM(Task):
                         threshold_folder = 'anti_dm_noise_thresholds',
                         **factory_kwargs
                         )
-        self.task_type = 'AntiConDM'
+        self.task_type = 'ConAntiDM'
 
-class ConMultiDM(Task):
-    comp_ref_tasks = ('ConDM', 'Anti_ConDM', 'Anti_ConMultiDM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
-        super().__init__(num_trials, noise,
-                        task_factory.ConDMFactory, 
-                        str_chooser = np.argmax,
-                        multi=True,
-                        threshold_folder = 'multi_dm_noise_thresholds',
-                        **factory_kwargs
-                        )
-        self.task_type = 'ConMultiDM'
+# class ConMultiDM(Task):
+#     comp_ref_tasks = ('ConDM', 'Anti_ConDM', 'Anti_ConMultiDM')
+#     def __init__(self, num_trials, noise=None, **factory_kwargs): 
+#         super().__init__(num_trials, noise,
+#                         task_factory.ConDMFactory, 
+#                         str_chooser = np.argmax,
+#                         multi=True,
+#                         threshold_folder = 'multi_dm_noise_thresholds',
+#                         **factory_kwargs
+#                         )
+#         self.task_type = 'ConMultiDM'
 
-class AntiConMultiDM(Task):
-    comp_ref_tasks = ( 'Anti_ConDM', 'ConDM', 'ConMultiDM')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
-        super().__init__(num_trials, noise,
-                        task_factory.ConDMFactory, 
-                        str_chooser = np.argmin,
-                        multi=True,
-                        threshold_folder = 'anti_multi_dm_noise_thresholds',
-                        **factory_kwargs
-                        )
-        self.task_type = 'AntiConMultiDM'
+# class ConAntiMultiDM(Task):
+#     comp_ref_tasks = ( 'Anti_ConDM', 'ConDM', 'ConMultiDM')
+#     def __init__(self, num_trials, noise=None, **factory_kwargs): 
+#         super().__init__(num_trials, noise,
+#                         task_factory.ConDMFactory, 
+#                         str_chooser = np.argmin,
+#                         multi=True,
+#                         threshold_folder = 'anti_multi_dm_noise_thresholds',
+#                         **factory_kwargs
+#                         )
+#         self.task_type = 'ConAntiMultiDM'
 
 class DMMod1(Task):
     comp_ref_tasks = ('DM_Mod2', 'Anti_DM_Mod2', 'Anti_DM_Mod1')
