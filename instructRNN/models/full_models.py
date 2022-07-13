@@ -135,7 +135,7 @@ class SBERTNet_lin_tuned(InstructNet):
                                     LM_class= SBERT,
                                     LM_load_str = 'sbert-base-nli-mean-tokens.pt', 
                                     LM_output_nonlinearity='lin', 
-                                    LM_train_layers=['8', '9', '10', '11', 'pooler'],
+                                    LM_train_layers=['9', '10', '11', 'pooler'],
                                     **kw_args)
         super().__init__(config)
 
@@ -219,6 +219,5 @@ def make_default_model(model_str):
         return BoWNet()
     else: 
         raise Exception('Model not found in make_default_model function, make sure its included there')
-
 
 

@@ -17,9 +17,9 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             'GoMod1',  'GoMod2', 'AntiGoMod1', 'AntiGoMod2',
             'DelayGo', 'DelayAntiGo',
             'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
-            'RTDM', 'AntiRTDM', 'DelayDM', 'AntiDelayDM',
-            #'ConDM', 'AntiConDM', 
-            #'ConMultiDM', 'AntiConMultiDM',            
+            'RTDM', 'AntiRTDM', 
+            'DelayDM', 'DelayAntiDM',
+            'ConDM', 'ConAntiDM',            
             'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2',
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
             'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 
@@ -30,31 +30,32 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             ]
 
 
-CLUSTER_LIST = ['Go', 'RTGo', 'DelayGo', 'GoMod1',  'GoMod2',
-            'AntiGo', 'AntiRTGo', 'DelayAntiGo', 'AntiGoMod1', 'AntiGoMod2',
-            'DM', 'RTDM', 'MultiDM', 'DMMod1', 'DMMod2',
-            'AntiDM', 'AntiRTDM', 'AntiMultiDM', 'AntiDMMod1',  'AntiDMMod2',
-            #'ConDM', 'AntiConDM', 
-            #'ConMultiDM', 'AntiConMultiDM',            
-            'COMP1', 'MultiCOMP1', 'COMP1Mod1', 'COMP1Mod2',
-            'COMP2',  'MultiCOMP2', 'COMP2Mod1',  'COMP2Mod2', 
-            'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 
-            'Dur1',  'MultiDur1', 'Dur1Mod1','Dur1Mod2',
-            'Dur2', 'MultiDur2', 'Dur2Mod1',  'Dur2Mod2',
-            'DMS', 'DNMS', 'DMC', 'DNMC', 
-            ]
+# CLUSTER_LIST = ['Go', 'RTGo', 'DelayGo', 'GoMod1',  'GoMod2',
+#             'AntiGo', 'AntiRTGo', 'DelayAntiGo', 'AntiGoMod1', 'AntiGoMod2',
+#             'DM', 'RTDM', 'MultiDM', 'DMMod1', 'DMMod2',
+#             'AntiDM', 'AntiRTDM', 'AntiMultiDM', 'AntiDMMod1',  'AntiDMMod2',
+#             #'ConDM', 'AntiConDM', 
+#             #'ConMultiDM', 'AntiConMultiDM',            
+#             'COMP1', 'MultiCOMP1', 'COMP1Mod1', 'COMP1Mod2',
+#             'COMP2',  'MultiCOMP2', 'COMP2Mod1',  'COMP2Mod2', 
+#             'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 
+#             'Dur1',  'MultiDur1', 'Dur1Mod1','Dur1Mod2',
+#             'Dur2', 'MultiDur2', 'Dur2Mod1',  'Dur2Mod2',
+#             'DMS', 'DNMS', 'DMC', 'DNMC', 
+#             ]
 
 
 SWAP_LIST = [            
             ('AntiDMMod2', 'RTGo', 'DM', 'COMP1', 'Dur1Mod1'), 
             ('COMP1Mod1', 'AntiGoMod2', 'MultiDur2', 'DMS', 'AntiRTDM'),
             ('DMMod2', 'AntiCOMP2', 'AntiRTGo', 'MultiCOMP1', 'Dur1Mod2'), 
-            ('GoMod2', 'MultiCOMP2', 'Dur1', 'AntiCOMP1'), 
+            ('GoMod2', 'AntiMultiCOMP2', 'DelayDM', 'AntiCOMP1'), 
             ('DelayAntiGo', 'MultiDM', 'COMP2Mod2', 'DMC', 'AntiMultiCOMP1'),             
-            ('MultiDur1', 'AntiGo', 'GoMod1', 'COMP2', 'RTDM'), 
+            ('MultiDur1',  'DelayAntiDM', 'GoMod1', 'COMP2', 'RTDM'), 
             ('AntiDM', 'DelayGo', 'AntiGoMod1',  'DNMS', 'Dur2Mod1'), 
             ('COMP2Mod1', 'AntiMultiDM', 'DMMod1', 'DNMC', 'Dur2Mod2'),
-            ('AntiMultiCOMP2', 'AntiDMMod1', 'Dur2', 'Go', 'COMP1Mod2')
+            ('MultiCOMP2', 'ConAntiDM', 'Dur2', 'Go', 'COMP1Mod2'),
+            ('Dur1', 'AntiGo', 'ConDM', 'AntiDMMod1')
             ]
  
 # task_list = TASK_LIST.copy()
@@ -321,7 +322,7 @@ class DelayDM(Task):
                         )
         self.task_type = 'DelayDM'
 
-class AntiDelayDM(Task):
+class DelayAntiDM(Task):
     comp_ref_tasks = ('Anti_MultiDM', 'MultiDM', 'DM')
     def __init__(self, num_trials, noise=None,**factory_kwargs): 
         super().__init__(num_trials, noise,
@@ -330,7 +331,7 @@ class AntiDelayDM(Task):
                         timing='delay',
                         **factory_kwargs
                         )
-        self.task_type = 'AntiDelayDM'
+        self.task_type = 'DelayAntiDM'
 
 class ConDM(Task):
     comp_ref_tasks = ('ConMultiDM', 'Anti_ConMultiDM', 'Anti_ConDM')

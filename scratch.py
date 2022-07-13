@@ -2,13 +2,14 @@
 # trials.plot_trial(0)
 # trials.factory.intervals[:, [1,3], 0, 0]-trials.factory.intervals[:, [1,3], 1, 0]
 
-
-
 # import numpy as np
 # from instructRNN.tasks.tasks import *
 # from instructRNN.analysis.model_analysis import *
 # from instructRNN.models.full_models import BoWNet
 
+# trials = ConDM(100)
+# np.mean(trials.factory.requires_response_list)
+# trials.plot_trial(5)
 
 # _intervals = np.array([(0, 30), (30, 60), (60, 90), (90, 130), (130, TRIAL_LEN)])
 # intervals = np.repeat(_intervals[:,:, None],  100, axis=-1)
@@ -56,118 +57,89 @@ from instructRNN.data_loaders.dataset import TaskDataSet
 
 from instructRNN.tasks.task_factory import DELTA_T, TaskFactory
 from instructRNN.models.full_models import *
-from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
-from instructRNN.tasks.tasks import SWAP_LIST, SWAPS_DICT, TASK_LIST 
+from instructRNN.analysis.model_analysis import *
+from instructRNN.tasks.tasks import *
 from instructRNN.instructions.instruct_utils import get_instructions, train_instruct_dict
 from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-plot_all_holdout_curves('7.13models', 'swap', ['sbertNet_lin', 'sbertNet_lin_tuned'])
-data = HoldoutDataFrame('7.12models', 'swap', 'sbertNet_lin_tuned', seeds=range(1))
-np.nanmean(data.get_k_shot(0))
+# plot_all_holdout_curves('7.13models', 'swap', ['sbertNet_lin', 'sbertNet_lin_tuned'])
+# data = HoldoutDataFrame('7.13models', 'swap', 'sbertNet_lin_tuned', seeds=range(1))
+# np.nanmean(data.get_k_shot(0))
 
-trials = MultiDur1(100, max_var=True)
-trials.plot_trial(3)
+# trials = MultiDur1(100, max_var=True)
+# trials.plot_trial(3)
 
-EXP_FILE = '7.13models/swap_holdouts'
-sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap2'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
+# EXP_FILE = '7.13models/swap_holdouts'
+# sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
+# holdouts_file = 'swap4'
+# sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-#sbertNet = SimpleNet(rnn_hidden_dim=256)
+# task = 'AntiRTGo'
+# instructions = ['respond in the opposite direction as soon as the stimulus appears' ]*128
+# instructions[0] in train_instruct_dict[task]
+# task_eval(sbertNet, 'AntiRTGo', 128)
 
-plot_model_response(sbertNet, AntiRTGo(100), 0)
+# repeats = []
+# for instruct in train_instruct_dict['DelayAntiGo']:
+#     perf = task_eval(sbertNet, 'DelayAntiGo', 128, 
+#             instructions=[instruct]*128)
+#     repeats.append((instruct, perf))
 
-
-test = np.random.randn(2,2)
-
-test[1]
-
-task = 'AntiRTGo'
-instructions = ['respond in the opposite direction as soon as the stimulus appears' ]*128
-instructions[0] in train_instruct_dict[task]
-task_eval(sbertNet, 'AntiRTGo', 128)
-
-[('respond opposite of the stimulus immediately', 0.734375), 
-('respond in the reverse direction of stimulus as soon as the stimulus appears', 0.59375), 
-('choose the opposite of the displayed direction at stimulus onset', 0.28125), 
-('select the converse orientation immediately after the stimulus is shown', 0.8203125), 
-('respond with the converse direction immediately', 0.546875), 
-('go in the inverse of the displayed orientation as soon as the stimulus appears', 0.4609375), 
-('choose the converse direction immediately', 0.8125), 
-('respond with the opposite of the displayed orientation immediately', 0.3515625), 
-('go in the reverse of the direction displayed as soon as stimulus appears', 0.5625), 
-('as soon as stimulus appears respond in the opposite direction', 0.0), 
-('select the reverse orientation at stimulus onset', 0.6875), 
-('choose the inverse orientation of the one displayed at stimulus onset', 0.0), 
-('respond in the converse of the displayed direction as soon as it appears', 0.0), 
-('at stimulus onset go in the reverse direction', 0.6953125), 
-('select the reverse of the displayed direction at stimulus onset', 0.546875)]
-
-
-repeats = []
-for instruct in train_instruct_dict['AntiRTGo']:
-    perf = task_eval(sbertNet, 'AntiRTGo', 128, 
-            instructions=[instruct]*128)
-    repeats.append((instruct, perf))
-
-repeats
+# repeats
 
 
 
-def get_zero_shot_perf(model): 
-    perf_array = np.empty(len(TASK_LIST))
-    for label, tasks in list(SWAPS_DICT.items()):
-        model.load_model(EXP_FILE+'/'+label+'/'+model.model_name, suffix='_seed0')
-        for task in tasks: 
-            print(task)
-            perf = task_eval(model, task, 256) 
-            perf_array[TASK_LIST.index(task)] = perf
-    return perf_array
+# def get_zero_shot_perf(model): 
+#     perf_array = np.empty(len(TASK_LIST))
+#     for label, tasks in list(SWAPS_DICT.items()):
+#         model.load_model(EXP_FILE+'/'+label+'/'+model.model_name, suffix='_seed0')
+#         for task in tasks: 
+#             print(task)
+#             perf = task_eval(model, task, 256) 
+#             perf_array[TASK_LIST.index(task)] = perf
+#     return perf_array
 
-sbertNet.to(torch.device(0))
-perf = get_zero_shot_perf(sbertNet)
-perf
-list(zip(TASK_LIST, perf))
-np.mean(perf) 
-
-
-
-resp = get_task_reps(sbertNet)
-reps_reduced, _ = reduce_rep(resp)
-
-
-reps = get_instruct_reps(sbertNet.langModel, depth='12')
-reps.shape
-np.max(reps[TASK_LIST.index('DM'), 0, :])
-np.min(reps)
-
-
-sim_scores = get_layer_sim_scores(sbertNet, rep_depth='full')
-plot_RDM(sim_scores)
+# sbertNet.to(torch.device(0))
+# perf = get_zero_shot_perf(sbertNet)
+# perf
+# list(zip(TASK_LIST, perf))
+# np.mean(perf) 
 
 
 
-from models.full_models import SimpleNet
-from model_analysis import get_DM_perf, get_noise_thresholdouts
-import pickle
-import numpy as np
-EXP_FILE = '6.6models/noise_thresholding_model'
+# resp = get_task_reps(sbertNet)
+# reps_reduced, _ = reduce_rep(resp)
 
-simpleNet = SimpleNet(rnn_hidden_dim=256)
+
+# reps = get_instruct_reps(sbertNet.langModel, depth='12')
+# reps.shape
+# np.max(reps[TASK_LIST.index('DM'), 0, :])
+# np.min(reps)
+
+
+# sim_scores = get_layer_sim_scores(sbertNet, rep_depth='full')
+# plot_RDM(sim_scores)
+
+
+EXP_FILE = '7.14models/multitask_holdouts/Multitask'
+simpleNet = SimpleNet()
 simpleNet.load_model(EXP_FILE+'/'+simpleNet.model_name, suffix='_seed0')
 
-task = 'DM'
+simpleNet.state_dict().keys()
+
+task_eval(simpleNet, 'AntiDM', 128)
 
 
-#diff_strength = np.concatenate((np.linspace(-0.15, -0.05, num=7), np.linspace(0.05, 0.15, num=7)))
-diff_strength = np.concatenate((np.linspace(-0.2, -0.1, num=7), np.linspace(0.1, 0.2, num=7)))
+diff_strength = np.concatenate((np.linspace(-0.15, -0.05, num=7), np.linspace(0.05, 0.15, num=7)))
+#@diff_strength = np.concatenate((np.linspace(-0.2, -0.1, num=7), np.linspace(0.1, 0.2, num=7)))
+noises = np.linspace(0.15, 0.75, num=20)
 
-noises = np.linspace(0.05, 0.75, num=30)
-
-correct_stats, pstim1_stats, trial = get_DM_perf(simpleNet, noises, diff_strength, task=task)
+correct_stats, pstim1_stats, trial = get_DM_perf(simpleNet, noises, diff_strength, task='DM')
+trial.task_type = 'AntiDM'
+plot_model_response(simpleNet, trial)
 
 from scipy.ndimage.filters import gaussian_filter1d
 import matplotlib.pyplot as plt
@@ -179,9 +151,9 @@ plt.xlabel('Noise Level')
 plt.ylabel('Correct Rate')
 plt.show()
 
-thresholds = get_noise_thresholdouts(correct_stats, diff_strength, noises, neg_cutoff=0.8)
-
-pickle.dump(thresholds, open('6.7models/noise_thresholds/dm_noise_thresholds', 'wb'))
+thresholds = get_noise_thresholdouts(correct_stats, diff_strength, noises, neg_cutoff=0.85)
+path = '/home/reidar/Projects/Instruct-RNN/instructRNN/tasks/noise_thresholds'
+pickle.dump(thresholds, open(path+'/dm_noise_thresholds', 'wb'))
 
 
 #THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2

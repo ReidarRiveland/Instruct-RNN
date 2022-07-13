@@ -382,7 +382,8 @@ class DMFactory(TaskFactory):
         if coh_arr is not None: 
             coh = coh_arr
             dirs = dir_arr
-            base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
+            #base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
+            base_strs = np.ones((2, self.num_trials))
 
         elif self.mod is not None: 
             dirs0 = _draw_ortho_dirs(self.num_trials)
@@ -447,8 +448,6 @@ class ConDMFactory(TaskFactory):
 
         if intervals is None: 
             intervals = _get_default_intervals(self.num_trials)
-        # if max_var: 
-        #     dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
 
         if self.cond_arr is None: 
             self.cond_arr = self._make_cond_arr()
@@ -473,7 +472,7 @@ class ConDMFactory(TaskFactory):
         else:
             nan_dirs = np.full_like(dirs0, np.NaN)
             dirs = _permute_mod(np.array([dirs0, nan_dirs]))
-            base_strs = np.full((2, self.num_trials), 1)
+            base_strs = np.ones((2, self.num_trials))
             coh = np.array([contrasts/2, contrasts/2])
 
         _strs= np.array([[base_strs[0]+coh[0], base_strs[0]-coh[0]],

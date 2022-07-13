@@ -139,15 +139,16 @@ class ModelTrainer(BaseTrainer):
             print('Resuming Training, Current lr: ' + str(self.scheduler.get_lr()))
         else:
             self._init_optimizer(model)
+        tunable = (model.info_type == 'lang' and hasattr(model.langModel, 'transformer'))
+        return tunable
 
     def train(self, model, is_tuning=False, is_testing=False, instruct_mode=None): 
         model.to(device)
         model.train()
         self._init_streamer()
-        self._set_training_conditions(model, is_tuning, is_testing, instruct_mode)
-
+        tunable = self._set_training_conditions(model, is_tuning, is_testing, instruct_mode)
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
-            if self.cur_epoch == self.save_for_tuning_epoch and hasattr(model.langModel, 'transformer'):
+            if self.cur_epoch == self.save_for_tuning_epoch and tunable:
                 self._save_for_tuning(model)
 
             self.streamer.shuffle_stream_order()

@@ -153,6 +153,7 @@ class RuleNet(BaseNet):
     def __init__(self, config):
         super().__init__(config)
         self.rule_transform = nn.Parameter(self.gen_ortho_rules(), requires_grad=False)
+
         if self.add_rule_encoder: 
             self.rule_encoder = RuleEncoder(self.rule_dim, self.rule_encoder_hidden)
         else: 
@@ -164,7 +165,7 @@ class RuleNet(BaseNet):
         return torch.tensor(ortho)
 
     def forward(self, x, task_rule):
-        rule_transformed = torch.matmul(task_rule.to(self.__device__), self.rule_transform)
+        rule_transformed = torch.matmul(task_rule.to(self.__device__), self.rule_transform.float())
         task_rule = self.rule_encoder(rule_transformed)
         outs, rnn_hid = super().forward(x, task_rule)
         return outs, rnn_hid
