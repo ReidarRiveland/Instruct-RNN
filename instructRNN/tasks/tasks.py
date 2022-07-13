@@ -14,34 +14,36 @@ def invert_holdout_dict(task_dict):
     return inv_swap_dict
 
 TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo', 
-            
-            'GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2',
-
+            'GoMod1',  'GoMod2', 'AntiGoMod1', 'AntiGoMod2',
             'DelayGo', 'DelayAntiGo',
-
             'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
-
             'RTDM', 'AntiRTDM',
-
             #'ConDM', 'AntiConDM', 
-            
             #'ConMultiDM', 'AntiConMultiDM',            
-
             'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2',
-            
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
-            
             'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 
-
             'COMP1Mod1', 'COMP2Mod1', 'COMP1Mod2', 'COMP2Mod2', 
-
             'Dur1', 'Dur2', 'MultiDur1', 'MultiDur2',
-
             'Dur1Mod1', 'Dur2Mod1', 'Dur1Mod2', 'Dur2Mod2',
-
             'DMS', 'DNMS', 'DMC', 'DNMC', 
-            
             ]
+
+
+CLUSTER_LIST = ['Go', 'RTGo', 'DelayGo', 'GoMod1',  'GoMod2',
+            'AntiGo', 'AntiRTGo', 'DelayAntiGo', 'AntiGoMod1', 'AntiGoMod2',
+            'DM', 'RTDM', 'MultiDM', 'DMMod1', 'DMMod2',
+            'AntiDM', 'AntiRTDM', 'AntiMultiDM', 'AntiDMMod1',  'AntiDMMod2',
+            #'ConDM', 'AntiConDM', 
+            #'ConMultiDM', 'AntiConMultiDM',            
+            'COMP1', 'MultiCOMP1', 'COMP1Mod1', 'COMP1Mod2',
+            'COMP2',  'MultiCOMP2', 'COMP2Mod1',  'COMP2Mod2', 
+            'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 
+            'Dur1',  'MultiDur1', 'Dur1Mod1','Dur1Mod2',
+            'Dur2', 'MultiDur2', 'Dur2Mod1',  'Dur2Mod2',
+            'DMS', 'DNMS', 'DMC', 'DNMC', 
+            ]
+
 
 SWAP_LIST = [            
             ('AntiDMMod2', 'RTGo', 'DM', 'COMP1', 'Dur1Mod1'), 

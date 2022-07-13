@@ -1,4 +1,3 @@
-# from instructRNN.tasks.tasks import *
 # trials = MultiDur1(100)
 # trials.plot_trial(0)
 # trials.factory.intervals[:, [1,3], 0, 0]-trials.factory.intervals[:, [1,3], 1, 0]
@@ -65,35 +64,52 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-plot_all_holdout_curves('7.11models', 'swap', ['sbertNet_lin_tuned', 'bowNet'])
-data = HoldoutDataFrame('7.11models', 'swap', 'bowNet')
+plot_all_holdout_curves('7.13models', 'swap', ['sbertNet_lin', 'sbertNet_lin_tuned'])
+data = HoldoutDataFrame('7.12models', 'swap', 'sbertNet_lin_tuned', seeds=range(1))
+np.nanmean(data.get_k_shot(0))
 
+trials = MultiDur1(100, max_var=True)
+trials.plot_trial(3)
 
-
-EXP_FILE = '7.11models/swap_holdouts'
+EXP_FILE = '7.13models/swap_holdouts'
 sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap4'
+holdouts_file = 'swap2'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 #sbertNet = SimpleNet(rnn_hidden_dim=256)
 
-plot_model_response(sbertNet, Dur2Mod2(100), 0)
+plot_model_response(sbertNet, AntiRTGo(100), 0)
 
 
 test = np.random.randn(2,2)
 
 test[1]
 
-task = 'Anti_Go_Mod2'
-instructions = ['pick the opposite of the orientation in the second modality' ]*128
+task = 'AntiRTGo'
+instructions = ['respond in the opposite direction as soon as the stimulus appears' ]*128
 instructions[0] in train_instruct_dict[task]
-task_eval(sbertNet, 'AntiMultiCOMP1', 128)
+task_eval(sbertNet, 'AntiRTGo', 128)
 
+[('respond opposite of the stimulus immediately', 0.734375), 
+('respond in the reverse direction of stimulus as soon as the stimulus appears', 0.59375), 
+('choose the opposite of the displayed direction at stimulus onset', 0.28125), 
+('select the converse orientation immediately after the stimulus is shown', 0.8203125), 
+('respond with the converse direction immediately', 0.546875), 
+('go in the inverse of the displayed orientation as soon as the stimulus appears', 0.4609375), 
+('choose the converse direction immediately', 0.8125), 
+('respond with the opposite of the displayed orientation immediately', 0.3515625), 
+('go in the reverse of the direction displayed as soon as stimulus appears', 0.5625), 
+('as soon as stimulus appears respond in the opposite direction', 0.0), 
+('select the reverse orientation at stimulus onset', 0.6875), 
+('choose the inverse orientation of the one displayed at stimulus onset', 0.0), 
+('respond in the converse of the displayed direction as soon as it appears', 0.0), 
+('at stimulus onset go in the reverse direction', 0.6953125), 
+('select the reverse of the displayed direction at stimulus onset', 0.546875)]
 
 
 repeats = []
-for instruct in train_instruct_dict['AntiMultiCOMP1']:
-    perf = task_eval(sbertNet, 'AntiMultiCOMP1', 128, 
+for instruct in train_instruct_dict['AntiRTGo']:
+    perf = task_eval(sbertNet, 'AntiRTGo', 128, 
             instructions=[instruct]*128)
     repeats.append((instruct, perf))
 
@@ -196,7 +212,7 @@ plt.show()
 import numpy as np
 from instructRNN.instructions.instruct_utils import get_task_info
 from instructRNN.tasks.task_criteria import isCorrect
-from instructRNN.models.full_models import SBERTNet_tuned, SimpleNet, CLIPNet
+from instructRNN.models.full_models import *
 from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 
 from instructRNN.tasks.tasks import *
@@ -204,41 +220,20 @@ import torch
 from instructRNN.models.full_models import SBERTNet
 from instructRNN.instructions.instruct_utils import get_instructions
 
-EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = SBERTNet(LM_output_nonlinearity='relu')
+EXP_FILE = '7.13models/swap_holdouts'
+sbertNet = SBERTNet_lin_tuned()
 
 holdouts_file = 'swap0'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 
-from instructRNN.plotting.plotting import plot_model_response
-from instructRNN.tasks.tasks import DMS
-
-
-task_instructions = get_instructions(128, 'Anti_Go_Mod1', None)
-plot_model_response(sbertNet, AntiDM(100))
-
-
-CLUSTER_TASK_LIST = ['Go', 'RTGo', 'GoMod1','GoMod2',
-                    'AntiGo',  'AntiRTGo', 'AntiGoMod1',  'AntiGoMod2',
-                    'DM',  'MultiDM',  
-                    #'ConDM','ConMultiDM', 'AntiConDM', 'AntiConMultiDM',
-                    'DMMod1', 'DMMod2',
-                    'AntiDM', 'AntiMultiDM',  'AntiDMMod1', 'AntiDMMod2',        
-                    'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
-                    'DMS', 'DNMS', 'DMC', 'DNMC']
-
-
-def get_hidden_reps(model, num_trials, tasks=CLUSTER_TASK_LIST, instruct_mode=None):
+def get_hidden_reps(model, num_trials, tasks=CLUSTER_LIST, instruct_mode=None):
     hidden_reps = np.empty((num_trials, 150, 256, len(tasks)))
     with torch.no_grad():
         for i, task in enumerate(tasks): 
             print(task)
             trial = construct_trials(task, None)
-            _intervals = np.array([(0, 30), (30, 60), (60, 90), (90, 120), (120, 150)])
-            intervals = _intervals[:,:,None].repeat(num_trials, -1)
-            ins = trial(num_trials, max_var=True, intervals=intervals).inputs
-
+            ins = trial(num_trials, max_var=True).inputs
             task_info = get_task_info(num_trials, task, model.info_type, instruct_mode=instruct_mode)
             _, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
             hidden_reps[..., i] = hid.cpu().numpy()
@@ -247,16 +242,17 @@ def get_hidden_reps(model, num_trials, tasks=CLUSTER_TASK_LIST, instruct_mode=No
 from sklearn.preprocessing import normalize
 def get_norm_task_var(hid_reps): 
     task_var = np.mean(np.var(hid_reps[:, 30:,:,:], axis=0), axis=0)
-    task_var = np.delete(task_var, np.where(np.sum(task_var, axis=1)<0.001)[0], axis=0)
-    return normalize(task_var, axis=1)
-    
+    task_var = np.delete(task_var, np.where(np.sum(task_var, axis=1)<0.01)[0], axis=0)
+    return normalize(task_var, axis=1, norm='max')
 
-def plot_task_var_heatmap(task_var):
+def plot_task_var_heatmap(task_var, cluster_labels):
     import seaborn as sns
     import matplotlib.pyplot as plt
-    sns.heatmap(task_var.T, yticklabels=CLUSTER_TASK_LIST, vmin=0)
-    plt.show()
+    res = sns.heatmap(task_var.T, xticklabels = cluster_labels, yticklabels=CLUSTER_LIST, vmin=0)
+    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
+    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 6, rotation=45)
 
+    plt.show()
 
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
@@ -293,14 +289,15 @@ def plot_clustering(n_clusters, task_var):
 hid_reps = get_hidden_reps(sbertNet, 100)
 norm_task_var = get_norm_task_var(hid_reps)
 optim_clusters = get_optim_clusters(norm_task_var)
+
+plot_clustering(optim_clusters, norm_task_var)
 labels, _ = cluster_units(optim_clusters, norm_task_var)
 
-labels.max()
-sorted_indices = list(zip(*sorted(zip(labels, range(256)))))[1]
+
+cluster_labels, sorted_indices = list(zip(*sorted(zip(labels, range(256)))))
 sorted_array = norm_task_var[sorted_indices, :]
 
-plot_task_var_heatmap(sorted_array)
-
+plot_task_var_heatmap(sorted_array, cluster_labels)
 
 
 
