@@ -1,8 +1,11 @@
+from inspect import Parameter
 import torch
 import torch.nn as nn
 from attrs import asdict, define, field
 import pathlib
 import pickle
+from scipy.stats import ortho_group
+
 
 from instructRNN.models.script_gru import ScriptGRU
 from instructRNN.tasks.tasks import TASK_LIST
@@ -28,6 +31,7 @@ class BaseModelConfig():
 
 @define
 class RuleModelConfig(BaseModelConfig): 
+    num_tasks: int = len(TASK_LIST)
     add_rule_encoder: bool = False
     rule_encoder_hidden: int = 128
     rule_dim: int = 64
@@ -148,16 +152,16 @@ class RuleNet(BaseNet):
     _tuning_epoch=None
     def __init__(self, config):
         super().__init__(config)
-        self._set_rule_transform()
+        self.rule_transform = nn.Parameter(self.gen_ortho_rules(), requires_grad=False)
         if self.add_rule_encoder: 
             self.rule_encoder = RuleEncoder(self.rule_dim, self.rule_encoder_hidden)
         else: 
             self.rule_encoder = nn.Identity()
 
-    def _set_rule_transform(self):
-        rule_folder = '/ortho_rule_vecs/'
-        ortho_rules = pickle.load(open(location+rule_folder+'ortho_rules'+str(len(TASK_LIST))+'x'+str(self.rule_dim), 'rb'))
-        self.rule_transform = torch.Tensor(ortho_rules)
+    def gen_ortho_rules(self): 
+        m = ortho_group.rvs(dim=self.rule_dim)
+        ortho = m[:self.num_tasks,:]
+        return torch.tensor(ortho)
 
     def forward(self, x, task_rule):
         rule_transformed = torch.matmul(task_rule.to(self.__device__), self.rule_transform)
@@ -198,3 +202,7 @@ class InstructNet(BaseNet):
     def to(self, cuda_device): 
         super().to(cuda_device)
         self.langModel.__device__ = cuda_device
+
+
+
+

@@ -228,6 +228,40 @@ train_instruct_dict['AntiMultiDM'] = ('respond in the direction with lowest comb
                                         'respond in the direction with minimal strength across both modalities',
                                         'select the direction which has the least combined strength')
 
+
+train_instruct_dict['DelayDM'] = ('remember both directions and respond to the strongest one', 
+                                'maintain both stimuli in memory and select the most intense one', 
+                                'remember both orientations and respond to the one displayed with highest intensity', 
+                                'maintain each direction in memory and choose the direction that was presented with greatest strength', 
+                                'remember each displayed orientation through the delay and select the strongest one',
+                                'during the delay remember the first stimulus and then respond to the direction presented with maximal strength',
+                                'remember both stimuli and pick the most intense one', 
+                                'remember each direction and opt for the strongest one', 
+                                'maintain each orientation in memory and choose the one that was displayed with highest intensity', 
+                                'maintain the stimulus through the delay and choose the one that was displayed more intensely', 
+                                'remember each stimulus and respond to the strongest one',
+                                'remember both orientations and choose the one that appeared with most strength', 
+                                'during the delay remember the first orientation and then select the orientation displayed most intensely',
+                                'remember each displayed direction and opt for the one with maximal strength',
+                                'maintain each stimulus in memory and pick the one with maximal strength')
+
+                                
+train_instruct_dict['AntiDelayDM'] = ('maintain both stimuli in memory and choose the one with least intensity', 
+                                    'remember each stimuli and then respond to the direction presented with lowest intensity', 
+                                    'during the delay remember the first orientation and then choose the least intense orientation', 
+                                    'remember both directions and pick the weakest one', 
+                                    'remember each orientation and select the one that appears with minimal intensity', 
+                                    'maintain both stimuli in memory and pick the one that has weakest intensity', 
+                                    'remember both directions and select the one with least strength', 
+                                    'during the delay remember each orientation and opt for the weakest one', 
+                                    'remember each stimulus and respond to the one with minimal strength', 
+                                    'maintain each displayed direction and pick the one presented with lowest strength', 
+                                    'remember both displayed directions and then choose the one that is least intense', 
+                                    'maintain both orientations in memory and choose the one presented least intensely',
+                                    'remember each stimuli then go in the direction presented with lowest strength',
+                                    'remember both stimuli and then respond to the orientation with least intensity',
+                                    'remember the displayed directions through the delay then choose the weakest one')
+
 train_instruct_dict['ConDM'] = ('respond to the the strongest stimulus only if you are confident otherwise do not respond', 
                                 'if you are sure of the correct answer respond to the strongest stimulus otherwise do not respond', 
                                 'select the orientation displayed with greatest strength if you have high confidence otherwise do not respond', 
