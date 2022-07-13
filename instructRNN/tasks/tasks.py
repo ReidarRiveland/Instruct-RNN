@@ -17,11 +17,11 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             
             'GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2',
 
+            'DelayGo', 'DelayAntiGo',
+
             'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
 
-            #'RTDM', 'AntiRTDM',
-
-            'DelayGo', 'DelayAntiGo',
+            'RTDM', 'AntiRTDM',
 
             #'ConDM', 'AntiConDM', 
             
@@ -45,11 +45,11 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
 
 SWAP_LIST = [            
             ('AntiDMMod2', 'RTGo', 'DM', 'COMP1', 'Dur1Mod1'), 
-            ('COMP1Mod1', 'AntiGoMod2', 'MultiDur2', 'DMS'),
+            ('COMP1Mod1', 'AntiGoMod2', 'MultiDur2', 'DMS', 'AntiRTDM'),
             ('DMMod2', 'AntiCOMP2', 'AntiRTGo', 'MultiCOMP1', 'Dur1Mod2'), 
             ('GoMod2', 'MultiCOMP2', 'Dur1', 'AntiCOMP1'), 
             ('DelayAntiGo', 'MultiDM', 'COMP2Mod2', 'DMC', 'AntiMultiCOMP1'),             
-            ('MultiDur1', 'AntiGo', 'GoMod1', 'COMP2'), 
+            ('MultiDur1', 'AntiGo', 'GoMod1', 'COMP2', 'RTDM'), 
             ('AntiDM', 'DelayGo', 'AntiGoMod1',  'DNMS', 'Dur2Mod1'), 
             ('COMP2Mod1', 'AntiMultiDM', 'DMMod1', 'DNMC', 'Dur2Mod2'),
             ('AntiMultiCOMP2', 'AntiDMMod1', 'Dur2', 'Go', 'COMP1Mod2')
