@@ -539,7 +539,7 @@ train_instruct_dict['MultiDur'] = ('respond to the stimulus that appears for lon
 									'go in the direction that has the longest duration considered over both modalities',
 									'select the orientation that is longest averaged over both modalities')
 
-train_instruct_dict['MultiAntiDur'] = ('respond to the stimulus that is displayed for the shortest amount of time combined over both modalities', 
+train_instruct_dict['AntiMultiDur'] = ('respond to the stimulus that is displayed for the shortest amount of time combined over both modalities', 
 										'choose the orientation that has appears for the least amount of time averaged over both modalities', 
 										'select the direction that is shortest considered over both modalities', 
 										'pick the stimulus that has the shortest duration when averaged over both modalities', 
