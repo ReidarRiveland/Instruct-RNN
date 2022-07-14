@@ -18,14 +18,14 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             'DelayGo', 'DelayAntiGo',
             'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
             'RTDM', 'AntiRTDM', 
-            'DelayDM', 'DelayAntiDM',
+            #'DelayDM', 'DelayAntiDM',
             'ConDM', 'ConAntiDM',            
             'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2',
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
             'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 
             'COMP1Mod1', 'COMP2Mod1', 'COMP1Mod2', 'COMP2Mod2', 
             'Dur1', 'Dur2', 'MultiDur1', 'MultiDur2',
-            'Dur1Mod1', 'Dur2Mod1', 'Dur1Mod2', 'Dur2Mod2',
+            #'Dur1Mod1', 'Dur2Mod1', 'Dur1Mod2', 'Dur2Mod2',
             'DMS', 'DNMS', 'DMC', 'DNMC', 
             ]
 
@@ -46,14 +46,14 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
 
 
 SWAP_LIST = [            
-            ('AntiDMMod2', 'RTGo', 'DM', 'COMP1', 'Dur1Mod1'), 
+            ('AntiDMMod2', 'RTGo', 'DM', 'COMP1'), 
             ('COMP1Mod1', 'AntiGoMod2', 'MultiDur2', 'DMS', 'AntiRTDM'),
-            ('DMMod2', 'AntiCOMP2', 'AntiRTGo', 'MultiCOMP1', 'Dur1Mod2'), 
-            ('GoMod2', 'AntiMultiCOMP2', 'DelayDM', 'AntiCOMP1'), 
+            ('DMMod2', 'AntiCOMP2', 'AntiRTGo', 'MultiCOMP1'), 
+            ('GoMod2', 'AntiMultiCOMP2',  'AntiCOMP1'), 
             ('DelayAntiGo', 'MultiDM', 'COMP2Mod2', 'DMC', 'AntiMultiCOMP1'),             
-            ('MultiDur1',  'DelayAntiDM', 'GoMod1', 'COMP2', 'RTDM'), 
-            ('AntiDM', 'DelayGo', 'AntiGoMod1',  'DNMS', 'Dur2Mod1'), 
-            ('COMP2Mod1', 'AntiMultiDM', 'DMMod1', 'DNMC', 'Dur2Mod2'),
+            ('MultiDur1',  'GoMod1', 'COMP2', 'RTDM'), 
+            ('AntiDM', 'DelayGo', 'AntiGoMod1',  'DNMS'), 
+            ('COMP2Mod1', 'AntiMultiDM', 'DMMod1', 'DNMC'),
             ('MultiCOMP2', 'ConAntiDM', 'Dur2', 'Go', 'COMP1Mod2'),
             ('Dur1', 'AntiGo', 'ConDM', 'AntiDMMod1')
             ]

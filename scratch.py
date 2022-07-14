@@ -65,30 +65,32 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-# plot_all_holdout_curves('7.13models', 'swap', ['sbertNet_lin', 'sbertNet_lin_tuned'])
-# data = HoldoutDataFrame('7.13models', 'swap', 'sbertNet_lin_tuned', seeds=range(1))
-# np.nanmean(data.get_k_shot(0))
+plot_all_holdout_curves('7.14models', 'swap', ['sbertNet_lin', 'sbertNet_lin_tuned', 'bowNet'])
+data = HoldoutDataFrame('7.14models', 'swap', 'sbertNet_lin_tuned', seeds=range(1))
+np.nanmean(data.get_k_shot(0))
 
-# trials = MultiDur1(100, max_var=True)
-# trials.plot_trial(3)
+trials = DelayDM(100)
+trials.plot_trial(3)
 
-# EXP_FILE = '7.13models/swap_holdouts'
-# sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
-# holdouts_file = 'swap4'
-# sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-# task = 'AntiRTGo'
-# instructions = ['respond in the opposite direction as soon as the stimulus appears' ]*128
-# instructions[0] in train_instruct_dict[task]
-# task_eval(sbertNet, 'AntiRTGo', 128)
 
-# repeats = []
-# for instruct in train_instruct_dict['DelayAntiGo']:
-#     perf = task_eval(sbertNet, 'DelayAntiGo', 128, 
-#             instructions=[instruct]*128)
-#     repeats.append((instruct, perf))
+EXP_FILE = '7.13models/swap_holdouts'
+sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap4'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-# repeats
+task = 'AntiRTGo'
+instructions = ['respond in the opposite direction as soon as the stimulus appears' ]*128
+instructions[0] in train_instruct_dict[task]
+task_eval(sbertNet, 'AntiRTGo', 128)
+
+repeats = []
+for instruct in train_instruct_dict['DelayAntiGo']:
+    perf = task_eval(sbertNet, 'DelayAntiGo', 128, 
+            instructions=[instruct]*128)
+    repeats.append((instruct, perf))
+
+repeats
 
 
 
