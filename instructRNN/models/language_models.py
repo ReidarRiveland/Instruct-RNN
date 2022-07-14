@@ -6,8 +6,8 @@ import pickle
 from attrs import define
 import pathlib
 
-from fse.models import SIF
-from fse import IndexedList, Vectors
+# from fse.models import SIF
+# from fse import IndexedList, Vectors
 
 
 from transformers import GPT2Model, GPT2Tokenizer, GPTNeoForCausalLM

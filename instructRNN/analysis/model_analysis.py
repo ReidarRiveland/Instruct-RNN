@@ -145,12 +145,11 @@ def get_DM_perf(model, noises, diff_strength, num_repeats=100, mod=0, task='DM')
     correct_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
     for i in tqdm(range(num_repeats)): 
         for j, noise in enumerate(noises): 
-            conditions_arr = np.full((2, 2, 2, num_trials), np.NaN)
             intervals = _get_default_intervals(num_trials)
-            dir_arr = max_var_dir(num_trials, None, False, 2)
+            multi = 'Multi' in task
+            dir_arr = max_var_dir(num_trials, None, multi, 2)
 
             if 'Multi' in task:
-                dirs0 = _draw_ortho_dirs(num_trials)
                 mod_base_strs = np.array([1-diff_strength/2, 1+diff_strength/2])
                 _coh = np.empty((2, num_trials))
                 
@@ -162,23 +161,23 @@ def get_DM_perf(model, noises, diff_strength, num_repeats=100, mod=0, task='DM')
                             redraw = False
                     coh[:, k] = coh
 
-                strengths = np.array([mod_base_strs + _coh, mod_base_strs-_coh]).T
-                conditions_arr[:, :, 0, :] = np.array([dirs0, dirs0])
-                conditions_arr[:, :, 1, :] = strengths.T
+                diff_strength = np.array([mod_base_strs + _coh, mod_base_strs-_coh]).T
+            else: 
+                diff_strength = diff_strength/2
 
-            if not 'Multi' in task: 
-                strengths = np.repeat(np.array([1+diff_strength/2, 1-diff_strength/2])[None, ...], 2, axis=0)
 
             if task == 'DM':
                 trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, 
-                                                intervals=intervals, coh_arr = diff_strength/2, dir_arr=dir_arr)
+                                                intervals=intervals, coh_arr = diff_strength, dir_arr=dir_arr)
             elif task =='AntiDM':
                 trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, 
-                                                intervals=intervals, coh_arr = diff_strength/2, dir_arr=dir_arr)
+                                                intervals=intervals, coh_arr = diff_strength, dir_arr=dir_arr)
             elif task =='MultiDM':
-                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, multi=True, intervals=intervals, cond_arr=conditions_arr)
+                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, multi=True, 
+                                                intervals=intervals, coh_arr = diff_strength, dir_arr=dir_arr)
             elif task =='AntiMultiDM':
-                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, multi=True, intervals=intervals, cond_arr=conditions_arr)
+                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, multi=True, 
+                                                intervals=intervals, coh_arr = diff_strength, dir_arr=dir_arr)
 
             task_instructions = get_task_info(num_trials, task, model.info_type)
 

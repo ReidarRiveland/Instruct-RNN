@@ -7,6 +7,14 @@
 # from instructRNN.analysis.model_analysis import *
 # from instructRNN.models.full_models import BoWNet
 
+# trials = DurMod1(100)
+# trials.plot_trial(6)
+# trials.factory.target_dirs[3]
+# trials.factory.dur_array[0, :, 3]
+
+# trials.factory.cond_arr[:, :, 0, 3]
+
+
 # trials = ConDM(100)
 # np.mean(trials.factory.requires_response_list)
 # trials.plot_trial(5)

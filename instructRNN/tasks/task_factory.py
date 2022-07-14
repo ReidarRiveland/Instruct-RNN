@@ -53,6 +53,21 @@ def _draw_multi_contrast(num_trials, draw_vals=[-0.25, 0.2, -0.15, -0.1, 0.1, 0.
         coh_arr[:, i] = coh
     return coh_arr
 
+def _draw_durs(num_trials, multi):
+    if multi: 
+        long_total = np.floor(np.random.uniform(1500, 2000, num_trials)/DELTA_T).astype(int)
+        long0, long1 = long_total*0.55, long_total*0.45
+        short_total = long_total - np.floor(np.random.uniform(300, 500, num_trials)/DELTA_T).astype(int)
+        short1 = long1+np.floor(np.random.uniform(200, 300, num_trials)/DELTA_T).astype(int)
+        short0 = short_total-short1
+        _durs = np.floor(np.array([[short0, long0],
+                            [short1, long1]]))
+    else: 
+        long_dur = np.floor(np.random.uniform(700, 1000, num_trials)/DELTA_T).astype(int)
+        short_dur = np.floor(np.random.uniform(500, (long_dur*DELTA_T)-150, num_trials)/DELTA_T).astype(int)
+        _durs = np.array([short_dur, long_dur])[None, ...]
+    return _durs
+
 def _draw_requires_resp(num_trials): 
     if num_trials >1: 
         requires_response_list = list(np.random.permutation([True]*int(np.floor(num_trials/2)) + [False] * int(np.ceil(num_trials/2))))
@@ -71,6 +86,8 @@ def _draw_confidence_threshold(requires_resp_list, pos_thresholds, neg_threshold
         noises.append(noise)
         contrasts.append(contrast)
     return np.array(noises), np.array(contrasts)
+
+
 
 def _get_default_intervals(num_trials): 
     _intervals = np.array([(0, 30), (30, 60), (60, 90), (90, 130), (130, TRIAL_LEN)])
@@ -497,6 +514,73 @@ class ConDMFactory(TaskFactory):
 
         return target_dirs
 
+class DMDurFactory(TaskFactory):
+    def __init__(self, num_trials,  noise, dur_chooser, 
+                        mod=None, multi=False, timing = 'delay', 
+                        dir_arr=None, dur_arr=None,
+                        max_var = None, cond_arr=None, target_dirs=None):
+        super().__init__(num_trials, timing, noise)
+        self.dur_chooser = dur_chooser
+        self.cond_arr = cond_arr
+        self.timing = timing
+        self.target_dirs = target_dirs
+        self.mod = mod
+        self.multi = multi
+
+        if max_var: 
+            dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
+            dur_arr = max_var_dur(self.num_trials, self.multi)
+
+        if self.cond_arr is None: 
+            self.cond_arr = self._make_cond_arr(dir_arr, dur_arr)
+
+        self.target_dirs = self._set_target_dirs()
+
+    def _make_cond_arr(self, dir_arr,  dur_arr): 
+        conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
+        self.req_resp = _draw_requires_resp(self.num_trials)
+        _durs = _draw_durs(self.num_trials, self.multi)
+        dur_array = np.apply_along_axis(np.random.permutation, 1, _durs)
+
+        if dur_arr is not None: 
+            dur_array = dur_arr
+            dirs = dir_arr
+
+        elif self.multi: 
+            dirs0 = _draw_ortho_dirs(self.num_trials)    
+            dirs = np.array([dirs0, dirs0])
+        else:
+            dirs0 = _draw_ortho_dirs(self.num_trials)    
+            nan_mod = np.full_like(dirs0, np.NaN)
+            dirs = _permute_mod(np.array([dirs0, nan_mod]))
+            dur_array = np.apply_along_axis(np.random.permutation, 1, _durs)
+            dur_array = np.repeat(dur_array, 2, axis=0)
+
+        self.dur_array = dur_array
+        self.intervals = self.make_intervals(None, stim_durs=self.dur_array)
+        _strs = np.random.uniform(0.8, 1.2, size=(2, 2, self.num_trials))
+        strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _permute_mod(_strs))
+
+        conditions_arr[:, :, 0, :] = dirs
+        conditions_arr[:, :, 1, :] = strs
+        return conditions_arr
+
+    def _set_target_dirs(self):
+        if self.multi: 
+            if self.mod is not None: 
+                dirs = self.cond_arr[self.mod,:,0,:]
+                durs = self.dur_array[self.mod, ...]
+            else: 
+                dirs = self.cond_arr[0,:,0,:]
+                durs = np.sum(self.dur_array, axis=0)
+        else: 
+            dirs = np.nansum(self.cond_arr[: ,:,0,:], axis=0)
+            durs = self.dur_array[0, ...]
+
+        target_dirs = np.where(self.dur_chooser(durs[0, ], durs[1, ]), dirs[0, ], dirs[1, ])
+        return target_dirs
+
+
 class DurFactory(TaskFactory):
     def __init__(self, num_trials,  noise, resp_stim=0,
                         mod=None, multi=False, timing = 'delay', 
@@ -563,18 +647,6 @@ class DurFactory(TaskFactory):
         req_resp = req_resp.astype(int)
         not_req_resp = (req_resp+1)%2
         
-        if self.multi: 
-            long_total = np.floor(np.random.uniform(1500, 2000, self.num_trials)/DELTA_T).astype(int)
-            long0, long1 = long_total*0.55, long_total*0.45
-            short_total = long_total - np.floor(np.random.uniform(300, 400, self.num_trials)/DELTA_T).astype(int)
-            short1 = long1+np.floor(np.random.uniform(100, 200, self.num_trials)/DELTA_T).astype(int)
-            short0 = short_total-short1
-            _durs = np.floor(np.array([[short0, long0],
-                                [short1, long1]]))
-        else: 
-            long_dur = np.floor(np.random.uniform(700, 1000, self.num_trials)/DELTA_T).astype(int)
-            short_dur = np.floor(np.random.uniform(500, (long_dur*DELTA_T)-150, self.num_trials)/DELTA_T).astype(int)
-            _durs = np.array([short_dur, long_dur])[None, ...]
 
         dur_array[:, self.resp_stim, :] = _durs[:, req_resp, range(self.num_trials)]
         dur_array[:, no_resp_stim, :] = _durs[:, not_req_resp, range(self.num_trials)]
@@ -731,10 +803,10 @@ class MatchingFactory(TaskFactory):
 
         if self.matching_task: 
             dir1 = np.where(self.req_resp, matched, mismatched)
-            target_dirs = np.where(self.req_resp, dir1, np.full(self.num_trials, np.NaN))
+            target_dirs = np.where(self.req_resp, dir0, np.full(self.num_trials, np.NaN))
         else: 
             dir1 = np.where(self.req_resp, mismatched, matched)
-            target_dirs = np.where(self.req_resp, dir0, np.full(self.num_trials, np.NaN))
+            target_dirs = np.where(self.req_resp, dir1, np.full(self.num_trials, np.NaN))
 
         dirs0 = np.array([dir0,dir1])
         nan_dirs = np.full_like(dirs0, np.NaN)
