@@ -13,57 +13,72 @@ def invert_holdout_dict(task_dict):
             inv_swap_dict[task] = k
     return inv_swap_dict
 
+# TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo', 
+#             'GoMod1',  'GoMod2', 'AntiGoMod1', 'AntiGoMod2',
+#             'DelayGo', 'DelayAntiGo',
+#             'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
+#             'RTDM', 'AntiRTDM', 
+#             'ConDM', 'ConAntiDM', 
+#             #'ConMultiDM', 'AntiConMultiDM',           
+#             'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2',
+#             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
+#             'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 
+#             'COMP1Mod1', 'COMP2Mod1', 'COMP1Mod2', 'COMP2Mod2', 
+#             #'Dur', 'AntiDur', 'MultiDur', 'AntiMultiDur',
+#             'Dur1', 'Dur2', 'MultiDur1', 'MultiDur2',
+#             #'AntiDur1', 'AntiDur1', 'AntiMultiDur1', 'AntiMultiDur2',
+#             #'DurMod1', 'DurMod2', 'AntiDurMod1', 'AntiDurMod2',
+#             'DMS', 'DNMS', 'DMC', 'DNMC', 
+#             ]
+
 TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo', 
             'GoMod1',  'GoMod2', 'AntiGoMod1', 'AntiGoMod2',
-            'DelayGo', 'DelayAntiGo',
+            'RTGoMod1', 'RTGoMod2', 'AntiRTGoMod1', 'AntiRTGoMod2',
+
+             
             'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
-            'RTDM', 'AntiRTDM', 
-            'ConDM', 'ConAntiDM', 
-            #'ConMultiDM', 'AntiConMultiDM',           
             'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2',
+
+            #'ConDM', 'ConAntiDM', 'ConMultiDM', 'AntiConMultiDM',   
+             
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
             'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 
             'COMP1Mod1', 'COMP2Mod1', 'COMP1Mod2', 'COMP2Mod2', 
-            #'Dur', 'AntiDur', 'MultiDur', 'AntiMultiDur',
+
+            'Dur', 'AntiDur', 'MultiDur', 'AntiMultiDur',
+            'DurMod1', 'DurMod2', 'AntiDurMod1', 'AntiDurMod2',
+
             'Dur1', 'Dur2', 'MultiDur1', 'MultiDur2',
-            #'AntiDur1', 'AntiDur1', 'AntiMultiDur1', 'AntiMultiDur2',
-            #'DurMod1', 'DurMod2', 'AntiDurMod1', 'AntiDurMod2',
+            'AntiDur1', 'AntiDur2', 'AntiMultiDur1', 'AntiMultiDur2',
+            'Dur1Mod1', 'Dur2Mod1', 'Dur1Mod2', 'Dur2Mod2', 
+
             'DMS', 'DNMS', 'DMC', 'DNMC', 
             ]
 
 
-# CLUSTER_LIST = ['Go', 'RTGo', 'DelayGo', 'GoMod1',  'GoMod2',
-#             'AntiGo', 'AntiRTGo', 'DelayAntiGo', 'AntiGoMod1', 'AntiGoMod2',
-#             'DM', 'RTDM', 'MultiDM', 'DMMod1', 'DMMod2',
-#             'AntiDM', 'AntiRTDM', 'AntiMultiDM', 'AntiDMMod1',  'AntiDMMod2',
-#             #'ConDM', 'AntiConDM', 
-#             #'ConMultiDM', 'AntiConMultiDM',            
-#             'COMP1', 'MultiCOMP1', 'COMP1Mod1', 'COMP1Mod2',
-#             'COMP2',  'MultiCOMP2', 'COMP2Mod1',  'COMP2Mod2', 
-#             'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 
-#             'Dur1',  'MultiDur1', 'Dur1Mod1','Dur1Mod2',
-#             'Dur2', 'MultiDur2', 'Dur2Mod1',  'Dur2Mod2',
-#             'DMS', 'DNMS', 'DMC', 'DNMC', 
-#             ]
-
-
 SWAP_LIST = [            
-            ('AntiDMMod2', 'RTGo', 'DM', 'COMP1'), 
-            ('COMP1Mod1', 'AntiGoMod2', 'MultiDur2', 'DMS', 'AntiRTDM'),
-            ('DMMod2', 'AntiCOMP2', 'AntiRTGo', 'MultiCOMP1'), 
-            ('GoMod2', 'AntiMultiCOMP2',  'AntiCOMP1'), 
-            ('DelayAntiGo', 'MultiDM', 'COMP2Mod2', 'DMC', 'AntiMultiCOMP1'),             
-            ('MultiDur1',  'GoMod1', 'COMP2', 'RTDM'), 
-            ('AntiDM', 'DelayGo', 'AntiGoMod1',  'DNMS'), 
-            ('COMP2Mod1', 'AntiMultiDM', 'DMMod1', 'DNMC'),
-            ('MultiCOMP2', 'ConAntiDM', 'Dur2', 'Go', 'COMP1Mod2'),
-            ('Dur1', 'AntiGo', 'ConDM', 'AntiDMMod1')
+            ('AntiDMMod2', 'RTGo', 'DM', 'MultiCOMP2',  'Dur1Mod1'), 
+            ('COMP1Mod1', 'AntiGoMod2',  'DMS', 'AntiDur1', 'RTGoMod2'),
+            ('DMMod2', 'AntiCOMP2', 'AntiRTGo', 'MultiCOMP1', 'AntiDurMod1'), 
+            ('GoMod2', 'AntiMultiCOMP2', 'MultiDur', 'AntiRTGoMod1', 'AntiDur2'), 
+            ('MultiDM', 'COMP2Mod2', 'Dur', 'AntiMultiCOMP1', 'AntiDurMod2'),             
+            ('MultiDur1',  'GoMod1', 'COMP2', 
+            #'AntiConMultiDM', 
+            'DurMod2'), 
+            ('AntiDM',  'AntiRTGoMod2', 'Dur2Mod2', 'DNMS', 'AntiMultiDur'), 
+            ('COMP2Mod1', 'AntiMultiDM', 'DMMod1', 'DNMC', 'Dur1Mod2'),
+            ('COMP1', 
+            #'ConAntiDM', 
+            'Dur2', 'COMP1Mod2', 'AntiDur'),
+            ('Dur1', 'AntiGo', 
+            #'ConDM', 
+            'AntiDMMod1', 'AntiMultiDur2'),
+            ('AntiMultiDur1', 'AntiGoMod1', 'DurMod1', 'AntiCOMP1', 'RTGoMod1'),
+            ('MultiDur2', 
+            #'ConMultiDM', 
+            'Go', 'Dur2Mod1', 'DMC')
             ]
- 
-# task_list = TASK_LIST.copy()
-# for swaps in SWAP_LIST: 
-#     for task in swaps: 
-#         task_list.pop(task_list.index(task)) 
+
 
 
 # SWAP_LIST = [            
@@ -182,6 +197,57 @@ class AntiRTGo(Task):
                         )
         self.task_type = 'AntiRTGo'
 
+class RTGoMod1(Task):
+    comp_ref_tasks = ('Go', 'Anti_Go', 'Anti_RT_Go')
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing = 'RT',
+                        mod=0,
+                        multi=True,
+                        dir_chooser = task_factory.choose_pro, 
+                        **factory_kwargs
+                        )
+        self.task_type = 'RTGoMod1'
+
+class AntiRTGoMod1(Task):
+    comp_ref_tasks = ('Anti_Go', 'Go', 'RT_Go')
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing = 'RT',
+                        mod=0,
+                        multi=True,
+                        dir_chooser = task_factory.choose_anti,
+                        **factory_kwargs
+                        )
+        self.task_type = 'AntiRTGoMod1'
+
+class RTGoMod2(Task):
+    comp_ref_tasks = ('Go', 'Anti_Go', 'Anti_RT_Go')
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing = 'RT',
+                        mod=1,
+                        multi=True,
+                        dir_chooser = task_factory.choose_pro, 
+                        **factory_kwargs
+                        )
+        self.task_type = 'RTGoMod2'
+
+class AntiRTGoMod2(Task):
+    comp_ref_tasks = ('Anti_Go', 'Go', 'RT_Go')
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.GoFactory, 
+                        timing = 'RT',
+                        mod=1,
+                        multi=True,
+                        dir_chooser = task_factory.choose_anti,
+                        **factory_kwargs
+                        )
+        self.task_type = 'AntiRTGoMod2'
 
 class DelayGo(Task):
     comp_ref_tasks = ('Go', 'Anti_Go', 'Anti_RT_Go')
@@ -552,6 +618,51 @@ class MultiDur2(Task):
                         )
         self.task_type = 'MultiDur2'
 
+class AntiDur1(Task): 
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.DurFactory, 
+                        resp_stim = 0,
+                        tar = 'short',
+
+                        **factory_kwargs
+                        )
+        self.task_type = 'AntiDur1'
+
+
+class AntiDur2(Task): 
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.DurFactory, 
+                        resp_stim = 1,
+                        tar = 'short',
+                        **factory_kwargs
+                        )
+        self.task_type = 'AntiDur2'
+
+
+class AntiMultiDur1(Task): 
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.DurFactory, 
+                        multi=True, 
+                        resp_stim = 0,
+                        tar = 'short',
+                        **factory_kwargs
+                        )
+        self.task_type = 'AntiMultiDur1'
+
+
+class AntiMultiDur2(Task): 
+    def __init__(self, num_trials, noise=None, **factory_kwargs): 
+        super().__init__(num_trials, noise,
+                        task_factory.DurFactory, 
+                        multi=True,
+                        resp_stim = 1,
+                        tar = 'short',
+                        **factory_kwargs
+                        )
+        self.task_type = 'AntiMultiDur2'
 
 class Dur1Mod1(Task): 
     def __init__(self, num_trials, noise=None, **factory_kwargs): 

@@ -53,19 +53,26 @@ def _draw_multi_contrast(num_trials, draw_vals=[-0.25, 0.2, -0.15, -0.1, 0.1, 0.
         coh_arr[:, i] = coh
     return coh_arr
 
-def _draw_durs(num_trials, multi):
+def _draw_durs(num_trials, multi, tar=None):
     if multi: 
         long_total = np.floor(np.random.uniform(1500, 2000, num_trials)/DELTA_T).astype(int)
         long0, long1 = long_total*0.55, long_total*0.45
         short_total = long_total - np.floor(np.random.uniform(300, 500, num_trials)/DELTA_T).astype(int)
         short1 = long1+np.floor(np.random.uniform(200, 300, num_trials)/DELTA_T).astype(int)
         short0 = short_total-short1
-        _durs = np.floor(np.array([[short0, long0],
-                            [short1, long1]]))
+        if tar == 'short':
+            _durs = np.floor(np.array([[long0, short0],
+                                [long1, short1]]))
+        else:
+            _durs = np.floor(np.array([[short0, long0],
+                                [short1, long1]]))
     else: 
         long_dur = np.floor(np.random.uniform(700, 1000, num_trials)/DELTA_T).astype(int)
         short_dur = np.floor(np.random.uniform(500, (long_dur*DELTA_T)-150, num_trials)/DELTA_T).astype(int)
-        _durs = np.array([short_dur, long_dur])[None, ...]
+        if tar == 'short':
+            _durs = np.array([long_dur, short_dur])[None, ...]
+        else:
+            _durs = np.array([short_dur, long_dur])[None, ...]
     return _durs
 
 def _draw_requires_resp(num_trials): 
@@ -582,11 +589,12 @@ class DMDurFactory(TaskFactory):
 
 
 class DurFactory(TaskFactory):
-    def __init__(self, num_trials,  noise, resp_stim=0,
+    def __init__(self, num_trials,  noise, resp_stim=0, tar='long',
                         mod=None, multi=False, timing = 'delay', 
                         dir_arr=None, dur_arr=None,
                         max_var = None, cond_arr=None, target_dirs=None):
         super().__init__(num_trials, timing, noise)
+        self.tar = tar
         self.cond_arr = cond_arr
         self.timing = timing
         self.target_dirs = target_dirs
@@ -646,7 +654,7 @@ class DurFactory(TaskFactory):
         no_resp_stim = (self.resp_stim+1)%2
         req_resp = req_resp.astype(int)
         not_req_resp = (req_resp+1)%2
-        
+        _durs = _draw_durs(self.num_trials, self.multi, self.tar)
 
         dur_array[:, self.resp_stim, :] = _durs[:, req_resp, range(self.num_trials)]
         dur_array[:, no_resp_stim, :] = _durs[:, not_req_resp, range(self.num_trials)]

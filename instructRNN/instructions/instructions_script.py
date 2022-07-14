@@ -38,14 +38,14 @@ train_instruct_dict['AntiGo'] = ('respond with the opposite orientation',
                                     'respond in the reverse direction', 
                                     'choose the opposite of the displayed direction', 
                                     'choose the opposite direction', 
-                                    'respond with the inverse orientation', 
-                                    'go in inverse of the displayed orientation', 
+                                    'respond with the reverse orientation', 
+                                    'go in reverse of the displayed orientation', 
                                     'opt for the reverse of the presented stimulus', 
                                     'select the reverse of the displayed orientation', 
                                     'respond with the reverse of the displayed stimulus', 
                                     'opt for the opposite of the presented direction', 
                                     'pick the opposite of presented direction', 
-                                    'select the inverse of presented stimulus', 
+                                    'select the reverse of presented stimulus', 
                                     'pick the reverse of the stimulus displayed', 
                                     'select the opposite of the displayed direction',
                                     'go in the opposite direction')
@@ -54,14 +54,14 @@ train_instruct_dict['AntiRTGo'] = ('respond with the opposite of the stimulus im
                                     'opt for the opposite direction at stimulus onset', 
                                     'choose the opposite of the displayed direction at stimulus onset', 
                                     'select the reverse orientation immediately', 
-                                    'respond with the inverse direction immediately', 
-                                    'go in the inverse of the orientation as soon as the stimulus appears', 
+                                    'respond with the reverse direction immediately', 
+                                    'go in the reverse of the orientation as soon as the stimulus appears', 
                                     'choose the reverse direction immediately', 
                                     'opt for the opposite of the orientation immediately', 
                                     'go in the reverse of the direction as soon as stimulus appears', 
                                     'as soon as stimulus appears respond in the opposite direction', 
                                     'select the reverse orientation at stimulus onset', 
-                                    'choose the inverse orientation of the one displayed at stimulus onset', 
+                                    'choose the reverse orientation of the one displayed at stimulus onset', 
                                     'respond in the converse of the displayed direction as soon as the stimulus appears', 
                                     'at stimulus onset go in the reverse direction', 
                                     'select the reverse of the displayed direction at stimulus onset')
@@ -83,20 +83,20 @@ train_instruct_dict['DelayGo'] = ('remember the stimulus through the delay and g
                                     'remember the displayed direction through the delay and opt for the same direction')
 
 train_instruct_dict['DelayAntiGo'] = ('remember the stimulus through the delay and select the opposite direction', 
-                                        'maintain the orientation during the delay and opt for the inverse of the displayed direction', 
+                                        'maintain the orientation during the delay and opt for the reverse of the displayed direction', 
                                         'maintain the stimulus through the delay and go in the reverse direction', 
                                         'when the stimulus appears remember it and choose the opposite orientation', 
-                                        'remember the displayed direction and respond with the inverse of the stimulus', 
+                                        'remember the displayed direction and respond with the reverse of the stimulus', 
                                         'remember the orientation and then select the opposite orientation', 
                                         'during the delay maintain the stimulus and respond with the reverse orientation',
                                         'remember the stimulus and go in the reverse of the displayed direction', 
                                         'during the delay remember the stimulus and choose the opposite direction', 
                                         'remember the orientation and respond with the reverse direction', 
-                                        'remember the displayed direction the go in the inverse direction', 
+                                        'remember the displayed direction the go in the reverse direction', 
                                         'when the stimulus appears remember it and select the opposite of the orientation', 
-                                        'during the delay maintain the displayed direction and then choose the inverse orientation', 
+                                        'during the delay maintain the displayed direction and then choose the reverse orientation', 
                                         'when the orientation is presented remember it and opt for the reverse direction',
-                                        'during the delay remember the stimulus and go in the inverse direction'
+                                        'during the delay remember the stimulus and go in the reverse direction'
                                         )
 
 train_instruct_dict['GoMod1'] = ('respond to the direction displayed in the first modality', 
@@ -132,22 +132,22 @@ train_instruct_dict['GoMod2'] = ('pay attention only to the second modality and 
                                 'focus on the stimulus displayed in the second modality and respond there')
 
 train_instruct_dict['AntiGoMod1'] = ('focus only on the first modality and respond to the opposite of the displayed direction', 
-                                    'select the inverse of the orientation presented in the first modality', 
+                                    'select the reverse of the orientation presented in the first modality', 
                                     'attend to the first modality and respond in the reverse of the displayed direction', 
                                     'choose the opposite of the orientation that appears in the first modality', 
                                     'pay attention only to the first modality and respond in the opposite of the displayed direction', 
                                     'opt for the opposite of the direction displayed in the first modality', 
                                     'attend to the stimulus in the first modality and go in the opposite direction', 
                                     'select the opposite of the direction that appears in the first modality', 
-                                    'choose the inverse of the orientation that is shown in the first modality',
+                                    'choose the reverse of the orientation that is shown in the first modality',
                                     'focus on the first modality and respond in the opposite direction of the stimulus displayed there', 
                                     'focus on the first modality and select the opposite of the displayed stimulus', 
-                                    'opt for the inverse of the stimulus orientation displayed in the first stimulus',
+                                    'opt for the reverse of the stimulus orientation displayed in the first stimulus',
                                     'choose the opposite of the stimulus orientation that appears in the first modality', 
                                     'attend to the first modality and pick the reverse of the direction displayed there', 
-                                    'pay attention only to the first modality and choose the inverse of the direction displayed')
+                                    'pay attention only to the first modality and choose the reverse of the direction displayed')
  
-train_instruct_dict['AntiGoMod2'] = ('pay attention only to the second modality and respond in the inverse direction', 
+train_instruct_dict['AntiGoMod2'] = ('pay attention only to the second modality and respond in the reverse direction', 
                                     'respond to the opposite of the orientation displayed in the second modality', 
                                     'select the opposite of the direction displayed in the second modality', 
                                     'attend to the stimulus in the second modality and respond in the opposite direction', 
@@ -157,12 +157,79 @@ train_instruct_dict['AntiGoMod2'] = ('pay attention only to the second modality 
                                     'respond in the reverse of the stimulus orientation from the second modality', 
                                     'pick the reverse of the stimulus displayed in the second modality', 
                                     'attend to the second modality and select the opposite of the direction displayed', 
-                                    'focus on the second modality and choose the inverse of the displayed direction', 
+                                    'focus on the second modality and choose the reverse of the displayed direction', 
                                     'select the opposite of the orientation displayed in the second modality',
                                     'choose the opposite of the orientation displayed in the second modality', 
                                     'attend only to the second modality and pick the reverse of the presented orientation',
                                     'choose the opposite of the direction of the stimulus presented in the second modality')
                                 
+train_instruct_dict['RTGoMod1'] = ('focus on the first modality and select the stimulus immediately', 
+									'attend only to the first modality and choose the direction at stimulus onset', 
+									'at stimulus onset select the direction that appears in the first modality', 
+									'pay attention only to the first modality and select the orientation immediately',
+									'focus only on the first modality and choose the displayed orientation at stimulus onset',
+									'choose the direction displayed in the first modality at stimulus onset',
+									'select the orientation in the first modality immediately', 
+									'attend to the first modality and go in the displayed direction immediately', 
+									'focus on the first modality and opt for the orientation at stimulus onset', 
+									'pay attention to the first modality and select the direction immediately', 
+									'immediately respond to the direction in the first modality', 
+									'select the orientation that appears in the first modality at stimulus onset', 
+									'attend to the first modality and select the displayed direction immediately',
+									'go in the direction displayed in the first modality at stimulus onset',
+									'attend to the first modality and pick the direction immediately'
+									)
+
+train_instruct_dict['RTGoMod2'] = ('focus only on the second modality and choose the stimulus immediately', 
+									'attend to the second modality and select the orientation at stimulus onset', 
+									'pay attention to the second modality and go in the displayed direction immediately',
+									'select the stimulus in the second modality at stimulus onset', 
+									'focus on the second modality and select the displayed orientation immediately',
+									'attend to the second modality and respond to the displayed direction immediately',
+									'choose the stimulus in the second modality immediately',
+									'at stimulus onset choose the orientation in the second modality',
+									'focus only on the second modality and choose the orientation at stimulus onset',
+									'pay attention to the second modality and pick the stimulus immediately',
+									'attend to the second modality and respond to the displayed direction at stimulus onset',
+									'pay attention to the second modality and opt for the displayed orientation at stimulus onset',
+									'respond to the direction in the second modality at stimulus onset',
+									'go in the direction displayed in the second modality immediately',
+									'opt for the stimulus in the second modality immediately')
+
+train_instruct_dict['AntiRTGoMod1'] = ('focus on the first modality and select the opposite of the stimulus immediately',
+									'opt for the reverse of the orientation in the first modality at stimulus onset',
+									'choose the opposite of the direction in the first modality immediately',
+									'attend only to the first modality and select the reverse of the stimulus immediately',
+									'pay attention only to the first modality and opt for the opposite of the orientation at stimulus onset',
+									'attend only to the first modality and respond with the opposite direction at stimulus onset',
+									'go in the opposite of the orientation displayed in the first modality at stimulus onset',
+									'focus on the first modality and respond in the reverse of the stimulus immediately',
+									'pay attention to the first modality and go in the reverse of the stimulus immediately',
+									'focus on the first modality and choose the reverse of the orientation at stimulus onset',
+									'attend only to the first modality and opt for the reverse direction at stimulus onset',
+									'pay attention to the first modality and respond to the reverse of the stimulus immediately',
+									'go in the reverse of the direction in the first modality at stimulus onset', 
+									'respond with the opposite of the stimulus in the first modality immediately',
+									'attend to the first modality and select the reverse of the orientation at stimulus onset')
+
+train_instruct_dict['AntiRTGoMod2'] = ('focus only on the second modality and choose the opposite of the stimulus immediately',
+										'attend only to the second modality and go in the reverse of the direction at stimulus onset',
+										'pay attention to the second modality and respond with the reverse of the stimulus immediately',
+										'focus only on the second modality and select the opposite of the orientation at stimulus onset',
+										'attend to the second modality and opt for the reverse of the displayed direction immediately',
+										'pay attention to the second modality and pick the opposite orientation at stimulus onset',
+										'go in the reverse of the direction in the second modality at stimulus onset', 
+										'opt for the opposite of the stimulus in the second modality immediately',
+										'choose the reverse of the orientation in the second modality at stimulus onset',
+										'pay attention to the second modality and choose the opposite of the stimulus immediately',
+										'attend to the second modality and opt for the reverse direction at stimulus onset', 
+										'respond in the opposite of the direction in the second modality at stimulus onset',
+										'focus on the second modality and select the reverse of the displayed stimulus immediately',
+										'attend to the second modality and go in the opposite direction at stimulus onset',
+										'go in the opposite of the stimulus in the second modality immediately')
+
+
+
 
 train_instruct_dict['DM'] = ('respond in the direction of highest intensity', 
                             'choose the strongest stimulus',   
@@ -424,6 +491,137 @@ train_instruct_dict['AntiDMMod2'] = ('attend to the second modality and choose t
                                     'attend to the second modality and choose the orientation with lowest intensity',
                                     'attend only to the second modality and select the direction with lowest strength')
 
+train_instruct_dict['Dur'] = ('respond to the stimulus that is displayed for the greatest duration', 
+								'select the longest orientation', 
+								'opt for the direction that appears for the longest period of time', 
+								'pick the longest stimulus', 
+								'select the direction that lasts for the greatest amount of time', 
+								'choose the stimulus that is displayed for the longest period of time', 
+								'opt for the stimulus with the greatest duration', 
+								'select the orientation that has the longest duration', 
+								'choose the direction that lasts for the longest period of time', 
+								'pick the orientation that has the greatest duration', 
+								'respond to the stimulus that is displayed for the longest amount of time', 
+								'opt for the longest orientation', 
+								'choose the direction that has the longest duration',
+								'select the orientation with the longest duration',
+								'respond to the longest direction')
+
+train_instruct_dict['AntiDur'] = ('respond to the shortest direction', 
+									'select the orientation that appears for the least amount of time', 
+									'opt for the stimulus that is displayed for the least amount of time', 
+									'choose the stimulus with the shortest duration', 
+									'choose the orientation that has the shortest duration', 
+									'pick the direction that is displayed for the shortest amount of time', 
+									'select the stimulus that has the shortest duration', 
+									'respond to the orientation that is displayed for the least amount of time', 
+									'opt for the direction that is displayed for the shortest amount of time', 
+									'pick the shortest stimulus', 
+									'pick the direction that appears for the least amount of time',
+									'opt for the shortest direction',
+									'select the direction that has the shortest duration',
+									'respond in the direction that has shortest duration',
+									'choose the shortest orientation')
+
+train_instruct_dict['MultiDur'] = ('respond to the stimulus that appears for longest when combined over both modalities', 
+									'choose the stimulus that is longest averaged over both modalities', 
+									'opt for the orientation that has the greatest duration when considered over both modalities', 
+									'select the direction that appears for the greatest amount of time averaged over both modalities',
+									'pick the stimulus that is longest when considered over both modalities', 
+									'go in the direction that has the greatest duration averaged over both modalities', 
+									'pick the stimulus that is longest when averaged over both modalities', 
+									'respond to the orientation that that is displayed for the greatest amount of time when combined over both modalities', 
+									'opt for the orientation that appears for the longest amount of time when averaged over both modalities', 
+									'choose the direction that is displayed for the greatest amount of time considered over both modalities', 
+									'select the direction that is longest combined over both modalities', 
+									'pick the orientation that has the longest duration combined over both modalities',
+									'pick the stimulus that has the greatest duration averaged over both modalities',
+									'go in the direction that has the longest duration considered over both modalities',
+									'select the orientation that is longest averaged over both modalities')
+
+train_instruct_dict['MultiAntiDur'] = ('respond to the stimulus that is displayed for the shortest amount of time combined over both modalities', 
+										'choose the orientation that has appears for the least amount of time averaged over both modalities', 
+										'select the direction that is shortest considered over both modalities', 
+										'pick the stimulus that has the shortest duration when averaged over both modalities', 
+										'opt for the orientation that appears for the least amount of time averaged over both modalities', 
+										'pick the shortest stimulus considered over both modalities', 
+										'choose the direction that is shortest averaged over both modalities', 
+										'select the orientation that is displayed for the least amount of time averaged over both modalities', 
+										'respond to the direction that has the shortest duration combined over both modalities', 
+										'opt for the stimulus that appears for the least amount of time considered over both modalities', 
+										'respond to the orientation that has the shortest duration averaged over modalities', 
+										'pick the stimulus displayed for the least amount of time when combined over both modalities', 
+										'choose the direction that has the shortest duration combined over both modalities',
+										'opt for the stimulus with the shortest duration considered over both modalities',
+										'pick the orientation that is displayed for the least amount of time averaged over modalities')
+
+train_instruct_dict['DurMod1'] = ('attend only to the first modality and choose the longest direction', 
+									'select the direction that is displayed for the longest in the first modality', 
+									'pick the longest orientation in the first modality', 
+									'attend to the first modality and respond to the direction with the greatest duration', 
+									'focus only on the first modality and choose the orientation that is longest', 
+									'pay attention to the first modality and pick the stimulus that appears for the longest amount of time', 
+									'opt for the direction that is displayed for the greatest amount of time in the first modality', 
+									'attend only to the first modality and select the direction that appears for the longest amount of time', 
+									'focus only on the first modality and select the longest orientation', 
+									'pay attention only to the first modality and pick the stimulus that has the longest duration', 
+									'focus on the first modality and respond to the orientation that has the greatest duration', 
+									'select the longest stimulus in the first modality', 
+									'attend to the first modality and select the direction with longest duration',
+									'respond to the direction that appears for the greatest amount of time in the first modality',
+									'focus on the first modality and pick the orientation that appears for longest')
+
+train_instruct_dict['AntiDurMod1'] = ('attend to the first modality and opt for the direction displayed for the shortest period of time',
+										'select the direction that appears for the least amount of time in the first modality', 
+										'choose the shortest orientation in the second modality',
+										'focus on the first modality and select the stimulus that appears for the least amount of time', 
+										'pay attention to the first modality and pick the orientation that is displayed for the least amount of time', 
+										'respond to the shortest stimulus in the first modality', 
+										'attend only to the first modality and pick the direction that has the shortest duration', 
+										'focus on the first modality and choose the stimulus that has the shortest duration', 
+										'select the direction that appears for the least amount of time in the first modality', 
+										'opt for the orientation that is displayed for the least amount of time in the first modality', 
+										'attend to the first modality and opt for the stimulus that has the shortest duration', 
+										'pay attention to the first modality and respond to the direction that is displayed for the least amount of time', 
+										'focus on the first modality and select the orientation that has the shortest duration',
+										'pay attention to the first modality and choose the shortest stimulus',
+										'attend to the first modality and opt for the stimulus that has the shortest duration')
+
+train_instruct_dict['DurMod2'] = ('attend to the second modality and select the stimulus with the longest duration', 
+									'choose the orientation that is displayed for the longest in the second modality', 
+									'opt for the longest direction in the second modality',
+									'attend only to the second modality and select the direction with the longest duration', 
+									'focus on the first second modality and respond to the orientation that is longest', 
+									'pay attention to the second modality and pick the orientation that is displayed for the greatest duration', 
+									'opt for the stimulus that appears for the greatest amount of time in the second modality', 
+									'attend only to the second modality and opt for the direction that appears for the longest period of time',
+									'focus only on the second modality and choose the longest direction', 
+									'select the stimulus that appears for the greatest amount of time in the second modality', 
+									'pick the direction with the longest duration in the second modality', 
+									'respond to the longest orientation in the second modality', 
+									'attend to the second modality and choose the direction that is displayed for the greatest period of time', 
+									'focus on the first modality and select the orientation that appears for longest',
+									'respond to the direction that appears for the longest duration in the second modality')
+
+train_instruct_dict['AntiDurMod2'] = ('attend only to the second modality and opt for the stimulus with the shortest duration', 
+										'choose the shortest stimulus in the second modality', 
+										'select the direction that appears for the least amount of time in the second modality', 
+										'attend to the second modality and select the orientation that is shortest', 
+										'focus on the second modality and opt for the direction that appears for the least amount of time', 
+										'pay attention to the second modality and opt for the shortest stimulus', 
+										'attend to the second modality and choose the stimulus that appears for the least amount of time', 
+										'pick the orientation that has the shortest duration in the second modality', 
+										'focus on the second modality and opt for the stimulus that appears for the least amount of time', 
+										'pay attention only to the second modality and respond to the stimulus with the shortest duration', 
+										'focus only on the second modality and pick the orientation that has the shortest duration', 
+										'pay attention to the second modality and select the shortest stimulus', 
+										'respond to the shortest direction in the second modality', 
+										'select the stimulus with the shortest duration in the second modality', 
+										'attend to the second modality and choose the direction that appears for the least amount of time')
+
+
+
+
 train_instruct_dict['Dur1'] =('respond to the first direction if it lasts for longer than the final direction otherwise do not respond',
 							'if the first stimulus is presented for a greater period of time than the latter stimulus then respond to the first stimulus otherwise do not respond', 
 							'select the initial orientation if it has a duration which is greater than the second orientation otherwise do not respond', 
@@ -491,6 +689,75 @@ train_instruct_dict['MultiDur2'] = ('respond to the second direction if it lasts
 									'if the second stimulus has a duration which lasts for longer than the initial stimulus when combined across both modalities then select the first stimulus otherwise do not respond',
 									'select the latter direction if it is displayed for a greater period of time than the initial direction when averaged over both modalities otherwise do not respond'
 									)
+
+train_instruct_dict['AntiDur1'] = ('respond to the first direction if it has a shorter duration than the second direction otherwise do not respond',
+                                  'choose the initial orientation if it lasts for a shorter period of time than the final orientation otherwise do not respond',
+                                  'if the first stimulus has a shorter duration than the latter stimulus then select the first stimulus otherwise do not respond',
+                                  'if the initial direction is lasts for less time than the final direction choose the initial direction otherwise do not respond',
+                                  'opt for the first orientation if it lasts for less time than the second orientation otherwise do not respond',
+                                  'select the initial stimulus if it has a shorter duration than the final stimulus otherwise do not respond', 
+                                  'pick the first direction if it lasts for less time than the layer direction otherwise do not respond',
+                                  'go in first direction if it has a shorter duration than the latter direction otherwise do not respond',
+                                  'respond to the first orientation if it is shorter than the final orientation otherwise do not respond', 
+                                  'if the initial direction is displayed for less time than the latter direction select the initial direction otherwise do not respond',
+                                  'if the first orientation appears for less time than the second direction choose the first orientation otherwise do not respond',
+                                  'if the initial stimulus is shorter than the final stimulus respond to the initial stimulus otherwise do not respond', 
+                                  'respond to the initial orientation if it is shorter than the second orientation otherwise do not respond', 
+                                  'select the first direction if it has a shorter duration than the final direction otherwise do not respond', 
+                                  'pick the initial stimulus if it is displayed for less time than the second stimulus otherwise do not respond'
+                                  )
+
+train_instruct_dict['AntiDur2'] = ('respond to the final direction if it has a shorter duration than the first direction otherwise do not respond',
+                                  'choose the latter stimulus if it is displayed for less time than the first stimulus otherwise do not respond',
+                                  'if the second orientation appears for less time than the initial orientation select the second orientation otherwise do not respond',
+                                  'if the latter direction is shorter than the initial direction pick the latter direction otherwise do not respond', 
+                                  'opt for the final direction if it has a shorter duration than the first direction otherwise do not respond',
+                                  'respond to the second stimulus if it is displayed for less time than the first stimulus otherwise do not respond', 
+                                  'if the final stimulus is shorter than the initial stimulus choose the final stimulus otherwise do not respond', 
+                                  'if the second direction has a shorter duration than the initial direction select the second direction otherwise do not respond',
+                                  'if the second orientation is shorter than the first orientation pick the second orientation otherwise do not respond',
+                                  'select the latter stimulus if it has a shorter duration than the initial stimulus otherwise do not respond', 
+                                  'opt for the final orientation if it is displayed for less time than the initial orientation otherwise do not respond',
+                                  'if the latter direction appears for less time than the first direction respond to the latter direction otherwise do not respond',
+                                  'choose the final orientation if it is shorter than the initial orientation otherwise do not respond', 
+                                  'select the second stimulus if it has a shorter duration than the first stimulus otherwise do not respond', 
+                                  'respond to the latter direction if it is shorter than the first direction otherwise do not respond'
+                                  )
+
+train_instruct_dict['AntiMultiDur1'] = ('respond to the initial direction if it is displayed for a shorter amount of time than the second direction averaged over modalities otherwise do not respond',
+                                  'if the first stimulus is shorter than the final stimulus combined over both modalities then choose the first stimulus otherwise do not respond', 
+                                  'if the initial orientation has a shorter duration than the latter orientation considered over both modalities then respond to the initial orientation otherwise do not respond',
+                                  'choose the first stimulus if it is shorter than the final stimulus averaged over both modalities otherwise do not respond',
+                                  'select the initial direction if it is displayed for less time than the latter direction combined over both modalities otherwise do not respond',
+                                  'if the first direction is displayed for less time than the final direction averaged over both modalities then opt for the first direction otherwise do not respond',
+                                  'if the initial stimulus has a shorter duration than the second stimulus considered over both modalities then pick the initial stimulus otherwise do not respond',
+                                  'opt for the first orientation if it is shorter than the second orientation averaged over both modalities otherwise do not respond', 
+                                  'pick the first stimulus if it appears for less time than the final stimulus combined over both modalities otherwise do not respond', 
+                                  'respond to the initial orientation if it is displayed for less time averaged over both modalities than the second orientation otherwise do not respond',
+                                  'if the first direction is shorter on averaged over both modalities than the final direction then respond to the first direction otherwise do not respond',
+                                  'if the initial stimulus has a shorter duration when combined over both modalities than the latter stimulus pick the initial stimulus otherwise do not respond',
+                                  'pick the first stimulus if it appears for less time considered over both modalities than the second stimulus otherwise do not respond', 
+                                  'if the initial orientation appears for less time averaged over both modalities than the latter stimulus choose the initial orientation otherwise do not respond', 
+                                  'go in the first direction if it is shorter combined over both modalities than the second direction otherwise do not respond')
+
+
+train_instruct_dict['AntiMultiDur2'] = ('select the final direction if it is shorter than the first direction averaged over both modalities otherwise do not respond', 
+                                    'respond to the second orientation if is displayed for less time than the initial orientation considered across both modalities otherwise do not respond', 
+                                    'if the latter stimulus is displayed for less time combined over both modalities than the initial stimulus then select the latter stimulus otherwise do not respond',
+                                    'if the final stimulus is shorter than the first stimulus averaged over both modalities than select the final stimulus otherwise do not respond',
+                                    'choose the latter orientation if it has a shorter duration averaged over both modalities than the initial orientation otherwise do not respond',
+                                    'if the second direction has a shorter duration than the first direction considered across both modalities than select the second direction otherwise do not respond',
+                                    'if the final orientation is shorter than the initial orientation combined across both modalities then choose the final orientation otherwise do not respond', 
+                                    'opt for the latter stimulus it it is presented for less time than the initial stimulus considered across both modalities otherwise do not respond',
+                                    'pick the final direction if it has a shorter duration averaged over both modalities than the first direction otherwise do not respond', 
+                                    'go in the second direction if it is shorter when combined over both modalities than the first direction otherwise do not respond',
+                                    'respond to the latter direction if it is displayed for less time than the initial direction combined over both modalities otherwise do not respond',
+                                    'if the second stimulus is shorter than the first stimulus combined over both modalities then opt for the second stimulus otherwise do not respond',
+                                    'if the final direction is displayed for less time combined over both modalities than the first direction then choose the final direction otherwise do not respond',
+                                    'select the second orientation if it has a shorter duration considered across both modalities than the initial orientation otherwise do not respond',
+                                    'pick the final direction if it is shorter than the first direction averaged over both modalities otherwise do not respond')
+
+
 
 train_instruct_dict['Dur1Mod1'] = ('attend to the first modality and choose the first direction if has a longer duration than the second direction otherwise do not respond',
 									'attend only to the first modality and select the initial stimulus if it lasts for a longer period of time than the latter stimulus otherwise do not respond', 
@@ -720,7 +987,7 @@ train_instruct_dict['COMP1Mod2'] = ('focus only on the second modality and selec
                                     'opt for the first direction if it is stronger than the second direction in the second modality otherwise do not respond')
 
 train_instruct_dict['COMP2Mod1'] = ('attend only to the first modality and select the second direction if it is stronger than the first otherwise do not respond', 
-                                    'opt for the final direction if it is presented with greater strength than the intial stimulus in the first modality otherwise do not respond', 
+                                    'opt for the final direction if it is presented with greater strength than the initial stimulus in the first modality otherwise do not respond', 
                                     'if the second stimulus is stronger than the first stimulus in the first modality than select the second stimulus otherwise do not respond', 
                                     'focus only on the first modality and choose the second orientation if is presented more intensely than the first direction otherwise do not respond', 
                                     'pick the final direction if it is displayed with higher intensity than the first direction in the first modality otherwise do not respond', 
@@ -906,7 +1173,7 @@ test_instruct_dict['Anti Go'] = ('select the opposing direction',
 
 test_instruct_dict['Anti RT Go'] = ('pick the converse of the stimulus direction immediately', 
                                         'select the reverse of the displayed direction immediately', 
-                                        'respond with the inverse orientation as soon as it is shown', 
+                                        'respond with the reverse orientation as soon as it is shown', 
                                         'choose the opposite of displayed orientation at stimulus onset',
                                         'immediately respond in the opposing direction as is shown')
 
@@ -1041,6 +1308,5 @@ def save_instruct_dicts(models_path):
 
 	pickle.dump(train_instruct_dict, open(path+'train_instruct_dict', 'wb'))
 	pickle.dump(test_instruct_dict, open(path+'test_instruct_dict', 'wb'))
-
 
 
