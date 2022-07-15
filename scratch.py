@@ -2,13 +2,14 @@
 # trials.plot_trial(0)
 # trials.factory.intervals[:, [1,3], 0, 0]-trials.factory.intervals[:, [1,3], 1, 0]
 
-# import numpy as np
-# from instructRNN.tasks.tasks import *
-# from instructRNN.analysis.model_analysis import *
-# from instructRNN.models.full_models import BoWNet
+import numpy as np
+from instructRNN.tasks.tasks import *
+from instructRNN.analysis.model_analysis import *
 
-# trials = AntiRTGoMod1(100)
-# trials.plot_trial(0)
+trials = ConAntiDM(100)
+trials.plot_trial(3)
+
+
 # trials.factory.target_dirs[3]
 # trials.factory.dur_array[0, :, 3]
 
@@ -62,7 +63,6 @@
 from turtle import position
 from instructRNN.data_loaders.dataset import TaskDataSet
 
-
 from instructRNN.tasks.task_factory import DELTA_T, TaskFactory
 from instructRNN.models.full_models import *
 from instructRNN.analysis.model_analysis import *
@@ -73,32 +73,32 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-plot_all_holdout_curves('7.14models', 'swap', ['sbertNet_lin', 'sbertNet_lin_tuned', 'bowNet'])
-data = HoldoutDataFrame('7.14models', 'swap', 'sbertNet_lin_tuned', seeds=range(1))
-np.nanmean(data.get_k_shot(0))
+# plot_all_holdout_curves('7.15models', 'swap', ['sbertNet_lin', 'sbertNet_lin_tuned', 'bowNet'])
+# data = HoldoutDataFrame('7.15models', 'swap', 'bowNet', seeds=range(1))
+# np.nanmean(data.get_k_shot(0))
 
-trials = DelayDM(100)
-trials.plot_trial(3)
+# trials = DelayDM(100)
+# trials.plot_trial(3)
 
 
 
-EXP_FILE = '7.13models/swap_holdouts'
-sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap4'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
+# EXP_FILE = '7.13models/swap_holdouts'
+# sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
+# holdouts_file = 'swap4'
+# sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-task = 'AntiRTGo'
-instructions = ['respond in the opposite direction as soon as the stimulus appears' ]*128
-instructions[0] in train_instruct_dict[task]
-task_eval(sbertNet, 'AntiRTGo', 128)
+# task = 'AntiRTGo'
+# instructions = ['respond in the opposite direction as soon as the stimulus appears' ]*128
+# instructions[0] in train_instruct_dict[task]
+# task_eval(sbertNet, 'AntiRTGo', 128)
 
-repeats = []
-for instruct in train_instruct_dict['DelayAntiGo']:
-    perf = task_eval(sbertNet, 'DelayAntiGo', 128, 
-            instructions=[instruct]*128)
-    repeats.append((instruct, perf))
+# repeats = []
+# for instruct in train_instruct_dict['DelayAntiGo']:
+#     perf = task_eval(sbertNet, 'DelayAntiGo', 128, 
+#             instructions=[instruct]*128)
+#     repeats.append((instruct, perf))
 
-repeats
+# repeats
 
 
 
@@ -134,7 +134,7 @@ repeats
 # plot_RDM(sim_scores)
 
 
-EXP_FILE = '7.14models/multitask_holdouts/Multitask'
+EXP_FILE = '7.16models/multitask_holdouts/Multitask'
 simpleNet = SimpleNet()
 simpleNet.load_model(EXP_FILE+'/'+simpleNet.model_name, suffix='_seed0')
 
@@ -142,14 +142,15 @@ simpleNet.state_dict().keys()
 
 task_eval(simpleNet, 'AntiDM', 128)
 
-
-diff_strength = np.concatenate((np.linspace(-0.15, -0.05, num=7), np.linspace(0.05, 0.15, num=7)))
+diff_strength = np.concatenate((np.linspace(-0.2, -0.05, num=7), np.linspace(0.05, 0.2, num=7)))
 #@diff_strength = np.concatenate((np.linspace(-0.2, -0.1, num=7), np.linspace(0.1, 0.2, num=7)))
+#noises = np.linspace(0.15, 0.75, num=20)
 noises = np.linspace(0.15, 0.75, num=20)
 
-correct_stats, pstim1_stats, trial = get_DM_perf(simpleNet, noises, diff_strength, task='DM')
-trial.task_type = 'AntiDM'
-plot_model_response(simpleNet, trial)
+
+correct_stats, pstim1_stats, trial = get_DM_perf(simpleNet, noises, diff_strength, task='AntiDM')
+trial.task_type = 'DM'
+plot_model_response(simpleNet, trial, plotting_index=5)
 
 from scipy.ndimage.filters import gaussian_filter1d
 import matplotlib.pyplot as plt
@@ -160,10 +161,11 @@ plt.legend(labels=list(np.round(diff_strength, 2)))
 plt.xlabel('Noise Level')
 plt.ylabel('Correct Rate')
 plt.show()
-
 thresholds = get_noise_thresholdouts(correct_stats, diff_strength, noises, neg_cutoff=0.85)
+
+
 path = '/home/reidar/Projects/Instruct-RNN/instructRNN/tasks/noise_thresholds'
-pickle.dump(thresholds, open(path+'/dm_noise_thresholds', 'wb'))
+pickle.dump(thresholds, open(path+'/anti_dm_noise_thresholds', 'wb'))
 
 
 #THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2

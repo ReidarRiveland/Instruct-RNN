@@ -163,15 +163,14 @@ def get_DM_perf(model, noises, diff_strength, num_repeats=100, mod=0, task='DM')
 
                 diff_strength = np.array([mod_base_strs + _coh, mod_base_strs-_coh]).T
             else: 
-                diff_strength = diff_strength/2
-
+                coh = np.array([diff_strength/2, -diff_strength/2])
 
             if task == 'DM':
                 trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, 
-                                                intervals=intervals, coh_arr = diff_strength, dir_arr=dir_arr)
+                                                intervals=intervals, coh_arr = coh, dir_arr=dir_arr)
             elif task =='AntiDM':
                 trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, 
-                                                intervals=intervals, coh_arr = diff_strength, dir_arr=dir_arr)
+                                                intervals=intervals, coh_arr = coh, dir_arr=dir_arr)
             elif task =='MultiDM':
                 trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, multi=True, 
                                                 intervals=intervals, coh_arr = diff_strength, dir_arr=dir_arr)

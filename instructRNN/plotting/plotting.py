@@ -129,7 +129,7 @@ def plot_all_curves(dataframe, axn, **plt_args):
         _plot_performance_curve(mean, std, ax, dataframe.model_name, **plt_args)
 
 def plot_all_holdout_curves(foldername, exp_type, model_list,  perf_type='correct', plot_swaps = False, seeds=range(5)):
-    fig, axn = plt.subplots(6,8, sharey = True, sharex=True, figsize =(8, 8))
+    fig, axn = plt.subplots(6,10, sharey = True, sharex=True, figsize =(8, 8))
 
     fig.suptitle('Avg. Performance on Heldout Tasks', size=14)        
 
