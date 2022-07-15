@@ -35,18 +35,14 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             'GoMod1',  'GoMod2', 'AntiGoMod1', 'AntiGoMod2',
             'RTGoMod1', 'RTGoMod2', 'AntiRTGoMod1', 'AntiRTGoMod2',
 
-             
             'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
             'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2',
 
-            #'ConDM', 'ConAntiDM', 'ConMultiDM', 'AntiConMultiDM',   
+            'ConDM', 'ConAntiDM',
              
             'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
             'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 
             'COMP1Mod1', 'COMP2Mod1', 'COMP1Mod2', 'COMP2Mod2', 
-
-            'Dur', 'AntiDur', 'MultiDur', 'AntiMultiDur',
-            'DurMod1', 'DurMod2', 'AntiDurMod1', 'AntiDurMod2',
 
             'Dur1', 'Dur2', 'MultiDur1', 'MultiDur2',
             'AntiDur1', 'AntiDur2', 'AntiMultiDur1', 'AntiMultiDur2',
@@ -55,43 +51,50 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             'DMS', 'DNMS', 'DMC', 'DNMC', 
             ]
 
-
 SWAP_LIST = [            
-            ('AntiDMMod2', 'RTGo', 'DM', 'MultiCOMP2',  'Dur1Mod1'), 
+            ('AntiDMMod2', 'RTGo', 'DM', 'MultiCOMP2',  'AntiMultiDur1'), 
             ('COMP1Mod1', 'AntiGoMod2',  'DMS', 'AntiDur1', 'RTGoMod2'),
-            ('DMMod2', 'AntiCOMP2', 'AntiRTGo', 'MultiCOMP1', 'AntiDurMod1'), 
-            ('GoMod2', 'AntiMultiCOMP2', 'MultiDur', 'AntiRTGoMod1', 'AntiDur2'), 
-            ('MultiDM', 'COMP2Mod2', 'Dur', 'AntiMultiCOMP1', 'AntiDurMod2'),             
-            ('MultiDur1',  'GoMod1', 'COMP2', 
-            #'AntiConMultiDM', 
-            'DurMod2'), 
-            ('AntiDM',  'AntiRTGoMod2', 'Dur2Mod2', 'DNMS', 'AntiMultiDur'), 
-            ('COMP2Mod1', 'AntiMultiDM', 'DMMod1', 'DNMC', 'Dur1Mod2'),
-            ('COMP1', 
-            #'ConAntiDM', 
-            'Dur2', 'COMP1Mod2', 'AntiDur'),
-            ('Dur1', 'AntiGo', 
-            #'ConDM', 
-            'AntiDMMod1', 'AntiMultiDur2'),
-            ('AntiMultiDur1', 'AntiGoMod1', 'DurMod1', 'AntiCOMP1', 'RTGoMod1'),
-            ('MultiDur2', 
-            #'ConMultiDM', 
-            'Go', 'Dur2Mod1', 'DMC')
+            ('RTGoMod1', 'AntiCOMP2', 'AntiRTGo', 'Dur2', 'MultiCOMP1'), 
+            ('GoMod2', 'AntiMultiCOMP2', 'DMMod2', 'AntiRTGoMod1', 'AntiDur2'), 
+            ('MultiDM', 'COMP2Mod2', 'AntiMultiCOMP1', 'AntiGoMod1', 'Dur1Mod1'),     
+            ('AntiDM',  'AntiRTGoMod2', 'Dur2Mod2', 'AntiCOMP1', 'DNMS'), 
+            ('MultiDur1',  'GoMod1', 'COMP2', 'DMC', 'Dur2Mod1'),
+            ('COMP2Mod1', 'AntiMultiDM', 'DNMC', 'DMMod1', 'Dur1Mod2'),
+            ('ConAntiDM', 'COMP1', 'MultiDur2', 'COMP1Mod2', 'Go'),
+            ('AntiGo', 'Dur1', 'ConDM', 'AntiDMMod1', 'AntiMultiDur2'),            
             ]
 
+task_list = TASK_LIST.copy()
 
+for tasks in SWAP_LIST: 
+    for task in tasks: 
+        task_list.pop(task_list.index(task))
 
 # SWAP_LIST = [            
-#             ('AntiDMMod2', 'RTGo', 'DM', 'COMP1'), 
-#             ('COMP1Mod1', 'AntiGoMod2', 'MultiDur2', 'DMS'),
-#             ('DMMod2', 'AntiRTGo',  'Go', 'MultiCOMP1'), 
-#             ('GoMod2', 'COMP2', 'Dur1'), 
-#             ('AntiRTDM', 'MultiDM', 'COMP2Mod2', 'DMC'),             
-#             ('MultiDur1', 'AntiGo', 'GoMod1', 'MultiCOMP2'), 
-#             ('AntiDM', 'RTDM', 'AntiGoMod1',  'DNMS'), 
-#             ('COMP2Mod1', 'AntiMultiDM', 'DMMod1', 'DNMC'),
-#             ('COMP1Mod2', 'AntiDMMod1', 'Dur2')
+#             ('AntiDMMod2', 'RTGo', 'DM', 'MultiCOMP2',  'Dur1Mod1'), 
+#             ('COMP1Mod1', 'AntiGoMod2',  'DMS', 'AntiDur1', 'RTGoMod2'),
+#             ('DMMod2', 'AntiCOMP2', 'AntiRTGo', 'MultiCOMP1', 'AntiDurMod1'), 
+#             ('GoMod2', 'AntiMultiCOMP2', 'MultiDur', 'AntiRTGoMod1', 'AntiDur2'), 
+#             ('MultiDM', 'COMP2Mod2', 'Dur', 'AntiMultiCOMP1', 'AntiDurMod2'),             
+#             ('MultiDur1',  'GoMod1', 'COMP2', 
+#             #'AntiConMultiDM', 
+#             'DurMod2'), 
+#             ('AntiDM',  'AntiRTGoMod2', 'Dur2Mod2', 'DNMS', 'AntiMultiDur'), 
+#             ('COMP2Mod1', 'AntiMultiDM', 'DMMod1', 'DNMC', 'Dur1Mod2'),
+#             ('COMP1', 
+#             #'ConAntiDM', 
+#             'Dur2', 'COMP1Mod2', 'AntiDur'),
+#             ('Dur1', 'AntiGo', 
+#             #'ConDM', 
+#             'AntiDMMod1', 'AntiMultiDur2'),
+#             ('AntiMultiDur1', 'AntiGoMod1', 'DurMod1', 'AntiCOMP1', 'RTGoMod1'),
+#             ('MultiDur2', 
+#             #'ConMultiDM', 
+#             'Go', 'Dur2Mod1', 'DMC')
 #             ]
+
+
+
 
             
 ALIGNED_LIST = [
@@ -117,7 +120,7 @@ INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
 class Task(): 
     def __init__(self, num_trials, noise, factory, **factory_kwargs):
         if noise is None: 
-            noise = np.random.uniform(0.05, 0.1)
+            noise = np.random.uniform(0.1, 0.15)
         self.num_trials = num_trials
         self.noise = noise
         self.factory = factory(num_trials, noise, **factory_kwargs)

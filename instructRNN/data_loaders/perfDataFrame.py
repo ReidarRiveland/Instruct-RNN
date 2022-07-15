@@ -67,7 +67,7 @@ class HoldoutDataFrame():
                                     +self.mode+task+'_'+seed_name
                     try:
                         data[i, TASK_LIST.index(task), :] = pickle.load(open(load_path+'_' + self.perf_type, 'rb'))
-                    except FileNotFoundError: 
+                    except: 
                         if self.verbose:
                             print('No holdout data for '+ load_path)
         super().__setattr__('data', data)

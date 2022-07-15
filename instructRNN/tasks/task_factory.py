@@ -406,27 +406,27 @@ class DMFactory(TaskFactory):
         if coh_arr is not None: 
             coh = coh_arr
             dirs = dir_arr
-            #base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
-            base_strs = np.ones((2, self.num_trials))
+            base_strs = np.random.uniform(1.0, 1.2, size=(2, self.num_trials))
+            #base_strs = np.ones((2, self.num_trials))
 
         elif self.mod is not None: 
             dirs0 = _draw_ortho_dirs(self.num_trials)
             dirs = np.array([dirs0, dirs0])
-            base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
+            base_strs = np.random.uniform(1.0, 1.2, size=(2, self.num_trials))
             coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175], size=(2, self.num_trials))
 
         elif not self.multi: 
             dirs0 =  _draw_ortho_dirs(self.num_trials)
             nan_dirs = np.full_like(dirs0, np.NaN)
             dirs = _permute_mod(np.array([dirs0, nan_dirs]))
-            base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
+            base_strs = np.random.uniform(1.0, 1.2, size=(2, self.num_trials))
             coh = np.random.choice([-0.175, -0.15, -0.1, 0.1, 0.15, 0.175], size=(2, self.num_trials))
         else: 
             dirs0 = _draw_ortho_dirs(self.num_trials)
             dirs1 = dirs0
             dirs = np.array([dirs0, dirs1])
             mod_coh = np.random.choice([0.2, 0.175, 0.15, 0.125, -0.125, -0.15, -0.175, -0.2], self.num_trials)
-            mod_base_strength = np.random.uniform(0.8, 1.2, self.num_trials)
+            mod_base_strength = np.random.uniform(1.0, 1.2, self.num_trials)
             base_strs = np.array([mod_base_strength+mod_coh, mod_base_strength-mod_coh]) 
             coh = _draw_multi_contrast(self.num_trials)
 
@@ -497,7 +497,7 @@ class ConDMFactory(TaskFactory):
             nan_dirs = np.full_like(dirs0, np.NaN)
             dirs = _permute_mod(np.array([dirs0, nan_dirs]))
             base_strs = np.ones((2, self.num_trials))
-            coh = np.array([contrasts/2, contrasts/2])
+            coh = np.array([contrasts/2, -contrasts/2])
 
         _strs= np.array([[base_strs[0]+coh[0], base_strs[0]-coh[0]],
                         [base_strs[1]+coh[1], base_strs[1]-coh[1]]])
@@ -710,7 +710,7 @@ class COMPFactory(TaskFactory):
         elif self.mod is not None:        
             dirs1 = dirs0
             dirs = np.array([dirs0, dirs1])
-            base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
+            base_strs = np.random.uniform(1.0, 1.2, size=(2, self.num_trials))
             coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=(2, self.num_trials))
 
         elif self.multi:        
@@ -718,14 +718,14 @@ class COMPFactory(TaskFactory):
             dirs = np.array([dirs0, dirs1])
 
             mod_coh = np.random.choice([0.225, 0.175, 0.15, 0.125, -0.125, -0.15, -0.175, -0.225], size=self.num_trials)
-            mod_base_str = np.random.uniform(0.8, 1.2, size=self.num_trials)
+            mod_base_str = np.random.uniform(1.0, 1.2, size=self.num_trials)
             base_strs = np.array([mod_base_str-mod_coh, mod_base_str+mod_coh]) 
             coh = _draw_multi_contrast(self.num_trials)
         else:  
             nan_dirs = np.full_like(dirs0, np.NaN)
             dirs = _permute_mod(np.array([dirs0, nan_dirs]))
 
-            base_strs = np.random.uniform(0.8, 1.2, size=(2, self.num_trials))
+            base_strs = np.random.uniform(1.0, 1.2, size=(2, self.num_trials))
             coh = np.random.choice([-0.2, -0.15, -0.1, 0.1, 0.15, 0.2], size=(2, self.num_trials))
 
 
