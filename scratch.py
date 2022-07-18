@@ -85,9 +85,7 @@ sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap3'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-trials = AntiDur2(100)
-trials.plot_trial(3)
-
+plot_scatter(sbertNet, ['MultiDM', 'AntiMultiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=2)
 
 
 

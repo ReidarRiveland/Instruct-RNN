@@ -1,6 +1,6 @@
 import os
 import itertools
-from instructRNN.tasks.tasks import MULTITASK_DICT, SWAPS_DICT, ALIGNED_DICT
+from instructRNN.tasks.tasks import MULTITASK_DICT, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT
 
 small_models = ['sbertNet', 'simpleNet', 'simpleNetPlus',
             'clipNet','bertNet',
@@ -22,6 +22,8 @@ def make_training_jobs(exp, models, seeds, holdouts, job_index):
         _holdout_dict = SWAPS_DICT
     elif args.exp == 'aligned': 
         _holdout_dict = ALIGNED_DICT
+    elif args.exp == 'family': 
+        _holdout_dict = FAMILY_DICT
     elif args.exp == 'multitask': 
         _holdout_dict = MULTITASK_DICT
 
