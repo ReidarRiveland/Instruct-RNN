@@ -4,9 +4,9 @@ from instructRNN.tasks.tasks import MULTITASK_DICT, SWAPS_DICT, ALIGNED_DICT
 
 small_models = ['sbertNet', 'sbertNet_lin',
             'sbertNet_tuned', 'sbertNet_lin_tuned',
-            'bowNet', 
+            'bowNet', 'bowNet_lin',
             'simpleNet', 'simpleNetPlus',
-            #'comNet', 'comNetPlus',
+            'comNet', 'comNetPlus',
             'clipNet','bertNet',
             #'gptNet', 'gptNet_tuned',
             

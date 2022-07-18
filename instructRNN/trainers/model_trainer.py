@@ -128,18 +128,18 @@ class ModelTrainer(BaseTrainer):
             warnings.warn('instruct mode is not standard but doing something other than testing')
             
         self.model_file_path = model.model_name+'_'+self.seed_suffix
+        tunable = (model.info_type == 'lang' and hasattr(model.langModel, 'transformer'))
 
         if not is_tuning and model.info_type=='lang': 
             model.langModel.eval()
         
-        if is_testing and hasattr(model.langModel, 'transformer'):
+        if is_testing and tunable:
             model.langModel.freeze_transformer()
 
         if self.cur_epoch>0: 
             print('Resuming Training, Current lr: ' + str(self.scheduler.get_lr()))
         else:
             self._init_optimizer(model)
-        tunable = (model.info_type == 'lang' and hasattr(model.langModel, 'transformer'))
         return tunable
 
     def train(self, model, is_tuning=False, is_testing=False, instruct_mode=None): 
@@ -180,8 +180,6 @@ class ModelTrainer(BaseTrainer):
         if not is_testing:
             warnings.warn('\n !!! Model has not reach specified performance threshold during training !!! \n')
             return False
-
-###change to model file directory exists
 
 def check_already_trained(file_name, seed, mode='training'): 
     try: 
