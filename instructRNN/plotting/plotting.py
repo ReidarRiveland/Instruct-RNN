@@ -108,13 +108,18 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list,  perf_type='correct
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
         mean, std = data.avg_tasks()
         _plot_performance_curve(mean, std, axn, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
+        if plot_swaps: 
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
+            mean, std = data.avg_tasks()
+            _plot_performance_curve(mean, std, axn, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
 
         if split:
             _plot_performance_curve(mean, std, ax2, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
-            # if plot_swaps:
-            #     data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type, seeds=seeds)
-            #     plt_args['linestyle'] = '--'
-            #     _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, ax2, model_name, plt_args=plt_args)
+            if plot_swaps: 
+                data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
+                mean, std = data.avg_tasks()
+                _plot_performance_curve(mean, std, ax2, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
+
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
 
@@ -128,7 +133,7 @@ def plot_all_curves(dataframe, axn, **plt_args):
         mean, std = dataframe.avg_seeds(task=task)
         _plot_performance_curve(mean, std, ax, dataframe.model_name, **plt_args)
 
-def plot_all_holdout_curves(foldername, exp_type, model_list,  perf_type='correct', plot_swaps = False, seeds=range(5)):
+def plot_all_holdout_curves(foldername, exp_type, model_list,  perf_type='correct', seeds=range(5), plot_swap=False):
     fig, axn = plt.subplots(5,10, sharey = True, sharex=True, figsize =(8, 8))
 
     fig.suptitle('Avg. Performance on Heldout Tasks', size=14)        
@@ -136,6 +141,9 @@ def plot_all_holdout_curves(foldername, exp_type, model_list,  perf_type='correc
     for model_name in model_list:
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
         plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=0.8, markevery=10)
+        if plot_swap:
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds, mode='swap')
+            plot_all_curves(data, axn, linewidth = 0.6, linestyle = '--', alpha=1, markersize=0.8, markevery=10)
 
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()

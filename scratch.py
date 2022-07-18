@@ -73,7 +73,8 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-plot_all_holdout_curves('7.16models', 'swap', ['sbertNet_lin_tuned', 'bowNet', 'clipNet_tuned'],  seeds=range(1))
+plot_all_holdout_curves('7.16models', 'swap', ['sbertNet_lin_tuned'],  seeds=range(1), plot_swap=True)
+
 plot_k_shot_learning('7.16models', 'swap', ['bowNet', 'bertNet', 'bertNet_tuned', 'clipNet_tuned', 'sbertNet_lin_tuned'], seeds=range(1))
 data = HoldoutDataFrame('7.16models', 'swap', 'bowNet', seeds=range(1))
 np.nanmean(data.get_k_shot(0))
@@ -82,20 +83,20 @@ np.nanmean(data.get_k_shot(0))
 
 EXP_FILE = '7.16models/swap_holdouts'
 sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap3'
+holdouts_file = 'swap4'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 plot_scatter(sbertNet, ['MultiDM', 'AntiMultiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=2)
 
 
 
-# repeats = []
-# for instruct in train_instruct_dict['AntiDur2']:
-#     perf = task_eval(sbertNet, 'AntiDur2', 128, 
-#             instructions=[instruct]*128)
-#     repeats.append((instruct, perf))
+repeats = []
+for instruct in train_instruct_dict['Dur1Mod1']:
+    perf = task_eval(sbertNet, 'AntiDur2', 128, 
+            instructions=[instruct]*128)
+    repeats.append((instruct, perf))
 
-# repeats
+repeats
 
 
 
