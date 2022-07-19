@@ -458,7 +458,7 @@ class DMFactory(TaskFactory):
 
 class ConDMFactory(TaskFactory): 
     def __init__(self, num_trials,  noise, str_chooser, threshold_folder,
-                    timing= 'full', mod=None, multi=False,  
+                    timing= 'full', mod=None, multi=False,  max_var=False,
                     dir_arr = None, coh_arr = None, noises=None,                      
                     intervals= None, cond_arr=None):
         super().__init__(num_trials, timing, noise)
