@@ -26,7 +26,7 @@ class TrainerConfig():
     random_seed: int
     epochs: int = 100
     min_run_epochs: int = 35
-    batch_len: int = 64
+    batch_len: int = 32
     num_batches: int = 2400
     holdouts: list = []
     set_single_task: str = None
@@ -264,7 +264,7 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, over
             print('\n testing '+model_name+' seed'+str(seed)+' on '+task)
 
         testing_config = TrainerConfig(file_name, seed, set_single_task=task, 
-                                batch_len=256, num_batches=100, epochs=1, lr = 0.0008,
+                                batch_len=128, num_batches=100, epochs=1, lr = 0.0008,
                                 test_repeats = repeats, **train_config_kwargs)
         trainer = ModelTrainer(testing_config)
         for _ in range(repeats): 

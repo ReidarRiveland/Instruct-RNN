@@ -73,10 +73,11 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-plot_all_holdout_curves('7.16models', 'swap', ['sbertNet_lin_tuned'],  seeds=range(1), plot_swap=True)
+plot_all_holdout_curves('7.19models', 'swap', ['sbertNet_lin_tuned', 'bowNet'],  seeds=range(1), plot_swap=True)
 
-plot_k_shot_learning('7.16models', 'swap', ['bowNet', 'bertNet', 'bertNet_tuned', 'clipNet_tuned', 'sbertNet_lin_tuned'], seeds=range(1))
-data = HoldoutDataFrame('7.16models', 'swap', 'bowNet', seeds=range(1))
+plot_k_shot_learning('7.16models', 'swap', ['simpleNet', 'bowNet', 'clipNet', 'clipNet_tuned','bertNet', 'bertNet_tuned', 'sbertNet', 'sbertNet_tuned', 'sbertNet_lin', 'sbertNet_lin_tuned'], seeds=range(2))
+
+data = HoldoutDataFrame('7.16models', 'swap', 'bowNet', seeds=range(2))
 np.nanmean(data.get_k_shot(0))
 
 
@@ -202,18 +203,17 @@ import torch
 from instructRNN.models.full_models import SBERTNet
 from instructRNN.instructions.instruct_utils import get_instructions
 
-EXP_FILE = '7.13models/swap_holdouts'
+EXP_FILE = '7.16models/multitask_holdouts'
 sbertNet = SBERTNet_lin_tuned()
 
-holdouts_file = 'swap0'
+holdouts_file = 'Multitask'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 
-def get_hidden_reps(model, num_trials, tasks=CLUSTER_LIST, instruct_mode=None):
+def get_hidden_reps(model, num_trials, tasks=TASK_LIST, instruct_mode=None):
     hidden_reps = np.empty((num_trials, 150, 256, len(tasks)))
     with torch.no_grad():
         for i, task in enumerate(tasks): 
-            print(task)
             trial = construct_trials(task, None)
             ins = trial(num_trials, max_var=True).inputs
             task_info = get_task_info(num_trials, task, model.info_type, instruct_mode=instruct_mode)
@@ -225,14 +225,15 @@ from sklearn.preprocessing import normalize
 def get_norm_task_var(hid_reps): 
     task_var = np.mean(np.var(hid_reps[:, 30:,:,:], axis=0), axis=0)
     task_var = np.delete(task_var, np.where(np.sum(task_var, axis=1)<0.01)[0], axis=0)
-    return normalize(task_var, axis=1, norm='max')
+    return normalize(task_var, axis=1, norm='l2')
 
 def plot_task_var_heatmap(task_var, cluster_labels):
     import seaborn as sns
     import matplotlib.pyplot as plt
-    res = sns.heatmap(task_var.T, xticklabels = cluster_labels, yticklabels=CLUSTER_LIST, vmin=0)
-    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
-    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 6, rotation=45)
+    label_list = [task for task in TASK_LIST if 'Con' not in task]
+    res = sns.heatmap(task_var.T, xticklabels = cluster_labels, yticklabels=label_list, vmin=0)
+    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 5)
+    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 5)
 
     plt.show()
 
@@ -268,9 +269,11 @@ def plot_clustering(n_clusters, task_var):
     plt.scatter(fitted[:, 0], fitted[:, 1], cmap = plt.cm.tab10, c = labels)
     plt.show()
 
-hid_reps = get_hidden_reps(sbertNet, 100)
+hid_reps = get_hidden_reps(sbertNet, 100, tasks= [task for task in TASK_LIST if 'Con' not in task])
+
 norm_task_var = get_norm_task_var(hid_reps)
 optim_clusters = get_optim_clusters(norm_task_var)
+optim_clusters
 
 plot_clustering(optim_clusters, norm_task_var)
 labels, _ = cluster_units(optim_clusters, norm_task_var)
@@ -280,6 +283,8 @@ cluster_labels, sorted_indices = list(zip(*sorted(zip(labels, range(256)))))
 sorted_array = norm_task_var[sorted_indices, :]
 
 plot_task_var_heatmap(sorted_array, cluster_labels)
+
+
 
 
 

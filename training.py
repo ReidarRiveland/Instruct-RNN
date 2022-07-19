@@ -2,10 +2,10 @@ import os
 import itertools
 from instructRNN.tasks.tasks import MULTITASK_DICT, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT
 
-small_models = ['sbertNet', 'simpleNet', 'simpleNetPlus',
+small_models = [
+            'sbertNet', 'simpleNet', 'simpleNetPlus',
             'clipNet','bertNet',
 
-            'sbertNet_lin',
             'sbertNet_tuned', 'sbertNet_lin_tuned',
             'bowNet', 'bowNet_lin',
             'simpleNet', 'simpleNetPlus',

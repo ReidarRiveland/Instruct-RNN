@@ -21,8 +21,8 @@ def _check_test_list(exp_list):
     return task_list
 
 TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo', 
-            'GoMod1',  'GoMod2', 'AntiGoMod1', 'AntiGoMod2',
-            'RTGoMod1', 'RTGoMod2', 'AntiRTGoMod1', 'AntiRTGoMod2',
+            'GoMod1', 'AntiGoMod1', 'GoMod2',  'AntiGoMod2',
+            'RTGoMod1', 'AntiRTGoMod1',  'RTGoMod2','AntiRTGoMod2',
             'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
             'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2',
             'ConDM', 'ConAntiDM',
