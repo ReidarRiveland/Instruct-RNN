@@ -75,18 +75,17 @@ def get_rule_embedder_reps(model):
             reps[i, :] = model.rule_encoder(info).cpu().numpy()
     return reps
 
-def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, instruct_mode=None, contexts=None, default_intervals=False):
-    assert epoch in ['stim', 'prep', 'stim_start'] or epoch.isnumeric(), "entered invalid epoch: %r" %epoch
+def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, 
+                    instruct_mode=None, contexts=None, default_intervals=False, max_var=False):
     model.eval()
+    task_reps = np.empty((len(TASK_LIST), num_trials, model.rnn_hidden_dim))
     with torch.no_grad(): 
-        task_reps = np.empty((len(TASK_LIST), num_trials, model.rnn_hidden_dim))
-
         for i, task in enumerate(TASK_LIST): 
             if default_intervals and 'Dur' not in task:
                 intervals = _get_default_intervals(num_trials)
-                ins, targets, _, _, _ =  construct_trials(task, num_trials, intervals=intervals)
+                ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var, intervals=intervals)
             else: 
-                ins, targets, _, _, _ =  construct_trials(task, num_trials)
+                ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var)
 
             if contexts is not None: 
                 _, hid = model(torch.Tensor(ins).to(model.__device__), context=contexts[i, ...])
@@ -107,7 +106,7 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
 
 def reduce_rep(reps, dim=2, reduction_method='PCA'): 
     if reduction_method == 'PCA': 
-        embedder = PCA(n_components=dim)
+        embedder = PCA()
     elif reduction_method == 'tSNE': 
         embedder = TSNE(n_components=2)
 

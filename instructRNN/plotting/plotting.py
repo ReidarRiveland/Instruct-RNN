@@ -300,24 +300,27 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
             plt.savefig('figs/'+save_file)
         plt.show()
 
-def _rep_scatter(reps_reduced, task, ax, dims, **scatter_kwargs): 
+def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs): 
     task_reps = reps_reduced[TASK_LIST.index(task), ...]
     task_color = get_task_color(task)
     if dims ==2: 
-        ax.scatter(task_reps[:, 0], task_reps[:, 1], s=10, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
+        ax.scatter(task_reps[:, pcs[0]], task_reps[:, pcs[1]], s=10, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
     else: 
-        ax.scatter(task_reps[:, 0], task_reps[:, 1], task_reps[:,2], s=10, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
+        ax.scatter(task_reps[:, pcs[0]], task_reps[:, pcs[1]], task_reps[:,pcs[2]], s=10, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
     patch = Line2D([0], [0], label = task, color= task_color, linestyle='None', markersize=8, **scatter_kwargs)
     return patch
 
-def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, **scatter_kwargs): 
+def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwargs): 
     Patches = []
     for task in task_to_plot: 
-        patch = _rep_scatter(reps_reduced, task, ax, dims, marker='o', **scatter_kwargs)
+        patch = _rep_scatter(reps_reduced, task, ax, dims, pcs, marker='o', **scatter_kwargs)
         Patches.append(patch)
     return Patches
 
-def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, **scatter_kwargs): 
+def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, **scatter_kwargs): 
+    if pcs is None: 
+        pcs = range(dims)
+
     if rep_depth == 'task': 
         reps = get_task_reps(model, epoch='stim_start', num_trials = 50)
     elif rep_depth is not 'task': 
@@ -336,76 +339,48 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, **scatter_kwarg
     plt.legend(handles=Patches, fontsize='medium')
     plt.show()
 
-# def plot_hid_traj(model, tasks_to_plot, rep_depth): 
-#     fig = plt.figure(figsize=(10, 10))
-#     ax = fig.add_subplot(111, projection='3d')
-#     if rep_depth == 'task': 
-#         reps = get_task_reps(model, epoch='stim_start', num_trials = 50)
-#     elif rep_depth is not 'task': 
-#         reps = get_instruct_reps(model.langModel, depth=rep_depth)
-#     reduced, _ = reduce_rep(reps, dim=3)
-#     for task in tasks_to_plot: 
+def plot_hid_traj(model, tasks_to_plot, trial_indices = [0], pcs=range(3), **scatter_kwargs): 
+    Patches = []
 
-
-
-def plot_hid_traj(task_group_hid_traj, task_group, task_indices, trial_indices, instruct_indices, s = 1, subtitle='', annotate_tuples = [], context_task=None, save_file=None): 
-    alphas = np.linspace(0.8, 0.2, num=task_group_hid_traj.shape[2])
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111, projection='3d')
-    embedder = PCA(n_components=3)
-    marker_size=40
-    for trial_index in trial_indices: 
-        embedded = embedder.fit_transform(task_group_hid_traj[:,:,trial_index, :, : ].reshape(-1, 128)).reshape((*task_group_hid_traj[:,:,trial_index, :, : ].shape[0:-1], 3))
-        for task_index in task_indices:
-            try: 
-                task = list(task_group_dict[task_group])[task_index]
-                linestyle = 'solid'
-            except IndexError: 
-                task = context_task
-                linestyle = 'dashed'
-            for instruct_index in instruct_indices: 
-                ax.scatter(embedded[task_index, instruct_index, 1:, 0], embedded[task_index, instruct_index, 1:, 1], embedded[task_index, instruct_index, 1:, 2], s=s, color = task_colors[task])
+    reps = get_task_reps(model, epoch='stim_start', num_trials = 50, max_var=True)
+    reduced, _ = reduce_rep(reps, dim=3)
+    for task in tasks_to_plot: 
+        task_index = TASK_LIST.index(task)
+        task_color = get_task_color(task)
+        for trial_index in trial_indices: 
+            ax.scatter(reduced[task_index, trial_index, 1:, pcs[0]], reduced[task_index, trial_index, 1:, pcs[1]], reduced[task_index, trial_index, 1:, pcs[2]], 
+                            color = task_color, **scatter_kwargs)
+            ax.scatter(reduced[task_index, trial_index, 0, pcs[0]], reduced[task_index, trial_index, 0, pcs[1]], reduced[task_index, trial_index, 0, pcs[2]], 
+                            color='white', edgecolor= task_color, marker='*', **scatter_kwargs)
+            ax.scatter(reduced[task_index, trial_index, TRIAL_LEN-1, pcs[0]], reduced[task_index, trial_index, TRIAL_LEN-1, pcs[1]], reduced[task_index, trial_index, TRIAL_LEN-1, pcs[2]], 
+                            color='white', edgecolor= task_color, marker='o', **scatter_kwargs)
+            ax.scatter(reduced[task_index, trial_index, 129, pcs[0]], reduced[task_index, trial_index, 129, pcs[2]], reduced[task_index, trial_index, 129, pcs[2]], 
+                            color='white', edgecolor= task_color, marker = 'P')
 
-                ax.scatter(embedded[task_index, instruct_index, 0, 0], embedded[task_index, instruct_index, 0, 1], embedded[task_index, instruct_index, 0, 2],  
-                            s = marker_size, color='white', edgecolor= task_colors[task], marker='*')
+            if 'COMP' in task: 
+                ax.scatter(reduced[task_index, trial_index, 89, 0], reduced[task_index, trial_index, 129, 1], reduced[task_index, trial_index, 129, 2], 
+                                    color='white', edgecolor= task_color, marker = 'X')
+            if 'RT' in task: 
+                ax.scatter(reduced[task_index, trial_index, 129, 0], reduced[task_index, trial_index, 129, 1], reduced[task_index, trial_index, 129, 2], 
+                            color='white', edgecolor= task_color, marker = 'X')
+            else: 
+                ax.scatter(reduced[task_index, trial_index, 29, 0], reduced[task_index, trial_index, 129, 1], reduced[task_index, trial_index, 129, 2], 
+                            color='white', edgecolor= task_color, marker = 'X')
 
-                ax.scatter(embedded[task_index, instruct_index, 119, 0], embedded[task_index, instruct_index, 119, 1], embedded[task_index, instruct_index, 119, 2],  
-                            s = marker_size, color='white', edgecolor= task_colors[task], marker='o')
-                ax.scatter(embedded[task_index, instruct_index, 99, 0], embedded[task_index, instruct_index, 99, 1], embedded[task_index, instruct_index, 99, 2], 
-                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'P')
-                if task_group == 'COMP': 
-                    ax.scatter(embedded[task_index, instruct_index, 49, 0], embedded[task_index, instruct_index, 49, 1], embedded[task_index, instruct_index, 49, 2], 
-                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
-                if 'RT' in task: 
-                    ax.scatter(embedded[task_index, instruct_index, 99, 0], embedded[task_index, instruct_index, 99, 1], embedded[task_index, instruct_index, 99, 2], 
-                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
-                else: 
-                    ax.scatter(embedded[task_index, instruct_index, 19, 0], embedded[task_index, instruct_index, 19, 1], embedded[task_index, instruct_index, 19, 2], 
-                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
-                if (task_index, trial_index, instruct_index) in annotate_tuples: 
-                    offset = 0.25
-                    instruction = str(1+instruct_index)+'. '+train_instruct_dict[task][instruct_index]
-                    if len(instruction) > 90: 
-                        instruction=two_line_instruct(instruction)
-                    ax.text(embedded[task_index, instruct_index, 119, 0]+offset, embedded[task_index, instruct_index, 119, 1]+offset, embedded[task_index, instruct_index, 119, 2]+offset, 
-                        instruction, size=8, zorder=50,  color='k') 
-    ax.set_title(subtitle, fontsize='medium')
+        Patches.append(Line2D([], [], linestyle='None', marker='.', color=task_color, label=task, markersize=4))
+                
     ax.set_xlabel('PC 1')
     ax.set_ylabel('PC 2')
     ax.set_zlabel('PC 3')
     ax.set_zlim(-6, 6)
     marker_list = [('*', 'Start'), ('X', 'Stim. Onset'), ('P', 'Resp.'), ('o', 'End')]
     marker_patches = [(Line2D([0], [0], linestyle='None', marker=marker[0], color='grey', label=marker[1], 
-                    markerfacecolor='white', markersize=8)) for marker in marker_list]
-    try: 
-        Patches = [mpatches.Patch(color=task_colors[task_group_dict[task_group][index]], label=task_group_dict[task_group][index]) for index in task_indices]
-    except: 
-        Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in task_group_dict[task_group]]
-    plt.legend(handles=Patches+marker_patches, fontsize = 'x-small')
-    plt.suptitle('Neural Hidden State Trajectories for ' + task_group + ' Tasks')
+            markerfacecolor='white', markersize=8)) for marker in marker_list]
+
+    plt.legend(fontsize = 'x-small')
     plt.tight_layout()
-    if save_file is not None: 
-        plt.savefig('figs/'+save_file)
     plt.show()
 
 def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', save_file=None):
