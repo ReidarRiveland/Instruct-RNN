@@ -62,10 +62,11 @@ if __name__ == "__main__":
     jobs = make_training_jobs(args.exp, args.models, args.seeds, args.holdouts, args.job_index)
     for job in jobs: 
         _seed, model, holdouts = job
-
+        if 'gpt' in model: stream_data=True
+        else: stream_data=False
         if args.mode == 'pipeline': 
             from instructRNN.trainers.model_trainer import *
-            run_pipeline(EXP_FOLDER, model, _seed, holdouts,overwrite=args.overwrite)      
+            run_pipeline(EXP_FOLDER, model, _seed, holdouts,overwrite=args.overwrite, stream_data=stream_data)      
 
         if args.mode == 'train': 
             from instructRNN.trainers.model_trainer import *
