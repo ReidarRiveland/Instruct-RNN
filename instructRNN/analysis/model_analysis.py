@@ -78,7 +78,11 @@ def get_rule_embedder_reps(model):
 def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, 
                     instruct_mode=None, contexts=None, default_intervals=False, max_var=False):
     model.eval()
-    task_reps = np.empty((len(TASK_LIST), num_trials, model.rnn_hidden_dim))
+    if epoch is None: 
+        task_reps = np.empty((len(TASK_LIST), num_trials, TRIAL_LEN, model.rnn_hidden_dim))
+    else: 
+        task_reps = np.empty((len(TASK_LIST), num_trials, model.rnn_hidden_dim))
+
     with torch.no_grad(): 
         for i, task in enumerate(TASK_LIST): 
             if default_intervals and 'Dur' not in task:
@@ -94,30 +98,33 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
                 _, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
 
             hid = hid.cpu().numpy()
-            for j in range(num_trials): 
-                if epoch.isnumeric(): epoch_index = int(epoch)
-                if epoch == 'stim': epoch_index = np.where(targets[j, :, 0] == 0.85)[0][-1]
-                if epoch == 'stim_start': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]+stim_start_buffer
-                if epoch == 'prep': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]-1
-                task_reps[i, j, :] = hid[j, epoch_index, :]
+            if epoch is None: 
+                task_reps[i, ...] = hid
+            else: 
+                for j in range(num_trials): 
+                    if epoch.isnumeric(): epoch_index = int(epoch)
+                    if epoch == 'stim': epoch_index = np.where(targets[j, :, 0] == 0.85)[0][-1]
+                    if epoch == 'stim_start': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]+stim_start_buffer
+                    if epoch == 'prep': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]-1
+                    task_reps[i, j, :] = hid[j, epoch_index, :]
 
     return task_reps.astype(np.float64)
 
-
-def reduce_rep(reps, dim=2, reduction_method='PCA'): 
+def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'): 
     if reduction_method == 'PCA': 
         embedder = PCA()
     elif reduction_method == 'tSNE': 
-        embedder = TSNE(n_components=2)
+        embedder = TSNE()
 
-    embedded = embedder.fit_transform(reps.reshape(reps.shape[0]*reps.shape[1], -1))
+    _embedded = embedder.fit_transform(reps.reshape(-1, reps.shape[-1]))
+    embedded = _embedded.reshape(reps.shape)
 
     if reduction_method == 'PCA': 
         explained_variance = embedder.explained_variance_ratio_
     else: 
         explained_variance = None
 
-    return embedded.reshape(reps.shape[0], reps.shape[1], dim), explained_variance
+    return embedded[..., pcs], explained_variance
 
 def get_layer_sim_scores(model, rep_depth='12'): 
     if rep_depth.isnumeric(): 

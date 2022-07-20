@@ -304,9 +304,9 @@ def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs):
     task_reps = reps_reduced[TASK_LIST.index(task), ...]
     task_color = get_task_color(task)
     if dims ==2: 
-        ax.scatter(task_reps[:, pcs[0]], task_reps[:, pcs[1]], s=10, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
+        ax.scatter(task_reps[:, 0], task_reps[:, 1], s=10, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
     else: 
-        ax.scatter(task_reps[:, pcs[0]], task_reps[:, pcs[1]], task_reps[:,pcs[2]], s=10, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
+        ax.scatter(task_reps[:, 0], task_reps[:, 1], task_reps[:,2], s=10, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
     patch = Line2D([0], [0], label = task, color= task_color, linestyle='None', markersize=8, **scatter_kwargs)
     return patch
 
@@ -325,7 +325,7 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, **sca
         reps = get_task_reps(model, epoch='stim_start', num_trials = 50)
     elif rep_depth is not 'task': 
         reps = get_instruct_reps(model.langModel, depth=rep_depth)
-    reduced, _ = reduce_rep(reps, dim=dims)
+    reduced, _ = reduce_rep(reps, pcs=pcs)
 
     fig = plt.figure(figsize=(14, 14))
     if dims==2:
@@ -333,41 +333,43 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, **sca
     else:
         ax = fig.add_subplot(projection='3d')
 
-    Patches = _group_rep_scatter(reduced, tasks_to_plot, ax, dims, **scatter_kwargs)
+    Patches = _group_rep_scatter(reduced, tasks_to_plot, ax, dims, pcs, **scatter_kwargs)
     Patches.append((Line2D([0], [0], linestyle='None', marker='X', color='grey', label='Contexts', 
                     markerfacecolor='white', markersize=8)))
+    ax.set_xlabel('PC '+str(pcs[0]))
+    ax.set_ylabel('PC '+str(pcs[1]))
+    if dims==3: ax.set_zlabel('PC '+str(pcs[2]))
     plt.legend(handles=Patches, fontsize='medium')
     plt.show()
 
 def plot_hid_traj(model, tasks_to_plot, trial_indices = [0], pcs=range(3), **scatter_kwargs): 
     Patches = []
-
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111, projection='3d')
-    reps = get_task_reps(model, epoch='stim_start', num_trials = 50, max_var=True)
-    reduced, _ = reduce_rep(reps, dim=3)
+    reps = get_task_reps(model, epoch=None, num_trials = 10, max_var=True)
+    reduced, _ = reduce_rep(reps, pcs=pcs)
     for task in tasks_to_plot: 
         task_index = TASK_LIST.index(task)
         task_color = get_task_color(task)
         for trial_index in trial_indices: 
-            ax.scatter(reduced[task_index, trial_index, 1:, pcs[0]], reduced[task_index, trial_index, 1:, pcs[1]], reduced[task_index, trial_index, 1:, pcs[2]], 
+            ax.scatter(reduced[task_index, trial_index, 1:, 0], reduced[task_index, trial_index, 1:, 1], reduced[task_index, trial_index, 1:, 2], 
                             color = task_color, **scatter_kwargs)
-            ax.scatter(reduced[task_index, trial_index, 0, pcs[0]], reduced[task_index, trial_index, 0, pcs[1]], reduced[task_index, trial_index, 0, pcs[2]], 
-                            color='white', edgecolor= task_color, marker='*', **scatter_kwargs)
-            ax.scatter(reduced[task_index, trial_index, TRIAL_LEN-1, pcs[0]], reduced[task_index, trial_index, TRIAL_LEN-1, pcs[1]], reduced[task_index, trial_index, TRIAL_LEN-1, pcs[2]], 
-                            color='white', edgecolor= task_color, marker='o', **scatter_kwargs)
-            ax.scatter(reduced[task_index, trial_index, 129, pcs[0]], reduced[task_index, trial_index, 129, pcs[2]], reduced[task_index, trial_index, 129, pcs[2]], 
-                            color='white', edgecolor= task_color, marker = 'P')
+            ax.scatter(reduced[task_index, trial_index, 0, 0], reduced[task_index, trial_index, 0, 1], reduced[task_index, trial_index, 0, 2], 
+                            color='white', edgecolor= task_color, marker='*', s=10)
+            ax.scatter(reduced[task_index, trial_index, TRIAL_LEN-1, 0], reduced[task_index, trial_index, TRIAL_LEN-1, 1], reduced[task_index, trial_index, TRIAL_LEN-1, 2], 
+                            color='white', edgecolor= task_color, marker='o', s=10)
+            ax.scatter(reduced[task_index, trial_index, 129, 0], reduced[task_index, trial_index, 129, 1], reduced[task_index, trial_index, 129, 2], 
+                            color='white', edgecolor= task_color, marker = 'P', **scatter_kwargs)
 
             if 'COMP' in task: 
-                ax.scatter(reduced[task_index, trial_index, 89, 0], reduced[task_index, trial_index, 129, 1], reduced[task_index, trial_index, 129, 2], 
-                                    color='white', edgecolor= task_color, marker = 'X')
+                ax.scatter(reduced[task_index, trial_index, 89, 0], reduced[task_index, trial_index, 89, 1], reduced[task_index, trial_index, 89, 2], 
+                                    color='white', edgecolor= task_color, marker = 'X', **scatter_kwargs)
             if 'RT' in task: 
                 ax.scatter(reduced[task_index, trial_index, 129, 0], reduced[task_index, trial_index, 129, 1], reduced[task_index, trial_index, 129, 2], 
-                            color='white', edgecolor= task_color, marker = 'X')
+                            color='white', edgecolor= task_color, marker = 'X', **scatter_kwargs)
             else: 
-                ax.scatter(reduced[task_index, trial_index, 29, 0], reduced[task_index, trial_index, 129, 1], reduced[task_index, trial_index, 129, 2], 
-                            color='white', edgecolor= task_color, marker = 'X')
+                ax.scatter(reduced[task_index, trial_index, 29, 0], reduced[task_index, trial_index, 29, 1], reduced[task_index, trial_index, 29, 2], 
+                            color='white', edgecolor= task_color, marker = 'X', s=10)
 
         Patches.append(Line2D([], [], linestyle='None', marker='.', color=task_color, label=task, markersize=4))
                 
@@ -378,8 +380,8 @@ def plot_hid_traj(model, tasks_to_plot, trial_indices = [0], pcs=range(3), **sca
     marker_list = [('*', 'Start'), ('X', 'Stim. Onset'), ('P', 'Resp.'), ('o', 'End')]
     marker_patches = [(Line2D([0], [0], linestyle='None', marker=marker[0], color='grey', label=marker[1], 
             markerfacecolor='white', markersize=8)) for marker in marker_list]
-
-    plt.legend(fontsize = 'x-small')
+    Patches += marker_patches
+    plt.legend(handles = Patches, fontsize = 'x-small')
     plt.tight_layout()
     plt.show()
 

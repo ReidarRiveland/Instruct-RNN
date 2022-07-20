@@ -267,7 +267,7 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, over
                                 batch_len=256, num_batches=100, epochs=1, lr = 0.0008,
                                 test_repeats = repeats, **train_config_kwargs)
         trainer = ModelTrainer(testing_config)
-        for _ in range(repeats): 
+        for _ in range(repeats+1): 
             model.load_model(file_name, suffix='_seed'+str(seed))
             trainer.train(model, is_testing=True, instruct_mode=mode)
         trainer._record_session(model, mode='TESTING')
