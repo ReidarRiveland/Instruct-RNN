@@ -749,14 +749,14 @@ class DNMC(Task):
         self.task_type = 'DNMC'
 
 
-def construct_trials(task_type, num_trials=None, noise = None, return_tensor=False):
+def construct_trials(task_type, num_trials=None, return_tensor=False, **factory_kwargs):
     assert task_type in TASK_LIST, "entered invalid task type"
     trial = getattr(sys.modules[__name__], task_type)
 
     if num_trials is None: 
         return trial 
     else: 
-        trial = trial(num_trials, noise=noise)
+        trial = trial(num_trials, **factory_kwargs)
 
     if return_tensor: 
         return (torch.tensor(trial.inputs), 

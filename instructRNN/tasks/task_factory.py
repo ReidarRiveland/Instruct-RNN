@@ -95,7 +95,6 @@ def _draw_confidence_threshold(requires_resp_list, pos_thresholds, neg_threshold
     return np.array(noises), np.array(contrasts)
 
 
-
 def _get_default_intervals(num_trials): 
     _intervals = np.array([(0, 30), (30, 60), (60, 90), (90, 130), (130, TRIAL_LEN)])
     intervals = np.repeat(_intervals[None, :,:,None].repeat(num_trials, -1), 2, axis=0)

@@ -336,6 +336,17 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, **scatter_kwarg
     plt.legend(handles=Patches, fontsize='medium')
     plt.show()
 
+# def plot_hid_traj(model, tasks_to_plot, rep_depth): 
+#     fig = plt.figure(figsize=(10, 10))
+#     ax = fig.add_subplot(111, projection='3d')
+#     if rep_depth == 'task': 
+#         reps = get_task_reps(model, epoch='stim_start', num_trials = 50)
+#     elif rep_depth is not 'task': 
+#         reps = get_instruct_reps(model.langModel, depth=rep_depth)
+#     reduced, _ = reduce_rep(reps, dim=3)
+#     for task in tasks_to_plot: 
+
+
 
 def plot_hid_traj(task_group_hid_traj, task_group, task_indices, trial_indices, instruct_indices, s = 1, subtitle='', annotate_tuples = [], context_task=None, save_file=None): 
     alphas = np.linspace(0.8, 0.2, num=task_group_hid_traj.shape[2])

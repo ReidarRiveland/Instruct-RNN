@@ -1,3 +1,4 @@
+from email.policy import default
 from matplotlib.pyplot import axis
 import torch
 import numpy as np
@@ -74,14 +75,18 @@ def get_rule_embedder_reps(model):
             reps[i, :] = model.rule_encoder(info).cpu().numpy()
     return reps
 
-def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, instruct_mode=None, contexts=None):
+def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, instruct_mode=None, contexts=None, default_intervals=False):
     assert epoch in ['stim', 'prep', 'stim_start'] or epoch.isnumeric(), "entered invalid epoch: %r" %epoch
     model.eval()
     with torch.no_grad(): 
         task_reps = np.empty((len(TASK_LIST), num_trials, model.rnn_hidden_dim))
 
         for i, task in enumerate(TASK_LIST): 
-            ins, targets, _, _, _ =  construct_trials(task, num_trials)
+            if default_intervals and 'Dur' not in task:
+                intervals = _get_default_intervals(num_trials)
+                ins, targets, _, _, _ =  construct_trials(task, num_trials, intervals=intervals)
+            else: 
+                ins, targets, _, _, _ =  construct_trials(task, num_trials)
 
             if contexts is not None: 
                 _, hid = model(torch.Tensor(ins).to(model.__device__), context=contexts[i, ...])
