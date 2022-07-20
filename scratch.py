@@ -77,8 +77,8 @@ plot_all_holdout_curves('7.19models', 'swap', ['sbertNet_lin_tuned', 'bowNet'], 
 
 # plot_k_shot_learning('7.16models', 'swap', ['simpleNet', 'bowNet', 'clipNet', 'clipNet_tuned','bertNet', 'bertNet_tuned', 'sbertNet', 'sbertNet_tuned', 'sbertNet_lin', 'sbertNet_lin_tuned'], seeds=range(2))
 
-# data = HoldoutDataFrame('7.16models', 'swap', 'bowNet', seeds=range(2))
-# np.nanmean(data.get_k_shot(0))
+data = HoldoutDataFrame('7.19models', 'swap', 'bowNet', seeds=range(1))
+np.nanmean(data.get_k_shot(0))
 
 
 
@@ -89,7 +89,14 @@ sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='
 
 plot_scatter(sbertNet, ['MultiDM', 'AntiMultiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
 
+reps = get_task_reps(sbertNet, epoch='stim_start', num_trials = 10, max_var=True)
+reduced, _ = reduce_rep(reps, dim=3)
 
+       embedder = PCA()
+    elif reduction_method == 'tSNE': 
+        embedder = TSNE(n_components=2)
+
+    embedded = embedder.fit_transform(reps.reshape(reps.shape[0]*reps.shape[1], -1))
 
 repeats = []
 for instruct in train_instruct_dict['Dur1Mod1']:
