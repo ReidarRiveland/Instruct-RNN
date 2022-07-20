@@ -49,8 +49,6 @@
 # plt.show()
 
 
-
-
 # #THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2
 # for x in range(10):
 #     smoothed = gaussian_filter1d(np.mean(pstim1_stats[:, x, :], axis=0), 1)
@@ -73,30 +71,25 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-plot_all_holdout_curves('7.19models', 'swap', ['sbertNet_lin_tuned', 'bowNet'],  seeds=[0])
+plot_all_holdout_curves('7.19models', 'swap', ['sbertNet_lin_tuned', 'gptNetXL', 'bowNet'],  seeds=[0])
+plot_k_shot_learning('7.19models', 'swap', ['gptNetXL', 'bowNet', 'clipNet', 'clipNet_tuned','bertNet', 'bertNet_tuned', 'sbertNet', 'sbertNet_tuned', 'sbertNet_lin', 'sbertNet_lin_tuned'], seeds=range(2))
 
-# plot_k_shot_learning('7.16models', 'swap', ['simpleNet', 'bowNet', 'clipNet', 'clipNet_tuned','bertNet', 'bertNet_tuned', 'sbertNet', 'sbertNet_tuned', 'sbertNet_lin', 'sbertNet_lin_tuned'], seeds=range(2))
-
-data = HoldoutDataFrame('7.19models', 'swap', 'bowNet', seeds=range(1))
+data = HoldoutDataFrame('7.19models', 'swap', 'gptNetXL', seeds=range(1))
 np.nanmean(data.get_k_shot(0))
 
 
 
 EXP_FILE = '7.16models/swap_holdouts'
 sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap0'
+holdouts_file = 'swap2'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-plot_scatter(sbertNet, ['MultiDM', 'AntiMultiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
+#plot_scatter(sbertNet, ['MultiDM', 'AntiMultiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2])
 
-reps = get_task_reps(sbertNet, epoch='stim_start', num_trials = 10, max_var=True)
-reduced, _ = reduce_rep(reps, dim=3)
+plot_hid_traj(sbertNet, ['MultiDM', 'AntiMultiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], pcs=[0, 1, 2], s=7)
 
-       embedder = PCA()
-    elif reduction_method == 'tSNE': 
-        embedder = TSNE(n_components=2)
 
-    embedded = embedder.fit_transform(reps.reshape(reps.shape[0]*reps.shape[1], -1))
+
 
 repeats = []
 for instruct in train_instruct_dict['Dur1Mod1']:
@@ -329,4 +322,4 @@ def make_batch_slurm(filename,
 make_batch_slurm('make_dataset_test.sbatch', 'Instruct-RNN/dataset.py', partition='debug-cpu')
 
 # rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.19models/ /home/reidar/Projects/Instruct-RNN/7.19models
-# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.1models/ /home/reidar/Projects/Instruct-RNN/7.1models
+# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.19models/ /home/reidar/Projects/Instruct-RNN/7.19models
