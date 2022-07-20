@@ -2,12 +2,12 @@
 # trials.plot_trial(0)
 # trials.factory.intervals[:, [1,3], 0, 0]-trials.factory.intervals[:, [1,3], 1, 0]
 
-import numpy as np
-from instructRNN.tasks.tasks import *
-from instructRNN.analysis.model_analysis import *
+# import numpy as np
+# from instructRNN.tasks.tasks import *
+# from instructRNN.analysis.model_analysis import *
 
-trials = ConAntiDM(100)
-trials.plot_trial(3)
+# trials = ConAntiDM(100)
+# trials.plot_trial(3)
 
 
 # trials.factory.target_dirs[3]
@@ -73,21 +73,21 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-plot_all_holdout_curves('7.19models', 'swap', ['sbertNet_lin_tuned', 'bowNet'],  seeds=range(1), plot_swap=True)
+plot_all_holdout_curves('7.19models', 'swap', ['sbertNet_lin_tuned', 'bowNet'],  seeds=[0])
 
-plot_k_shot_learning('7.16models', 'swap', ['simpleNet', 'bowNet', 'clipNet', 'clipNet_tuned','bertNet', 'bertNet_tuned', 'sbertNet', 'sbertNet_tuned', 'sbertNet_lin', 'sbertNet_lin_tuned'], seeds=range(2))
+# plot_k_shot_learning('7.16models', 'swap', ['simpleNet', 'bowNet', 'clipNet', 'clipNet_tuned','bertNet', 'bertNet_tuned', 'sbertNet', 'sbertNet_tuned', 'sbertNet_lin', 'sbertNet_lin_tuned'], seeds=range(2))
 
-data = HoldoutDataFrame('7.16models', 'swap', 'bowNet', seeds=range(2))
-np.nanmean(data.get_k_shot(0))
+# data = HoldoutDataFrame('7.16models', 'swap', 'bowNet', seeds=range(2))
+# np.nanmean(data.get_k_shot(0))
 
 
 
 EXP_FILE = '7.16models/swap_holdouts'
 sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap4'
+holdouts_file = 'swap0'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-plot_scatter(sbertNet, ['MultiDM', 'AntiMultiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=2)
+plot_scatter(sbertNet, ['MultiDM', 'AntiMultiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
 
 
 
@@ -223,17 +223,17 @@ def get_hidden_reps(model, num_trials, tasks=TASK_LIST, instruct_mode=None):
 
 from sklearn.preprocessing import normalize
 def get_norm_task_var(hid_reps): 
-    task_var = np.mean(np.var(hid_reps[:, 30:,:,:], axis=0), axis=0)
-    task_var = np.delete(task_var, np.where(np.sum(task_var, axis=1)<0.01)[0], axis=0)
-    return normalize(task_var, axis=1, norm='l2')
+    task_var = np.mean(np.var(hid_reps[:, :30, :,:], axis=0), axis=0)
+    task_var = np.delete(task_var, np.where(np.sum(task_var, axis=1)<0.1)[0], axis=0)
+    return normalize(task_var, axis=1, norm='max')
 
-def plot_task_var_heatmap(task_var, cluster_labels):
+def plot_task_var_heatmap(task_var, cluster_labels, cmap = sns.color_palette("rocket", as_cmap=True)):
     import seaborn as sns
     import matplotlib.pyplot as plt
     label_list = [task for task in TASK_LIST if 'Con' not in task]
-    res = sns.heatmap(task_var.T, xticklabels = cluster_labels, yticklabels=label_list, vmin=0)
-    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 5)
-    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 5)
+    res = sns.heatmap(task_var.T, xticklabels = cluster_labels, yticklabels=label_list, vmin=0, cmap=cmap)
+    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
+    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8, rotation=90)
 
     plt.show()
 
@@ -272,6 +272,7 @@ def plot_clustering(n_clusters, task_var):
 hid_reps = get_hidden_reps(sbertNet, 100, tasks= [task for task in TASK_LIST if 'Con' not in task])
 
 norm_task_var = get_norm_task_var(hid_reps)
+
 optim_clusters = get_optim_clusters(norm_task_var)
 optim_clusters
 
@@ -320,5 +321,5 @@ def make_batch_slurm(filename,
 
 make_batch_slurm('make_dataset_test.sbatch', 'Instruct-RNN/dataset.py', partition='debug-cpu')
 
-# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/6.20models/ /home/reidar/Projects/Instruct-RNN/6.20models
+# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.19models/ /home/reidar/Projects/Instruct-RNN/7.19models
 # rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.1models/ /home/reidar/Projects/Instruct-RNN/7.1models
