@@ -134,6 +134,8 @@ class Go(Task):
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         dir_chooser = task_factory.choose_pro, 
+                                                timing = 'delay',
+
                         **factory_kwargs
                         )
         self.task_type = 'Go'
@@ -144,6 +146,8 @@ class AntiGo(Task):
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
                         dir_chooser = task_factory.choose_anti,
+                                                timing = 'delay',
+
                         **factory_kwargs
                         )
         self.task_type = 'AntiGo'
@@ -155,6 +159,7 @@ class RTGo(Task):
                         task_factory.GoFactory, 
                         timing = 'RT',
                         dir_chooser = task_factory.choose_pro, 
+                        
                         **factory_kwargs
                         )
         self.task_type = 'RTGo'
@@ -177,6 +182,8 @@ class GoMod1(Task):
                         task_factory.GoFactory, 
                         mod = 0, multi=True,
                         dir_chooser = task_factory.choose_pro, 
+                                                timing = 'delay',
+
                         **factory_kwargs
                         )
         self.task_type = 'GoMod1'
@@ -188,6 +195,8 @@ class GoMod2(Task):
                         task_factory.GoFactory, 
                         mod = 1, multi=True,
                         dir_chooser = task_factory.choose_pro,
+                                                timing = 'delay',
+
                         **factory_kwargs
                         )
         self.task_type = 'GoMod2'
@@ -199,6 +208,8 @@ class AntiGoMod1(Task):
                         task_factory.GoFactory, 
                         mod = 0, multi=True,
                         dir_chooser = task_factory.choose_anti,
+                                                timing = 'delay',
+
                         **factory_kwargs 
                         )
         self.task_type = 'AntiGoMod1'
@@ -210,6 +221,8 @@ class AntiGoMod2(Task):
                         task_factory.GoFactory, 
                         mod = 1, multi=True,
                         dir_chooser = task_factory.choose_anti, 
+                                                timing = 'delay',
+
                         **factory_kwargs
                         )
         self.task_type = 'AntiGoMod2'
