@@ -71,10 +71,12 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-plot_all_holdout_curves('7.19models', 'swap', ['sbertNet_lin_tuned', 'gptNetXL', 'bowNet'],  seeds=[0])
+plot_all_holdout_curves('7.16models', 'swap', ['sbertNet_lin_tuned',  'bowNet'],  seeds=[0])
+
+
 plot_k_shot_learning('7.19models', 'swap', ['gptNetXL', 'bowNet', 'clipNet', 'clipNet_tuned','bertNet', 'bertNet_tuned', 'sbertNet', 'sbertNet_tuned', 'sbertNet_lin', 'sbertNet_lin_tuned'], seeds=range(2))
 
-data = HoldoutDataFrame('7.19models', 'swap', 'gptNetXL', seeds=range(1))
+data = HoldoutDataFrame('7.20models', 'swap', 'sbertNet_lin_tuned', seeds=range(1))
 np.nanmean(data.get_k_shot(0))
 
 
