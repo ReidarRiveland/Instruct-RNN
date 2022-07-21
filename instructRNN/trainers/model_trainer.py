@@ -26,7 +26,7 @@ class TrainerConfig():
     random_seed: int
     epochs: int = 100
     min_run_epochs: int = 35
-    batch_len: int = 32
+    batch_len: int = 64
     num_batches: int = 2400
     holdouts: list = []
     set_single_task: str = None
