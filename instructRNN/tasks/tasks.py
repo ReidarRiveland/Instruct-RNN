@@ -271,6 +271,7 @@ class DM(Task):
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
+                        timing = 'delay',
                         str_chooser = np.argmax,
                         **factory_kwargs
                         )
@@ -282,6 +283,7 @@ class AntiDM(Task):
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
+                        timing = 'delay',
                         **factory_kwargs
                         )
         self.task_type = 'AntiDM'
@@ -292,6 +294,7 @@ class MultiDM(Task):
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmax,
+                        timing = 'delay',
                         multi=True,
                         **factory_kwargs
                         )
@@ -303,6 +306,7 @@ class AntiMultiDM(Task):
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
                         str_chooser = np.argmin,
+                        timing = 'delay',
                         multi=True,
                         **factory_kwargs
                         )
@@ -338,6 +342,7 @@ class DMMod1(Task):
                         str_chooser = np.argmax,
                         mod=0, 
                         multi=True,
+                        timing = 'delay',
                         **factory_kwargs
                         )
         self.task_type = 'DMMod1'
@@ -350,6 +355,7 @@ class DMMod2(Task):
                         str_chooser = np.argmax,
                         mod=1, 
                         multi=True,
+                        timing = 'delay',
                         **factory_kwargs
                         )
         self.task_type = 'DMMod2'
@@ -362,6 +368,7 @@ class AntiDMMod1(Task):
                         str_chooser = np.argmin,
                         mod=0, 
                         multi=True,
+                        timing = 'delay',
                         **factory_kwargs
                         )
         self.task_type = 'AntiDMMod1'
@@ -374,6 +381,8 @@ class AntiDMMod2(Task):
                         str_chooser = np.argmin,
                         mod=1,
                         multi=True,
+                        timing = 'delay',
+
                         **factory_kwargs
                         )
         self.task_type = 'AntiDMMod2'
