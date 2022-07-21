@@ -58,6 +58,7 @@
 # plt.ylabel('p_stim1')
 # plt.show()
 
+from msilib.schema import File
 from turtle import position
 from instructRNN.data_loaders.dataset import TaskDataSet
 
@@ -71,12 +72,12 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-plot_all_holdout_curves('7.16models', 'swap', ['sbertNet_lin_tuned',  'bowNet'],  seeds=[0])
+plot_all_holdout_curves('7.20models', 'swap', ['sbertNet_lin_tuned',  'bowNet'],  seeds=[1])
 
 
 plot_k_shot_learning('7.19models', 'swap', ['gptNetXL', 'bowNet', 'clipNet', 'clipNet_tuned','bertNet', 'bertNet_tuned', 'sbertNet', 'sbertNet_tuned', 'sbertNet_lin', 'sbertNet_lin_tuned'], seeds=range(2))
 
-data = HoldoutDataFrame('7.20models', 'swap', 'sbertNet_lin_tuned', seeds=range(1))
+data = HoldoutDataFrame('7.20models', 'swap', 'bowNet', seeds=[2])
 np.nanmean(data.get_k_shot(0))
 
 
@@ -103,21 +104,24 @@ repeats
 
 
 
-# def get_zero_shot_perf(model): 
-#     perf_array = np.empty(len(TASK_LIST))
-#     for label, tasks in list(SWAPS_DICT.items()):
-#         model.load_model(EXP_FILE+'/'+label+'/'+model.model_name, suffix='_seed0')
-#         for task in tasks: 
-#             print(task)
-#             perf = task_eval(model, task, 256) 
-#             perf_array[TASK_LIST.index(task)] = perf
-#     return perf_array
+def get_zero_shot_perf(model): 
+    perf_array = np.full(len(TASK_LIST), np.NaN)
+    for label, tasks in list(SWAPS_DICT.items()):
+        try:
+            model.load_model('7.20models/swap_holdouts/'+label+'/'+model.model_name, suffix='_seed0')
+        except FileNotFoundError: 
+            continue
+        for task in tasks: 
+            print(task)
+            perf = task_eval(model, task, 256) 
+            perf_array[TASK_LIST.index(task)] = perf
+    return perf_array
 
-# sbertNet.to(torch.device(0))
-# perf = get_zero_shot_perf(sbertNet)
-# perf
-# list(zip(TASK_LIST, perf))
-# np.mean(perf) 
+sbertNet.to(torch.device(0))
+perf = get_zero_shot_perf(sbertNet)
+perf
+list(zip(TASK_LIST, perf))
+np.nanmean(perf) 
 
 
 

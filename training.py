@@ -3,12 +3,12 @@ import itertools
 from instructRNN.tasks.tasks import MULTITASK_DICT, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT
 
 small_models = [
-            'sbertNet_lin', 'sbertNet',
+            'sbertNet_lin', 'bowNet',
+            'simpleNet', 'simpleNetPlus',
+            'sbertNet',
             'sbertNet_tuned', 'sbertNet_lin_tuned',
-            'bowNet', 'bowNet_lin',
-            'simpleNet', 'simpleNetPlus',
+            'bowNet_lin',            
             'clipNet','bertNet',
-            'simpleNet', 'simpleNetPlus',
             'comNet', 'comNetPlus',
             'clipNet','bertNet',
             #'gptNet', 'gptNet_tuned',
