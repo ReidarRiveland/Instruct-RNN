@@ -14,10 +14,13 @@ def inv_instruct_dict(instruct_dict):
             inv_dict[instruct] = task
     return inv_dict
 
-
-INSTRUCT_PATH = os.environ['MODEL_FOLDER']
-train_instruct_dict = pickle.load(open(INSTRUCT_PATH+'instructs/train_instruct_dict', 'rb'))
-test_instruct_dict = pickle.load(open(INSTRUCT_PATH+'instructs/test_instruct_dict', 'rb'))
+try:
+    INSTRUCT_PATH = os.environ['MODEL_FOLDER']+'/instructs/'
+except KeyError:
+    INSTRUCT_PATH = '7.15models/instructs/'
+    
+train_instruct_dict = pickle.load(open(INSTRUCT_PATH+'train_instruct_dict', 'rb'))
+test_instruct_dict = pickle.load(open(INSTRUCT_PATH+'test_instruct_dict', 'rb'))
 inv_train_instruct_dict = inv_instruct_dict(train_instruct_dict)
  
  
@@ -56,7 +59,7 @@ def get_instruction_dict(instruct_mode):
         swap_dict = {}
         for task in TASK_LIST: 
             swap_dict[task] = train_instruct_dict[get_swap_task(task)]
-
+        return swap_dict
     elif instruct_mode == 'validation': 
         return test_instruct_dict
 

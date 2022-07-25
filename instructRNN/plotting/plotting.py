@@ -1,5 +1,6 @@
 import matplotlib
-from instructRNN.analysis.model_analysis import get_hid_var_resp, get_instruct_reps
+from pyparsing import col
+from instructRNN.analysis.model_analysis import *
 from instructRNN.tasks.tasks import TASK_LIST
 from instructRNN.data_loaders.perfDataFrame import HoldoutDataFrame, TrainingDataFrame
 from instructRNN.tasks.task_criteria import isCorrect
@@ -31,11 +32,18 @@ Purple = '#512DA8'
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None), 'simpleNetPlus': (Blue, '+'), 
                     'comNet': (lightBlue, 'None'), 'comNetPlus': (lightBlue, '+'), 
                     'clipNet': (Yellow, None), 'clipNet_tuned': (Yellow, 'v'), 
-                    'bowNet': (Orange, None), 
-                    'gptNetXL': (Red, None), 'gptNetXL_tuned': (Red, 'v'), 
+                    'bowNet': (Orange, None), 'gptNet': (Red, None),
+                    'gptNetXL': (Red, 'd'), 'gptNetXL_tuned': (Red, 'D'), 
                     'bertNet': (Green, None), 'bertNet_tuned': (Green, 'v'),  
                     'sbertNet': (Purple, None), 'sbertNet_tuned': (Purple, 'v'),
                     'sbertNet_lin': (Purple, 'X'), 'sbertNet_lin_tuned': (Purple, '*')}
+
+task_colors = [{2,63,165},{125,135,185},{190,193,212},{214,188,192},{187,119,132},{142,6,59},
+                {74,111,227},{133,149,225},{181,187,227},{230,175,185},{224,123,145},
+                {211,63,106},{17,198,56},{141,213,147},{198,222,199},{234,211,198},
+                {240,185,141},{239,151,8},{15,207,192},{156,222,214},{213,234,231},{243,225,235},
+                {246,196,225},{247,156,212}]
+
 
 
 plt.rcParams['figure.dpi'] = 300
@@ -44,10 +52,17 @@ plt.rcParams['savefig.dpi'] = 300
 from matplotlib import rc
 plt.rcParams["font.family"] = "serif"
 
-def get_task_color(task, cmap=matplotlib.cm.nipy_spectral):
-    norm = matplotlib.colors.Normalize(0, len(TASK_LIST))
-    spacer = lambda x : int(np.floor(x/4)+((x%4)*4))
-    return cmap(norm(spacer(TASK_LIST.index(task))))
+def get_task_color(task):
+    spacer = lambda x: int(np.floor(x/4)+((x%4*4)))
+    color = np.array(tuple(task_colors[spacer(TASK_LIST.index(task))%26]))
+    return tuple(color/256)
+
+def test_colormap(tasks): 
+    for task in tasks: 
+        plt.scatter(tasks.index(task)/2, tasks.index(task)/2, color= get_task_color(task))
+    plt.legend(labels=tasks)
+    plt.show()
+
 
 def split_axes():
     inset1_lims = (-1, 10)
@@ -108,13 +123,18 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list,  perf_type='correct
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
         mean, std = data.avg_tasks()
         _plot_performance_curve(mean, std, axn, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
+        if plot_swaps: 
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
+            mean, std = data.avg_tasks()
+            _plot_performance_curve(mean, std, axn, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
 
         if split:
             _plot_performance_curve(mean, std, ax2, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
-            # if plot_swaps:
-            #     data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type, seeds=seeds)
-            #     plt_args['linestyle'] = '--'
-            #     _plot_performance_curve(np.mean(swap_data, axis = (0, 1)), None, ax2, model_name, plt_args=plt_args)
+            if plot_swaps: 
+                data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
+                mean, std = data.avg_tasks()
+                _plot_performance_curve(mean, std, ax2, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
+
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
 
@@ -128,14 +148,17 @@ def plot_all_curves(dataframe, axn, **plt_args):
         mean, std = dataframe.avg_seeds(task=task)
         _plot_performance_curve(mean, std, ax, dataframe.model_name, **plt_args)
 
-def plot_all_holdout_curves(foldername, exp_type, model_list,  perf_type='correct', plot_swaps = False, seeds=range(5)):
-    fig, axn = plt.subplots(6,6, sharey = True, sharex=True, figsize =(8, 8))
+def plot_all_holdout_curves(foldername, exp_type, model_list,  perf_type='correct', seeds=range(5), plot_swap=False):
+    fig, axn = plt.subplots(5,10, sharey = True, sharex=True, figsize =(8, 8))
 
     fig.suptitle('Avg. Performance on Heldout Tasks', size=14)        
 
     for model_name in model_list:
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
         plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=0.8, markevery=10)
+        if plot_swap:
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds, mode='swap')
+            plot_all_curves(data, axn, linewidth = 0.6, linestyle = '--', alpha=1, markersize=0.8, markevery=10)
 
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
@@ -194,7 +217,6 @@ def plot_k_shot_learning(foldername, exp_type, model_list, ks=[0,1,3], seeds=ran
     _make_model_legend(model_list)
     plt.show()
 
-
 def plot_trained_performance(all_perf_dict):
     barWidth = 0.1
     for i, model_name in enumerate(all_perf_dict.keys()):  
@@ -227,43 +249,7 @@ def plot_trained_performance(all_perf_dict):
     r = np.arange(len_values)
     plt.xticks([r + barWidth+0.25 for r in range(len_values)], TASK_LIST, fontsize='xx-small', fontweight='bold')
     plt.tight_layout()
-    Patches = [(Line2D([0], [0], linestyle='None', marker=MODEL_STYLE_DICT[model_name][1], color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
-                markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(all_perf_dict.keys()) if 'bert' in model_name or 'gpt' in model_name]
-    Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['bowNet'][0], label='bowNet'))
-    Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['simpleNet'][0], label='simpleNet'))
-    #plt.legend()
-    plt.show()
-
-
-
-def plot_val_performance(all_perf_dict):
-    barWidth = 0.1
-    for i, model_name in enumerate(all_perf_dict.keys()):  
-        perf = all_perf_dict[model_name]
-        values = np.mean(perf)
-        std = np.std(np.mean(perf, axis=1), axis=0)
-        mark_size = 3
-        if i == 0:
-            r = np.arange(1)
-        else:
-            r = [x + barWidth for x in r]
-        plt.plot(r, 0.01, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
-        plt.bar(r, -values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
-        #cap error bars at perfect performance 
-        error_range= -1*np.array([(std, np.where(values+std>1, (values+std)-1, std))]).T
-        print(error_range)
-        markers, caps, bars = plt.errorbar(r, -values, yerr = error_range, elinewidth = 0.5, capsize=1.0, linestyle="", alpha=0.8, color = 'black', markersize=1)
-
-    plt.ylim(-0.15, 0.02)
-    plt.title('Trained Performance')
-    plt.xlabel('Task Type', fontweight='bold')
-    plt.ylabel('Percentage Correct')
-    plt.tight_layout()
-    Patches = [(Line2D([0], [0], linestyle='None', marker=MODEL_STYLE_DICT[model_name][1], color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
-                markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(all_perf_dict.keys()) if 'bert' in model_name or 'gpt' in model_name]
-    Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['bowNet'][0], label='bowNet'))
-    Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['simpleNet'][0], label='simpleNet'))
-    #plt.legend()
+    _make_model_legend(all_perf_dict.keys())
     plt.show()
 
 
@@ -280,7 +266,7 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
             is_task_instruct = all([instruct in train_instruct_dict or instruct in test_instruct_dict for instruct in instructions])
             if not is_task_instruct: warnings.warn('Not all instructions correspond to given task!')
         else: 
-            task_info = get_task_info(ins.shape[0], trials.task_type, model.is_instruct)
+            task_info = get_task_info(ins.shape[0], trials.task_type, model.info_type)
         
         out, hid = model(torch.Tensor(ins), task_info)
 
@@ -314,176 +300,90 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
             plt.savefig('figs/'+save_file)
         plt.show()
 
-def _rep_scatter(reps_reduced, task, ax, dims, **scatter_kwargs): 
+def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs): 
     task_reps = reps_reduced[TASK_LIST.index(task), ...]
     task_color = get_task_color(task)
     if dims ==2: 
-        ax.scatter(task_reps[:, 0], task_reps[:, 1], s=25, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
+        ax.scatter(task_reps[:, 0], task_reps[:, 1], s=10, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
     else: 
-        ax.scatter(task_reps[:, 0], task_reps[:, 1], task_reps[:,2], s=25, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
+        ax.scatter(task_reps[:, 0], task_reps[:, 1], task_reps[:,2], s=10, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
     patch = Line2D([0], [0], label = task, color= task_color, linestyle='None', markersize=8, **scatter_kwargs)
     return patch
 
-def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, **scatter_kwargs): 
+def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwargs): 
     Patches = []
     for task in task_to_plot: 
-        patch = _rep_scatter(reps_reduced, task, ax, dims, marker='o', **scatter_kwargs)
+        patch = _rep_scatter(reps_reduced, task, ax, dims, pcs, marker='o', **scatter_kwargs)
         Patches.append(patch)
     return Patches
 
-def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2): 
+def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, **scatter_kwargs): 
+    if pcs is None: 
+        pcs = range(dims)
+
     if rep_depth == 'task': 
-        reps = get_task_reps(model, epoch='stim_start', num_trials = 128)
+        reps = get_task_reps(model, epoch='stim_start', num_trials = 50)
     elif rep_depth is not 'task': 
         reps = get_instruct_reps(model.langModel, depth=rep_depth)
-    reduced, _ = reduce_rep(reps, dim=dims)
+    reduced, _ = reduce_rep(reps, pcs=pcs)
 
-    fig = plt.figure(figsize=(12, 12))
+    fig = plt.figure(figsize=(14, 14))
     if dims==2:
         ax = fig.add_subplot()
     else:
         ax = fig.add_subplot(projection='3d')
 
-    Patches = _group_rep_scatter(reduced, tasks_to_plot, ax, dims)
+    Patches = _group_rep_scatter(reduced, tasks_to_plot, ax, dims, pcs, **scatter_kwargs)
     Patches.append((Line2D([0], [0], linestyle='None', marker='X', color='grey', label='Contexts', 
                     markerfacecolor='white', markersize=8)))
+    ax.set_xlabel('PC '+str(pcs[0]))
+    ax.set_ylabel('PC '+str(pcs[1]))
+    if dims==3: ax.set_zlabel('PC '+str(pcs[2]))
     plt.legend(handles=Patches, fontsize='medium')
     plt.show()
 
-
-def plot_hid_traj(task_group_hid_traj, task_group, task_indices, trial_indices, instruct_indices, s = 1, subtitle='', annotate_tuples = [], context_task=None, save_file=None): 
-    alphas = np.linspace(0.8, 0.2, num=task_group_hid_traj.shape[2])
+def plot_hid_traj(model, tasks_to_plot, trial_indices = [0], pcs=range(3), **scatter_kwargs): 
+    Patches = []
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111, projection='3d')
-    embedder = PCA(n_components=3)
-    marker_size=40
-    for trial_index in trial_indices: 
-        embedded = embedder.fit_transform(task_group_hid_traj[:,:,trial_index, :, : ].reshape(-1, 128)).reshape((*task_group_hid_traj[:,:,trial_index, :, : ].shape[0:-1], 3))
-        for task_index in task_indices:
-            try: 
-                task = list(task_group_dict[task_group])[task_index]
-                linestyle = 'solid'
-            except IndexError: 
-                task = context_task
-                linestyle = 'dashed'
-            for instruct_index in instruct_indices: 
-                ax.scatter(embedded[task_index, instruct_index, 1:, 0], embedded[task_index, instruct_index, 1:, 1], embedded[task_index, instruct_index, 1:, 2], s=s, color = task_colors[task])
+    reps = get_task_reps(model, epoch=None, num_trials = 10, max_var=True)
+    reduced, _ = reduce_rep(reps, pcs=pcs)
+    for task in tasks_to_plot: 
+        task_index = TASK_LIST.index(task)
+        task_color = get_task_color(task)
+        for trial_index in trial_indices: 
+            ax.scatter(reduced[task_index, trial_index, 1:, 0], reduced[task_index, trial_index, 1:, 1], reduced[task_index, trial_index, 1:, 2], 
+                            color = task_color, **scatter_kwargs)
+            ax.scatter(reduced[task_index, trial_index, 0, 0], reduced[task_index, trial_index, 0, 1], reduced[task_index, trial_index, 0, 2], 
+                            color='white', edgecolor= task_color, marker='*', s=10)
+            ax.scatter(reduced[task_index, trial_index, TRIAL_LEN-1, 0], reduced[task_index, trial_index, TRIAL_LEN-1, 1], reduced[task_index, trial_index, TRIAL_LEN-1, 2], 
+                            color='white', edgecolor= task_color, marker='o', s=10)
+            ax.scatter(reduced[task_index, trial_index, 129, 0], reduced[task_index, trial_index, 129, 1], reduced[task_index, trial_index, 129, 2], 
+                            color='white', edgecolor= task_color, marker = 'P', **scatter_kwargs)
 
-                ax.scatter(embedded[task_index, instruct_index, 0, 0], embedded[task_index, instruct_index, 0, 1], embedded[task_index, instruct_index, 0, 2],  
-                            s = marker_size, color='white', edgecolor= task_colors[task], marker='*')
+            if 'COMP' in task: 
+                ax.scatter(reduced[task_index, trial_index, 89, 0], reduced[task_index, trial_index, 89, 1], reduced[task_index, trial_index, 89, 2], 
+                                    color='white', edgecolor= task_color, marker = 'X', **scatter_kwargs)
+            if 'RT' in task: 
+                ax.scatter(reduced[task_index, trial_index, 129, 0], reduced[task_index, trial_index, 129, 1], reduced[task_index, trial_index, 129, 2], 
+                            color='white', edgecolor= task_color, marker = 'X', **scatter_kwargs)
+            else: 
+                ax.scatter(reduced[task_index, trial_index, 29, 0], reduced[task_index, trial_index, 29, 1], reduced[task_index, trial_index, 29, 2], 
+                            color='white', edgecolor= task_color, marker = 'X', s=10)
 
-                ax.scatter(embedded[task_index, instruct_index, 119, 0], embedded[task_index, instruct_index, 119, 1], embedded[task_index, instruct_index, 119, 2],  
-                            s = marker_size, color='white', edgecolor= task_colors[task], marker='o')
-                ax.scatter(embedded[task_index, instruct_index, 99, 0], embedded[task_index, instruct_index, 99, 1], embedded[task_index, instruct_index, 99, 2], 
-                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'P')
-                if task_group == 'COMP': 
-                    ax.scatter(embedded[task_index, instruct_index, 49, 0], embedded[task_index, instruct_index, 49, 1], embedded[task_index, instruct_index, 49, 2], 
-                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
-                if 'RT' in task: 
-                    ax.scatter(embedded[task_index, instruct_index, 99, 0], embedded[task_index, instruct_index, 99, 1], embedded[task_index, instruct_index, 99, 2], 
-                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
-                else: 
-                    ax.scatter(embedded[task_index, instruct_index, 19, 0], embedded[task_index, instruct_index, 19, 1], embedded[task_index, instruct_index, 19, 2], 
-                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
-                if (task_index, trial_index, instruct_index) in annotate_tuples: 
-                    offset = 0.25
-                    instruction = str(1+instruct_index)+'. '+train_instruct_dict[task][instruct_index]
-                    if len(instruction) > 90: 
-                        instruction=two_line_instruct(instruction)
-                    ax.text(embedded[task_index, instruct_index, 119, 0]+offset, embedded[task_index, instruct_index, 119, 1]+offset, embedded[task_index, instruct_index, 119, 2]+offset, 
-                        instruction, size=8, zorder=50,  color='k') 
-    ax.set_title(subtitle, fontsize='medium')
+        Patches.append(Line2D([], [], linestyle='None', marker='.', color=task_color, label=task, markersize=4))
+                
     ax.set_xlabel('PC 1')
     ax.set_ylabel('PC 2')
     ax.set_zlabel('PC 3')
     ax.set_zlim(-6, 6)
     marker_list = [('*', 'Start'), ('X', 'Stim. Onset'), ('P', 'Resp.'), ('o', 'End')]
     marker_patches = [(Line2D([0], [0], linestyle='None', marker=marker[0], color='grey', label=marker[1], 
-                    markerfacecolor='white', markersize=8)) for marker in marker_list]
-    try: 
-        Patches = [mpatches.Patch(color=task_colors[task_group_dict[task_group][index]], label=task_group_dict[task_group][index]) for index in task_indices]
-    except: 
-        Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in task_group_dict[task_group]]
-    plt.legend(handles=Patches+marker_patches, fontsize = 'x-small')
-    plt.suptitle('Neural Hidden State Trajectories for ' + task_group + ' Tasks')
+            markerfacecolor='white', markersize=8)) for marker in marker_list]
+    Patches += marker_patches
+    plt.legend(handles = Patches, fontsize = 'x-small')
     plt.tight_layout()
-    if save_file is not None: 
-        plt.savefig('figs/'+save_file)
     plt.show()
-
-def plot_hid_traj_quiver(task_group_hid_traj, task_group, task_indices, trial_indices, instruction_indices, subtitle='', annotate_tuples = [], context_task=None, save_file=None): 
-    alphas = np.linspace(0.8, 0.2, num=task_group_hid_traj.shape[2])
-    fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_subplot(111, projection='3d')
-    embedder = PCA(n_components=3)
-    marker_size=40
-    for trial_index in trial_indices: 
-        embedded = embedder.fit_transform(task_group_hid_traj[:,:,trial_index, :, : ].reshape(-1, 128)).reshape((*task_group_hid_traj[:,:,trial_index, :, : ].shape[0:-1], 3))
-        for task_index in task_indices:
-            try: 
-                task = list(task_group_dict[task_group])[task_index]
-                linestyle = 'solid'
-                task_color = task_colors[task]
-            except IndexError: 
-                task = context_task
-                linestyle = 'solid'
-                task_color = 'black'
-
-            if task_index == context_task: instruct_indices = instruction_indices
-            else: instruct_indices = [0]
-            for instruct_index in instruct_indices: 
-                ax.quiver(embedded[task_index, instruct_index, 1:, 0], embedded[task_index, instruct_index, 1:, 1], embedded[task_index, instruct_index, 1:, 2], 
-                            np.diff(embedded[task_index, instruct_index, :, 0], axis=0), np.diff(embedded[task_index, instruct_index, :, 1], axis=0), np.diff(embedded[task_index, instruct_index, :, 2], axis=0),
-                            length = 0.35, color = task_color, facecolor = 'white', arrow_length_ratio=0.5,  pivot='middle', linewidth=1, linestyle = linestyle)
-
-                ax.scatter(embedded[task_index, instruct_index, 0, 0], embedded[task_index, instruct_index, 0, 1], embedded[task_index, instruct_index, 0, 2],  
-                            s = marker_size, color='white', edgecolor= task_colors[task], marker='*')
-                ax.scatter(embedded[task_index, instruct_index, 119, 0], embedded[task_index, instruct_index, 119, 1], embedded[task_index, instruct_index, 119, 2],  
-                            s = marker_size, color='white', edgecolor= task_colors[task], marker='o')
-
-                ax.scatter(embedded[task_index, instruct_index, 99, 0], embedded[task_index, instruct_index, 99, 1], embedded[task_index, instruct_index, 99, 2], 
-                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'P')
-                if task_group == 'COMP': 
-                    ax.scatter(embedded[task_index, instruct_index, 59, 0], embedded[task_index, instruct_index, 59, 1], embedded[task_index, instruct_index, 59, 2], 
-                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
-
-                if 'RT' in task: 
-                    ax.scatter(embedded[task_index, instruct_index, 99, 0], embedded[task_index, instruct_index, 99, 1], embedded[task_index, instruct_index, 99, 2], 
-                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
-                else: 
-                    ax.scatter(embedded[task_index, instruct_index, 19, 0], embedded[task_index, instruct_index, 19, 1], embedded[task_index, instruct_index, 19, 2], 
-                            s=marker_size, color='white', edgecolor= task_colors[task], marker = 'X')
-                if (task_index, trial_index, instruct_index) in annotate_tuples: 
-                    offset = 0.25
-                    instruction = str(1+instruct_index)+'. '+train_instruct_dict[task][instruct_index]
-                    if len(instruction) > 90: 
-                        instruction=two_line_instruct(instruction)
-                    ax.text(embedded[task_index, instruct_index, 119, 0]+offset, embedded[task_index, instruct_index, 119, 1]+offset, embedded[task_index, instruct_index, 119, 2]+offset, 
-                        instruction, size=8, zorder=50,  color='k') 
-
-
-    ax.set_title(subtitle, fontsize='medium')
-    ax.set_xlabel('PC 1')
-    ax.set_ylabel('PC 2')
-    ax.set_zlabel('PC 3')
-    ax.set_zlim(-6, 6)
-
-    marker_list = [('*', 'Start'), ('X', 'Stim. Onset'), ('P', 'Resp.'), ('o', 'End')]
-    marker_patches = [(Line2D([0], [0], linestyle='None', marker=marker[0], color='grey', label=marker[1], 
-                    markerfacecolor='white', markersize=8)) for marker in marker_list]
-    try: 
-        Patches = [mpatches.Patch(color=task_colors[task_group_dict[task_group][index]], label=task_group_dict[task_group][index]) for index in task_indices]
-    except: 
-        Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in task_group_dict[task_group]]
-    plt.legend(handles=Patches+marker_patches, fontsize = 'x-small')
-    plt.suptitle('Neural Hidden State Trajectories for ' + task_group + ' Tasks')
-    plt.tight_layout()
-    if save_file is not None: 
-        plt.savefig('figs/'+save_file)
-    plt.show()
-
-
-
 
 def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', save_file=None):
     number_reps=sim_scores.shape[1]/len(TASK_LIST)

@@ -178,6 +178,16 @@ class BoWNet(InstructNet):
                                     LM_train_layers=[],
                                     **kw_args)
         super().__init__(config)
+
+class BoWNet_lin(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('bowNet_lin', 
+                                    LM_class= BoW,
+                                    LM_output_nonlinearity='lin',
+                                    LM_load_str = '',
+                                    LM_train_layers=[],
+                                    **kw_args)
+        super().__init__(config)
             
 
 def make_default_model(model_str): 
@@ -217,6 +227,9 @@ def make_default_model(model_str):
         return CLIPNet_tuned()
     if model_str == 'bowNet': 
         return BoWNet()
+    if model_str == 'bowNet_lin': 
+        return BoWNet_lin()
     else: 
         raise Exception('Model not found in make_default_model function, make sure its included there')
+
 

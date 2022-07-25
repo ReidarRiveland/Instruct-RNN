@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import os
 from instructRNN.tasks.tasks import TASK_LIST, construct_trials
+from instructRNN.tasks.task_factory import TRIAL_LEN
 
 class TaskDataSet():
     DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
@@ -38,14 +39,14 @@ class TaskDataSet():
     
     def __make_memmaps__(self): 
         for task in self.task_ratio_dict.keys(): 
-            self.memmap_dict[task] = (np.lib.format.open_memmap(self.data_folder+'/training_data'+task+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 65)),
-                    np.lib.format.open_memmap(self.data_folder+'/training_data'+task+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (10000, 120, 33)),
-                    np.lib.format.open_memmap(self.data_folder+'/training_data'+task+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (10000, 120, 33)),
-                    np.lib.format.open_memmap(self.data_folder+'/training_data'+task+'/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (10000)))
+            self.memmap_dict[task] = (np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/input_data.npy', dtype = 'float32', mode = 'r', shape = (10000, TRIAL_LEN, 65)),
+                    np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/target_data.npy', dtype = 'float32', mode = 'r', shape = (10000, TRIAL_LEN, 33)),
+                    np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/masks_data.npy', dtype = 'int', mode = 'r', shape = (10000, TRIAL_LEN, 33)),
+                    np.lib.format.open_memmap(self.data_folder+'/training_data/'+task+'/target_dirs.npy', dtype = 'float32', mode = 'r', shape = (10000)))
 
     def check_data_build(self): 
         for task in TASK_LIST:
-            task_data_path = self.data_folder+'/training_data'+task
+            task_data_path = self.data_folder+'/training_data/'+task
             if not os.path.exists(task_data_path):
                 print('\n no training data for {task} discovered at {data_load_path} \n'.format(task=task, data_load_path=self.data_folder))
                 build_training_data(self.data_folder, task)
@@ -66,9 +67,9 @@ class TaskDataSet():
             self.trial_types.append(list(self.task_ratio_dict.keys())[-(self.num_batches-len(self.trial_types))])
 
     def __populate_data__(self): 
-        tmp_in_data = np.empty((self.num_batches, self.batch_len, 120, 65), dtype=np.float32)
-        tmp_tar_data = np.empty((self.num_batches, self.batch_len, 120, 33), dtype=np.float32)
-        tmp_mask_data = np.empty((self.num_batches, self.batch_len, 120, 33), dtype=np.int)
+        tmp_in_data = np.empty((self.num_batches, self.batch_len, TRIAL_LEN, 65), dtype=np.float32)
+        tmp_tar_data = np.empty((self.num_batches, self.batch_len, TRIAL_LEN, 33), dtype=np.float32)
+        tmp_mask_data = np.empty((self.num_batches, self.batch_len, TRIAL_LEN, 33), dtype=np.int)
         tmp_tar_dirs = np.empty((self.num_batches, self.batch_len), dtype = np.float32)
         for index, task in enumerate(self.trial_types):
             if index % 50 == 0: 
@@ -96,7 +97,7 @@ class TaskDataSet():
 
 def build_training_data(foldername, task):
     print('Building training data for ' + task + '...')
-    path = foldername +'/training_data'+ task
+    path = foldername +'/training_data/'+ task
     if os.path.exists(path):
         pass
     else: os.makedirs(path)

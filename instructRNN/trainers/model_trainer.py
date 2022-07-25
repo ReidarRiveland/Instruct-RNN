@@ -27,7 +27,7 @@ class TrainerConfig():
     epochs: int = 100
     min_run_epochs: int = 35
     batch_len: int = 64
-    num_batches: int = 1200
+    num_batches: int = 2400
     holdouts: list = []
     set_single_task: str = None
     stream_data: bool = False
@@ -128,26 +128,27 @@ class ModelTrainer(BaseTrainer):
             warnings.warn('instruct mode is not standard but doing something other than testing')
             
         self.model_file_path = model.model_name+'_'+self.seed_suffix
+        tunable = (model.info_type == 'lang' and hasattr(model.langModel, 'transformer'))
 
         if not is_tuning and model.info_type=='lang': 
             model.langModel.eval()
         
-        if is_testing and hasattr(model.langModel, 'transformer'):
+        if is_testing and tunable:
             model.langModel.freeze_transformer()
 
         if self.cur_epoch>0: 
             print('Resuming Training, Current lr: ' + str(self.scheduler.get_lr()))
         else:
             self._init_optimizer(model)
+        return tunable
 
     def train(self, model, is_tuning=False, is_testing=False, instruct_mode=None): 
         model.to(device)
         model.train()
         self._init_streamer()
-        self._set_training_conditions(model, is_tuning, is_testing, instruct_mode)
-
+        tunable = self._set_training_conditions(model, is_tuning, is_testing, instruct_mode)
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
-            if self.cur_epoch == self.save_for_tuning_epoch and model.info_type=='lang':
+            if self.cur_epoch == self.save_for_tuning_epoch and tunable:
                 self._save_for_tuning(model)
 
             self.streamer.shuffle_stream_order()
@@ -180,8 +181,6 @@ class ModelTrainer(BaseTrainer):
             warnings.warn('\n !!! Model has not reach specified performance threshold during training !!! \n')
             return False
 
-###change to model file directory exists
-
 def check_already_trained(file_name, seed, mode='training'): 
     try: 
         pickle.load(open(file_name+'/seed'+str(seed)+'_training_correct', 'rb'))
@@ -191,9 +190,10 @@ def check_already_trained(file_name, seed, mode='training'):
         print('\n ' + mode+' at ' + file_name + ' at seed '+str(seed))
         return False
 
-def check_already_tested(file_name, seed, task):
+def check_already_tested(file_name, seed, task, mode):
+    if mode is None: mode = ''
     try: 
-        pickle.load(open(file_name+'/holdouts/'+ task+ '_seed'+str(seed)+'_correct', 'rb'))
+        pickle.load(open(file_name+'/holdouts/'+ mode+task+ '_seed'+str(seed)+'_correct', 'rb'))
         print('\n Model at ' + file_name + ' for seed '+str(seed)+ 'and task '+task+' aleady trained')
         return True
     except FileNotFoundError:
@@ -238,16 +238,16 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     model.load_state_dict(torch.load(for_tuning_model_path))
 
     training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
-    tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, 
+    tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
                                     epochs=25, min_run_epochs=5, lr=2e-5, lang_lr=1e-5,
                                     save_for_tuning_epoch=np.nan, 
                                     **train_config_kwargs)
 
     trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
     is_tuned = trainer.train(model, is_tuning=True)
-    if is_tuned:
-        os.remove(for_tuning_model_path)
-        os.remove(for_tuning_data_path)
+    # if is_tuned:
+    #     os.remove(for_tuning_model_path)
+    #     os.remove(for_tuning_data_path)
     return is_tuned
 
 def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, overwrite=False, repeats=5, **train_config_kwargs): 
@@ -258,7 +258,7 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, over
                 
     model = make_default_model(model_name)
     for task in holdouts: 
-        if check_already_tested(file_name, seed, task) and not overwrite:
+        if check_already_tested(file_name, seed, task, mode) and not overwrite:
             continue 
         else:
             print('\n testing '+model_name+' seed'+str(seed)+' on '+task)
@@ -272,7 +272,6 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, over
             trainer.train(model, is_testing=True, instruct_mode=mode)
         trainer._record_session(model, mode='TESTING')
 
-
 def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs):
     if not '_tuned' in model_name:
         is_trained = train_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs) 
@@ -280,7 +279,6 @@ def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False
         is_trained = tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs)
         
     if is_trained: 
-        for test_mode in [None, 'swap']:
-            test_model(exp_folder, model_name, seed, labeled_holdouts, mode = test_mode)
-
-
+        test_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=overwrite)
+        if 'swap' in exp_folder: 
+            test_model(exp_folder, model_name, seed, labeled_holdouts, mode = 'swap', overwrite=overwrite)

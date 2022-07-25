@@ -1,146 +1,117 @@
-# from collections import defaultdict
-# from math import inf
-# import pickle
-# from models.model_trainer import config_model
-# from re import I
-# from matplotlib.cbook import flatten
+# trials = MultiDur1(100)
+# trials.plot_trial(0)
+# trials.factory.intervals[:, [1,3], 0, 0]-trials.factory.intervals[:, [1,3], 1, 0]
 
-# from matplotlib.pyplot import axis
-# from numpy.core.fromnumeric import size, var
-# from numpy.lib.function_base import append
-# from numpy.ma import cos
-# import transformers
-
-# from utils.utils import train_instruct_dict
-# from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_layer_sim_scores, get_hid_var_group_resp, get_hid_var_resp, get_all_CCGP
 # import numpy as np
-# from utils.utils import train_instruct_dict, task_swaps_map, all_models
-# from task import DM
-# from plotting import plot_RDM, plot_rep_scatter, plot_CCGP_scores, plot_model_response, plot_hid_traj_quiver, plot_dPCA, plot_neural_resp, plot_trained_performance, plot_tuning_curve
-# import torch
+# from instructRNN.tasks.tasks import *
+# from instructRNN.analysis.model_analysis import *
 
-# from task import Task, make_test_trials
-
-# import torch
-# from transformers import CLIPTokenizer, GPT2Tokenizer, GPT2LMHeadModel
-
-# tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-# model = GPT2LMHeadModel.from_pretrained("gpt2")
-
-# model.__dict__
-# model.config.n_embd
-
-# model.lm_head.state_dict()['weight'].shape
-
-# inputs = tokenizer("Hello, my dog is cute", return_tensors="pt")
-# outputs = model(**inputs, labels=inputs["input_ids"])
-# loss = outputs.loss
-# logits = outputs.logits
+# trials = ConAntiDM(100)
+# trials.plot_trial(3)
 
 
-# cur_sentences = "Hello, my dog is"
-# for i in range(20): 
-#     inputs = tokenizer(cur_sentences, return_tensors="pt")
-#     outputs = model(**inputs, labels=inputs["input_ids"])
-#     loss = outputs.loss
-#     logits = outputs.logits
-#     scores = torch.softmax(logits, dim=-1)
-#     append_word = tokenizer.batch_decode(torch.max(scores, 2).indices[:, -1])
-#     cur_sentences+=append_word[0]
+# trials.factory.target_dirs[3]
+# trials.factory.dur_array[0, :, 3]
 
-# cur_sentences
-
-# from PIL import Image
-# import requests
-# from transformers import CLIPTokenizer, CLIPModel
-
-# model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-# tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
+# trials.factory.cond_arr[:, :, 0, 3]
 
 
+# trials = ConDM(100)
+# np.mean(trials.factory.requires_response_list)
+# trials.plot_trial(5)
 
-# url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-# image = Image.open(requests.get(url, stream=True).raw)
+# _intervals = np.array([(0, 30), (30, 60), (60, 90), (90, 130), (130, TRIAL_LEN)])
+# intervals = np.repeat(_intervals[:,:, None],  100, axis=-1)
 
-# instruct = tokenizer(['go in the direction of stimulus with greatest strength'], return_tensors='pt')
+#np.repeat(np.repeat(_intervals[..., None], 100, axis=-1)[None, ...], 2, axis=0)
 
-# model.get_text_features(**instruct).shape
+# EXP_FILE = '7.3models'
+# sbertNet = BoWNet()
 
+# holdouts_file = 'multitask_holdouts/Multitask'
+# sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-# from transformers import CLIPTokenizer, CLIPTextModel
+# noises = np.linspace(0.2, 0.6, 10)
+# contrasts = np.concatenate((np.linspace(-0.1, -0.01, 5), np.linspace(0.01, 0.1, 5)))
 
-# model = CLIPTextModel.from_pretrained("openai/clip-vit-base-patch32")
-# tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
+# correct, _, _ = get_DM_perf(sbertNet, noises, contrasts)
 
-# model.config
+# from matplotlib import pyplot as plt
 
-# inputs = tokenizer(["a photo of a cat", "a photo of a dog"], padding=True, return_tensors="pt")
+# from scipy.ndimage.filters import gaussian_filter1d
+# import matplotlib.pyplot as plt
 
-# model
-
-# outputs = model(**inputs, output_hidden_states=True)
-# last_hidden_state = outputs.hidden_states
-
-# outputs.hidden_states[3].shape
-# last_hidden_state.shape
-# pooled_output = outputs.pooler_output  # pooled (EOS token) states
-# pooled_output.unsqueeze(0)[0].shape
-
-# SIMPLENET
-# [('Go', 0.9921875), ('Anti_Go', 0.04296875), ('RT_Go', 0.40234375), ('Anti_RT_Go', 0.05078125), 
-# ('Go_Mod1', 0.2734375), ('Anti_Go_Mod1', 0.3046875), ('Go_Mod2', 0.46875), ('Anti_Go_Mod2', 0.16796875), 
-# ('DelayGo', 0.1484375), ('Anti_DelayGo', 0.171875), 
-# ('DM', 0.7734375), ('Anti_DM', 0.40234375), ('MultiDM', 0.4453125), ('Anti_MultiDM', 0.52734375), 
-# ('RT_DM', 0.07421875), ('Anti_RT_DM', 0.4453125), 
-# ('ConDM', 0.5859375), ('Anti_ConDM', 0.7109375), ('ConMultiDM', 0.73828125), ('Anti_ConMultiDM', 0.6953125), 
-# ('DelayDM', 0.32421875), ('Anti_DelayDM', 0.1953125), ('DelayMultiDM', 0.30859375), ('Anti_DelayMultiDM', 0.16796875), 
-# ('DM_Mod1', 0.37109375), ('Anti_DM_Mod1', 0.16796875), ('DM_Mod2', 0.36328125), ('Anti_DM_Mod2', 0.3359375), 
-# ('COMP1', 0.39453125), ('COMP2', 0.453125), ('MultiCOMP1', 0.2109375), ('MultiCOMP2', 0.3828125), 
-# ('DMS', 0.4375), ('DNMS', 0.359375), ('DMC', 0.21875), ('DNMC', 0.33984375)]
-# 37%
-
-# SBERTNET
-# [('Go', 1.0), ('Anti_Go', 1.0), ('RT_Go', 0.98828125), ('Anti_RT_Go', 0.6484375), 
-# ('Go_Mod1', 0.70703125), ('Anti_Go_Mod1', 0.86328125), ('Go_Mod2', 0.8515625), ('Anti_Go_Mod2', 0.96875), 
-# ('DelayGo', 1.0), ('Anti_DelayGo', 1.0), 
-# ('DM', 1.0), ('Anti_DM', 1.0), ('MultiDM', 0.953125), ('Anti_MultiDM', 0.8984375), 
-# ('RT_DM', 0.96484375), ('Anti_RT_DM', 0.62890625), 
-# ('ConDM', 0.9375), ('Anti_ConDM', 0.953125), ('ConMultiDM', 0.90234375), ('Anti_ConMultiDM', 0.953125), 
-# ('DelayDM', 0.98828125), ('Anti_DelayDM', 0.8515625), ('DelayMultiDM', 0.91796875), ('Anti_DelayMultiDM', 0.58984375), 
-# ('DM_Mod1', 0.8125), ('Anti_DM_Mod1', 0.73828125), ('DM_Mod2', 0.765625), ('Anti_DM_Mod2', 0.69921875), 
-# ('COMP1', 0.72265625), ('COMP2', 0.6328125), ('MultiCOMP1', 0.4609375), ('MultiCOMP2', 0.4140625), 
-# ('DMS', 0.61328125), ('DNMS', 0.859375), ('DMC', 0.578125), ('DNMC', 0.734375)]
-#82%
+# for x in range(len(contrasts)):
+#     plt.plot(noises, np.mean(correct[:, :, x], axis=0))
+# plt.legend(labels=list(np.round(contrasts, 2)))
+# plt.xlabel('Noise Level')
+# plt.ylabel('Correct Rate')
+# plt.show()
 
 
+# #THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2
+# for x in range(10):
+#     smoothed = gaussian_filter1d(np.mean(pstim1_stats[:, x, :], axis=0), 1)
+#     plt.plot(diff_strength, smoothed)
+# plt.legend(labels=list(np.round(noises, 2)[:10]))
+# plt.xlabel('Contrast')
+# plt.ylabel('p_stim1')
+# plt.show()
+
+from msilib.schema import File
 from turtle import position
 from instructRNN.data_loaders.dataset import TaskDataSet
 
-
-from instructRNN.tasks.task_factory import TaskFactory
+from instructRNN.tasks.task_factory import DELTA_T, TaskFactory
 from instructRNN.models.full_models import *
-from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
-from instructRNN.tasks.tasks import SWAP_LIST, SWAPS_DICT, TASK_LIST 
+from instructRNN.analysis.model_analysis import *
+from instructRNN.tasks.tasks import *
 from instructRNN.instructions.instruct_utils import get_instructions, train_instruct_dict
 from instructRNN.tasks.task_criteria import isCorrect
+from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
+plot_all_holdout_curves('7.20models', 'swap', ['sbertNet_lin_tuned',  'bowNet'],  seeds=[1])
 
-EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = SBERTNet_tuned(LM_out_dim=64, rnn_hidden_dim=256)
-#sbertNet = SimpleNet(rnn_hidden_dim=256)
+
+plot_k_shot_learning('7.19models', 'swap', ['gptNetXL', 'bowNet', 'clipNet', 'clipNet_tuned','bertNet', 'bertNet_tuned', 'sbertNet', 'sbertNet_tuned', 'sbertNet_lin', 'sbertNet_lin_tuned'], seeds=range(2))
+
+data = HoldoutDataFrame('7.20models', 'swap', 'bowNet', seeds=[2])
+np.nanmean(data.get_k_shot(0))
+
+
+
+EXP_FILE = '7.16models/swap_holdouts'
+sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap2'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
+
+#plot_scatter(sbertNet, ['MultiDM', 'AntiMultiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2])
+
+plot_hid_traj(sbertNet, ['MultiDM', 'AntiMultiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], pcs=[0, 1, 2], s=7)
+
+
+
+
+repeats = []
+for instruct in train_instruct_dict['Dur1Mod1']:
+    perf = task_eval(sbertNet, 'AntiDur2', 128, 
+            instructions=[instruct]*128)
+    repeats.append((instruct, perf))
+
+repeats
+
+
 
 def get_zero_shot_perf(model): 
-    perf_array = np.empty(len(TASK_LIST))
+    perf_array = np.full(len(TASK_LIST), np.NaN)
     for label, tasks in list(SWAPS_DICT.items()):
-        model.load_model(EXP_FILE+'/'+label+'/'+model.model_name, suffix='_seed0')
+        try:
+            model.load_model('7.20models/swap_holdouts/'+label+'/'+model.model_name, suffix='_seed0')
+        except FileNotFoundError: 
+            continue
         for task in tasks: 
-            # task_instructions = get_instructions(256, task, None)
-            # data = TaskDataSet('5.25models/training_data', batch_len=256, num_batches =1, set_single_task=task, stream=False)
-            # ins, tar, mask, tar_dirs, type = next(data.stream_batch())
-            # out, hid = sbertNet(ins, task_instructions)
-            # perf_array[TASK_LIST.index(task)] =  np.mean(isCorrect(out, tar, tar_dirs))
             print(task)
             perf = task_eval(model, task, 256) 
             perf_array[TASK_LIST.index(task)] = perf
@@ -150,106 +121,41 @@ sbertNet.to(torch.device(0))
 perf = get_zero_shot_perf(sbertNet)
 perf
 list(zip(TASK_LIST, perf))
-np.mean(perf) 
-
-
-from data_loaders.dataset import TaskDataSet
-from task_factory import TaskFactory
-TASK_LIST
-
-data = TaskDataSet('6.5models/training_data', num_batches = 128, set_single_task='Anti_MultiDM', stream=False)
-ins, tar, mask, tar_dirs, type = next(data.stream_batch())
-task_instructions = get_instructions(128, 'Anti_MultiDM', None)
-
-out, _ = sbertNet(ins, task_instructions)
-
-isCorrect(out, tar, tar_dirs)
-
-for index in range(5):
-    TaskFactory.plot_trial(ins[index, ...], tar[index, ...], type)
-
-
-from instructions.instruct_utils import train_instruct_dict
-repeats = []
-for instruct in train_instruct_dict['Anti_DM_Mod2']:
-    perf = task_eval(sbertNet, 'Anti_DM_Mod2', 128, 
-            instructions=[instruct]*128)
-    repeats.append((instruct, perf))
-
-TASK_LIST
-
-
-task = 'Anti_Go_Mod2'
-instructions = ['pick the opposite of the orientation in the second modality' ]*128
-instructions[0] in train_instruct_dict[task]
-task_eval(sbertNet, task, 128, instructions=instructions)
-
-
-task_eval(sbertNet, 'Anti_Go_Mod2', 128)
+np.nanmean(perf) 
 
 
 
-get_instructions(128, 'DMC', None)
-
-from plotting import plot_model_response
-
-from tasks import AntiGoMod1
-trials = AntiGoMod1(128)
-task_instructions = get_instructions(128, 'Anti_Go_Mod1', None)
-plot_model_response(sbertNet, trials, instructions=task_instructions)
+# resp = get_task_reps(sbertNet)
+# reps_reduced, _ = reduce_rep(resp)
 
 
-task_instructions[2]
+# reps = get_instruct_reps(sbertNet.langModel, depth='12')
+# reps.shape
+# np.max(reps[TASK_LIST.index('DM'), 0, :])
+# np.min(reps)
 
 
+# sim_scores = get_layer_sim_scores(sbertNet, rep_depth='full')
+# plot_RDM(sim_scores)
 
 
-
-train_instruct_dict['Anti_DM_Mod2']
-
-perf = get_model_performance(sbertNet)
-list(zip(TASK_LIST, perf))
-np.mean(repeats)
-
-
-
-
-resp = get_task_reps(sbertNet)
-reps_reduced, _ = reduce_rep(resp)
-
-
-from model_analysis import get_layer_sim_scores, get_instruct_reps
-from plotting import plot_RDM
-
-reps = get_instruct_reps(sbertNet.langModel, depth='12')
-reps.shape
-np.max(reps[TASK_LIST.index('DM'), 0, :])
-np.min(reps)
-
-
-sim_scores = get_layer_sim_scores(sbertNet, rep_depth='full')
-plot_RDM(sim_scores)
-
-
-
-from models.full_models import SimpleNet
-from model_analysis import get_DM_perf, get_noise_thresholdouts
-import pickle
-import numpy as np
-EXP_FILE = '6.6models/noise_thresholding_model'
-
-simpleNet = SimpleNet(rnn_hidden_dim=256)
+EXP_FILE = '7.16models/multitask_holdouts/Multitask'
+simpleNet = GPTNet()
 simpleNet.load_model(EXP_FILE+'/'+simpleNet.model_name, suffix='_seed0')
 
-task = 'DM'
+simpleNet.state_dict().keys()
+
+task_eval(simpleNet, 'AntiDM', 128)
+
+diff_strength = np.concatenate((np.linspace(-0.2, -0.05, num=7), np.linspace(0.05, 0.2, num=7)))
+#@diff_strength = np.concatenate((np.linspace(-0.2, -0.1, num=7), np.linspace(0.1, 0.2, num=7)))
+#noises = np.linspace(0.15, 0.75, num=20)
+noises = np.linspace(0.15, 0.75, num=20)
 
 
-#diff_strength = np.concatenate((np.linspace(-0.15, -0.05, num=7), np.linspace(0.05, 0.15, num=7)))
-diff_strength = np.concatenate((np.linspace(-0.2, -0.1, num=7), np.linspace(0.1, 0.2, num=7)))
-
-noises = np.linspace(0.05, 0.75, num=30)
-
-correct_stats, pstim1_stats, trial = get_DM_perf(simpleNet, noises, diff_strength, task=task)
+correct_stats, pstim1_stats, trial = get_DM_perf(simpleNet, noises, diff_strength, task='AntiDM')
+trial.task_type = 'DM'
+plot_model_response(simpleNet, trial, plotting_index=5)
 
 from scipy.ndimage.filters import gaussian_filter1d
 import matplotlib.pyplot as plt
@@ -260,10 +166,11 @@ plt.legend(labels=list(np.round(diff_strength, 2)))
 plt.xlabel('Noise Level')
 plt.ylabel('Correct Rate')
 plt.show()
+thresholds = get_noise_thresholdouts(correct_stats, diff_strength, noises, neg_cutoff=0.85)
 
-thresholds = get_noise_thresholdouts(correct_stats, diff_strength, noises, neg_cutoff=0.8)
 
-pickle.dump(thresholds, open('6.7models/noise_thresholds/dm_noise_thresholds', 'wb'))
+path = '/home/reidar/Projects/Instruct-RNN/instructRNN/tasks/noise_thresholds'
+pickle.dump(thresholds, open(path+'/anti_dm_noise_thresholds', 'wb'))
 
 
 #THIS ISNT EXACTLY RIGHT BECAUSE YOU ARE COUNTING INCOHERENT ANSWERS AS ANSWER STIM2
@@ -294,7 +201,7 @@ plt.show()
 import numpy as np
 from instructRNN.instructions.instruct_utils import get_task_info
 from instructRNN.tasks.task_criteria import isCorrect
-from instructRNN.models.full_models import SBERTNet_tuned, SimpleNet, CLIPNet
+from instructRNN.models.full_models import *
 from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 
 from instructRNN.tasks.tasks import *
@@ -302,97 +209,93 @@ import torch
 from instructRNN.models.full_models import SBERTNet
 from instructRNN.instructions.instruct_utils import get_instructions
 
-EXP_FILE = '6.7models/swap_holdouts'
-sbertNet = CLIPNet()
+EXP_FILE = '7.16models/multitask_holdouts'
+sbertNet = SBERTNet_lin_tuned()
 
-holdouts_file = 'swap0'
+holdouts_file = 'Multitask'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-sbertNet.train_attrs
 
-
-CLUSTER_TASK_LIST = ['Go', 'RT_Go','DelayGo','Go_Mod1','Go_Mod2',
-                    'Anti_Go',  'Anti_RT_Go', 'Anti_DelayGo', 'Anti_Go_Mod1',  'Anti_Go_Mod2',
-                    'DM', 'RT_DM', 'MultiDM', 'DelayDM', 'DelayMultiDM', 'ConDM','ConMultiDM','DM_Mod1',  'DM_Mod2',
-                    'Anti_DM', 'Anti_RT_DM', 'Anti_MultiDM',    'Anti_DelayDM',  'Anti_DelayMultiDM','Anti_ConDM', 'Anti_ConMultiDM', 'Anti_DM_Mod1', 'Anti_DM_Mod2',        
-                    'COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
-                    'DMS', 'DNMS', 'DMC', 'DNMC']
-
-
-def get_hidden_reps(model, num_trials, tasks=CLUSTER_TASK_LIST, instruct_mode=None):
-    hidden_reps = np.empty((num_trials, 120, 256, len(tasks)))
+def get_hidden_reps(model, num_trials, tasks=TASK_LIST, instruct_mode=None):
+    hidden_reps = np.empty((num_trials, 150, 256, len(tasks)))
     with torch.no_grad():
         for i, task in enumerate(tasks): 
-            print(task)
-            ins, _, _, _, _ =  construct_trials(task, num_trials)
-
+            trial = construct_trials(task, None)
+            ins = trial(num_trials, max_var=True).inputs
             task_info = get_task_info(num_trials, task, model.info_type, instruct_mode=instruct_mode)
             _, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
             hidden_reps[..., i] = hid.cpu().numpy()
     return hidden_reps
 
+from sklearn.preprocessing import normalize
+def get_norm_task_var(hid_reps): 
+    task_var = np.mean(np.var(hid_reps[:, :30, :,:], axis=0), axis=0)
+    task_var = np.delete(task_var, np.where(np.sum(task_var, axis=1)<0.1)[0], axis=0)
+    return normalize(task_var, axis=1, norm='max')
 
-recurrent_units = sbertNet.state_dict()['recurrent_units.layers.0.cell.weight_hh'].numpy()
+def plot_task_var_heatmap(task_var, cluster_labels, cmap = sns.color_palette("rocket", as_cmap=True)):
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    label_list = [task for task in TASK_LIST if 'Con' not in task]
+    res = sns.heatmap(task_var.T, xticklabels = cluster_labels, yticklabels=label_list, vmin=0, cmap=cmap)
+    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
+    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8, rotation=90)
 
-from numpy.linalg import matrix_rank, svd
-matrix_rank(recurrent_units)
-
-
-hid_reps = get_hidden_reps(sbertNet, 256) 
-
-import pickle
-hid_reps = pickle.load(open('hidden_reps', 'rb'))
-
-task_var = np.mean(np.var(hid_reps, axis=0), axis=0)
-task_var.shape
-
-task_var
-
-norm_task_var = task_var.T/(np.sum(task_var, axis=1)).T
-
+    plt.show()
 
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+from sklearn.manifold import TSNE
+
 
 def get_optim_clusters(norm_task_var):
     score_list = []
     for i in range(3,50):
         km = KMeans(n_clusters=i, random_state=12)
-        labels = km.fit_predict(norm_task_var.T)
-        score = silhouette_score(norm_task_var.T, labels, metric='euclidean')
+        labels = km.fit_predict(norm_task_var)
+        score = silhouette_score(norm_task_var, labels)
         score_list.append(score)
+    return list(range(3, 50))[np.argmax(np.array(score_list))]
 
-    return list(range(2, 50))[np.argmax(np.array(score_list))]
 
-get_optim_clusters(task_var.T)
+def cluster_units(n_clusters, task_var):
+    km = KMeans(n_clusters=n_clusters, random_state=42)
+    labels = km.fit_predict(task_var)
+    tSNE = TSNE(n_components=2)
+    fitted = tSNE.fit_transform(task_var)
+    return labels, fitted
 
-km = KMeans(n_clusters=4, random_state=42)
-labels = km.fit_predict(norm_task_var.T)
 
-labels
+def plot_clustering(n_clusters, task_var):
+    km = KMeans(n_clusters=n_clusters, random_state=42)
+    labels = km.fit_predict(task_var)
+    tSNE = TSNE(n_components=2)
+    fitted = tSNE.fit_transform(task_var)
+    import matplotlib.pyplot as plt
+    plt.scatter(fitted[:, 0], fitted[:, 1], cmap = plt.cm.tab10, c = labels)
+    plt.show()
 
-colors = np.array(['blue', 'green', 'red', 'yellow', 'organe', 'purple'])
+hid_reps = get_hidden_reps(sbertNet, 100, tasks= [task for task in TASK_LIST if 'Con' not in task])
 
-colors[labels]
+norm_task_var = get_norm_task_var(hid_reps)
 
-from sklearn.manifold import TSNE
-tSNE = TSNE(n_components=2)
-fitted = tSNE.fit_transform(task_var.T)
+optim_clusters = get_optim_clusters(norm_task_var)
+optim_clusters
 
-fitted.shape
+plot_clustering(optim_clusters, norm_task_var)
+labels, _ = cluster_units(optim_clusters, norm_task_var)
 
-import seaborn as sns
-import matplotlib.pyplot as plt
 
-sns.heatmap(norm_task_var, yticklabels=CLUSTER_TASK_LIST, vmin=0)
-plt.show()
+cluster_labels, sorted_indices = list(zip(*sorted(zip(labels, range(256)))))
+sorted_array = norm_task_var[sorted_indices, :]
 
-import matplotlib.pyplot as plt
-plt.scatter(fitted[:, 0], fitted[:, 1], c=colors[labels])
-plt.show()
+plot_task_var_heatmap(sorted_array, cluster_labels)
+
+
+
+
 
 from pathlib import Path
-
 def make_batch_slurm(filename,
                      scriptpath,
                      job_name='model_training',
@@ -424,5 +327,5 @@ def make_batch_slurm(filename,
 
 make_batch_slurm('make_dataset_test.sbatch', 'Instruct-RNN/dataset.py', partition='debug-cpu')
 
-# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/6.20models/ /home/reidar/Projects/Instruct-RNN/6.20models
-# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/6.20models/ /home/reidar/Projects/Instruct-RNN/6.20models
+# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.19models/ /home/reidar/Projects/Instruct-RNN/7.19models
+# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.19models/ /home/reidar/Projects/Instruct-RNN/7.19models

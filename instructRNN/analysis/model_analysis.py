@@ -1,3 +1,4 @@
+from email.policy import default
 from matplotlib.pyplot import axis
 import torch
 import numpy as np
@@ -9,7 +10,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 from instructRNN.tasks.tasks import *
-from instructRNN.tasks.task_factory import _draw_ortho_dirs, DMFactory
+from instructRNN.tasks.task_factory import _draw_ortho_dirs, DMFactory, TRIAL_LEN, _get_default_intervals, max_var_dir
 from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.instructions.instruct_utils import train_instruct_dict, get_task_info, get_instruction_dict
 
@@ -74,14 +75,21 @@ def get_rule_embedder_reps(model):
             reps[i, :] = model.rule_encoder(info).cpu().numpy()
     return reps
 
-def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, instruct_mode=None, contexts=None):
-    assert epoch in ['stim', 'prep', 'stim_start'] or epoch.isnumeric(), "entered invalid epoch: %r" %epoch
+def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, 
+                    instruct_mode=None, contexts=None, default_intervals=False, max_var=False):
     model.eval()
-    with torch.no_grad(): 
+    if epoch is None: 
+        task_reps = np.empty((len(TASK_LIST), num_trials, TRIAL_LEN, model.rnn_hidden_dim))
+    else: 
         task_reps = np.empty((len(TASK_LIST), num_trials, model.rnn_hidden_dim))
 
+    with torch.no_grad(): 
         for i, task in enumerate(TASK_LIST): 
-            ins, targets, _, _, _ =  construct_trials(task, num_trials)
+            if default_intervals and 'Dur' not in task:
+                intervals = _get_default_intervals(num_trials)
+                ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var, intervals=intervals)
+            else: 
+                ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var)
 
             if contexts is not None: 
                 _, hid = model(torch.Tensor(ins).to(model.__device__), context=contexts[i, ...])
@@ -90,30 +98,33 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
                 _, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
 
             hid = hid.cpu().numpy()
-            for j in range(num_trials): 
-                if epoch.isnumeric(): epoch_index = int(epoch)
-                if epoch == 'stim': epoch_index = np.where(targets[j, :, 0] == 0.85)[0][-1]
-                if epoch == 'stim_start': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]+stim_start_buffer
-                if epoch == 'prep': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]-1
-                task_reps[i, j, :] = hid[j, epoch_index, :]
+            if epoch is None: 
+                task_reps[i, ...] = hid
+            else: 
+                for j in range(num_trials): 
+                    if epoch.isnumeric(): epoch_index = int(epoch)
+                    if epoch == 'stim': epoch_index = np.where(targets[j, :, 0] == 0.85)[0][-1]
+                    if epoch == 'stim_start': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]+stim_start_buffer
+                    if epoch == 'prep': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]-1
+                    task_reps[i, j, :] = hid[j, epoch_index, :]
 
     return task_reps.astype(np.float64)
 
-
-def reduce_rep(reps, dim=2, reduction_method='PCA'): 
+def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'): 
     if reduction_method == 'PCA': 
-        embedder = PCA(n_components=dim)
+        embedder = PCA()
     elif reduction_method == 'tSNE': 
-        embedder = TSNE(n_components=2)
+        embedder = TSNE()
 
-    embedded = embedder.fit_transform(reps.reshape(reps.shape[0]*reps.shape[1], -1))
+    _embedded = embedder.fit_transform(reps.reshape(-1, reps.shape[-1]))
+    embedded = _embedded.reshape(reps.shape)
 
     if reduction_method == 'PCA': 
         explained_variance = embedder.explained_variance_ratio_
     else: 
         explained_variance = None
 
-    return embedded.reshape(reps.shape[0], reps.shape[1], dim), explained_variance
+    return embedded[..., pcs], explained_variance
 
 def get_layer_sim_scores(model, rep_depth='12'): 
     if rep_depth.isnumeric(): 
@@ -145,45 +156,40 @@ def get_DM_perf(model, noises, diff_strength, num_repeats=100, mod=0, task='DM')
     correct_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
     for i in tqdm(range(num_repeats)): 
         for j, noise in enumerate(noises): 
+            intervals = _get_default_intervals(num_trials)
+            multi = 'Multi' in task
+            dir_arr = max_var_dir(num_trials, None, multi, 2)
 
-            conditions_arr = np.full((2, 2, 2, num_trials), np.NaN)
-            intervals = np.empty((num_trials, 5), dtype=tuple)
-            directions = np.empty((2, num_trials))
-
-            intervals = np.empty((num_trials, 5), dtype=tuple)
-            for k in range(num_trials): 
-                intervals[k, :] = ((0, 20), (20, 50), (50, 70), (70, 100), (100, 120))    
-                directions[:, k]= _draw_ortho_dirs()
-
-
-                if 'Multi' in task:
-                    mod_coh = diff_strength[k]/2
-                    mod_base_strs = np.array([1-mod_coh, 1+mod_coh])
+            if 'Multi' in task:
+                mod_base_strs = np.array([1-diff_strength/2, 1+diff_strength/2])
+                _coh = np.empty((2, num_trials))
+                
+                for k in range(num_trials):
                     redraw = True
                     while redraw: 
                         coh = np.random.choice([-0.05, -0.1, 0.1, 0.05], size=2, replace=False)
                         if coh[0] != -1*coh[1] and ((coh[0] <0) ^ (coh[1] < 0)): 
                             redraw = False
+                    coh[:, k] = coh
 
-                    strengths = np.array([mod_base_strs + coh, mod_base_strs- coh]).T
-                    conditions_arr[:, :, 0, k] = np.array([directions[:,k], directions[:,k]])
-                    conditions_arr[:, :, 1, k] = strengths.T
-
-            if not 'Multi' in task: 
-                strengths = np.array([1+diff_strength/2, 1-diff_strength/2])
-                conditions_arr[mod, :, 0, :] = directions
-                conditions_arr[mod, :, 1, :] = strengths
+                diff_strength = np.array([mod_base_strs + _coh, mod_base_strs-_coh]).T
+            else: 
+                coh = np.array([diff_strength/2, -diff_strength/2])
 
             if task == 'DM':
-                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, intervals=intervals, cond_arr=conditions_arr)
-            elif task =='Anti_DM':
-                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, intervals=intervals, cond_arr=conditions_arr)
+                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, 
+                                                intervals=intervals, coh_arr = coh, dir_arr=dir_arr)
+            elif task =='AntiDM':
+                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, 
+                                                intervals=intervals, coh_arr = coh, dir_arr=dir_arr)
             elif task =='MultiDM':
-                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, multi=True, intervals=intervals, cond_arr=conditions_arr)
-            elif task =='Anti_MultiDM':
-                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, multi=True, intervals=intervals, cond_arr=conditions_arr)
+                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmax, multi=True, 
+                                                intervals=intervals, coh_arr = diff_strength, dir_arr=dir_arr)
+            elif task =='AntiMultiDM':
+                trial = Task(num_trials, noise, DMFactory, str_chooser = np.argmin, multi=True, 
+                                                intervals=intervals, coh_arr = diff_strength, dir_arr=dir_arr)
 
-            task_instructions = get_task_info(num_trials, task, False)
+            task_instructions = get_task_info(num_trials, task, model.info_type)
 
             out, hid = model(torch.Tensor(trial.inputs), task_instructions)
             correct_stats[i, j, :] =  isCorrect(out, torch.Tensor(trial.targets), trial.target_dirs)
@@ -197,8 +203,6 @@ def get_noise_thresholdouts(correct_stats, diff_strength, noises, pos_cutoff=0.9
     pos_thresholds = np.array((noises[pos_coords[0]], diff_strength[pos_coords[1]]))
     neg_thresholds = np.array((noises[neg_coords[0]], diff_strength[neg_coords[1]]))
     return pos_thresholds, neg_thresholds
-
-
 
 
 def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None): 
@@ -227,33 +231,33 @@ def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None):
 #             task_group_hid_traj[i, j,  ...] = hid_mean
 #     return task_group_hid_traj
 
-# def get_CCGP(reps): 
-#     num_trials = reps.shape[1]
-#     dim = reps.shape[-1]
-#     all_decoding_score = np.zeros((16, 2))
-#     dichotomies = np.array([[[0, 1], [2, 3]], [[0,2], [1, 3]]])
-#     for i in range(4): 
-#         conditions=dichotomies+(4*i)
-#         for j in [0, 1]: 
-#             for k in [0, 1]: 
+def get_CCGP(reps): 
+    num_trials = reps.shape[1]
+    dim = reps.shape[-1]
+    all_decoding_score = np.zeros((len(TASK_LIST), 2))
+    dichotomies = np.array([[[0, 1], [2, 3]], [[0,2], [1, 3]]])
+    for i in range(4): 
+        conditions=dichotomies+(4*i)
+        for j in [0, 1]: 
+            for k in [0, 1]: 
 
-#                 print('\n')
-#                 print('train condition ' +str(conditions[j][k]))
-#                 test_condition = conditions[j][(k+1)%2]
-#                 print('test condition' + str(test_condition))
-#                 print('\n')
+                print('\n')
+                print('train condition ' +str(conditions[j][k]))
+                test_condition = conditions[j][(k+1)%2]
+                print('test condition' + str(test_condition))
+                print('\n')
 
-#                 classifier = svm.LinearSVC(max_iter=5000)
-#                 classifier.classes_=[-1, 1]
-#                 classifier.fit(reps[conditions[j][k], ...].reshape(-1, dim), np.array([0]*num_trials+[1]*num_trials))
-#                 for index in [0, 1]: 
-#                     print('Task :' + str(test_condition[index]))
-#                     decoding_corrects = np.array([index]*num_trials) == classifier.predict(reps[test_condition[index], ...].reshape(-1, dim))
-#                     decoding_score = np.mean(decoding_corrects)
-#                     all_decoding_score[test_condition[index], j] = decoding_score
+                classifier = svm.LinearSVC(max_iter=5000)
+                classifier.classes_=[-1, 1]
+                classifier.fit(reps[conditions[j][k], ...].reshape(-1, dim), np.array([0]*num_trials+[1]*num_trials))
+                for index in [0, 1]: 
+                    print('Task :' + str(test_condition[index]))
+                    decoding_corrects = np.array([index]*num_trials) == classifier.predict(reps[test_condition[index], ...].reshape(-1, dim))
+                    decoding_score = np.mean(decoding_corrects)
+                    all_decoding_score[test_condition[index], j] = decoding_score
             
 
-#     return all_decoding_score
+    return all_decoding_score
 
 
 # def get_all_CCGP(model, task_rep_type, foldername, swap=False): 

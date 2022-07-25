@@ -1,13 +1,16 @@
+from inspect import Parameter
 import torch
 import torch.nn as nn
 from attrs import asdict, define, field
 import pathlib
 import pickle
+from scipy.stats import ortho_group
+
 
 from instructRNN.models.script_gru import ScriptGRU
 from instructRNN.tasks.tasks import TASK_LIST
 from instructRNN.models.language_models import InstructionEmbedder, LMConfig
-from instructRNN.tasks.task_factory import INPUT_DIM, OUTPUT_DIM
+from instructRNN.tasks.task_factory import INPUT_DIM, OUTPUT_DIM, TRIAL_LEN
 
 SENSORY_INPUT_DIM = INPUT_DIM
 MOTOR_OUTPUT_DIM = OUTPUT_DIM
@@ -28,6 +31,7 @@ class BaseModelConfig():
 
 @define
 class RuleModelConfig(BaseModelConfig): 
+    num_tasks: int = len(TASK_LIST)
     add_rule_encoder: bool = False
     rule_encoder_hidden: int = 128
     rule_dim: int = 64
@@ -80,17 +84,20 @@ class BaseNet(nn.Module):
 
         self.__device__ = torch.device('cpu')
 
+    def set_inactiv_units(self, units_idx): 
+        self.recurrent_units._set_inactiv_mask(units_idx, self.__device__)
+
     def __initHidden__(self, batch_size):
         return torch.full((self.rnn_layers, batch_size, self.rnn_hidden_dim), 
                 self.rnn_hiddenInitValue, device=torch.device(self.__device__))
 
     def expand_info(self, task_info, duration, onset): 
-        task_info_block = torch.zeros((task_info.shape[0], 120, task_info.shape[-1]))
+        task_info_block = torch.zeros((task_info.shape[0], TRIAL_LEN, task_info.shape[-1]))
         task_info = task_info.unsqueeze(1).repeat(1, duration, 1)
         task_info_block[:, onset:onset+duration, :] = task_info
         return task_info_block
 
-    def forward(self, x, task_info, info_duration=120, info_onset=0): 
+    def forward(self, x, task_info, info_duration=TRIAL_LEN, info_onset=0): 
         h0 = self.__initHidden__(x.shape[0])
         task_info_block = self.expand_info(task_info, info_duration, info_onset)
         rnn_ins = torch.cat((task_info_block.to(self.__device__), x.type(torch.float32)), 2)
@@ -120,6 +127,7 @@ class BaseNet(nn.Module):
     def to(self, cuda_device): 
         super().to(cuda_device)
         self.__device__ = cuda_device
+        
 
 class RuleEncoder(nn.Module):
     def __init__(self, rule_dim, hidden_size):
@@ -144,19 +152,20 @@ class RuleNet(BaseNet):
     _tuning_epoch=None
     def __init__(self, config):
         super().__init__(config)
-        self._set_rule_transform()
+        self.rule_transform = nn.Parameter(self.gen_ortho_rules(), requires_grad=False)
+
         if self.add_rule_encoder: 
             self.rule_encoder = RuleEncoder(self.rule_dim, self.rule_encoder_hidden)
         else: 
             self.rule_encoder = nn.Identity()
 
-    def _set_rule_transform(self):
-        rule_folder = '/ortho_rule_vecs/'
-        ortho_rules = pickle.load(open(location+rule_folder+'ortho_rules'+str(len(TASK_LIST))+'x'+str(self.rule_dim), 'rb'))
-        self.rule_transform = torch.Tensor(ortho_rules)
+    def gen_ortho_rules(self): 
+        m = ortho_group.rvs(dim=self.rule_dim)
+        ortho = m[:self.num_tasks,:]
+        return torch.tensor(ortho)
 
     def forward(self, x, task_rule):
-        rule_transformed = torch.matmul(task_rule.to(self.__device__), self.rule_transform)
+        rule_transformed = torch.matmul(task_rule.to(self.__device__), self.rule_transform.float())
         task_rule = self.rule_encoder(rule_transformed)
         outs, rnn_hid = super().forward(x, task_rule)
         return outs, rnn_hid
@@ -194,3 +203,7 @@ class InstructNet(BaseNet):
     def to(self, cuda_device): 
         super().to(cuda_device)
         self.langModel.__device__ = cuda_device
+
+
+
+
