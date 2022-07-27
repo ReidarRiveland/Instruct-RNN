@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import warnings
 
-from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT, ALIGNED_DICT
+from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT
 
 @dataclass(frozen=True)
 class HoldoutDataFrame(): 
@@ -57,6 +57,8 @@ class HoldoutDataFrame():
             training_sets = SWAPS_DICT
         elif self.exp_type == 'aligned': 
             training_sets = ALIGNED_DICT
+        elif self.exp_type == 'family': 
+            training_sets = FAMILY_DICT
 
         data = np.full((5, len(TASK_LIST), 100), np.nan) #seeds, task, num_batches        
         for i in self.seeds:

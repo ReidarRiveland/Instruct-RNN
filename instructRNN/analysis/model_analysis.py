@@ -75,40 +75,41 @@ def get_rule_embedder_reps(model):
             reps[i, :] = model.rule_encoder(info).cpu().numpy()
     return reps
 
-def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, 
-                    instruct_mode=None, contexts=None, default_intervals=False, max_var=False):
+def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, tasks=TASK_LIST, 
+                    instruct_mode=None, contexts=None, default_intervals=False, max_var=False, num_repeats=1):
     model.eval()
     if epoch is None: 
-        task_reps = np.empty((len(TASK_LIST), num_trials, TRIAL_LEN, model.rnn_hidden_dim))
+        task_reps = np.empty((num_repeats, len(tasks), num_trials, TRIAL_LEN, model.rnn_hidden_dim))
     else: 
-        task_reps = np.empty((len(TASK_LIST), num_trials, model.rnn_hidden_dim))
+        task_reps = np.empty((num_repeats, len(tasks), num_trials, model.rnn_hidden_dim))
 
     with torch.no_grad(): 
-        for i, task in enumerate(TASK_LIST): 
-            if default_intervals and 'Dur' not in task:
-                intervals = _get_default_intervals(num_trials)
-                ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var, intervals=intervals)
-            else: 
-                ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var)
+        for k in range(num_repeats):
+            for i, task in enumerate(tasks): 
+                if default_intervals and 'Dur' not in task:
+                    intervals = _get_default_intervals(num_trials)
+                    ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var, intervals=intervals)
+                else: 
+                    ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var)
 
-            if contexts is not None: 
-                _, hid = model(torch.Tensor(ins).to(model.__device__), context=contexts[i, ...])
-            else: 
-                task_info = get_task_info(num_trials, task, model.info_type, instruct_mode=instruct_mode)
-                _, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
+                if contexts is not None: 
+                    _, hid = model(torch.Tensor(ins).to(model.__device__), context=contexts[i, ...])
+                else: 
+                    task_info = get_task_info(num_trials, task, model.info_type, instruct_mode=instruct_mode)
+                    _, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
 
-            hid = hid.cpu().numpy()
-            if epoch is None: 
-                task_reps[i, ...] = hid
-            else: 
-                for j in range(num_trials): 
-                    if epoch.isnumeric(): epoch_index = int(epoch)
-                    if epoch == 'stim': epoch_index = np.where(targets[j, :, 0] == 0.85)[0][-1]
-                    if epoch == 'stim_start': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]+stim_start_buffer
-                    if epoch == 'prep': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]-1
-                    task_reps[i, j, :] = hid[j, epoch_index, :]
+                hid = hid.cpu().numpy()
+                if epoch is None: 
+                    task_reps[i, ...] = hid
+                else: 
+                    for j in range(num_trials): 
+                        if epoch.isnumeric(): epoch_index = int(epoch)
+                        if epoch == 'stim': epoch_index = np.where(targets[j, :, 0] == 0.85)[0][-1]
+                        if epoch == 'stim_start': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]+stim_start_buffer
+                        if epoch == 'prep': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]-1
+                        task_reps[k, i, j, :] = hid[j, epoch_index, :]
 
-    return task_reps.astype(np.float64)
+    return np.mean(task_reps, axis=0).astype(np.float64)
 
 def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'): 
     if reduction_method == 'PCA': 
@@ -204,32 +205,6 @@ def get_noise_thresholdouts(correct_stats, diff_strength, noises, pos_cutoff=0.9
     neg_thresholds = np.array((noises[neg_coords[0]], diff_strength[neg_coords[1]]))
     return pos_thresholds, neg_thresholds
 
-
-def get_hid_var_resp(model, task, trials, num_repeats = 10, task_info=None): 
-    model.eval()
-    with torch.no_grad(): 
-        num_trials = trials.inputs.shape[0]
-        total_neuron_response = np.empty((num_repeats, num_trials, 120, 128))
-        for i in range(num_repeats): 
-            if task_info is None or 'simpleNet' in model.model_name: task_info = model.get_task_info(num_trials, task)
-            _, hid = model(task_info, torch.Tensor(trials.inputs).to(model.__device__))
-            hid = hid.cpu().numpy()
-            total_neuron_response[i, :, :, :] = hid
-        mean_neural_response = np.mean(total_neuron_response, axis=0)
-    return total_neuron_response, mean_neural_response
-
-# def get_hid_var_group_resp(model, task_group, var_of_insterest, swapped_tasks = [], mod=0, num_trials=1, sigma_in = 0.05): 
-#     if task_group == 'Go': assert var_of_insterest in ['direction', 'strength']
-#     if task_group == 'DM': assert var_of_insterest in ['diff_direction', 'diff_strength']
-#     task_group_hid_traj = np.empty((4+len(swapped_tasks), 15, num_trials, 120, 128))
-#     for i, task in enumerate(task_group_dict[task_group]+swapped_tasks): 
-#         trials, vars = make_test_trials(task, var_of_insterest, mod, num_trials=num_trials, sigma_in=sigma_in)
-#         if i>=4: task_instructs = Task.SWAPPED_TASK_LIST[task_list.index(task)]
-#         else: task_instructs = task
-#         for j, instruct in enumerate(train_instruct_dict[task_instructs]): 
-#             _, hid_mean = get_hid_var_resp(model, task, trials, num_repeats=3, task_info=[instruct]*num_trials)
-#             task_group_hid_traj[i, j,  ...] = hid_mean
-#     return task_group_hid_traj
 
 def get_CCGP(reps): 
     num_trials = reps.shape[1]

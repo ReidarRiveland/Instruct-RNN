@@ -404,44 +404,29 @@ def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot
 
     
 
-def plot_tuning_curve(model, tasks, task_variable, unit, mod, times, num_repeats =10, swapped_task = None, save_file=None): 
-    if task_variable == 'direction': 
-        labels = ["0", "$2\pi$"]
-        plt.xticks([0, np.pi, 2*np.pi], labels=['0', '$\pi$', '$2\pi$'])
-    elif task_variable == 'diff_direction':
-        labels = ["$\pi$", "0"]
-    elif task_variable == 'strength':
-        labels = ["0.3", "1.8"]
-    elif task_variable =='diff_strength': 
-        labels = ["delta -0.5", "delta 0.5"]
+def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_repeats=5): 
+    # if task_variable == 'direction': 
+    #     labels = ["0", "$2\pi$"]
+    #     plt.xticks([0, np.pi, 2*np.pi], labels=['0', '$\pi$', '$2\pi$'])
+    # elif task_variable == 'diff_direction':
+    #     labels = ["$\pi$", "0"]
+    # elif task_variable == 'strength':
+    #     labels = ["0.3", "1.8"]
+    # elif task_variable =='diff_strength': 
+    #     labels = ["delta -0.5", "delta 0.5"]
     y_max = 1.0
+    hid_mean = get_task_reps(model, epoch=None, num_trials=100, tasks=tasks, num_repeats=num_repeats)
     for i, task in enumerate(tasks): 
         time = times[i]
-        trials, var_of_interest = make_test_trials(task, task_variable, mod)
-        _, hid_mean = get_hid_var_resp(model, task, trials, num_repeats=num_repeats)
-        neural_resp = hid_mean[:, time, unit]
-        plt.plot(var_of_interest, neural_resp, color=task_colors[task])
+        neural_resp = hid_mean[i, :, time, unit]
+        plt.plot(var_of_interest, neural_resp, color=get_task_color(task))
         y_max = max(y_max, neural_resp.max())
 
-    if swapped_task is not None: 
-        time = times[i]
-        trials, var_of_interest = make_test_trials(swapped_task, task_variable, mod)
-        model.instruct_mode = 'swap'
-        _, hid_mean = get_hid_var_resp(model, swapped_task, trials)
-        neural_resp = hid_mean[:, time, unit]
-        plt.plot(var_of_interest, neural_resp, color=task_colors[swapped_task], linestyle='--')
-        y_max = max(y_max, neural_resp.max())
-        model.instruct_mode = ''
-
-    plt.title('Tuning curve for Unit' + str(unit) + ' at time ' +str(time))
+    plt.title('Tuning curve for Unit ' + str(unit) + ' at time ' +str(time))
     plt.ylim(-0.05, y_max+0.15)
-    plt.xlabel(task_variable.replace('_', ' '))
-    Patches = [mpatches.Patch(color=task_colors[task], label=task) for task in tasks]
+    Patches = [mpatches.Patch(color=get_task_color(task), label=task) for task in tasks]
     plt.legend(handles=Patches)
-    if save_file is not None: 
-        plt.savefig('figs/'+save_file)
     plt.show()
-    return trials
 
 
 def plot_CCGP_scores(model_list, rep_type_file_str = '', plot_swaps=False):

@@ -39,22 +39,18 @@ class scriptGRULayer(jit.ScriptModule):
     def __init__(self, cell, *cell_args):
         super(scriptGRULayer, self).__init__()
         self.cell = cell(*cell_args)
-        self._set_inactiv_mask(None)
 
-    def _set_inactiv_mask(self, units_idx): 
-        self.inactiv_mask = torch.ones(self.cell.hidden_size)
+    def _set_inactiv_mask(self, units_idx, device): 
+        self.inactiv_mask = torch.ones(self.cell.hidden_size).to(device)
         if units_idx is not None: 
             self.inactiv_mask[units_idx] = 0
-
-    def _mask_to(self, device): 
-        self.inactiv_mask = self.inactiv_mask.to(device)
 
     @jit.script_method
     def forward(self, input, hx):
         inputs = input.unbind(1)
         outputs = jit.annotate(List[Tensor], [])
         for i in range(len(inputs)):
-            hx = self.cell(inputs[i], hx)*self.inactiv_mask
+            hx = self.cell(inputs[i], hx)
             outputs.append(hx)
         return torch.stack(outputs), hx
 
@@ -78,13 +74,9 @@ class ScriptGRU(jit.ScriptModule):
         self.hidden_dim = hidden_dim
         self.__weights_init__()
     
-    def _set_inactiv_mask(self, units_idx): 
+    def _set_inactiv_mask(self, units_idx, device): 
         for layer in self.layers: 
-            layer._set_inactiv_mask(units_idx)
-
-    def _mask_to(self, device): 
-        for layer in self.layers: 
-            layer._mask_to(device)
+            layer._set_inactiv_mask(units_idx, device)
 
     def __weights_init__(self):
         for n, p in self.named_parameters():

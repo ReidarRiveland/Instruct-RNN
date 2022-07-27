@@ -287,7 +287,7 @@ class AntiDM(Task):
         self.task_type = 'AntiDM'
 
 class MultiDM(Task):
-    comp_ref_tasks = ('DM', 'AntiDM', 'Anti_MultiDM')
+    comp_ref_tasks = ('DM', 'AntiDM', 'AntiMultiDM')
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
