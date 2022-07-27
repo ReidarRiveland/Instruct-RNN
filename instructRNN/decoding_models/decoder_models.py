@@ -30,7 +30,7 @@ class RNNtokenizer():
     def __init__(self):
         self.sos_token_id = 0
         self.eos_token_id = 1
-        self.pad_len = 30
+        self.pad_len = 45
         self.counts, self.vocab = count_vocab()
         self.word2index = {}
         self.index2word = {0: '[CLS]', 1: '[EOS]', 2: '[PAD]'}
@@ -38,7 +38,7 @@ class RNNtokenizer():
         for word in self.vocab: 
             self.addWord(word)
 
-    def __call__(self, sent_list, use_langModel = False, pad_len=30):
+    def __call__(self, sent_list, use_langModel = False, pad_len=45):
         return self.tokenize_sentence(sent_list, pad_len, use_langModel)
 
     def _tokenize_sentence(self, sent, pad_len, use_langModel): 
@@ -151,4 +151,8 @@ class DecoderRNN(BaseDecoder):
         _, _, decoded_indices = self.forward(sm_hidden)
         decoded_sentences = self.tokenizer.untokenize_sentence(decoded_indices[1:,...])  # detach from history as input
         return decoded_sentences
+
+    def to(self, cuda_device): 
+        super().to(cuda_device)
+        self.gru._mask_to(cuda_device)
 

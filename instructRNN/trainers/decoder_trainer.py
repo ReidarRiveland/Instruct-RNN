@@ -22,8 +22,8 @@ class DecoderTrainerConfig():
     random_seed: int
 
     epochs: int = 80
-    batch_len: int = 64
-    num_batches: int = 1000
+    batch_len: int = 32
+    num_batches: int = 1200
     stream_data: bool = False
     holdouts: list = []
 
