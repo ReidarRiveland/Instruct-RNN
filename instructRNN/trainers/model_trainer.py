@@ -272,13 +272,13 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, over
             trainer.train(model, is_testing=True, instruct_mode=mode)
         trainer._record_session(model, mode='TESTING')
 
-def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs):
+def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, ot=False, **train_config_kwargs):
     if not '_tuned' in model_name:
         is_trained = train_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs) 
     else: 
         is_trained = tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs)
         
     if is_trained: 
-        test_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=overwrite)
+        test_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=ot)
         if 'swap' in exp_folder: 
-            test_model(exp_folder, model_name, seed, labeled_holdouts, mode = 'swap', overwrite=overwrite)
+            test_model(exp_folder, model_name, seed, labeled_holdouts, mode = 'swap', overwrite=ot)

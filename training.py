@@ -48,7 +48,9 @@ if __name__ == "__main__":
     parser.add_argument('--models', default=small_models, nargs='*', help='list of model names to train, default is all models')
     parser.add_argument('--holdouts', type=int, default=None,  nargs='*', help='list of ints that index the holdout sets to use')
     parser.add_argument('--overwrite', default=False, action='store_true', help='whether or not to overwrite existing files')
+    parser.add_argument('--ot', default=False, action='store_true', help='retest')
     parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')
+    
     parser.add_argument('--layer', default='last', help='the dim corresponding to the layer the contexts gets trained at, \
                                                     must be emd or last, only for use if mode is context')
     parser.add_argument('--use_holdouts', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
@@ -66,7 +68,7 @@ if __name__ == "__main__":
         else: stream_data=False
         if args.mode == 'pipeline': 
             from instructRNN.trainers.model_trainer import *
-            run_pipeline(EXP_FOLDER, model, _seed, holdouts,overwrite=args.overwrite, stream_data=stream_data)      
+            run_pipeline(EXP_FOLDER, model, _seed, holdouts,overwrite=args.overwrite, ot = args.ot, stream_data=stream_data)      
 
         if args.mode == 'train': 
             from instructRNN.trainers.model_trainer import *
