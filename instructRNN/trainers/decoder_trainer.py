@@ -209,7 +209,7 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, 
         model.load_model(file_name, suffix='_seed'+str(seed))
         model.to(device)
 
-        decoder = DecoderRNN(128)
+        decoder = DecoderRNN(256)
         decoder.to(device)
 
         if use_holdouts: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)
