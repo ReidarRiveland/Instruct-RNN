@@ -50,9 +50,7 @@ class ContextTrainer(BaseTrainer):
     def _record_session(self, contexts, task):
         if os.path.exists(self.file_path):pass
         else: os.makedirs(self.file_path)
-        checkpoint_attrs = super()._record_session()
-        filename = self.file_path+'/'+self.seed_suffix+task+'_supervised'
-        pickle.dump(checkpoint_attrs, open(self.file_path+'/'+task+'_attrs', 'wb'))
+        filename = self.file_path+'/'+self.seed_suffix+'_'+task
         pickle.dump(contexts.detach().cpu().numpy(), open(filename+'_context_vecs'+str(self.context_dim), 'wb'))
 
     def _log_step(self, task_type, frac_correct, loss, task_loss= None, sparsity_loss=None): 
