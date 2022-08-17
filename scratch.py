@@ -11,13 +11,13 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-plot_all_holdout_curves('7.20models', 'swap', ['sbertNet_lin_tuned'], seeds=range(1), plot_swaps=True)
+plot_avg_holdout_curve('7.20models', 'swap', ['sbertNet_lin_tuned'], seeds=range(5))
 
 
 
 plot_k_shot_learning('7.20models', 'swap', ['simpleNet', 'bowNet', 'clipNet', 'clipNet_tuned','bertNet', 'bertNet_tuned', 'sbertNet', 'sbertNet_tuned', 'sbertNet_lin', 'sbertNet_lin_tuned'], seeds=range(4))
 
-data = HoldoutDataFrame('7.20models', 'swap', 'sbertNet_lin_tuned', seeds=range(1), mode='swap')
+data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL', seeds=range(5))
 np.nanmean(data.get_k_shot(0))
 
 
@@ -287,4 +287,6 @@ def make_batch_slurm(filename,
 make_batch_slurm('make_dataset_test.sbatch', 'Instruct-RNN/dataset.py', partition='debug-cpu')
 
 # rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.19models/ /home/reidar/Projects/Instruct-RNN/7.19models
-# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.19models/ /home/reidar/Projects/Instruct-RNN/7.19models
+# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ /home/reidar/Projects/Instruct-RNN/7.20models
+
+# rsync -a  -P --include 'gptNetXL' --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ /home/riveland/Instruct-RNN/7.20models

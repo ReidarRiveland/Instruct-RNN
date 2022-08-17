@@ -51,7 +51,7 @@ if __name__ == "__main__":
     parser.add_argument('--ot', default=False, action='store_true', help='retest')
     parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')
     
-    parser.add_argument('--layer', default='last', help='the dim corresponding to the layer the contexts gets trained at, \
+    parser.add_argument('--layer', default='emb', help='the dim corresponding to the layer the contexts gets trained at, \
                                                     must be emd or last, only for use if mode is context')
     parser.add_argument('--use_holdouts', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
     parser.add_argument('--job_index', type=int, help='for use with slurm sbatch script, indexes the combination of seed and holdout tasks along with the model')
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         if args.mode == 'context' or args.mode == 'c': 
             from instructRNN.trainers.context_trainer import *
             train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, 
-                                lr=0.005, num_contexts=128, tasks=TASK_LIST)
+                                lr=0.001, num_contexts=5, tasks=TASK_LIST)
 
         if args.mode == 'decoder' or args.mode == 'd': 
             from instructRNN.trainers.decoder_trainer import *

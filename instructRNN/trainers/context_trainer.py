@@ -71,7 +71,7 @@ class ContextTrainer(BaseTrainer):
 
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        nn.init.normal_(context, std=0.1)
+        nn.init.normal_(context, std=1)
         return context
     
     def _init_optimizer(self, context):
@@ -85,7 +85,7 @@ class ContextTrainer(BaseTrainer):
             self.step_scheduler = None
 
     def _train(self, model, contexts): 
-        model.load_model(self.file_path.replace('contexts', ''), suffix='_'+self.seed_suffix)
+        model.load_model(self.file_path.replace('contexts', '')[:-1], suffix='_'+self.seed_suffix)
         model.to(device)
         model.freeze_weights()
         model.eval()
