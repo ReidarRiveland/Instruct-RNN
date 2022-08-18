@@ -111,7 +111,7 @@ class BaseDecoder(nn.Module):
 
 
 class DecoderRNN(BaseDecoder):
-    def __init__(self, hidden_size, sm_hidden_dim=256, drop_p = 0.1):
+    def __init__(self, hidden_size, sm_hidden_dim=256, drop_p = 0.0):
         super().__init__()
         self.decoder_name = 'rnn_decoder'
         self.hidden_size = hidden_size

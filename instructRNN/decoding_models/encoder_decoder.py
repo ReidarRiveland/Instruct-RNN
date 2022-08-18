@@ -87,7 +87,7 @@ class EncoderDecoder(nn.Module):
         plt.show()
         return decoded_set
 
-    def test_partner_model(self, partner_model, num_repeats=3, tasks=TASK_LIST, decoded_dict=None): 
+    def test_partner_model(self, partner_model, num_repeats=1, tasks=TASK_LIST, decoded_dict=None): 
         partner_model.eval()
         if decoded_dict is None: 
             decoded_dict, _ = self.decode_set(128, from_contexts=True)

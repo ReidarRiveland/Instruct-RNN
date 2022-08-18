@@ -11,11 +11,17 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-plot_avg_holdout_curve('7.20models', 'swap', ['sbertNet_lin_tuned'], seeds=range(5))
+# list(SWAPS_DICT.items())[0]
+
+# from instructRNN.trainers.model_trainer import *
+# test_model('7.20models', 'gptNetXL', '6', list(SWAPS_DICT.items())[0], stream_data=True)
+
+
+# plot_all_holdout_curves('7.20models', 'swap', ['sbertNet_lin_tuned', 'simpleNet'], seeds=range(5))
 
 
 
-plot_k_shot_learning('7.20models', 'swap', ['simpleNet', 'bowNet', 'clipNet', 'clipNet_tuned','bertNet', 'bertNet_tuned', 'sbertNet', 'sbertNet_tuned', 'sbertNet_lin', 'sbertNet_lin_tuned'], seeds=range(4))
+# plot_k_shot_learning('7.20models', 'swap', ['simpleNet', 'bowNet', 'clipNet', 'clipNet_tuned','bertNet', 'bertNet_tuned', 'sbertNet', 'sbertNet_tuned', 'sbertNet_lin', 'sbertNet_lin_tuned'], seeds=range(4))
 
 data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL', seeds=range(5))
 np.nanmean(data.get_k_shot(0))
