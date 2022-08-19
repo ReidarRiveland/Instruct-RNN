@@ -11,7 +11,7 @@ from instructRNN.tasks.tasks import SWAPS_DICT
 load_str = '7.20models/swap_holdouts/swap0/sbertNet_lin_tuned/'
 
 sm_model = make_default_model('sbertNet_lin_tuned')
-rnn_decoder = DecoderRNN(128, drop_p=0.1)
+rnn_decoder = DecoderRNN(256, drop_p=0.0)
 
 device = torch.device(0)
 
@@ -25,10 +25,10 @@ sm_model.load_model(load_str, suffix='_seed'+str(seed))
 
 encoder = EncoderDecoder(sm_model, rnn_decoder)
 
-#encoder.init_context_set('Go_Anti_DM', 0, 768)
+encoder.init_context_set('swap0', 0, 768)
 
 
-decoded_set = encoder.plot_confuse_mat(128, 2)
+decoded_set = encoder.plot_confuse_mat(128, 2, )
 
 decoded_set['Go']['other']
 
@@ -36,8 +36,8 @@ decoded_set['Go']['other']
 partner = make_default_model('sbertNet_lin_tuned')
 partner.load_model('7.20models/swap_holdouts/swap1/sbertNet_lin_tuned/', suffix='_seed'+str(seed))
 
-perf, _ = encoder.test_partner_model(partner, decoded_dict=decoded_set)
-perf['instructions'].mean(1).shape
+perf, _ = encoder.test_partner_model(partner, decoded_dict=decoded_set, )
+perf['instructions'].mean()
 
 import numpy as np 
 np.mean(perf['instructions'], axis=1)

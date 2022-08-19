@@ -24,6 +24,7 @@ import torch
 # plot_k_shot_learning('7.20models', 'swap', ['simpleNet', 'bowNet', 'clipNet', 'clipNet_tuned','bertNet', 'bertNet_tuned', 'sbertNet', 'sbertNet_tuned', 'sbertNet_lin', 'sbertNet_lin_tuned'], seeds=range(4))
 
 data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL', seeds=range(5))
+
 np.nanmean(data.get_k_shot(0))
 
 

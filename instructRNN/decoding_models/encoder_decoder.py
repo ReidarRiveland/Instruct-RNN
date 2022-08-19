@@ -34,13 +34,13 @@ class EncoderDecoder(nn.Module):
         self.init_context_set(task_file, seed)
 
     def init_context_set(self, task_file, seed, context_dim):
-        all_contexts = np.empty((16, 128, context_dim))
+        all_contexts = np.empty((len(TASK_LIST), 256, context_dim))
         for i, task in enumerate(TASK_LIST):
             try: 
                 #need an underscore
                 filename = self.load_foldername+'/'+task_file+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+task+'_supervised_context_vecs'+str(context_dim)
                 task_contexts = pickle.load(open(filename, 'rb'))
-                all_contexts[i, ...]=task_contexts[:128, :]
+                all_contexts[i, ...]=task_contexts[:256, :]
             except FileNotFoundError: 
                 print(filename)
                 print('no contexts for '+task+' for model file '+task_file)
