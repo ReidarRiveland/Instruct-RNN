@@ -86,18 +86,24 @@ ALIGNED_DICT = dict(zip(['aligned'+str(num) for num in range(len(ALIGNED_LIST))]
 FAMILY_DICT = dict(zip(['family'+str(num) for num in range(len(FAMILY_LIST))], FAMILY_LIST.copy()))
 MULTITASK_DICT = {'Multitask':[]}
 
-# DICH_DICT = {
-#     'dict0' : (['Go', 'RTGo', 'GoMod1', 'GoMod2', 'RTGoMod1', 'RTGoMod2'],
-#                 ['AntiGo', 'AntiRTGo', 'AntiGoMod1', 'AntiGoMod2', 'AntiRTGoMod1', 'AntiRTGoMod2']),
-#     'dict1' : (['DM', 'ConDM', 'MultiDM', 'DMMod1', 'DMMod2'],
-#                 ['AntiDM', 'ConAntiDM', 'AntiMultiDM', 'AntiDMMod1', 'AntiDMMod2']),
-#     'dict2' : (['COMP1', 'MultiCOMP1', 'AntiCOMP1', 'AntiMultiCOMP1', 'COMP1Mod1', 'COMP1Mod2'],
-#                 ['COMP2', 'MultiCOMP2', 'AntiCOMP2', 'AntiMultiCOMP2', 'COMP2Mod1', 'COMP2Mod2'])
-#     'dict2' : (['COMP1', 'MultiCOMP1', 'AntiCOMP1', 'AntiMultiCOMP1', 'COMP1Mod1', 'COMP1Mod2'],
-#                 ['COMP2', 'MultiCOMP2', 'AntiCOMP2', 'AntiMultiCOMP2', 'COMP2Mod1', 'COMP2Mod2'])
-
-
-# }
+DICH_DICT = {
+    'dich0' : (['Go', 'RTGo', 'GoMod1', 'GoMod2', 'RTGoMod1', 'RTGoMod2'],
+                ['AntiGo', 'AntiRTGo', 'AntiGoMod1', 'AntiGoMod2', 'AntiRTGoMod1', 'AntiRTGoMod2']),
+    'dich1' : (['DM', 'ConDM', 'MultiDM', 'DMMod1', 'DMMod2'],
+                ['AntiDM', 'ConAntiDM', 'AntiMultiDM', 'AntiDMMod1', 'AntiDMMod2']),
+    'dich2' : (['COMP1', 'MultiCOMP1', 'AntiCOMP1', 'AntiMultiCOMP1', 'COMP1Mod1', 'COMP1Mod2'],
+                ['COMP2', 'MultiCOMP2', 'AntiCOMP2', 'AntiMultiCOMP2', 'COMP2Mod1', 'COMP2Mod2']),
+    'dich3' : (['COMP1', 'MultiCOMP1', 'COMP2', 'MultiCOMP2'],
+                ['AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2']), 
+    'dich4' : (['Dur1', 'AntiDur1', 'MultiDur1', 'AntiMultiDur1', 'Dur1Mod1', 'Dur1Mod2'],
+                ['Dur2', 'AntiDur2', 'MultiDur2', 'AntiMultiDur2', 'Dur2Mod1', 'Dur2Mod2']), 
+    'dich5' : (['Dur1', 'Dur2', 'MultiDur1', 'MultiDur2'],
+                ['AntiDur1', 'AntiDur2', 'AntiMultiDur1', 'AntiMultiDur2']), 
+    'dich5' : (['DMS', 'DNMS'], ['DMC', 'DNMC']),
+    'dich6' : (['DNMS', 'DNMc'], ['DMS', 'DMC']), 
+    'dict7' : (['GoMod1', 'AntiGoMod1', 'RTGoMod1', 'AntiRTGoMod1', 'DMMod1', 'AntiDMMod1', 'COMP1Mod1', 'COMP2Mod1', 'Dur1Mod1', 'Dur2Mod1'], 
+                ['GoMod2', 'AntiGoMod2', 'RTGoMod2', 'AntiRTGoMod2', 'DMMod2', 'AntiDMMod2', 'COMP1Mod2', 'COMP2Mod2', 'Dur1Mod2', 'Dur2Mod2'])
+}
 
 INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
 
