@@ -119,7 +119,7 @@ class ContextTrainer(BaseTrainer):
         return False
     
     def train(self, model, task, as_batch=True):
-        self.streamer = TaskDataSet(self.file_path.partition('/')[0]+'/training_data', 
+        self.streamer = TaskDataSet(self.file_path.partition('/')[0], 
                 self.stream_data, 
                 self.batch_len, 
                 self.num_batches,

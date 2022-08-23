@@ -86,6 +86,19 @@ ALIGNED_DICT = dict(zip(['aligned'+str(num) for num in range(len(ALIGNED_LIST))]
 FAMILY_DICT = dict(zip(['family'+str(num) for num in range(len(FAMILY_LIST))], FAMILY_LIST.copy()))
 MULTITASK_DICT = {'Multitask':[]}
 
+# DICH_DICT = {
+#     'dict0' : (['Go', 'RTGo', 'GoMod1', 'GoMod2', 'RTGoMod1', 'RTGoMod2'],
+#                 ['AntiGo', 'AntiRTGo', 'AntiGoMod1', 'AntiGoMod2', 'AntiRTGoMod1', 'AntiRTGoMod2']),
+#     'dict1' : (['DM', 'ConDM', 'MultiDM', 'DMMod1', 'DMMod2'],
+#                 ['AntiDM', 'ConAntiDM', 'AntiMultiDM', 'AntiDMMod1', 'AntiDMMod2']),
+#     'dict2' : (['COMP1', 'MultiCOMP1', 'AntiCOMP1', 'AntiMultiCOMP1', 'COMP1Mod1', 'COMP1Mod2'],
+#                 ['COMP2', 'MultiCOMP2', 'AntiCOMP2', 'AntiMultiCOMP2', 'COMP2Mod1', 'COMP2Mod2'])
+#     'dict2' : (['COMP1', 'MultiCOMP1', 'AntiCOMP1', 'AntiMultiCOMP1', 'COMP1Mod1', 'COMP1Mod2'],
+#                 ['COMP2', 'MultiCOMP2', 'AntiCOMP2', 'AntiMultiCOMP2', 'COMP2Mod1', 'COMP2Mod2'])
+
+
+# }
+
 INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
 
 
