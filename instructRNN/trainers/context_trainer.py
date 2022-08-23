@@ -147,7 +147,7 @@ class ContextTrainer(BaseTrainer):
 
 def check_already_trained(file_name, seed, task, context_dim): 
     try: 
-        pickle.load(open(file_name+'/seed'+str(seed)+task+'_context_vecs'+str(context_dim), 'rb'))
+        pickle.load(open(file_name+'/seed'+str(seed)+'_'+task+'_context_vecs'+str(context_dim), 'rb'))
         print('\n Model at ' + file_name + ' for seed '+str(seed)+' and task '+task+' aleady trained')
         return True
     except FileNotFoundError:
