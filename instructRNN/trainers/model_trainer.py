@@ -236,7 +236,8 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     if not exists(for_tuning_model_path): 
         raise Exception('No model checkpoint for tuning found, train untuned version to create checkpoint \n')
     else:
-        pass
+        print('loaded model at '+ for_tuning_model_path)
+        
 
     model = make_default_model(model_name)
     model.load_state_dict(torch.load(for_tuning_model_path))
