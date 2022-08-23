@@ -48,6 +48,8 @@ if __name__ == "__main__":
     parser.add_argument('--models', default=small_models, nargs='*', help='list of model names to train, default is all models')
     parser.add_argument('--holdouts', type=int, default=None,  nargs='*', help='list of ints that index the holdout sets to use')
     parser.add_argument('--overwrite', default=False, action='store_true', help='whether or not to overwrite existing files')
+    parser.add_argument('--use_holdouts', default=False, action='store_true', help='whether or not to use checkpointed model')
+
     parser.add_argument('--ot', default=False, action='store_true', help='retest')
     parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')
     
@@ -76,7 +78,7 @@ if __name__ == "__main__":
 
         if args.mode == 'tune': 
             from instructRNN.trainers.model_trainer import *
-            tune_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)     
+            tune_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite, use_holdouts=args.use_holdouts)     
 
         if args.mode == 'test': 
             from instructRNN.trainers.model_trainer import *

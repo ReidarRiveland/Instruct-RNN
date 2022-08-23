@@ -213,7 +213,7 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False,
     is_trained = trainer.train(model)
     return is_trained
 
-def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs): 
+def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, use_checkpoint=False, **train_config_kwargs): 
     torch.manual_seed(seed)
     
     label, holdouts = labeled_holdouts
@@ -223,7 +223,11 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     if check_already_trained(file_name+'/'+model_name, seed, 'tuning') and not overwrite:
         return True
     
-    for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
+    if use_checkpoint: 
+        for_tuning_model_path = file_name+'/'+model_name+'/'+\
+                model_name+'_seed'+str(seed)+'_CHECKPOINT.pt'
+    else: 
+        for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
                 untuned_model_name+'_seed'+str(seed)+'_FOR_TUNING.pt'
     for_tuning_data_path = file_name+'/'+untuned_model_name+\
                 '/seed'+str(seed)+'training_data_FOR_TUNING'
