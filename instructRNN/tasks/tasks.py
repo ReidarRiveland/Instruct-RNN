@@ -105,7 +105,6 @@ DICH_DICT = {
                 ['GoMod2', 'AntiGoMod2', 'RTGoMod2', 'AntiRTGoMod2', 'DMMod2', 'AntiDMMod2', 'COMP1Mod2', 'COMP2Mod2', 'Dur1Mod2', 'Dur2Mod2'])
 }
 
-INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
 
 
 class Task(): 

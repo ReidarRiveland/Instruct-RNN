@@ -1,10 +1,7 @@
-from email.policy import default
-from matplotlib.pyplot import axis
 import torch
 import numpy as np
 
 from sklearn.metrics.pairwise import cosine_similarity
-from scipy.stats import spearmanr
 from tqdm import tqdm
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -13,6 +10,8 @@ from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import _draw_ortho_dirs, DMFactory, TRIAL_LEN, _get_default_intervals, max_var_dir
 from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.instructions.instruct_utils import train_instruct_dict, get_task_info, get_instruction_dict
+
+import sklearn.svm as svm
 
 def task_eval(model, task, batch_size, noise=None, instructions = None): 
     ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, noise)
@@ -231,6 +230,24 @@ def get_CCGP(reps):
                     decoding_score = np.mean(decoding_corrects)
                     all_decoding_score[test_condition[index], j] = decoding_score
             
+
+    return all_decoding_score
+
+def get_CCGP(model, dichotomy, num_trials = 100): 
+    rep_dict = {}
+    all_tasks = dichotomy[0]+dichotomy[1]
+    reps = get_task_reps(model, tasks=all_tasks, num_trials=num_trials)
+    training_pairs = list(itertools.product(DICH_DICT['dich0'][0], DICH_DICT['dich0'][1]))
+
+    for pair in training_pairs: 
+        classifier = svm.LinearSVC(max_iter=5000)
+        classifier.classes_=[-1, 1]
+        training_reps = reps[[all_tasks.index(pair[0]), all_tasks.index(pair[1])]]
+        classifier.fit(training_reps, np.array([0]*num_trials+[1]*num_trials))
+        for test_pair in training_pairs.remove(pair): 
+            decoding_corrects = np.array([index]*num_trials) == classifier.predict(reps[test_condition[index], ...].reshape(-1, dim))
+            decoding_score = np.mean(decoding_corrects)
+            all_decoding_score[test_condition[index], j] = decoding_score
 
     return all_decoding_score
 

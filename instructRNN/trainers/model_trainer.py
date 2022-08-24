@@ -242,13 +242,14 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     model = make_default_model(model_name)
     model.load_state_dict(torch.load(for_tuning_model_path))
 
-    training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
+    #training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
     tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
                                     epochs=25, min_run_epochs=5, lr=2e-5, lang_lr=1e-5,
                                     save_for_tuning_epoch=np.nan, 
                                     **train_config_kwargs)
 
-    trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
+    #trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
+    trainer = ModelTrainer(tuning_config)
     is_tuned = trainer.train(model, is_tuning=True)
     # if is_tuned:
     #     os.remove(for_tuning_model_path)
