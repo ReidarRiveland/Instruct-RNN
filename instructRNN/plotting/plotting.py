@@ -416,7 +416,7 @@ def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_repeats=5)
     # elif task_variable =='diff_strength': 
     #     labels = ["delta -0.5", "delta 0.5"]
     y_max = 1.0
-    hid_mean = get_task_reps(model, epoch=None, num_trials=100, tasks=tasks, num_repeats=num_repeats)
+    hid_mean = get_task_reps(model, epoch=None, num_trials=100, tasks=tasks, num_repeats=num_repeats, max_var=True)
     for i, task in enumerate(tasks): 
         time = times[i]
         neural_resp = hid_mean[i, :, time, unit]
@@ -484,63 +484,48 @@ def plot_CCGP_scores(model_list, rep_type_file_str = '', plot_swaps=False):
 
 
 
-def plot_neural_resp(model, task_type, task_variable, unit, mod, num_repeats = 10, save_file=None):
-    assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
-    trials, _ = make_test_trials(task_type, task_variable, mod)
-    _, hid_mean = get_hid_var_resp(model, task_type, trials, num_repeats=num_repeats)
-    if task_variable == 'direction' or task_variable=='diff_direction': 
-        labels = ["0", "$2\pi$"]
-        cmap = plt.get_cmap('twilight') 
-    # elif task_variable == 'diff_direction':
-    #     labels = ["$\pi$", "0"]
-    #     cmap = plt.get_cmap('twilight') 
-    elif task_variable == 'strength':
-        labels = ["0.3", "1.8"]
-        cmap = plt.get_cmap('plasma') 
-    elif task_variable =='diff_strength': 
-        labels = ["delta -0.5", "delta 0.5"]
-        cmap = plt.get_cmap('plasma') 
-    cNorm  = colors.Normalize(vmin=0, vmax=100)
-    scalarMap = cm.ScalarMappable(norm=cNorm, cmap=cmap)
-    fig, axn = plt.subplots()
-    ylim = np.max(hid_mean[:,:,unit])
-    for i in [x*4 for x in range(25)]:
-        plot = plt.plot(hid_mean[i, :, unit], c = scalarMap.to_rgba(i))
-    plt.vlines(100, -1.5, ylim+0.15, colors='k', linestyles='dashed')
-    if 'RT' in task_type: 
-        plt.xticks([100], labels=['Stim. Onset/Reponse'])
-    else:
-        plt.xticks([20, 100], labels=['Stim. Onset', 'Reponse'])
-        plt.vlines(20, -1.5, ylim+0.15, colors='k', linestyles='dashed')
+# def plot_neural_resp(model, task_type, task_variable, unit, mod, num_repeats = 10, save_file=None):
+#     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
+#     trials, _ = make_test_trials(task_type, task_variable, mod)
+#     _, hid_mean = get_hid_var_resp(model, task_type, trials, num_repeats=num_repeats)
+#     if task_variable == 'direction' or task_variable=='diff_direction': 
+#         labels = ["0", "$2\pi$"]
+#         cmap = plt.get_cmap('twilight') 
+#     # elif task_variable == 'diff_direction':
+#     #     labels = ["$\pi$", "0"]
+#     #     cmap = plt.get_cmap('twilight') 
+#     elif task_variable == 'strength':
+#         labels = ["0.3", "1.8"]
+#         cmap = plt.get_cmap('plasma') 
+#     elif task_variable =='diff_strength': 
+#         labels = ["delta -0.5", "delta 0.5"]
+#         cmap = plt.get_cmap('plasma') 
+#     cNorm  = colors.Normalize(vmin=0, vmax=100)
+#     scalarMap = cm.ScalarMappable(norm=cNorm, cmap=cmap)
+#     fig, axn = plt.subplots()
+#     ylim = np.max(hid_mean[:,:,unit])
+#     for i in [x*4 for x in range(25)]:
+#         plot = plt.plot(hid_mean[i, :, unit], c = scalarMap.to_rgba(i))
+#     plt.vlines(100, -1.5, ylim+0.15, colors='k', linestyles='dashed')
+#     if 'RT' in task_type: 
+#         plt.xticks([100], labels=['Stim. Onset/Reponse'])
+#     else:
+#         plt.xticks([20, 100], labels=['Stim. Onset', 'Reponse'])
+#         plt.vlines(20, -1.5, ylim+0.15, colors='k', linestyles='dashed')
 
-    # elif 'DM' in task_type:
-    #     plt.vlines(20, -1.5, ylim+0.15, colors='k', linestyles='dashed')
-    #     plt.vlines(60, -1.5, ylim+0.15, colors='k', linestyles='dashed')
-    #     plt.xticks([20, 60, 100], labels=['Stim. 1 Onset', 'Stim. 2 Onset', 'Reponse'])
+#     # elif 'DM' in task_type:
+#     #     plt.vlines(20, -1.5, ylim+0.15, colors='k', linestyles='dashed')
+#     #     plt.vlines(60, -1.5, ylim+0.15, colors='k', linestyles='dashed')
+#     #     plt.xticks([20, 60, 100], labels=['Stim. 1 Onset', 'Stim. 2 Onset', 'Reponse'])
 
-    axn.set_ylim(0, ylim+0.15)
-    cbar = plt.colorbar(scalarMap, orientation='vertical', label = task_variable.replace('_', ' '), ticks = [0, 100])
-    plt.title(task_type + ' response for Unit' + str(unit))
-    cbar.set_ticklabels(labels)
-    if save_file is not None: 
-        plt.savefig('figs/'+save_file)
-    plt.show()
-    return trials
-
-
-
-if __name__ == "__main__":
-    from multitasking_models.language_models import SBERT, BERT
-    from multitasking_models.sensorimotor_models import InstructNet, SimpleNet
-    from tasks_utils import train_instruct_dict
-    from model_analysis import get_instruct_reps, get_model_performance, get_task_reps, reduce_rep, get_sim_scores, get_hid_var_group_resp
-    import numpy as np
-    from tasks_utils import train_instruct_dict, task_swaps_map
-    from tasks import DM
+#     axn.set_ylim(0, ylim+0.15)
+#     cbar = plt.colorbar(scalarMap, orientation='vertical', label = task_variable.replace('_', ' '), ticks = [0, 100])
+#     plt.title(task_type + ' response for Unit' + str(unit))
+#     cbar.set_ticklabels(labels)
+#     if save_file is not None: 
+#         plt.savefig('figs/'+save_file)
+#     plt.show()
+#     return trials
 
 
-
-    #fig 2
-    #plot_single_task_training('_ReLU128_5.7/single_holdouts/', 'Multitask', 'DM', ['sbertNet', 'bertNet', 'gptNet', 'simpleNet'], range(5))
-    #plot_single_seed_training('_ReLU128_5.7/single_holdouts/', 'DMS', ['sbertNet', 'sbertNet_layer_11', 'simpleNet'], 'correct', 4)
 

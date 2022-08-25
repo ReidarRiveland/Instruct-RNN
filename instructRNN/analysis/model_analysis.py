@@ -99,7 +99,7 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
 
                 hid = hid.cpu().numpy()
                 if epoch is None: 
-                    task_reps[i, ...] = hid
+                    task_reps[k, i, ...] = hid
                 else: 
                     for j in range(num_trials): 
                         if epoch.isnumeric(): epoch_index = int(epoch)
@@ -109,6 +109,8 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
                         task_reps[k, i, j, :] = hid[j, epoch_index, :]
 
     return np.mean(task_reps, axis=0).astype(np.float64)
+
+
 
 def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'): 
     if reduction_method == 'PCA': 
@@ -233,23 +235,23 @@ def get_CCGP(reps):
 
     return all_decoding_score
 
-def get_CCGP(model, dichotomy, num_trials = 100): 
-    rep_dict = {}
-    all_tasks = dichotomy[0]+dichotomy[1]
-    reps = get_task_reps(model, tasks=all_tasks, num_trials=num_trials)
-    training_pairs = list(itertools.product(DICH_DICT['dich0'][0], DICH_DICT['dich0'][1]))
+# def get_CCGP(model, dichotomy, num_trials = 100): 
+#     rep_dict = {}
+#     all_tasks = dichotomy[0]+dichotomy[1]
+#     reps = get_task_reps(model, tasks=all_tasks, num_trials=num_trials)
+#     training_pairs = list(itertools.product(DICH_DICT['dich0'][0], DICH_DICT['dich0'][1]))
 
-    for pair in training_pairs: 
-        classifier = svm.LinearSVC(max_iter=5000)
-        classifier.classes_=[-1, 1]
-        training_reps = reps[[all_tasks.index(pair[0]), all_tasks.index(pair[1])]]
-        classifier.fit(training_reps, np.array([0]*num_trials+[1]*num_trials))
-        for test_pair in training_pairs.remove(pair): 
-            decoding_corrects = np.array([index]*num_trials) == classifier.predict(reps[test_condition[index], ...].reshape(-1, dim))
-            decoding_score = np.mean(decoding_corrects)
-            all_decoding_score[test_condition[index], j] = decoding_score
+#     for pair in training_pairs: 
+#         classifier = svm.LinearSVC(max_iter=5000)
+#         classifier.classes_=[-1, 1]
+#         training_reps = reps[[all_tasks.index(pair[0]), all_tasks.index(pair[1])]]
+#         classifier.fit(training_reps, np.array([0]*num_trials+[1]*num_trials))
+#         for test_pair in training_pairs.remove(pair): 
+#             decoding_corrects = np.array([index]*num_trials) == classifier.predict(reps[test_condition[index], ...].reshape(-1, dim))
+#             decoding_score = np.mean(decoding_corrects)
+#             all_decoding_score[test_condition[index], j] = decoding_score
 
-    return all_decoding_score
+#     return all_decoding_score
 
 
 # def get_all_CCGP(model, task_rep_type, foldername, swap=False): 

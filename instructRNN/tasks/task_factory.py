@@ -101,7 +101,7 @@ def _get_default_intervals(num_trials):
     return intervals
 
 
-def max_var_dir(num_trials, mod, multi, num_stims, shuffle=True): 
+def max_var_dir(num_trials, mod, multi, num_stims, shuffle=False): 
     mod_dirs = _max_var_dir(num_trials, num_stims, shuffle)
     if mod is not None: 
         _mod_dirs = _max_var_dir(num_trials, num_stims, shuffle)
@@ -126,18 +126,19 @@ def _max_var_dir(num_trials, num_stims, shuffle):
 
     return dirs
 
-def max_var_coh(num_trials, max_contrast=0.8, min_contrast=0.05, shuffle=True): 
-    coh = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(num_trials/2)), 
+def max_var_coh(num_trials, max_contrast=0.5, min_contrast=0.05, shuffle=False): 
+    base_coh = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(num_trials/2)), 
                 np.linspace(min_contrast, max_contrast, num=int(num_trials/2))))
-
+    coh0 = base_coh 
+    coh1 = base_coh 
     if shuffle: 
-        coh0=np.random.permutation(coh)
-        coh1=np.random.permutation(coh)
+        coh0=np.random.permutation(coh0)
+        coh1=np.random.permutation(coh1)
 
     coh = np.random.permutation(np.array((coh0, coh1)))
     return coh
 
-def max_var_dur(num_trials, multi, max_dur=1500, min_dur=500, shuffle=True): 
+def max_var_dur(num_trials, multi, max_dur=1500, min_dur=500, shuffle=False): 
     if multi: 
         long_total = np.floor(np.linspace(min_dur*2, max_dur*2, num_trials)/DELTA_T).astype(int)
         long0, long1 = long_total*0.55, long_total*0.45
@@ -157,6 +158,7 @@ def max_var_dur(num_trials, multi, max_dur=1500, min_dur=500, shuffle=True):
         dur_array = np.random.permutation(dur_array.T).T
 
     return dur_array
+
 
 
 class TaskFactory(): 
@@ -346,7 +348,7 @@ class GoFactory(TaskFactory):
         conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
         if dir_arr is not None: 
             dirs = dir_arr
-        if self.multi: 
+        elif self.multi: 
             dirs0 = np.random.uniform(0, 2*np.pi, self.num_trials)
             dirs1 = dirs0+np.random.uniform(np.pi/4, 3*np.pi/4, self.num_trials)
             _dirs = np.array([dirs0, dirs1])
