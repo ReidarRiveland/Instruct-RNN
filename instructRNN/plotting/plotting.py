@@ -394,7 +394,7 @@ def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot
                         cmap=cmap, vmin=0, vmax=1, ax=axn, cbar_kws={'label': '1-r'})
 
     for i, task in enumerate(TASK_LIST):
-        plt.text(-2, (number_reps/2+number_reps*i), task, va='center', ha='right', size=5)
+        plt.text(-2, (number_reps/2+number_reps*i), task, va='center', ha='right', size=4)
         plt.text(number_reps/2+number_reps*i, number_reps*(len(TASK_LIST)), task, va='top', ha='center', rotation='vertical', size=5)
     plt.title(plot_title, fontweight='bold', fontsize=12)
 
