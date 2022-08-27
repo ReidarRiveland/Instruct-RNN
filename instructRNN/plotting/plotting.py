@@ -405,7 +405,7 @@ def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot
 
     
 
-def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_repeats=5): 
+def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_trials=100, num_repeats=5): 
     # if task_variable == 'direction': 
     #     labels = ["0", "$2\pi$"]
     #     plt.xticks([0, np.pi, 2*np.pi], labels=['0', '$\pi$', '$2\pi$'])
@@ -416,7 +416,7 @@ def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_repeats=5)
     # elif task_variable =='diff_strength': 
     #     labels = ["delta -0.5", "delta 0.5"]
     y_max = 1.0
-    hid_mean = get_task_reps(model, epoch=None, num_trials=100, tasks=tasks, num_repeats=num_repeats, max_var=True)
+    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, max_var=True)
     for i, task in enumerate(tasks): 
         time = times[i]
         neural_resp = hid_mean[i, :, time, unit]
