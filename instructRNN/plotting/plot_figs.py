@@ -1,4 +1,3 @@
-from random import shuffle
 from instructRNN.plotting.plotting import * 
 from instructRNN.models.full_models import *
 
