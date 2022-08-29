@@ -69,7 +69,7 @@ class ContextTrainer(BaseTrainer):
 
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        nn.init.normal_(context, std=0.3)
+        nn.init.normal_(context, std=1)
         return context
     
     def _init_optimizer(self, context):
