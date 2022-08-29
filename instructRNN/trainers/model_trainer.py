@@ -226,11 +226,9 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     if check_already_trained(file_name+'/'+model_name, seed, 'tuning') and not overwrite:
         return True
     
-    if use_checkpoint: 
-        for_tuning_model_path = file_name+'/'+model_name+'/'+\
+    checkpoint_model_path = file_name+'/'+model_name+'/'+\
                 model_name+'_seed'+str(seed)+'_CHECKPOINT.pt'
-    else: 
-        for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
+    for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
                 untuned_model_name+'_seed'+str(seed)+'_FOR_TUNING.pt'
     for_tuning_data_path = file_name+'/'+untuned_model_name+\
                 '/seed'+str(seed)+'training_data_FOR_TUNING'
@@ -243,7 +241,12 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
         
 
     model = make_default_model(model_name)
-    model.load_state_dict(torch.load(for_tuning_model_path))
+    if use_checkpoint: 
+        try:
+            model.load_state_dict(torch.load(checkpoint_model_path))
+        except:
+            model.load_state_dict(torch.load(for_tuning_model_path))
+
 
     #training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
     tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
