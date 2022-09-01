@@ -45,17 +45,17 @@ def get_multitask_val_performance(model, foldername, seeds=np.array(range(5))):
         performance[seed, :] = perf
     return performance
 
-def get_instruct_reps(langModel, depth='full', instruct_mode=None):
+def get_instruct_reps(langModel, depth='full', tasks=TASK_LIST, instruct_mode=None):
     if depth.isnumeric(): 
-        rep_dim = 768
+        rep_dim = langModel.LM_intermediate_lang_dim
     else: 
         rep_dim = langModel.LM_out_dim 
 
     instruct_dict = get_instruction_dict(instruct_mode)
-    instruct_reps = torch.empty(len(TASK_LIST), len(list(instruct_dict.values())[0]), rep_dim)
+    instruct_reps = torch.empty(len(tasks), len(list(instruct_dict.values())[0]), rep_dim)
     
     with torch.no_grad():      
-        for i, task in enumerate(TASK_LIST):
+        for i, task in enumerate(tasks):
             
             instructions = instruct_dict[task]    
             if depth == 'full': 
@@ -114,12 +114,12 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
 
 def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'): 
     if reduction_method == 'PCA': 
-        embedder = PCA()
+        embedder = PCA(n_components=12)
     elif reduction_method == 'tSNE': 
         embedder = TSNE()
-
+    
     _embedded = embedder.fit_transform(reps.reshape(-1, reps.shape[-1]))
-    embedded = _embedded.reshape(reps.shape)
+    embedded = _embedded.reshape(reps.shape[0], reps.shape[1], 12)
 
     if reduction_method == 'PCA': 
         explained_variance = embedder.explained_variance_ratio_

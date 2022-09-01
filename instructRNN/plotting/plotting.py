@@ -18,6 +18,7 @@ from matplotlib.lines import Line2D
 import matplotlib
 import torch
 
+from scipy.ndimage import gaussian_filter1d
 from sklearn.decomposition import PCA
 import warnings
 
@@ -33,7 +34,7 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None), 'simpleNetPlus': (Blue, '+'),
                     'comNet': (lightBlue, 'None'), 'comNetPlus': (lightBlue, '+'), 
                     'clipNet': (Yellow, None), 'clipNet_tuned': (Yellow, 'v'), 
                     'bowNet': (Orange, None), 'bowNet_lin': (Orange, 'X'), 
-                    'gptNet': (Red, None),
+                    'gptNet': (Red, None),'gptNet_tuned': (Red, 'v'), 
                     'gptNetXL': (Red, 'd'), 'gptNetXL_tuned': (Red, 'D'), 
                     'bertNet': (Green, None), 'bertNet_tuned': (Green, 'v'),  
                     'sbertNet': (Purple, None), 'sbertNet_tuned': (Purple, 'v'),
@@ -53,10 +54,15 @@ plt.rcParams['savefig.dpi'] = 300
 from matplotlib import rc
 plt.rcParams["font.family"] = "serif"
 
+# def get_task_color(task):
+#     spacer = lambda x: int(np.floor(x/4)+((x%4*4)))
+#     color = np.array(tuple(task_colors[spacer(TASK_LIST.index(task))%26]))
+#     return tuple(color/256)
+
 def get_task_color(task):
-    spacer = lambda x: int(np.floor(x/4)+((x%4*4)))
-    color = np.array(tuple(task_colors[spacer(TASK_LIST.index(task))%26]))
-    return tuple(color/256)
+    color = plt.cm.tab10(TASK_LIST.index(task))
+    return color
+
 
 def test_colormap(tasks): 
     for task in tasks: 
@@ -111,7 +117,7 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list,  perf_type='correct
     if split: 
         fig, axn, ax2 = split_axes()
     else: 
-        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
+        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
         axn.set_ylim(-0.05, 1.05)
         axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
         axn.set_xlabel('Training Exmaples', size=8, fontweight='bold')
@@ -326,7 +332,7 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_t
     if rep_depth == 'task': 
         reps = get_task_reps(model, epoch='stim_start', num_trials = num_trials, tasks=tasks_to_plot)
     elif rep_depth != 'task': 
-        reps = get_instruct_reps(model.langModel, depth=rep_depth)
+        reps = get_instruct_reps(model.langModel, depth=rep_depth, tasks=tasks_to_plot)
     reduced, _ = reduce_rep(reps, pcs=pcs)
 
     fig = plt.figure(figsize=(14, 14))
@@ -406,7 +412,7 @@ def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot
 
     
 
-def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_trials=100, num_repeats=5): 
+def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_trials=100, num_repeats=5, smoothing = 0.0): 
     # if task_variable == 'direction': 
     #     labels = ["0", "$2\pi$"]
     #     plt.xticks([0, np.pi, 2*np.pi], labels=['0', '$\pi$', '$2\pi$'])
@@ -417,11 +423,11 @@ def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_trials=100
     # elif task_variable =='diff_strength': 
     #     labels = ["delta -0.5", "delta 0.5"]
     y_max = 1.0
-    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, main_var=True)
+    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, max_var=True)
     for i, task in enumerate(tasks): 
         time = times[i]
-        neural_resp = hid_mean[i, :, time, unit]
-        plt.plot(var_of_interest, neural_resp, color=get_task_color(task))
+        neural_resp = hid_mean[i, :, time, unit]        
+        plt.plot(var_of_interest, gaussian_filter1d(neural_resp, smoothing), color=get_task_color(task))
         y_max = max(y_max, neural_resp.max())
 
     plt.title('Tuning curve for Unit ' + str(unit) + ' at time ' +str(time))

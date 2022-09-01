@@ -11,8 +11,18 @@ from instructRNN.plotting.plotting import *
 import numpy as np
 import torch
 
-trials = DM(21, main_var=True)
-trials.plot_trial(3)
+
+
+
+EXP_FILE = '7.20models/swap_holdouts'
+sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
+
+
+holdouts_file = 'swap9'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
+plot_scatter(sbertNet, ['Go', 'AntiGo', 'GoMod1', 'AntiGoMod1',  'GoMod2', 'AntiGoMod2'], dims=3, pcs=[1, 2, 3], num_trials=50, rep_depth='12')
+
+
 
 # list(SWAPS_DICT.items())[0]
 
