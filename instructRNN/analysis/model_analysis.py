@@ -75,7 +75,7 @@ def get_rule_embedder_reps(model):
     return reps
 
 def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, tasks=TASK_LIST, 
-                    instruct_mode=None, contexts=None, default_intervals=False, max_var=False, num_repeats=1):
+                    instruct_mode=None, contexts=None, default_intervals=False, max_var=False, main_var=False, num_repeats=1):
     model.eval()
     if epoch is None: 
         task_reps = np.empty((num_repeats, len(tasks), num_trials, TRIAL_LEN, model.rnn_hidden_dim))
@@ -87,7 +87,7 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
             for i, task in enumerate(tasks): 
                 if default_intervals and 'Dur' not in task:
                     intervals = _get_default_intervals(num_trials)
-                    ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var, intervals=intervals)
+                    ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var, main_var = main_var, intervals=intervals)
                 else: 
                     ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var)
 

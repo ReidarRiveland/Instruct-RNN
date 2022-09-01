@@ -302,7 +302,8 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
         plt.show()
 
 def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs): 
-    task_reps = reps_reduced[TASK_LIST.index(task), ...]
+    #task_reps = reps_reduced[TASK_LIST.index(task), ...]
+    task_reps = reps_reduced
     task_color = get_task_color(task)
     if dims ==2: 
         ax.scatter(task_reps[:, 0], task_reps[:, 1], s=10, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
@@ -313,18 +314,18 @@ def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs):
 
 def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwargs): 
     Patches = []
-    for task in task_to_plot: 
-        patch = _rep_scatter(reps_reduced, task, ax, dims, pcs, marker='o', **scatter_kwargs)
+    for i, task in enumerate(task_to_plot): 
+        patch = _rep_scatter(reps_reduced[i, ...], task, ax, dims, pcs, marker='o', **scatter_kwargs)
         Patches.append(patch)
     return Patches
 
-def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, **scatter_kwargs): 
+def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_trials =50, **scatter_kwargs): 
     if pcs is None: 
         pcs = range(dims)
 
     if rep_depth == 'task': 
-        reps = get_task_reps(model, epoch='stim_start', num_trials = 50)
-    elif rep_depth is not 'task': 
+        reps = get_task_reps(model, epoch='stim_start', num_trials = num_trials, tasks=tasks_to_plot)
+    elif rep_depth != 'task': 
         reps = get_instruct_reps(model.langModel, depth=rep_depth)
     reduced, _ = reduce_rep(reps, pcs=pcs)
 
@@ -340,7 +341,7 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, **sca
     ax.set_xlabel('PC '+str(pcs[0]))
     ax.set_ylabel('PC '+str(pcs[1]))
     if dims==3: ax.set_zlabel('PC '+str(pcs[2]))
-    plt.legend(handles=Patches, fontsize='medium')
+    plt.legend(handles=Patches, fontsize='small')
     plt.show()
 
 def plot_hid_traj(model, tasks_to_plot, trial_indices = [0], pcs=range(3), **scatter_kwargs): 
@@ -416,7 +417,7 @@ def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_trials=100
     # elif task_variable =='diff_strength': 
     #     labels = ["delta -0.5", "delta 0.5"]
     y_max = 1.0
-    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, max_var=True)
+    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, main_var=True)
     for i, task in enumerate(tasks): 
         time = times[i]
         neural_resp = hid_mean[i, :, time, unit]

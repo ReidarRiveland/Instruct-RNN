@@ -104,13 +104,28 @@ def _get_default_intervals(num_trials):
 def max_var_dir(num_trials, mod, multi, num_stims, shuffle=False): 
     mod_dirs = _max_var_dir(num_trials, num_stims, shuffle)
     if mod is not None: 
-        _mod_dirs = _max_var_dir(num_trials, num_stims, shuffle)
+        _mod_dirs = _max_var_dir(num_trials, num_stims, shuffle=True)
+        if mod == 0: dirs = np.array([mod_dirs, _mod_dirs])
+        else: dirs = np.array([_mod_dirs, mod_dirs])
     elif multi: 
         _mod_dirs = mod_dirs
     else: 
         _mod_dirs = np.full_like(mod_dirs, np.NaN)
-    dirs = np.random.permutation(np.array([mod_dirs, _mod_dirs]))
-    return _permute_mod(dirs)
+        dirs = _permute_mod(np.random.permutation(np.array([mod_dirs, _mod_dirs])))
+    return dirs
+
+def const_dirs(num_trials, multi): 
+    dirs0 = np.array([np.pi/3]*num_trials)
+    dirs1 = np.array([4*np.pi/3]*num_trials)
+    mod_dirs = np.array([dirs0, dirs1])
+    if multi: 
+        _mod_dirs = mod_dirs
+        dirs = np.array([mod_dirs, _mod_dirs])
+    else: 
+        _mod_dirs = np.full_like(mod_dirs, np.NaN)
+        dirs = np.array([mod_dirs, _mod_dirs])
+
+    return dirs
 
 def _max_var_dir(num_trials, num_stims, shuffle): 
     dirs0 = np.linspace(0, 2*np.pi, num=num_trials)
@@ -126,16 +141,21 @@ def _max_var_dir(num_trials, num_stims, shuffle):
 
     return dirs
 
-def max_var_coh(num_trials, max_contrast=0.5, min_contrast=0.05, shuffle=False): 
-    base_coh = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(num_trials/2)), 
-                np.linspace(min_contrast, max_contrast, num=int(num_trials/2))))
+def max_var_coh(num_trials, max_contrast=0.5, min_contrast=0.05, main_mod = None, shuffle=False): 
+    base_coh = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(np.ceil(num_trials/2))), 
+                np.linspace(min_contrast, max_contrast, num=int(np.floor(num_trials/2)))))
     coh0 = base_coh 
     coh1 = base_coh 
     if shuffle: 
         coh0=np.random.permutation(coh0)
         coh1=np.random.permutation(coh1)
 
-    coh = np.random.permutation(np.array((coh0, coh1)))
+    if main_mod == 0: 
+        coh1=np.random.permutation(coh1)
+    elif main_mod == 1: 
+        coh0=np.random.permutation(coh0)
+
+    coh = np.array((coh0, coh1))
     return coh
 
 def max_var_dur(num_trials, multi, max_dur=1500, min_dur=500, shuffle=False): 
@@ -158,8 +178,6 @@ def max_var_dur(num_trials, multi, max_dur=1500, min_dur=500, shuffle=False):
         dur_array = np.random.permutation(dur_array.T).T
 
     return dur_array
-
-
 
 class TaskFactory(): 
     def __init__(self, num_trials, timing, noise):
@@ -325,7 +343,7 @@ class GoFactory(TaskFactory):
     def __init__(self, num_trials,  noise, dir_chooser,
                             timing= 'full', mod=None, multi=False, 
                             cond_arr=None, dir_arr=None,
-                            intervals= None,  max_var=False):
+                            intervals= None,  max_var=False, main_var=False):
         super().__init__(num_trials, timing, noise)
         self.cond_arr = cond_arr
         self.timing = timing
@@ -333,7 +351,7 @@ class GoFactory(TaskFactory):
         self.mod = mod
         self.multi = multi
 
-        if max_var: 
+        if max_var or main_var: 
             dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 1)
             intervals = _get_default_intervals(self.num_trials)
 
@@ -382,7 +400,7 @@ class DMFactory(TaskFactory):
     def __init__(self, num_trials,  noise, str_chooser,
                         timing= 'full', mod=None, multi=False, 
                         dir_arr = None, coh_arr = None, max_var=False,
-                        intervals= None, cond_arr=None):
+                        main_var = False, intervals= None, cond_arr=None):
         super().__init__(num_trials, timing, noise)
         self.cond_arr = cond_arr
         self.timing = timing
@@ -393,6 +411,13 @@ class DMFactory(TaskFactory):
         if max_var: 
             dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
             coh_arr = max_var_coh(self.num_trials)
+            intervals = _get_default_intervals(self.num_trials)
+
+        if main_var:
+            if self.mod is None: main_mod = 0 
+            else: main_mod = self.mod
+            coh_arr = max_var_coh(self.num_trials, main_mod = main_mod)
+            dir_arr = const_dirs(self.num_trials, self.multi)
             intervals = _get_default_intervals(self.num_trials)
 
         if self.cond_arr is None: 
@@ -407,8 +432,8 @@ class DMFactory(TaskFactory):
         if coh_arr is not None: 
             coh = coh_arr
             dirs = dir_arr
-            base_strs = np.random.uniform(1.0, 1.2, size=(2, self.num_trials))
-            #base_strs = np.ones((2, self.num_trials))
+            base_strs = np.array([1.0]*self.num_trials)
+            #base_strs = np.random.uniform(1.0, 1.2, size=(2, self.num_trials))
 
         elif self.mod is not None: 
             dirs0 = _draw_ortho_dirs(self.num_trials)
@@ -434,7 +459,7 @@ class DMFactory(TaskFactory):
         _strs= np.array([[base_strs[0]+coh[0], base_strs[0]-coh[0]],
                         [base_strs[1]+coh[1], base_strs[1]-coh[1]]])
 
-        strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _permute_mod(_strs))
+        strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _strs)
         conditions_arr[:, :, 0, :] = dirs
         conditions_arr[:, :, 1, :] = strs
 
@@ -503,7 +528,7 @@ class ConDMFactory(TaskFactory):
         _strs= np.array([[base_strs[0]+coh[0], base_strs[0]-coh[0]],
                         [base_strs[1]+coh[1], base_strs[1]-coh[1]]])
 
-        strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _permute_mod(_strs))
+        strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _strs)
         conditions_arr[:, :, 0, :] = dirs
         conditions_arr[:, :, 1, :] = strs
 
@@ -522,77 +547,10 @@ class ConDMFactory(TaskFactory):
 
         return target_dirs
 
-class DMDurFactory(TaskFactory):
-    def __init__(self, num_trials,  noise, dur_chooser, 
-                        mod=None, multi=False, timing = 'delay', 
-                        dir_arr=None, dur_arr=None,
-                        max_var = None, cond_arr=None, target_dirs=None):
-        super().__init__(num_trials, timing, noise)
-        self.dur_chooser = dur_chooser
-        self.cond_arr = cond_arr
-        self.timing = timing
-        self.target_dirs = target_dirs
-        self.mod = mod
-        self.multi = multi
-
-        if max_var: 
-            dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
-            dur_arr = max_var_dur(self.num_trials, self.multi)
-
-        if self.cond_arr is None: 
-            self.cond_arr = self._make_cond_arr(dir_arr, dur_arr)
-
-        self.target_dirs = self._set_target_dirs()
-
-    def _make_cond_arr(self, dir_arr,  dur_arr): 
-        conditions_arr = np.full((2, 2, 2, self.num_trials), np.NaN)
-        self.req_resp = _draw_requires_resp(self.num_trials)
-        _durs = _draw_durs(self.num_trials, self.multi)
-        dur_array = np.apply_along_axis(np.random.permutation, 1, _durs)
-
-        if dur_arr is not None: 
-            dur_array = dur_arr
-            dirs = dir_arr
-
-        elif self.multi: 
-            dirs0 = _draw_ortho_dirs(self.num_trials)    
-            dirs = np.array([dirs0, dirs0])
-        else:
-            dirs0 = _draw_ortho_dirs(self.num_trials)    
-            nan_mod = np.full_like(dirs0, np.NaN)
-            dirs = _permute_mod(np.array([dirs0, nan_mod]))
-            dur_array = np.apply_along_axis(np.random.permutation, 1, _durs)
-            dur_array = np.repeat(dur_array, 2, axis=0)
-
-        self.dur_array = dur_array
-        self.intervals = self.make_intervals(None, stim_durs=self.dur_array)
-        _strs = np.random.uniform(0.8, 1.2, size=(2, 2, self.num_trials))
-        strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _permute_mod(_strs))
-
-        conditions_arr[:, :, 0, :] = dirs
-        conditions_arr[:, :, 1, :] = strs
-        return conditions_arr
-
-    def _set_target_dirs(self):
-        if self.multi: 
-            if self.mod is not None: 
-                dirs = self.cond_arr[self.mod,:,0,:]
-                durs = self.dur_array[self.mod, ...]
-            else: 
-                dirs = self.cond_arr[0,:,0,:]
-                durs = np.sum(self.dur_array, axis=0)
-        else: 
-            dirs = np.nansum(self.cond_arr[: ,:,0,:], axis=0)
-            durs = self.dur_array[0, ...]
-
-        target_dirs = np.where(self.dur_chooser(durs[0, ], durs[1, ]), dirs[0, ], dirs[1, ])
-        return target_dirs
-
-
 class DurFactory(TaskFactory):
     def __init__(self, num_trials,  noise, resp_stim=0, tar='long',
                         mod=None, multi=False, timing = 'delay', 
-                        dir_arr=None, dur_arr=None,
+                        dir_arr=None, dur_arr=None, main_var = False,
                         max_var = None, cond_arr=None, target_dirs=None):
         super().__init__(num_trials, timing, noise)
         self.tar = tar
@@ -606,6 +564,11 @@ class DurFactory(TaskFactory):
         if max_var: 
             dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
             dur_arr = max_var_dur(self.num_trials, self.multi)
+
+        if main_var:
+            dur_arr = max_var_dur(self.num_trials, self.multi)
+            dir_arr = const_dirs(self.num_trials, self.multi)
+
 
         if self.cond_arr is None: 
             self.cond_arr = self._make_cond_arr(dir_arr, dur_arr)
@@ -675,8 +638,7 @@ class DurFactory(TaskFactory):
 class COMPFactory(TaskFactory):
     def __init__(self, num_trials,  noise, resp_stim, str_chooser,
                             mod=None, multi=False, timing= 'delay', 
-
-                            dir_arr=None, coh_arr=None, max_var = None, 
+                            dir_arr=None, coh_arr=None, max_var = False, main_var =False,
                             intervals= None, cond_arr=None, target_dirs=None):
         super().__init__(num_trials, timing, noise)
         self.cond_arr = cond_arr
@@ -689,6 +651,11 @@ class COMPFactory(TaskFactory):
 
         if max_var: 
             dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
+            coh_arr = max_var_coh(self.num_trials)
+            intervals = _get_default_intervals(self.num_trials)
+
+        if main_var: 
+            dir_arr = const_dirs(self.num_trials, self.multi)
             coh_arr = max_var_coh(self.num_trials)
             intervals = _get_default_intervals(self.num_trials)
 
@@ -732,7 +699,7 @@ class COMPFactory(TaskFactory):
 
         _strs= np.array([[base_strs[0]+coh[0], base_strs[0]-coh[0]],
                         [base_strs[1]+coh[1], base_strs[1]-coh[1]]])
-        _strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _permute_mod(_strs))
+        _strs = np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), _strs)
         strs = self._set_comp_strs(_strs, self.str_chooser)
 
         conditions_arr[:, :, 0, :] = dirs
