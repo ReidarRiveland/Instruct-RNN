@@ -11,7 +11,7 @@ from instructRNN.tasks.tasks import SWAPS_DICT
 load_str = '7.20models/swap_holdouts/swap0/sbertNet_lin_tuned/'
 
 sm_model = make_default_model('sbertNet_lin_tuned')
-rnn_decoder = DecoderRNN(256, drop_p=0.0)
+rnn_decoder = DecoderRNN(256, drop_p=0.1)
 
 device = torch.device(0)
 
