@@ -24,19 +24,17 @@ rnn_decoder.load_model(load_str, suffix='_seed'+str(seed))
 sm_model.load_model(load_str, suffix='_seed'+str(seed))
 
 encoder = EncoderDecoder(sm_model, rnn_decoder)
+encoder.load_foldername
 
-encoder.init_context_set('swap0', 0, 768)
+encoder.init_context_set('7.20models/swap_holdouts/swap0', 0, 768)
+decoded_set = encoder.plot_confuse_mat(128, 2, from_contexts=True)
 
-
-decoded_set = encoder.plot_confuse_mat(128, 2, )
-
-decoded_set['Go']['other']
-
+encoder.contexts.shape
 
 partner = make_default_model('sbertNet_lin_tuned')
 partner.load_model('7.20models/swap_holdouts/swap1/sbertNet_lin_tuned/', suffix='_seed'+str(seed))
 
-perf, _ = encoder.test_partner_model(partner, decoded_dict=decoded_set, )
+perf, _ = encoder.test_partner_model(partner, decoded_dict=decoded_set)
 perf['instructions'].mean()
 
 import numpy as np 

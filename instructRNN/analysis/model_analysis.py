@@ -89,7 +89,7 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
                     intervals = _get_default_intervals(num_trials)
                     ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var, main_var = main_var, intervals=intervals)
                 else: 
-                    ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var)
+                    ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var, main_var=main_var)
 
                 if contexts is not None: 
                     _, hid = model(torch.Tensor(ins).to(model.__device__), context=contexts[i, ...])

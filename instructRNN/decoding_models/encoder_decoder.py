@@ -33,17 +33,17 @@ class EncoderDecoder(nn.Module):
 
         self.init_context_set(task_file, seed)
 
-    def init_context_set(self, task_file, seed, context_dim):
-        all_contexts = np.empty((len(TASK_LIST), 256, context_dim))
+    def init_context_set(self, file_name, seed, context_dim):
+        all_contexts = np.empty((len(TASK_LIST), 128, context_dim))
         for i, task in enumerate(TASK_LIST):
             try: 
                 #need an underscore
-                filename = self.load_foldername+'/'+task_file+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+task+'_supervised_context_vecs'+str(context_dim)
+                filename = file_name+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+'_'+task+'_context_vecs'+str(context_dim)
                 task_contexts = pickle.load(open(filename, 'rb'))
                 all_contexts[i, ...]=task_contexts[:128, :]
             except FileNotFoundError: 
                 print(filename)
-                print('no contexts for '+task+' for model file '+task_file)
+                print('no contexts for '+task+' for model file')
 
         self.contexts = all_contexts
 
@@ -57,8 +57,7 @@ class EncoderDecoder(nn.Module):
                 ins, _, _, _, _ = construct_trials(task, num_trials)
 
                 if from_contexts: 
-                    task_index = TASK_LIST.index(task)
-                    task_info = torch.Tensor(self.contexts[task_index, ...]).to(self.sm_model.__device__)
+                    task_info = torch.Tensor(self.contexts[i, ...]).to(self.sm_model.__device__)
                     _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), context=task_info)
                 else: 
                     task_info = get_instructions(num_trials, task, None)

@@ -87,7 +87,7 @@ if __name__ == "__main__":
         if args.mode == 'context' or args.mode == 'c': 
             from instructRNN.trainers.context_trainer import *
             train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, 
-                                lr=0.008, num_contexts=128, tasks=TASK_LIST)
+                                lr=0.01, num_contexts=5, tasks=TASK_LIST[::-1])
 
         if args.mode == 'decoder' or args.mode == 'd': 
             from instructRNN.trainers.decoder_trainer import *

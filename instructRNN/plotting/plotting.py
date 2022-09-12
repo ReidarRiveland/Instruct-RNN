@@ -1,3 +1,5 @@
+from ast import Mod
+from turtle import color
 import matplotlib
 from pyparsing import col
 from instructRNN.analysis.model_analysis import *
@@ -54,14 +56,14 @@ plt.rcParams['savefig.dpi'] = 300
 from matplotlib import rc
 plt.rcParams["font.family"] = "serif"
 
-# def get_task_color(task):
-#     spacer = lambda x: int(np.floor(x/4)+((x%4*4)))
-#     color = np.array(tuple(task_colors[spacer(TASK_LIST.index(task))%26]))
-#     return tuple(color/256)
-
 def get_task_color(task):
-    color = plt.cm.tab10(TASK_LIST.index(task))
-    return color
+    spacer = lambda x: int(np.floor(x/4)+((x%4*4)))
+    color = np.array(tuple(task_colors[spacer(TASK_LIST.index(task))%26]))
+    return tuple(color/256)
+
+# def get_task_color(task):
+#     color = plt.cm.tab10(TASK_LIST.index(task))
+#     return color
 
 
 def test_colormap(tasks): 
@@ -412,7 +414,7 @@ def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot
 
     
 
-def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_trials=100, num_repeats=5, smoothing = 0.0): 
+def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_trials=100, num_repeats=5, smoothing = 1e-7): 
     # if task_variable == 'direction': 
     #     labels = ["0", "$2\pi$"]
     #     plt.xticks([0, np.pi, 2*np.pi], labels=['0', '$\pi$', '$2\pi$'])
@@ -423,7 +425,7 @@ def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_trials=100
     # elif task_variable =='diff_strength': 
     #     labels = ["delta -0.5", "delta 0.5"]
     y_max = 1.0
-    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, max_var=True)
+    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, main_var=True)
     for i, task in enumerate(tasks): 
         time = times[i]
         neural_resp = hid_mean[i, :, time, unit]        
@@ -533,6 +535,61 @@ def plot_CCGP_scores(model_list, rep_type_file_str = '', plot_swaps=False):
 #         plt.savefig('figs/'+save_file)
 #     plt.show()
 #     return trials
+
+
+
+# def plot_0_shot_spider(model_list, folder_name, exp_name, perf_type='correct', **kwargs):
+#     plt.subplot(polar=True)
+#     label_loc = np.linspace(start=0, stop=2 * np.pi, num=len(TASK_LIST))
+#     for model_name in model_list:
+#         data = HoldoutDataFrame(folder_name, exp_name, model_name, perf_type=perf_type)
+#         zero_shot = np.nanmean(data.get_k_shot(0), axis=0)
+#         plt.plot(label_loc, zero_shot, c=MODEL_STYLE_DICT[model_name][0], **kwargs)
+#     lines, labels = plt.thetagrids(np.degrees(label_loc), labels=None)
+#     plt.legend()
+#     plt.show()
+
+
+
+
+# simple_data = HoldoutDataFrame('7.20models', 'swap', 'simpleNet', perf_type='correct')
+# sbert_data = HoldoutDataFrame('7.20models', 'swap', 'sbertNet_lin_tuned', perf_type='correct')
+# gpt_data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL', perf_type='correct')
+# gpt_data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL', perf_type='correct')
+
+
+# sbert_zero_shot = np.mean(sbert_data.get_k_shot(0), axis=0)
+# simple_zero = np.mean(simple_data.get_k_shot(0), axis=0)
+# gpt_zero = np.nanmean(gpt_data.get_k_shot(0), axis=0)
+
+
+
+import plotly.graph_objects as go
+def plot_0_shot_spider(model_list, folder_name, exp_name, perf_type='correct', **kwargs):
+    fig = go.Figure()
+    for model_name in model_list:
+        data = HoldoutDataFrame(folder_name, exp_name, model_name, perf_type=perf_type)
+        zero_shot = np.nanmean(data.get_k_shot(0), axis=0)
+        fig.add_trace(go.Scatterpolar(
+            r=zero_shot,
+            theta=TASK_LIST,
+            opacity=0.5,
+            fill='toself',
+            name=model_name,
+            fillcolor = MODEL_STYLE_DICT[model_name][0]
+            ))
+
+    fig.update_layout(
+    polar=dict(
+        radialaxis=dict(
+        visible=True,
+        range=[0, 1]
+        )),
+    showlegend=False
+    )
+
+    fig.show()
+
 
 
 
