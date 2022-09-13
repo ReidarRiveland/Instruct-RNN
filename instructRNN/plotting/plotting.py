@@ -115,7 +115,7 @@ def _make_model_legend(model_list):
                     markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=4))
     plt.legend(handles=Patches)
 
-def plot_avg_holdout_curve(foldername, exp_type, model_list,  perf_type='correct', plot_swaps = False, seeds=range(5), split=False):
+def plot_avg_holdout_curve(foldername, exp_type, model_list,  emphasis_list =[], perf_type='correct', plot_swaps = False, seeds=range(5), split=False):
     if split: 
         fig, axn, ax2 = split_axes()
     else: 
@@ -129,13 +129,17 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list,  perf_type='correct
         axn.set_yticks(np.linspace(0, 1, 11))
 
     for model_name in model_list:
+        if model_name in emphasis_list: alpha = 1.0
+        else: alpha = 0.25
+
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
         mean, std = data.avg_tasks()
-        _plot_performance_curve(mean, std, axn, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
+        _plot_performance_curve(mean, std, axn, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5, alpha=alpha)
+
         if plot_swaps: 
             data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
             mean, std = data.avg_tasks()
-            _plot_performance_curve(mean, std, axn, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
+            _plot_performance_curve(mean, std, axn, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5, alpha=alpha)
 
         if split:
             _plot_performance_curve(mean, std, ax2, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)

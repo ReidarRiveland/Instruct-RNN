@@ -159,16 +159,6 @@ class CLIPNet_tuned(InstructNet):
                                     **kw_args)
         super().__init__(config)
             
-# class SIFNet(InstructNet):
-#     def __init__(self, **kw_args):
-#         config = InstructModelConfig('sifNet', 
-#                                     LM_class= SIF,
-#                                     LM_load_str = 'sif_model',
-#                                     LM_proj_out_layers=2,
-#                                     LM_train_layers=[],
-#                                     **kw_args)
-#         super().__init__(config)
-            
 
 class BoWNet(InstructNet):
     def __init__(self, **kw_args):

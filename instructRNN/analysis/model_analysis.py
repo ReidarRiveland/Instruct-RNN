@@ -45,25 +45,23 @@ def get_multitask_val_performance(model, foldername, seeds=np.array(range(5))):
         performance[seed, :] = perf
     return performance
 
-def get_instruct_reps(langModel, depth='full', tasks=TASK_LIST, instruct_mode=None):
+def get_instruct_reps(langModel, depth='full', instruct_mode=None):
     if depth.isnumeric(): 
-        rep_dim = langModel.LM_intermediate_lang_dim
+        rep_dim = 768
     else: 
         rep_dim = langModel.LM_out_dim 
 
     instruct_dict = get_instruction_dict(instruct_mode)
-    instruct_reps = torch.empty(len(tasks), len(list(instruct_dict.values())[0]), rep_dim)
-    
+    instruct_reps = torch.empty(len(TASK_LIST), len(list(instruct_dict.values())[0]), rep_dim)
+
     with torch.no_grad():      
-        for i, task in enumerate(tasks):
-            
+        for i, task in enumerate(TASK_LIST):
             instructions = instruct_dict[task]    
-            if depth == 'full': 
+            if depth == 'full':   
                 out_rep = langModel(list(instructions))
             elif depth.isnumeric(): 
                 out_rep = torch.mean(langModel.forward_transformer(list(instructions))[1][int(depth)], dim=1)
             instruct_reps[i, :, :] = out_rep
-
     return instruct_reps.cpu().numpy().astype(np.float64)
 
 def get_rule_embedder_reps(model):
@@ -111,22 +109,21 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
     return np.mean(task_reps, axis=0).astype(np.float64)
 
 
-
 def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'): 
     if reduction_method == 'PCA': 
-        embedder = PCA(n_components=12)
+        embedder = PCA()
     elif reduction_method == 'tSNE': 
         embedder = TSNE()
-    
+
     _embedded = embedder.fit_transform(reps.reshape(-1, reps.shape[-1]))
-    embedded = _embedded.reshape(reps.shape[0], reps.shape[1], 12)
+    embedded = _embedded.reshape(reps.shape)
 
     if reduction_method == 'PCA': 
         explained_variance = embedder.explained_variance_ratio_
     else: 
         explained_variance = None
-
     return embedded[..., pcs], explained_variance
+
 
 def get_layer_sim_scores(model, rep_depth='12'): 
     if rep_depth.isnumeric(): 

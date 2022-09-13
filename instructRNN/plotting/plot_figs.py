@@ -10,7 +10,7 @@ plot_avg_holdout_curve('7.20models', 'swap', ['sbertNet_lin_tuned', 'simpleNet',
 plot_avg_holdout_curve('7.20models', 'swap', 
                                 ['sbertNet_lin_tuned', 'sbertNet', 'sbertNet_tuned', 
                                 'bertNet', 'bertNet_tuned', 'clipNet', 'clipNet_tuned', 'simpleNet', 'bowNet', 'gptNetXL'], 
-                                
+                                emphasis_list=['sbertNet_lin_tuned', 'simpleNet', 'bowNet', 'gptNetXL']
                                 )
 
 
