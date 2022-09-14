@@ -93,6 +93,28 @@ class GPTNetXL_tuned(InstructNet):
         super().__init__(config)
 
 
+class GPTNetXL_lin(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('gptNetXL_lin', 
+                                    LM_class= GPT,
+                                    LM_load_str = 'gpt2-xl', 
+                                    LM_output_nonlinearity='lin',
+                                    LM_train_layers=[], 
+                                    **kw_args)
+        super().__init__(config)
+
+
+class GPTNetXL_lin_tuned(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('gptNetXL_lin_tuned', 
+                                    LM_class= GPT,
+                                    LM_load_str = 'gpt2-xl', 
+                                    LM_output_nonlinearity='lin',
+                                    LM_train_layers=['9', '10', '11', 'ln_f'], 
+                                    **kw_args)
+        super().__init__(config)
+
+
 class BERTNet(InstructNet):
     def __init__(self, **kw_args):
         config = InstructModelConfig('bertNet', 
@@ -105,6 +127,29 @@ class BERTNet(InstructNet):
 class BERTNet_tuned(InstructNet):
     def __init__(self, **kw_args):
         config = InstructModelConfig('bertNet_tuned', 
+                                    LM_class= BERT,
+                                    LM_load_str = 'bert-base-uncased',
+                                    LM_output_nonlinearity='lin',
+
+                                    LM_train_layers=['9', '10', '11', 'pooler'],
+                                    **kw_args)
+        super().__init__(config)
+
+
+class BERTNet_lin(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('bertNet_lin', 
+                                    LM_class= BERT,
+                                    LM_output_nonlinearity='lin',
+
+                                    LM_load_str = 'bert-base-uncased',
+                                    LM_train_layers=[], 
+                                    **kw_args)
+        super().__init__(config)
+
+class BERTNet_lin_tuned(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('bertNet_lin_tuned', 
                                     LM_class= BERT,
                                     LM_load_str = 'bert-base-uncased',
                                     LM_train_layers=['9', '10', '11', 'pooler'],
@@ -171,6 +216,28 @@ class CLIPNet_tuned(InstructNet):
                                     **kw_args)
         super().__init__(config)
             
+class CLIPNet_lin(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('clipNet_lin', 
+                                    LM_class= CLIP,
+                                    LM_load_str = 'openai/clip-vit-base-patch32',
+                                    LM_output_nonlinearity='lin',
+                                    LM_train_layers=['bias'],
+                                    **kw_args)
+        super().__init__(config)
+        
+
+class CLIPNet_lin_tuned(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('clipNet_lin_tuned', 
+                                    LM_class= CLIP,
+                                    LM_load_str = 'openai/clip-vit-base-patch32',
+                                    LM_output_nonlinearity='lin',
+
+                                    LM_train_layers=['9', '10', '11', 'pooler'],
+                                    **kw_args)
+        super().__init__(config)
+
 
 class BoWNet(InstructNet):
     def __init__(self, **kw_args):
@@ -209,6 +276,10 @@ def make_default_model(model_str):
         return BERTNet()
     if model_str == 'bertNet_tuned': 
         return BERTNet_tuned()
+    if model_str == 'bertNet_lin': 
+        return BERTNet_lin()
+    if model_str == 'bertNet_lin_tuned': 
+        return BERTNet_lin_tuned()
     if model_str == 'sbertNet': 
         return SBERTNet()
     if model_str == 'sbertNet_tuned': 
@@ -221,12 +292,18 @@ def make_default_model(model_str):
         return GPTNetXL()
     if model_str == 'gptNetXL_tuned':
         return GPTNetXL_tuned()
-    if model_str == 'simpleNetPlus_rand':
-        return SimpleNetPlus_rand()
+    if model_str == 'gptNetXL_lin':
+        return GPTNetXL_lin()
+    if model_str == 'gptNetXL_tuned':
+        return GPTNetXL_lin_tuned()
     if model_str == 'clipNet': 
         return CLIPNet()
     if model_str == 'clipNet_tuned': 
         return CLIPNet_tuned()
+    if model_str == 'clipNet_lin': 
+        return CLIPNet_lin()
+    if model_str == 'clipNet_lin_tuned': 
+        return CLIPNet_lin_tuned()
     if model_str == 'bowNet': 
         return BoWNet()
     if model_str == 'bowNet_lin': 
