@@ -11,6 +11,18 @@ all_models = ['simpleNet', 'simpleNetPlus',
             'clipNet',
             'bowNet', 'clipNet_tuned', 
             ]
+
+small_models = [
+            'sbertNet_lin', 'bowNet',
+            'simpleNet', 'simpleNetPlus',
+            'sbertNet',
+            'sbertNet_tuned', 'sbertNet_lin_tuned',
+            'bowNet_lin',            
+            'clipNet','bertNet',
+            'comNet', 'comNetPlus',
+            'clipNet','bertNet',
+            'clipNet_tuned', 'bertNet_tuned']    
+            
             
 untuned_models = [model_name for model_name in all_models if '_tuned' not in model_name]
 tuned_models = [model_name for model_name in all_models if '_tuned' in model_name]

@@ -100,8 +100,8 @@ DICH_DICT = {
     'dich5' : (['Dur1', 'Dur2', 'MultiDur1', 'MultiDur2'],
                 ['AntiDur1', 'AntiDur2', 'AntiMultiDur1', 'AntiMultiDur2']), 
     'dich5' : (['DMS', 'DNMS'], ['DMC', 'DNMC']),
-    'dich6' : (['DNMS', 'DNMc'], ['DMS', 'DMC']), 
-    'dict7' : (['GoMod1', 'AntiGoMod1', 'RTGoMod1', 'AntiRTGoMod1', 'DMMod1', 'AntiDMMod1', 'COMP1Mod1', 'COMP2Mod1', 'Dur1Mod1', 'Dur2Mod1'], 
+    'dich6' : (['DNMS', 'DNMC'], ['DMS', 'DMC']), 
+    'dich7' : (['GoMod1', 'AntiGoMod1', 'RTGoMod1', 'AntiRTGoMod1', 'DMMod1', 'AntiDMMod1', 'COMP1Mod1', 'COMP2Mod1', 'Dur1Mod1', 'Dur2Mod1'], 
                 ['GoMod2', 'AntiGoMod2', 'RTGoMod2', 'AntiRTGoMod2', 'DMMod2', 'AntiDMMod2', 'COMP1Mod2', 'COMP2Mod2', 'Dur1Mod2', 'Dur2Mod2'])
 }
 

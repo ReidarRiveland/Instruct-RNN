@@ -4,7 +4,7 @@ from instructRNN.models.full_models import *
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
 
-plot_avg_holdout_curve('7.20models', 'swap', ['sbertNet_lin_tuned', 'simpleNet', 'bowNet', 'gptNetXL'])
+plot_avg_holdout_curve('7.20models', 'swap', [ 'gptNetXL_tuned'])
 
 
 plot_avg_holdout_curve('7.20models', 'swap', 
@@ -18,9 +18,6 @@ plot_avg_holdout_curve('7.20models', 'swap',
 
 EXP_FILE = '7.20models/swap_holdouts'
 sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
-
-
-
 holdouts_file = 'swap0'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 

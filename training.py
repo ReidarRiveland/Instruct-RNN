@@ -1,21 +1,7 @@
 import os
 import itertools
 from instructRNN.tasks.tasks import MULTITASK_DICT, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT
-
-small_models = [
-            'sbertNet_lin', 'bowNet',
-            'simpleNet', 'simpleNetPlus',
-            'sbertNet',
-            'sbertNet_tuned', 'sbertNet_lin_tuned',
-            'bowNet_lin',            
-            'clipNet','bertNet',
-            'comNet', 'comNetPlus',
-            'clipNet','bertNet',
-            #'gptNet', 'gptNet_tuned',
-            
-            'clipNet_tuned', 'bertNet_tuned']
-
-big_models = ['gptNetXL', 'gptNetXL_tuned']
+from instructRNN.models.full_models import small_models
 
 def make_training_jobs(exp, models, seeds, holdouts, job_index):
     if exp == 'swap': 
@@ -64,10 +50,14 @@ if __name__ == "__main__":
     EXP_FOLDER =MODEL_FOLDER+'/'+args.exp+'_holdouts'
 
     jobs = make_training_jobs(args.exp, args.models, args.seeds, args.holdouts, args.job_index)
+    print(jobs)
     for job in jobs: 
         _seed, model, holdouts = job
+
         if 'gpt' in model: stream_data=True
         else: stream_data=False
+
+
         if args.mode == 'pipeline': 
             from instructRNN.trainers.model_trainer import *
             run_pipeline(EXP_FOLDER, model, _seed, holdouts,overwrite=args.overwrite, ot = args.ot, stream_data=stream_data)      
@@ -92,3 +82,4 @@ if __name__ == "__main__":
         if args.mode == 'decoder' or args.mode == 'd': 
             from instructRNN.trainers.decoder_trainer import *
             train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, overwrite=args.overwrite)
+

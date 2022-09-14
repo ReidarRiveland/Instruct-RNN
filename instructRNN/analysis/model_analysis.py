@@ -12,6 +12,21 @@ from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.instructions.instruct_utils import train_instruct_dict, get_task_info, get_instruction_dict
 
 import sklearn.svm as svm
+from instructRNN.models.full_models import make_default_model
+
+from instructRNN.tasks.tasks import DICH_DICT, TASK_LIST, SWAPS_DICT
+
+import numpy as np
+import itertools
+import sklearn.svm as svm
+import os
+
+if torch.cuda.is_available:
+    device = torch.device(0)
+    print(torch.cuda.get_device_name(device), flush=True)
+else: 
+    device = torch.device('cpu')
+    
 
 def task_eval(model, task, batch_size, noise=None, instructions = None): 
     ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, noise)
@@ -24,6 +39,7 @@ def task_eval(model, task, batch_size, noise=None, instructions = None):
 
 def get_model_performance(model, num_repeats = 1, batch_len=128): 
     model.eval()
+    model.to(device)
     perf_array = np.empty(len(TASK_LIST))
     with torch.no_grad():
         for i, task in enumerate(TASK_LIST):
@@ -75,6 +91,7 @@ def get_rule_embedder_reps(model):
 def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, tasks=TASK_LIST, 
                     instruct_mode=None, contexts=None, default_intervals=False, max_var=False, main_var=False, num_repeats=1):
     model.eval()
+    model.to(device)
     if epoch is None: 
         task_reps = np.empty((num_repeats, len(tasks), num_trials, TRIAL_LEN, model.rnn_hidden_dim))
     else: 
@@ -204,107 +221,81 @@ def get_noise_thresholdouts(correct_stats, diff_strength, noises, pos_cutoff=0.9
     return pos_thresholds, neg_thresholds
 
 
-def get_CCGP(reps): 
-    num_trials = reps.shape[1]
+
+def get_reps_from_tasks(reps, tasks): 
+    indices = [TASK_LIST.index(task) for task in tasks]
+    return reps[indices, ...]
+
+
+def get_dich_CCGP(reps, dich, holdouts_involved=[]):
     dim = reps.shape[-1]
-    all_decoding_score = np.zeros((len(TASK_LIST), 2))
-    dichotomies = np.array([[[0, 1], [2, 3]], [[0,2], [1, 3]]])
-    for i in range(4): 
-        conditions=dichotomies+(4*i)
-        for j in [0, 1]: 
-            for k in [0, 1]: 
+    num_trials = reps.shape[1]
 
-                print('\n')
-                print('train condition ' +str(conditions[j][k]))
-                test_condition = conditions[j][(k+1)%2]
-                print('test condition' + str(test_condition))
-                print('\n')
+    all_dich_pairs = list(itertools.product(dich[0], dich[1]))
+    decoding_score_arr = np.empty((len(all_dich_pairs), len(all_dich_pairs)-1))
+    holdouts_score_list = []
 
-                classifier = svm.LinearSVC(max_iter=5000)
-                classifier.classes_=[-1, 1]
-                classifier.fit(reps[conditions[j][k], ...].reshape(-1, dim), np.array([0]*num_trials+[1]*num_trials))
-                for index in [0, 1]: 
-                    print('Task :' + str(test_condition[index]))
-                    decoding_corrects = np.array([index]*num_trials) == classifier.predict(reps[test_condition[index], ...].reshape(-1, dim))
-                    decoding_score = np.mean(decoding_corrects)
-                    all_decoding_score[test_condition[index], j] = decoding_score
-            
+    for i, train_pair in enumerate(all_dich_pairs):
+        test_pairs = all_dich_pairs.copy()
+        test_pairs.remove(train_pair)
+        train_reps = get_reps_from_tasks(reps,train_pair).reshape(-1, dim)
 
-    return all_decoding_score
+        classifier = svm.LinearSVC(max_iter=100_000)
+        classifier.classes_=[-1, 1]
+        classifier.fit(train_reps, np.array([0]*num_trials+[1]*num_trials))
 
-# def get_CCGP(model, dichotomy, num_trials = 100): 
-#     rep_dict = {}
-#     all_tasks = dichotomy[0]+dichotomy[1]
-#     reps = get_task_reps(model, tasks=all_tasks, num_trials=num_trials)
-#     training_pairs = list(itertools.product(DICH_DICT['dich0'][0], DICH_DICT['dich0'][1]))
+        for j, test_pair in enumerate(test_pairs): 
+            decoding_corrects0 = np.array([0]*num_trials) == classifier.predict(reps[TASK_LIST.index(test_pair[0]), ...].reshape(-1, dim))
+            decoding_corrects1 = np.array([1]*num_trials) == classifier.predict(reps[TASK_LIST.index(test_pair[1]), ...].reshape(-1, dim))
+            decoding_score = np.array([decoding_corrects0, decoding_corrects1]).mean()
+            decoding_score_arr[i, j] = decoding_score
 
-#     for pair in training_pairs: 
-#         classifier = svm.LinearSVC(max_iter=5000)
-#         classifier.classes_=[-1, 1]
-#         training_reps = reps[[all_tasks.index(pair[0]), all_tasks.index(pair[1])]]
-#         classifier.fit(training_reps, np.array([0]*num_trials+[1]*num_trials))
-#         for test_pair in training_pairs.remove(pair): 
-#             decoding_corrects = np.array([index]*num_trials) == classifier.predict(reps[test_condition[index], ...].reshape(-1, dim))
-#             decoding_score = np.mean(decoding_corrects)
-#             all_decoding_score[test_condition[index], j] = decoding_score
+            in_test_pair = any([holdout_involved in test_pair for holdout_involved in holdouts_involved])
+            in_train_pair = any([holdout_involved in train_pair for holdout_involved in holdouts_involved])
+            if in_test_pair or in_train_pair: 
+                holdouts_score_list.append(decoding_score)
 
-#     return all_decoding_score
+    return decoding_score_arr, np.mean(holdouts_score_list)
 
 
-# def get_all_CCGP(model, task_rep_type, foldername, swap=False): 
-#     if not swap: 
-#         tasks_to_compute = task_list +['Multitask']
-#     else: 
-#         tasks_to_compute = task_list
-#     all_CCGP = np.empty((5, len(tasks_to_compute), 16, 2))
-#     holdout_CCGP = np.empty((5, 16, 2))
-#     epoch = 'stim_start'
-#     for i in range(5):
-#         model.set_seed(i)
-#         for j, task in enumerate(tasks_to_compute):
-#             print('\n') 
-#             print(task) 
-#             task_file = task_swaps_map[task]
-#             model.load_model(foldername+'/swap_holdouts/'+task_file)
-#             if swap: 
-#                 swapped_list = [task]
-#                 swap_str = '_swap'
-#             else: 
-#                 swapped_list = []
-#                 swap_str = ''
+def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array): 
+    for i, values in enumerate(DICH_DICT.items()): 
+        _, dich = values
+        holdouts_involved = [holdout for holdout in holdouts if holdout in dich[0]+dich[1]]
+        if len(holdouts_involved)>0:
+            _, holdout_score = get_dich_CCGP(reps, dich, holdouts_involved=holdouts_involved)
+            indices = [TASK_LIST.index(task) for task in holdouts_involved]
+            holdout_CCGP_array[indices, i] = holdout_score
+        else: 
+            continue
 
-#             if task_rep_type == 'task': 
-#                 reps, _ = get_task_reps(model, num_trials=128, epoch=epoch, stim_start_buffer=0, swapped_tasks=swapped_list)
-#             if task_rep_type == 'lang': 
-#                 if model.langModel.embedder_name == 'bow': depth = 'full'
-#                 else: depth = 'transformer'
-#                 reps = get_instruct_reps(model.langModel, train_instruct_dict, depth=depth, swapped_tasks=swapped_list)
-            
-#             if swap:
-#                 reps[task_list.index(task), ...] = reps[-1, ...]
+def get_holdout_CCGP(exp_folder, model_name, seed, save=False, layer='task'): 
+    holdout_CCGP = np.full((len(TASK_LIST), len(DICH_DICT)), np.NAN)
+    if 'swap_holdouts' in exp_folder: 
+        exp_dict = SWAPS_DICT
 
-#             decoding_score = get_CCGP(reps)
-#             all_CCGP[i, j, ...] = decoding_score
-#             if j != 16: 
-#                 holdout_CCGP[i, j] = decoding_score[j, :]
-#     np.savez(foldername+'/CCGP_measures/' +task_rep_type+'_'+ epoch + '_' + model.model_name + swap_str +'_CCGP_scores', all_CCGP=all_CCGP, holdout_CCGP= holdout_CCGP)
-#     return all_CCGP, holdout_CCGP
+    model = make_default_model(model_name)
 
-# if __name__ == "__main__":
+    for holdout_file, holdouts in exp_dict.items():
+        print('processing '+ holdout_file)
+        model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
 
-#     from model_trainer import config_model
-#     import pickle
-#     from utils.utils import all_models
-#     model_file = '_ReLU128_4.11'
+        if layer == 'task':
+            reps = get_task_reps(model, num_trials=100)
+        else: 
+            reps = get_instruct_reps(model.langModel, depth=layer)
 
-#     ###GET ALL MODEL CCGPs###
-#     for swap_bool in [False]: 
-#         for model_name in ['gptNet_tuned']:
-#             print(model_name)
-#             model = config_model(model_name)
-#             model.to(torch.device(0))
-#             get_all_CCGP(model, 'task', model_file, swap=swap_bool)
+        update_holdout_CCGP(reps, holdouts, holdout_CCGP)
 
+    task_holdout_scores = np.nanmean(holdout_CCGP, axis=1)
+    dich_holdout_scores = np.nanmean(holdout_CCGP, axis=0)
 
+    if save:
+        file_path = exp_folder+'/CCGP_scores/'+model_name
+        if os.path.exists(file_path):
+            pass
+        else: os.makedirs(file_path)
+        np.save(file_path+'/'+'layer'+layer+'_task_holdout_seed'+str(seed), task_holdout_scores)
+        np.save(file_path+'/'+'layer'+layer+'_dich_holdout_seed'+str(seed), dich_holdout_scores)
 
-
+    return task_holdout_scores, dich_holdout_scores

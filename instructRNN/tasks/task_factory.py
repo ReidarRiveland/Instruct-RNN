@@ -485,7 +485,7 @@ class DMFactory(TaskFactory):
 class ConDMFactory(TaskFactory): 
     def __init__(self, num_trials,  noise, str_chooser, threshold_folder,
                     timing= 'full', mod=None, multi=False,  max_var=False,
-                    dir_arr = None, coh_arr = None, noises=None,                      
+                    dir_arr = None, coh_arr = None, noises=None, main_var =None,                   
                     intervals= None, cond_arr=None):
         super().__init__(num_trials, timing, noise)
         self.threshold_folder = threshold_folder
@@ -738,7 +738,7 @@ class COMPFactory(TaskFactory):
 
 class MatchingFactory(TaskFactory):
     def __init__(self, num_trials,  noise, matching_task, match_type,
-                            timing= 'delay', intervals= None, dir0=None, 
+                            timing= 'delay', intervals= None, dir0=None, main_var = None, 
                             max_var=False, cond_arr=None, target_dirs = None):
         super().__init__(num_trials, timing, noise)
         self.timing = timing
