@@ -89,7 +89,7 @@ def get_rule_embedder_reps(model):
     return reps
 
 def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, tasks=TASK_LIST, 
-                    instruct_mode=None, contexts=None, default_intervals=False, max_var=False, main_var=False, num_repeats=1):
+                    instruct_mode=None, contexts=None, default_intervals=False, main_var=False, num_repeats=1):
     model.eval()
     model.to(device)
     if epoch is None: 
@@ -102,9 +102,9 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
             for i, task in enumerate(tasks): 
                 if default_intervals and 'Dur' not in task:
                     intervals = _get_default_intervals(num_trials)
-                    ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var, main_var = main_var, intervals=intervals)
+                    ins, targets, _, _, _ =  construct_trials(task, num_trials, main_var = main_var, intervals=intervals, noise=0.0)
                 else: 
-                    ins, targets, _, _, _ =  construct_trials(task, num_trials, max_var=max_var, main_var=main_var)
+                    ins, targets, _, _, _ =  construct_trials(task, num_trials, main_var=main_var, noise=0.0)
 
                 if contexts is not None: 
                     _, hid = model(torch.Tensor(ins).to(model.__device__), context=contexts[i, ...])
@@ -281,7 +281,7 @@ def get_holdout_CCGP(exp_folder, model_name, seed, save=False, layer='task'):
         model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
 
         if layer == 'task':
-            reps = get_task_reps(model, num_trials=100)
+            reps = get_task_reps(model, num_trials = 100,  main_var=True)
         else: 
             reps = get_instruct_reps(model.langModel, depth=layer)
 

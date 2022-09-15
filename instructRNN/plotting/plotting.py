@@ -42,12 +42,9 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None), 'simpleNetPlus': (Blue, '+'),
                     'sbertNet': (Purple, None), 'sbertNet_tuned': (Purple, 'v'),
                     'sbertNet_lin': (Purple, 'X'), 'sbertNet_lin_tuned': (Purple, '*')}
 
-task_colors = [{2,63,165},{125,135,185},{190,193,212},{214,188,192},{187,119,132},{142,6,59},
-                {74,111,227},{133,149,225},{181,187,227},{230,175,185},{224,123,145},
-                {211,63,106},{17,198,56},{141,213,147},{198,222,199},{234,211,198},
-                {240,185,141},{239,151,8},{15,207,192},{156,222,214},{213,234,231},{243,225,235},
-                {246,196,225},{247,156,212}]
-
+def get_task_color(task): 
+    index = TASK_LIST.index(task)
+    return plt.get_cmap('Paired')(index%12)
 
 
 plt.rcParams['figure.dpi'] = 300
@@ -56,21 +53,6 @@ plt.rcParams['savefig.dpi'] = 300
 from matplotlib import rc
 plt.rcParams["font.family"] = "serif"
 
-def get_task_color(task):
-    spacer = lambda x: int(np.floor(x/4)+((x%4*4)))
-    color = np.array(tuple(task_colors[spacer(TASK_LIST.index(task))%26]))
-    return tuple(color/256)
-
-# def get_task_color(task):
-#     color = plt.cm.tab10(TASK_LIST.index(task))
-#     return color
-
-
-def test_colormap(tasks): 
-    for task in tasks: 
-        plt.scatter(tasks.index(task)/2, tasks.index(task)/2, color= get_task_color(task))
-    plt.legend(labels=tasks)
-    plt.show()
 
 
 def split_axes():
@@ -336,7 +318,7 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_t
         pcs = range(dims)
 
     if rep_depth == 'task': 
-        reps = get_task_reps(model, epoch='stim_start', num_trials = num_trials, tasks=tasks_to_plot)
+        reps = get_task_reps(model, epoch='stim_start', num_trials = num_trials, tasks=tasks_to_plot, main_var=True)
     elif rep_depth != 'task': 
         reps = get_instruct_reps(model.langModel, depth=rep_depth, tasks=tasks_to_plot)
     reduced, _ = reduce_rep(reps, pcs=pcs)

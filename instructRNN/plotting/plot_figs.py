@@ -4,7 +4,7 @@ from instructRNN.models.full_models import *
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
 
-plot_avg_holdout_curve('7.20models', 'swap', [ 'gptNetXL_tuned'])
+plot_avg_holdout_curve('7.20models', 'swap', [ 'simpleNet', 'simpleNetPlus'])
 
 
 plot_avg_holdout_curve('7.20models', 'swap', 
