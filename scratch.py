@@ -14,6 +14,21 @@ import torch
 
 
 
+
+
+EXP_FILE = '7.20models/swap_holdouts'
+sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap4'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
+
+#plot_tuning_curve(sbertNet, ['Go', 'AntiGo'], 32, [140]*6, np.linspace(0, 2*np.pi, 100), num_repeats=1, smoothing=1)
+plot_scatter(sbertNet, ['GoMod1', 'AntiGoMod1',  'GoMod2', 'AntiGoMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
+plot_scatter(sbertNet, ['Go', 'AntiGo', 'GoMod1', 'AntiGoMod1',  'GoMod2', 'AntiGoMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, rep_depth='full')
+
+
+
+
+
 EXP_FILE = '7.20models/swap_holdouts'
 sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)
 

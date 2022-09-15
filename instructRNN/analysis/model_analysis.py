@@ -134,13 +134,14 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
 
 
 def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'): 
+    dims = max(pcs)+1
     if reduction_method == 'PCA': 
-        embedder = PCA()
+        embedder = PCA(n_components=dims)
     elif reduction_method == 'tSNE': 
         embedder = TSNE()
 
     _embedded = embedder.fit_transform(reps.reshape(-1, reps.shape[-1]))
-    embedded = _embedded.reshape(reps.shape)
+    embedded = _embedded.reshape(reps.shape[0], reps.shape[1], dims)
 
     if reduction_method == 'PCA': 
         explained_variance = embedder.explained_variance_ratio_

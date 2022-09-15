@@ -254,7 +254,7 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
 
     #training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
     tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
-                                    epochs=35, min_run_epochs=5, lr=1e-5, lang_lr=1e-5, scheduler_gamma=0.99,
+                                    epochs=35, min_run_epochs=5, lr=2e-5, lang_lr=1e-5, scheduler_gamma=0.99,
                                     save_for_tuning_epoch=np.nan, 
                                     **train_config_kwargs)
 
