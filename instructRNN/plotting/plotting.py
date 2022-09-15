@@ -308,8 +308,8 @@ def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs):
 
 def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwargs): 
     Patches = []
-    for i, task in enumerate(task_to_plot): 
-        patch = _rep_scatter(reps_reduced[i, ...], task, ax, dims, pcs, marker='o', **scatter_kwargs)
+    for task in task_to_plot: 
+        patch = _rep_scatter(reps_reduced[TASK_LIST.index(task), ...], task, ax, dims, pcs, marker='o', **scatter_kwargs)
         Patches.append(patch)
     return Patches
 
@@ -318,7 +318,7 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_t
         pcs = range(dims)
 
     if rep_depth == 'task': 
-        reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, tasks=tasks_to_plot, main_var=True)
+        reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True)
     elif rep_depth != 'task': 
         reps = get_instruct_reps(model.langModel, depth=rep_depth)
     reduced, _ = reduce_rep(reps, pcs=pcs)
