@@ -4,26 +4,24 @@ from instructRNN.models.sensorimotor_models import *
 all_models = ['simpleNet', 'simpleNetPlus',
             'comNet', 'comNetPlus',
             'gptNet', 'gptNet_tuned',
+
             'gptNetXL', 'gptNetXL_tuned',
+            'gptNetXL_lin', 'gptNetXL_lin_tuned',
+
             'bertNet', 'bertNet_tuned',
+            'bertNet_lin', 'bertNet_lin_tuned',
+
             'sbertNet', 'sbertNet_tuned', 
             'sbertNet_lin', 'sbertNet_lin_tuned',
-            'clipNet',
-            'bowNet', 'clipNet_tuned', 
+
+            'clipNet', 'clipNet_tuned', 
+            'clipNet_lin', 'clipNet_lin_tuned', 
+            'bowNet', 'bowNet_lin'
             ]
 
-small_models = [
-            'sbertNet_lin', 'bowNet',
-            'simpleNet', 'simpleNetPlus',
-            'sbertNet',
-            'sbertNet_tuned', 'sbertNet_lin_tuned',
-            'bowNet_lin',            
-            'clipNet','bertNet',
-            'comNet', 'comNetPlus',
-            'clipNet','bertNet',
-            'clipNet_tuned', 'bertNet_tuned']    
-            
-            
+small_models = [model for model in all_models if 'XL' not in model] 
+big_models = [model for model in all_models if model not in small_models]
+shallow_models = [model for model in all_models if 'simple' in model or 'com' in model]                        
 untuned_models = [model_name for model_name in all_models if '_tuned' not in model_name]
 tuned_models = [model_name for model_name in all_models if '_tuned' in model_name]
 
@@ -310,5 +308,6 @@ def make_default_model(model_str):
         return BoWNet_lin()
     else: 
         raise Exception('Model not found in make_default_model function, make sure its included there')
+
 
 

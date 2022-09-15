@@ -1,7 +1,7 @@
 
 import os
 import itertools
-from instructRNN.models.full_models import small_models
+import instructRNN.models.full_models as full_models
 from instructRNN.analysis.model_analysis import get_holdout_CCGP
 
 if __name__ == "__main__":
@@ -10,7 +10,7 @@ if __name__ == "__main__":
     parser.add_argument('folder', help='folder where models and data will be stored')
     parser.add_argument('exp', help='type of experiment, refering to which holdout sets to use, must be \'swap\' or \'aligned\' ')
     parser.add_argument('--mode', default='ccgp', help='training mode to use, must be \'train\', \'tune\', \'test\', \'decoder\' ( \'d\'),\'context\' ( \'c\')')
-    parser.add_argument('--models', default=small_models, nargs='*', help='list of model names to train, default is all models')
+    parser.add_argument('--models', default=full_models.small_models, nargs='*', help='list of model names to train, default is all models')
     parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')
 
     parser.add_argument('--job_index', type=int, help='for use with slurm sbatch script, indexes the combination of seed and holdout tasks along with the model')
@@ -34,9 +34,9 @@ if __name__ == "__main__":
         if args.mode == 'ccgp': 
             from instructRNN.analysis.model_analysis import * 
 
-            if model == 'simpleNet': 
+            if model in full_models.shallow_models: 
                 layer_list = ['task']
-            elif 'gptNetXL' in model: 
+            elif model in full_models.big_models: 
                 layer_list = [str(layer) for layer in range(1, 25)] + ['full', 'task']
             else: 
                 layer_list = [str(layer) for layer in range(1, 13)] + ['full', 'task']

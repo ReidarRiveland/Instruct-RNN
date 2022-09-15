@@ -44,7 +44,7 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None), 'simpleNetPlus': (Blue, '+'),
 
 def get_task_color(task): 
     index = TASK_LIST.index(task)
-    return plt.get_cmap('Paired')(index%12)
+    return plt.get_cmap('Paired')(index%8)
 
 
 plt.rcParams['figure.dpi'] = 300
@@ -313,14 +313,14 @@ def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwar
         Patches.append(patch)
     return Patches
 
-def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_trials =50, **scatter_kwargs): 
+def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_trials =50, epoch= 'stim_start', **scatter_kwargs): 
     if pcs is None: 
         pcs = range(dims)
 
     if rep_depth == 'task': 
-        reps = get_task_reps(model, epoch='stim_start', num_trials = num_trials, tasks=tasks_to_plot, main_var=True)
+        reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, tasks=tasks_to_plot, main_var=True)
     elif rep_depth != 'task': 
-        reps = get_instruct_reps(model.langModel, depth=rep_depth, tasks=tasks_to_plot)
+        reps = get_instruct_reps(model.langModel, depth=rep_depth)
     reduced, _ = reduce_rep(reps, pcs=pcs)
 
     fig = plt.figure(figsize=(14, 14))

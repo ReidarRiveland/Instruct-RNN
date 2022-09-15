@@ -41,7 +41,8 @@ class EncoderDecoder(nn.Module):
                 filename = file_name+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+'_'+task+'_context_vecs'+str(context_dim)
                 task_contexts = pickle.load(open(filename, 'rb'))
                 all_contexts[i, ...]=task_contexts[:128, :]
-            except FileNotFoundError: 
+            #except FileNotFoundError: 
+            except: 
                 print(filename)
                 print('no contexts for '+task+' for model file')
 

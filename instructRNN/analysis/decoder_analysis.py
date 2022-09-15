@@ -5,13 +5,12 @@ from instructRNN.decoding_models.encoder_decoder import EncoderDecoder
 from instructRNN.models.full_models import make_default_model
 
 from instructRNN.instructions.instruct_utils import inv_train_instruct_dict, train_instruct_dict
-from instructRNN.tasks.tasks import SWAPS_DICT
-
+from instructRNN.tasks.tasks import SWAPS_DICT, TASK_LIST
 
 load_str = '7.20models/swap_holdouts/swap0/sbertNet_lin_tuned/'
 
 sm_model = make_default_model('sbertNet_lin_tuned')
-rnn_decoder = DecoderRNN(256, drop_p=0.1)
+rnn_decoder = DecoderRNN(256, drop_p=0.0)
 
 device = torch.device(0)
 
@@ -27,15 +26,21 @@ encoder = EncoderDecoder(sm_model, rnn_decoder)
 encoder.load_foldername
 
 encoder.init_context_set('7.20models/swap_holdouts/swap0', 0, 768)
+encoder.contexts
+
+
 decoded_set = encoder.plot_confuse_mat(128, 2, from_contexts=True)
 
-encoder.contexts.shape
+decoded_set['DM']
 
 partner = make_default_model('sbertNet_lin_tuned')
 partner.load_model('7.20models/swap_holdouts/swap1/sbertNet_lin_tuned/', suffix='_seed'+str(seed))
 
 perf, _ = encoder.test_partner_model(partner, decoded_dict=decoded_set)
-perf['instructions'].mean()
+
+from instructRNN.tasks.tasks import TASK_LIST
+perf['instructions'][TASK_LIST.index('DM')]
+perf['others'].mean()
 
 import numpy as np 
 np.mean(perf['instructions'], axis=1)

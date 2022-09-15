@@ -228,12 +228,15 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     
     checkpoint_model_path = file_name+'/'+model_name+'/'+\
                 model_name+'_seed'+str(seed)+'_CHECKPOINT.pt'
+
     for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
                 untuned_model_name+'_seed'+str(seed)+'_FOR_TUNING.pt'
+
     for_tuning_data_path = file_name+'/'+untuned_model_name+\
                 '/seed'+str(seed)+'training_data_FOR_TUNING'
 
     print('\n Attempting to load model checkpoint for tuning')
+
     if not exists(for_tuning_model_path): 
         raise Exception('No model checkpoint for tuning found, train untuned version to create checkpoint \n')
     else:
@@ -245,7 +248,8 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
         #try:
         model.load_state_dict(torch.load(checkpoint_model_path))
         # except:
-        #     model.load_state_dict(torch.load(for_tuning_model_path))
+    else: 
+        model.load_state_dict(torch.load(for_tuning_model_path))
 
 
     #training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
