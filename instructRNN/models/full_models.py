@@ -3,7 +3,6 @@ from instructRNN.models.sensorimotor_models import *
 
 all_models = ['simpleNet', 'simpleNetPlus',
             'comNet', 'comNetPlus',
-            'gptNet', 'gptNet_tuned',
 
             'gptNetXL', 'gptNetXL_tuned',
             'gptNetXL_lin', 'gptNetXL_lin_tuned',
