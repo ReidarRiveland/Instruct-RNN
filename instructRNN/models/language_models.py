@@ -156,30 +156,6 @@ class GPTNeo(TransformerEmbedder):
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
-# class SIF(InstructionEmbedder): 
-#     def __init__(self, config): 
-#         super().__init__(config)
-#         self.load_sent_model()
-#         self._all_instructions = get_all_sentences()
-#         if self.LM_out_dim == None: 
-#             self.out_dim=300
-#         self.LM_intermediate_lang_dim = 300
-#         self.set_train_layers(self.LM_train_layers)
-#         self.__init_proj_out__()
-
-#     def load_sent_model(self, sent_model=SIF): 
-#         wv = Vectors.from_pretrained('glove-wiki-gigaword-300', mmap="r")
-#         self.sent_model = sent_model(wv, workers=1, lang_freq='en')        
-
-#     def get_embedding_vecs(self, instructions): 
-#         tmp = [(instruct.split(), i) for i, instruct in enumerate(instructions)]
-#         embeddings = self.sif_model.infer(tmp)
-#         return embeddings
-
-#     def forward(self, x):
-#         sif_embedded = torch.Tensor(self.get_embedding_vecs(x)).to(self.__device__)
-#         sif_out = self.proj_out(sif_embedded).to(self.__device__)
-#         return sif_out
 
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()

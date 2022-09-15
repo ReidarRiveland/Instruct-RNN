@@ -38,6 +38,8 @@ if __name__ == "__main__":
                 layer_list = ['task']
             elif model in full_models.big_models: 
                 layer_list = [str(layer) for layer in range(1, 25)] + ['full', 'task']
+            elif 'bow' in model: 
+                layer_list = ['bow', 'full', 'task']
             else: 
                 layer_list = [str(layer) for layer in range(1, 13)] + ['full', 'task']
             

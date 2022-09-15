@@ -4,21 +4,21 @@ from instructRNN.models.full_models import *
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
 
-plot_avg_holdout_curve('7.20models', 'swap', [ 'bertNet_lin'])
+# plot_avg_holdout_curve('7.20models', 'swap', [ 'bertNet_lin'])
 
 
-plot_avg_holdout_curve('7.20models', 'swap', 
-                                ['sbertNet_lin_tuned', 'sbertNet', 'sbertNet_tuned', 
-                                'bertNet', 'bertNet_tuned', 'clipNet', 'clipNet_tuned', 'simpleNet', 'bowNet', 'gptNetXL'], 
-                                emphasis_list=['sbertNet_lin_tuned', 'simpleNet', 'bowNet', 'gptNetXL']
-                                )
+# plot_avg_holdout_curve('7.20models', 'swap', 
+#                                 ['sbertNet_lin_tuned', 'sbertNet', 'sbertNet_tuned', 
+#                                 'bertNet', 'bertNet_tuned', 'clipNet', 'clipNet_tuned', 'simpleNet', 'bowNet', 'gptNetXL'], 
+#                                 emphasis_list=['sbertNet_lin_tuned', 'simpleNet', 'bowNet', 'gptNetXL']
+#                                 )
 
 
 
 EXP_FILE = '7.20models/swap_holdouts'
-sbertNet = BoWNet(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap0'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
+bowNet = BoWNet(LM_out_dim=64, rnn_hidden_dim=256)
+from instructRNN.analysis.model_analysis import get_instruct_reps
+
 
 
 

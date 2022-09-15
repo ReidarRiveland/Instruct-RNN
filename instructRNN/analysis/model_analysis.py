@@ -9,7 +9,7 @@ from sklearn.manifold import TSNE
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import _draw_ortho_dirs, DMFactory, TRIAL_LEN, _get_default_intervals, max_var_dir
 from instructRNN.tasks.task_criteria import isCorrect
-from instructRNN.instructions.instruct_utils import train_instruct_dict, get_task_info, get_instruction_dict
+from instructRNN.instructions.instruct_utils import train_instruct_dict, get_task_info, get_instruction_dict, sort_vocab
 
 import sklearn.svm as svm
 from instructRNN.models.full_models import make_default_model
@@ -64,6 +64,8 @@ def get_multitask_val_performance(model, foldername, seeds=np.array(range(5))):
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
     if depth.isnumeric(): 
         rep_dim = 768
+    elif depth == 'bow': 
+        rep_dim = len(sort_vocab())
     else: 
         rep_dim = langModel.LM_out_dim 
 
@@ -75,6 +77,11 @@ def get_instruct_reps(langModel, depth='full', instruct_mode=None):
             instructions = instruct_dict[task]    
             if depth == 'full':   
                 out_rep = langModel(list(instructions))
+            elif depth == 'bow': 
+                out_rep_list = []
+                for instruct in list(instructions):
+                    out_rep_list.append(langModel._make_freq_tensor(instruct))
+                out_rep = torch.stack(out_rep_list)
             elif depth.isnumeric(): 
                 out_rep = torch.mean(langModel.forward_transformer(list(instructions))[1][int(depth)], dim=1)
             instruct_reps[i, :, :] = out_rep
