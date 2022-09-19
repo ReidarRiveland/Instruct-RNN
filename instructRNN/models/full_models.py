@@ -7,9 +7,8 @@ all_models = ['simpleNet', 'simpleNetPlus',
             'gptNetXL', 'gptNetXL_tuned',
             'gptNetXL_lin', 'gptNetXL_lin_tuned',
 
-            'gptNet', 'gptNetXL_tuned',
+            #'gptNet', 'gptNetXL_tuned',
             #'gptNet_lin', 'gptNet_lin_tuned',
-
 
             'bertNet', 'bertNet_tuned',
             'bertNet_lin', 'bertNet_lin_tuned',
