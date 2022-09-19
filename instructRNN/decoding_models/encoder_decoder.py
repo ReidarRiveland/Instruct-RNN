@@ -34,13 +34,14 @@ class EncoderDecoder(nn.Module):
         self.init_context_set(task_file, seed)
 
     def init_context_set(self, file_name, seed, context_dim):
-        all_contexts = np.empty((len(TASK_LIST), 128, context_dim))
+        all_contexts = np.empty((len(TASK_LIST), 100, context_dim))
         for i, task in enumerate(TASK_LIST):
+            print('loading '+task)
             try: 
                 #need an underscore
                 filename = file_name+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+'_'+task+'_context_vecs'+str(context_dim)
                 task_contexts = pickle.load(open(filename, 'rb'))
-                all_contexts[i, ...]=task_contexts[:128, :]
+                all_contexts[i, ...]=task_contexts[:100, :]
             #except FileNotFoundError: 
             except: 
                 print(filename)
@@ -90,7 +91,7 @@ class EncoderDecoder(nn.Module):
     def test_partner_model(self, partner_model, num_repeats=1, tasks=TASK_LIST, decoded_dict=None): 
         partner_model.eval()
         if decoded_dict is None: 
-            decoded_dict, _ = self.decode_set(128, from_contexts=True)
+            decoded_dict, _ = self.decode_set(100, from_contexts=True)
 
         perf_dict = {}
         with torch.no_grad():
@@ -101,10 +102,10 @@ class EncoderDecoder(nn.Module):
                     for j, task in enumerate(tasks):
                         print(task)
                         task_info = []
-                        ins, targets, _, target_dirs, _ = construct_trials(task, 128)
+                        ins, targets, _, target_dirs, _ = construct_trials(task, 100)
                         if mode == 'others': 
                             try:
-                                task_info = list(np.random.choice(decoded_dict[task]['other'], 128))
+                                task_info = list(np.random.choice(decoded_dict[task]['other'], 100))
                                 out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), task_info)
                             except ValueError:
                                 continue
