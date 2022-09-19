@@ -83,8 +83,8 @@ def sort_units(norm_task_var):
 
     return cluster_dict, cluster_labels, sorted_indices
 
-#hid_reps = get_hidden_reps(sbertNet, 100, tasks= [task for task in TASK_LIST if 'Con' not in task])
-task_hid_reps = get_task_reps(sbertNet, epoch=None, tasks= [task for task in TASK_LIST if 'Con' not in task], max_var=True, noise=None)
+hid_reps = get_hidden_reps(sbertNet, 100, tasks= [task for task in TASK_LIST if 'Con' not in task])
+#task_hid_reps = get_task_reps(sbertNet, num_trials = 100, epoch=None, tasks= [task for task in TASK_LIST if 'Con' not in task], max_var=True)
 
 norm_task_var = get_norm_task_var(task_hid_reps)
 norm_task_var.shape
