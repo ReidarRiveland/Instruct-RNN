@@ -10,13 +10,13 @@ all_models = ['simpleNet', 'simpleNetPlus',
             #'gptNet', 'gptNetXL_tuned',
             #'gptNet_lin', 'gptNet_lin_tuned',
 
-            'bertNet', 'bertNet_tuned',
+            #'bertNet', 'bertNet_tuned',
             'bertNet_lin', 'bertNet_lin_tuned',
 
-            'sbertNet', 'sbertNet_tuned', 
+            #'sbertNet', 'sbertNet_tuned', 
             'sbertNet_lin', 'sbertNet_lin_tuned',
 
-            'clipNet', 'clipNet_tuned', 
+            #'clipNet', 'clipNet_tuned', 
             'clipNet_lin', 'clipNet_lin_tuned', 
 
             'bowNet', 'bowNet_lin'
