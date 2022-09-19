@@ -10,7 +10,7 @@ from instructRNN.tasks.tasks import SWAPS_DICT, TASK_LIST
 load_str = '7.20models/swap_holdouts/swap0/sbertNet_lin_tuned/'
 
 sm_model = make_default_model('sbertNet_lin_tuned')
-rnn_decoder = DecoderRNN(256, drop_p=0.0)
+rnn_decoder = DecoderRNN(256, drop_p=0.1)
 
 device = torch.device(0)
 
@@ -29,17 +29,25 @@ encoder.init_context_set('7.20models/swap_holdouts/swap0', 0, 768)
 encoder.contexts
 
 
-decoded_set = encoder.plot_confuse_mat(128, 2, from_contexts=True)
+decoded_set = encoder.plot_confuse_mat(100, 2, from_contexts=True)
 
-decoded_set['DM']
+decoded_set['RTGo']
 
 partner = make_default_model('sbertNet_lin_tuned')
-partner.load_model('7.20models/swap_holdouts/swap1/sbertNet_lin_tuned/', suffix='_seed'+str(seed))
+partner.load_model('7.20models/multitask_holdouts/Multitask/sbertNet_lin_tuned/', suffix='_seed'+str(seed))
 
 perf, _ = encoder.test_partner_model(partner, decoded_dict=decoded_set)
 
+
+
+
+
+
+
 from instructRNN.tasks.tasks import TASK_LIST
-perf['instructions'][TASK_LIST.index('DM')]
+
+perf['instructions'][TASK_LIST.index('AntiDMMod2')]
+
 perf['others'].mean()
 
 import numpy as np 
