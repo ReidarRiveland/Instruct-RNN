@@ -41,7 +41,7 @@ class TrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_gamma: float = 0.99
+    scheduler_gamma: float = 0.9
     scheduler_args: dict = {}
 
     save_for_tuning_epoch: int = 30
