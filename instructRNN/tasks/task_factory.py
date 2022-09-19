@@ -104,11 +104,12 @@ def _get_default_intervals(num_trials):
 def max_var_dir(num_trials, mod, multi, num_stims, shuffle=False): 
     mod_dirs = _max_var_dir(num_trials, num_stims, shuffle)
     if mod is not None: 
-        _mod_dirs = _max_var_dir(num_trials, num_stims, shuffle=True)
+        _mod_dirs = _max_var_dir(num_trials, num_stims, shuffle=shuffle)
         if mod == 0: dirs = np.array([mod_dirs, _mod_dirs])
         else: dirs = np.array([_mod_dirs, mod_dirs])
     elif multi: 
-        _mod_dirs = mod_dirs
+        _mod_dirs = _max_var_dir(num_trials, num_stims, shuffle=shuffle)
+        dirs = np.array([mod_dirs, _mod_dirs])
     else: 
         _mod_dirs = np.full_like(mod_dirs, np.NaN)
         dirs = _permute_mod(np.random.permutation(np.array([mod_dirs, _mod_dirs])))
@@ -409,7 +410,7 @@ class DMFactory(TaskFactory):
         self.multi = multi
 
         if max_var: 
-            dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
+            dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2, shuffle=True)
             coh_arr = max_var_coh(self.num_trials)
             intervals = _get_default_intervals(self.num_trials)
 
@@ -562,7 +563,7 @@ class DurFactory(TaskFactory):
         self.multi = multi
 
         if max_var: 
-            dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
+            dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2, shuffle=True)
             dur_arr = max_var_dur(self.num_trials, self.multi)
 
         if main_var:
@@ -650,7 +651,7 @@ class COMPFactory(TaskFactory):
         self.multi = multi
 
         if max_var: 
-            dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2)
+            dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2, shuffle=True)
             coh_arr = max_var_coh(self.num_trials)
             intervals = _get_default_intervals(self.num_trials)
 
