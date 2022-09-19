@@ -265,6 +265,35 @@ def get_dich_CCGP(reps, dich, holdouts_involved=[]):
 
     return decoding_score_arr, np.mean(holdouts_score_list)
 
+def get_multitask_CCGP(exp_folder, model_name, seed, save=False, layer='task'):
+    multi_CCGP = np.full((len(TASK_LIST), len(DICH_DICT)), np.NAN)
+    model = make_default_model(model_name)
+    model.load_model(exp_folder+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
+
+    if layer == 'task':
+        reps = get_task_reps(model, num_trials = 100,  main_var=True)
+    else: 
+        reps = get_instruct_reps(model.langModel, depth=layer)
+    
+    for i, dich in enumerate(DICH_DICT.values()):
+        decoding_score_arr, _ = get_dich_CCGP(reps, dich)
+        decoding_score = np.mean(decoding_score_arr)
+        for task in dich[0]+dich[1]: 
+            multi_CCGP[TASK_LIST.index(task), i] = decoding_score
+    
+
+    task_holdout_scores = np.nanmean(multi_CCGP, axis=1)
+    dich_holdout_scores = np.nanmean(multi_CCGP, axis=0)
+
+    if save:
+        file_path = exp_folder+'/CCGP_scores/'+model_name
+        if os.path.exists(file_path):
+            pass
+        else: os.makedirs(file_path)
+        np.save(file_path+'/'+'layer'+layer+'_task_multi_seed'+str(seed), task_holdout_scores)
+        np.save(file_path+'/'+'layer'+layer+'_dich_multi_seed'+str(seed), dich_holdout_scores)
+
+
 
 def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array): 
     for i, values in enumerate(DICH_DICT.items()): 

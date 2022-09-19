@@ -36,15 +36,15 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None), 'simpleNetPlus': (Blue, '+'),
                     'comNet': (lightBlue, 'None'), 'comNetPlus': (lightBlue, '+'), 
                     'clipNet': (Yellow, None), 'clipNet_tuned': (Yellow, 'v'), 
                     'bowNet': (Orange, None), 'bowNet_lin': (Orange, 'X'), 
-                    'gptNet': (Red, None),'gptNet_tuned': (Red, 'v'), 
-                    'gptNetXL': (Red, 'd'), 'gptNetXL_tuned': (Red, 'D'), 
+                    'gptNetXL': (Red, None), 'gptNetXL_tuned': (Red, 'v'), 
+                    'gptNetXL_lin': (Red, 'X'), 'gptNetXL_tuned': (Red, '*'), 
                     'bertNet': (Green, None), 'bertNet_tuned': (Green, 'v'),  
                     'sbertNet': (Purple, None), 'sbertNet_tuned': (Purple, 'v'),
                     'sbertNet_lin': (Purple, 'X'), 'sbertNet_lin_tuned': (Purple, '*')}
 
 def get_task_color(task): 
     index = TASK_LIST.index(task)
-    return plt.get_cmap('Paired')(index%8)
+    return plt.get_cmap('Paired')(index%12)
 
 
 plt.rcParams['figure.dpi'] = 300
@@ -524,57 +524,77 @@ def plot_CCGP_scores(model_list, rep_type_file_str = '', plot_swaps=False):
 
 
 
+def plot_layer_ccgp(model_name): 
+    layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
+    all_holdout_ccgp = np.empty((50, len(layer_list)))
+    folder_path = '7.20models/swap_holdouts/CCGP_scores/sbertNet_lin_tuned'
+    for i, layer in enumerate(layer_list): 
+        all_holdout_ccgp[:, i] = np.load(folder_path+'/layer'+layer+'_task_holdout_seed0.npy')
+
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+    axn.set_ylim(0.45, 1.0)
+    axn.set_xticks(range(len(layer_list)))
+    axn.set_xticklabels(layer_list)
+
+    axn.scatter(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=0), marker=MODEL_STYLE_DICT[model_name][1], c=MODEL_STYLE_DICT[model_name][0])
+    plt.show()
+
+
+
+
+
+# def plot_0_shot_spider(model_name, folder_name, exp_name, perf_type='correct', **kwargs):
+#     data = HoldoutDataFrame(folder_name, exp_name, model_name, perf_type=perf_type)
+#     zero_shot = np.nanmean(data.get_k_shot(0), axis=0)
+#     labels = TASK_LIST
+
+#     angles = np.linspace(0, 2*np.pi, len(labels), endpoint=False)
+#     stats = np.concatenate((zero_shot,[zero_shot[0]]))
+#     angles = np.concatenate((angles,[angles[0]]))
+
+#     fig = plt.figure()
+#     ax = fig.add_subplot(111, polar=True)
+#     ax.plot(angles, stats, 'o-', linewidth=2)
+#     ax.fill(angles, stats, alpha=0.25)
+#     ax.set_thetagrids(angles * 180/np.pi, labels)
+#     ax.grid(True)
+
+
+
+#     return plt.show()
+
+
+
+# import plotly.graph_objects as go
 # def plot_0_shot_spider(model_list, folder_name, exp_name, perf_type='correct', **kwargs):
-#     plt.subplot(polar=True)
-#     label_loc = np.linspace(start=0, stop=2 * np.pi, num=len(TASK_LIST))
+#     fig = go.Figure()
 #     for model_name in model_list:
 #         data = HoldoutDataFrame(folder_name, exp_name, model_name, perf_type=perf_type)
 #         zero_shot = np.nanmean(data.get_k_shot(0), axis=0)
-#         plt.plot(label_loc, zero_shot, c=MODEL_STYLE_DICT[model_name][0], **kwargs)
-#     lines, labels = plt.thetagrids(np.degrees(label_loc), labels=None)
-#     plt.legend()
-#     plt.show()
+#         fig.add_trace(go.Scatterpolar(
+#             r=zero_shot,
+#             theta=TASK_LIST,
+#             opacity=0.1,
+#             name=model_name,
+#             line = dict(
+#                 color = MODEL_STYLE_DICT[model_name][0]
+#             ),
+#             fill = 'toself'
+#             ))
 
+#     fig.update_layout(
+#     polar=dict(
+#         angularaxis=dict(
+#         visible=True,
+#         rotation = 90, 
+#         direction = 'clockwise',
+#         tickmode = 'auto',
+#         )),
 
+#     showlegend=False
+#     )
 
-
-# simple_data = HoldoutDataFrame('7.20models', 'swap', 'simpleNet', perf_type='correct')
-# sbert_data = HoldoutDataFrame('7.20models', 'swap', 'sbertNet_lin_tuned', perf_type='correct')
-# gpt_data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL', perf_type='correct')
-# gpt_data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL', perf_type='correct')
-
-
-# sbert_zero_shot = np.mean(sbert_data.get_k_shot(0), axis=0)
-# simple_zero = np.mean(simple_data.get_k_shot(0), axis=0)
-# gpt_zero = np.nanmean(gpt_data.get_k_shot(0), axis=0)
-
-
-
-import plotly.graph_objects as go
-def plot_0_shot_spider(model_list, folder_name, exp_name, perf_type='correct', **kwargs):
-    fig = go.Figure()
-    for model_name in model_list:
-        data = HoldoutDataFrame(folder_name, exp_name, model_name, perf_type=perf_type)
-        zero_shot = np.nanmean(data.get_k_shot(0), axis=0)
-        fig.add_trace(go.Scatterpolar(
-            r=zero_shot,
-            theta=TASK_LIST,
-            opacity=0.5,
-            fill='toself',
-            name=model_name,
-            fillcolor = MODEL_STYLE_DICT[model_name][0]
-            ))
-
-    fig.update_layout(
-    polar=dict(
-        radialaxis=dict(
-        visible=True,
-        range=[0, 1]
-        )),
-    showlegend=False
-    )
-
-    fig.show()
+#     fig.show()
 
 
 
