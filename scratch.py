@@ -171,8 +171,8 @@ from instructRNN.plotting.plotting import *
 EXP_FILE = '7.20models/swap_holdouts'
 sbertNet = SBERTNet_lin_tuned()
 
-holdouts_file = 'swap2'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
+holdouts_file = 'swap9'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed4')
 
 task_eval(sbertNet, 'AntiDM', 128)
 
