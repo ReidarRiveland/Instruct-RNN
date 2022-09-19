@@ -7,6 +7,10 @@ all_models = ['simpleNet', 'simpleNetPlus',
             'gptNetXL', 'gptNetXL_tuned',
             'gptNetXL_lin', 'gptNetXL_lin_tuned',
 
+            'gptNet', 'gptNetXL_tuned',
+            'gptNet_lin', 'gptNet_lin_tuned',
+
+
             'bertNet', 'bertNet_tuned',
             'bertNet_lin', 'bertNet_lin_tuned',
 
@@ -15,6 +19,7 @@ all_models = ['simpleNet', 'simpleNetPlus',
 
             'clipNet', 'clipNet_tuned', 
             'clipNet_lin', 'clipNet_lin_tuned', 
+
             'bowNet', 'bowNet_lin'
             ]
 
@@ -66,6 +71,26 @@ class GPTNet_tuned(InstructNet):
         config = InstructModelConfig('gptNet_tuned', 
                                 LM_class=GPT, 
                                 LM_load_str = 'gpt2',
+                                LM_train_layers=['9', '10', '11', 'ln_f'],
+                                **kw_args)
+        super().__init__(config)
+
+class GPTNet_lin(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('gptNet_lin', 
+                                LM_class=GPT, 
+                                LM_load_str = 'gpt2',
+                                LM_output_nonlinearity='lin',
+                                LM_train_layers=[],
+                                **kw_args)
+        super().__init__(config)
+
+class GPTNet_lin_tuned(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('gptNet_lin_tuned', 
+                                LM_class=GPT, 
+                                LM_load_str = 'gpt2',
+                                LM_output_nonlinearity='lin',
                                 LM_train_layers=['9', '10', '11', 'ln_f'],
                                 **kw_args)
         super().__init__(config)
@@ -269,6 +294,10 @@ def make_default_model(model_str):
         return GPTNet()
     if model_str == 'gptNet_tuned': 
         return GPTNet_tuned()
+    if model_str == 'gptNet_lin': 
+        return GPTNet_lin()
+    if model_str == 'gptNet_lin_tuned': 
+        return GPTNet_lin_tuned()
     if model_str == 'bertNet': 
         return BERTNet()
     if model_str == 'bertNet_tuned': 

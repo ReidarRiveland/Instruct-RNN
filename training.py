@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
         if args.mode == 'train': 
             from instructRNN.trainers.model_trainer import *
-            train_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)     
+            train_model(EXP_FOLDER, model, _seed, holdouts, use_checkpoint = args.use_checkpoint, overwrite=args.overwrite)     
 
         if args.mode == 'tune': 
             from instructRNN.trainers.model_trainer import *

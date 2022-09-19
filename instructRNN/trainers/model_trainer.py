@@ -202,7 +202,7 @@ def check_already_tested(file_name, seed, task, mode):
     except FileNotFoundError:
         return False
 
-def train_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, **train_config_kwargs): 
+def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=False, overwrite=False, **train_config_kwargs): 
     torch.manual_seed(seed)
 
     label, holdouts = labeled_holdouts
@@ -213,57 +213,79 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False,
     model = make_default_model(model_name)
     trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
     trainer = ModelTrainer(trainer_config)
+
+    if use_checkpoint: 
+        checkpoint_model_path = file_name+'/'+\
+                model_name+'_seed'+str(seed)+'_CHECKPOINT.pt'
+
+        print('\n Attempting to load model CHECKPOINT')
+        if not exists(checkpoint_model_path): 
+            raise Exception('No model checkpoint found at' + checkpoint_model_path)
+        else:
+            print('loaded model at '+ checkpoint_model_path)
+        
+        #model.load_state_dict(torch.load(checkpoint_model_path), map_location='cpu')
+        data_checkpoint_path = file_name+'/attrs/'+model_name+\
+                '_seed'+str(seed)+'_CHECKPOINT_attrs'
+        data_checkpoint = pickle.load(open(data_checkpoint_path, 'rb'))
+        trainer.correct_data = data_checkpoint['correct_data']
+        trainer.loss_data = data_checkpoint['loss_data']
+    
     is_trained = trainer.train(model)
     return is_trained
 
 def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, use_checkpoint=False, **train_config_kwargs): 
+    assert 'tuned' in model_name
     torch.manual_seed(seed)
-    
     label, holdouts = labeled_holdouts
     untuned_model_name = model_name.replace('_tuned', '')
     file_name = exp_folder+'/'+label
-    
+
     if check_already_trained(file_name+'/'+model_name, seed, 'tuning') and not overwrite:
         return True
-    
-    checkpoint_model_path = file_name+'/'+model_name+'/'+\
-                model_name+'_seed'+str(seed)+'_CHECKPOINT.pt'
-
-    for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
-                untuned_model_name+'_seed'+str(seed)+'_FOR_TUNING.pt'
-
-    for_tuning_data_path = file_name+'/'+untuned_model_name+\
-                '/seed'+str(seed)+'training_data_FOR_TUNING'
-
-    print('\n Attempting to load model checkpoint for tuning')
-
-    if not exists(for_tuning_model_path): 
-        raise Exception('No model checkpoint for tuning found, train untuned version to create checkpoint \n')
-    else:
-        print('loaded model at '+ for_tuning_model_path)
-        
 
     model = make_default_model(model_name)
+
     if use_checkpoint: 
-        #try:
+        checkpoint_model_path = file_name+'/'+model_name+'/'+\
+                model_name+'_seed'+str(seed)+'_CHECKPOINT.pt'
+
+        print('\n Attempting to load model CHECKPOINT')
+        if not exists(checkpoint_model_path): 
+            raise Exception('No model checkpoint found \n')
+        else:
+            print('loaded model at '+ checkpoint_model_path)
+        
         model.load_state_dict(torch.load(checkpoint_model_path))
-        # except:
+        data_checkpoint_path = file_name+'/'+model_name+'/attrs/'+model_name+\
+                '_seed'+str(seed)+'_CHECKPOINT_attrs'
+
     else: 
+        for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
+                untuned_model_name+'_seed'+str(seed)+'_FOR_TUNING.pt'
+
+        print('\n Attempting to load model FOR_TUNING')
+        if not exists(for_tuning_model_path): 
+            raise Exception('No model FOR TUNING found, train untuned version to create checkpoint \n')
+        else:
+            print('loaded model at '+ for_tuning_model_path)
+        
         model.load_state_dict(torch.load(for_tuning_model_path))
+        data_checkpoint_path = file_name+'/'+untuned_model_name+\
+                '/seed'+str(seed)+'training_data_FOR_TUNING'
 
 
-    #training_data_checkpoint = pickle.load(open(for_tuning_data_path, 'rb'))
     tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
                                     epochs=35, min_run_epochs=5, lr=2e-5, lang_lr=1e-5, scheduler_gamma=0.99,
                                     save_for_tuning_epoch=np.nan, 
                                     **train_config_kwargs)
 
-    #trainer = ModelTrainer(tuning_config, from_checkpoint_dict=training_data_checkpoint)
+    
     trainer = ModelTrainer(tuning_config)
+    data_checkpoint = pickle.load(open(data_checkpoint_path, 'rb'))
+    trainer.correct_data = data_checkpoint['correct_data']
+    trainer.loss_data = data_checkpoint['loss_data']
     is_tuned = trainer.train(model, is_tuning=True)
-    # if is_tuned:
-    #     os.remove(for_tuning_model_path)
-    #     os.remove(for_tuning_data_path)
     return is_tuned
 
 def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, overwrite=False, repeats=5, **train_config_kwargs): 

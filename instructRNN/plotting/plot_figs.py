@@ -5,14 +5,14 @@ from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
 
 
-plot_all_holdout_curves('7.20models', 'swap', [ 'gptNetXL_lin', 'gptNetXL'])
+plot_avg_holdout_curve('7.20models', 'swap', [ 'clipNet_lin_tuned', 'sbertNet_lin_tuned', 'bowNet_lin'])
 
 
-# plot_avg_holdout_curve('7.20models', 'swap', 
-#                                 ['sbertNet_lin_tuned', 'sbertNet', 'sbertNet_tuned', 
-#                                 'bertNet', 'bertNet_tuned', 'clipNet', 'clipNet_tuned', 'simpleNet', 'bowNet', 'gptNetXL'], 
-#                                 emphasis_list=['sbertNet_lin_tuned', 'simpleNet', 'bowNet', 'gptNetXL']
-#                                 )
+plot_avg_holdout_curve('7.20models', 'swap', 
+                                ['sbertNet_lin_tuned', 'sbertNet', 'sbertNet_tuned', 'bowNet_lin', 'clipNet_lin', 'clipNet_lin_tuned',
+                                'bertNet', 'bertNet_tuned', 'clipNet', 'clipNet_tuned', 'simpleNet', 'bowNet', 'gptNetXL_tuned', 'gptNetXL'], 
+                                emphasis_list=['sbertNet_lin_tuned', 'simpleNet', 'bowNet', 'gptNetXL_tuned', 'clipNet_lin_tuned', 'clipNet_lin'], seeds=[0]
+                                )
 
 
 

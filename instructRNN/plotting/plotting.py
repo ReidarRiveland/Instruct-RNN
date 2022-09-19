@@ -35,6 +35,8 @@ Purple = '#512DA8'
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None), 'simpleNetPlus': (Blue, '+'), 
                     'comNet': (lightBlue, 'None'), 'comNetPlus': (lightBlue, '+'), 
                     'clipNet': (Yellow, None), 'clipNet_tuned': (Yellow, 'v'), 
+                    'clipNet_lin': (Yellow, 'X'), 'clipNet_lin_tuned': (Yellow, '*'), 
+
                     'bowNet': (Orange, None), 'bowNet_lin': (Orange, 'X'), 
                     'gptNetXL': (Red, None), 'gptNetXL_tuned': (Red, 'v'), 
                     'gptNetXL_lin': (Red, 'X'), 'gptNetXL_tuned': (Red, '*'), 
