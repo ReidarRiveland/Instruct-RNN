@@ -76,10 +76,11 @@ if __name__ == "__main__":
 
         if args.mode == 'context' or args.mode == 'c': 
             from instructRNN.trainers.context_trainer import *
-            if not len(holdouts): 
+            if not len(holdouts[1]): 
                 tasks = TASK_LIST
             else: 
-                tasks = holdouts
+                tasks = list(holdouts[1])
+            print(tasks)
             train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, 
                                 lr=0.01, num_contexts=100, tasks=tasks)
 
