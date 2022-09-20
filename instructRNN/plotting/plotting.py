@@ -17,6 +17,7 @@ import seaborn as sns
 import matplotlib.patches as mpatches
 from matplotlib import colors, cm
 from matplotlib.lines import Line2D
+from matplotlib.ticker import MaxNLocator
 import matplotlib
 import torch
 
@@ -27,10 +28,11 @@ import warnings
 Blue = '#1C3FFD'
 lightBlue='#ACF0F2'
 Green = '#45BF55'
-Red = '#94090D'
-Orange = '#FA9600'
+Red = '#FF0000'
+Orange = '#FFA500'
 Yellow = '#FFEE58'
-Purple = '#512DA8'
+Purple = '#800080'
+
 
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None), 'simpleNetPlus': (Blue, '+'), 
                     'comNet': (lightBlue, 'None'), 'comNetPlus': (lightBlue, '+'), 
@@ -49,13 +51,11 @@ def get_task_color(task):
     index = TASK_LIST.index(task)
     return plt.get_cmap('Paired')(index%12)
 
-
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
 
 from matplotlib import rc
 plt.rcParams["font.family"] = "serif"
-
 
 
 def split_axes():
@@ -73,7 +73,7 @@ def split_axes():
     axn.spines['right'].set_visible(False)
     ax2.spines['left'].set_visible(False)
 
-    axn.set_ylim(-0.05, 1.05)
+    axn.set_ylim(0.0, 1.0)
 
     axn.xaxis.set_tick_params(labelsize=8)
     ax2.xaxis.set_tick_params(labelsize=8)
@@ -100,41 +100,46 @@ def _make_model_legend(model_list):
                     markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=4))
     plt.legend(handles=Patches)
 
-def plot_avg_holdout_curve(foldername, exp_type, model_list,  emphasis_list =[], perf_type='correct', plot_swaps = False, seeds=range(5), split=False):
-    if split: 
-        fig, axn, ax2 = split_axes()
-    else: 
-        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
-        axn.set_ylim(-0.05, 1.05)
-        axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
-        axn.set_xlabel('Training Exmaples', size=8, fontweight='bold')
+def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct', plot_swaps = False, seeds=range(5), split=False):
+    with plt.style.context('ggplot'):
+        if split: 
+            fig, axn, ax2 = split_axes()
+        else: 
+            fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+            fig.suptitle('Performance on Novel Tasks')
+            axn.set_ylim(0.0, 1.0)
+            axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+            axn.set_xlabel('Exposures to Novel Task', size=8, fontweight='bold')
 
-        axn.xaxis.set_tick_params(labelsize=10)
-        axn.yaxis.set_tick_params(labelsize=10)
-        axn.set_yticks(np.linspace(0, 1, 11))
+            axn.xaxis.set_tick_params(labelsize=8)
+            axn.yaxis.set_tick_params(labelsize=8)
+            axn.yaxis.set_major_locator(MaxNLocator(10)) 
+            axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
 
-    for model_name in model_list:
-        if model_name in emphasis_list: alpha = 1.0
-        else: alpha = 0.25
+            #axn.set_yticks(np.linspace(0, 100, 11))
 
-        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
-        mean, std = data.avg_tasks()
-        _plot_performance_curve(mean, std, axn, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5, alpha=alpha)
+        axn.spines['top'].set_visible(False)
+        axn.spines['right'].set_visible(False)
 
-        if plot_swaps: 
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
+        for model_name in model_list:
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
             mean, std = data.avg_tasks()
-            _plot_performance_curve(mean, std, axn, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5, alpha=alpha)
+            _plot_performance_curve(mean, std, axn, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
 
-        if split:
-            _plot_performance_curve(mean, std, ax2, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
             if plot_swaps: 
                 data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
                 mean, std = data.avg_tasks()
-                _plot_performance_curve(mean, std, ax2, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
+                _plot_performance_curve(mean, std, axn, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
 
-    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
-    plt.show()
+            if split:
+                _plot_performance_curve(mean, std, ax2, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
+                if plot_swaps: 
+                    data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
+                    mean, std = data.avg_tasks()
+                    _plot_performance_curve(mean, std, ax2, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
+
+        fig.legend(labels=model_list, loc=2, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
+        plt.show()
 
 def plot_all_curves(dataframe, axn, **plt_args):
     for j, task in enumerate(TASK_LIST):
@@ -145,6 +150,32 @@ def plot_all_curves(dataframe, axn, **plt_args):
         ax.yaxis.set_tick_params(labelsize=10)
         mean, std = dataframe.avg_seeds(task=task)
         _plot_performance_curve(mean, std, ax, dataframe.model_name, **plt_args)
+
+
+
+def plot_0_shot_lolli(foldername, exp_type, model_list,  perf_type='correct', seeds=range(5)):
+    with plt.style.context('ggplot'):
+
+        plt_range = range(len(TASK_LIST))
+        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+        #axn.hlines(y=plt_range, xmin=0, xmax=1, color='skyblue')
+        for model_name in model_list: 
+            if MODEL_STYLE_DICT[model_name][1] is None: 
+                marker = 'o'
+            else: 
+                marker = MODEL_STYLE_DICT[model_name][1]
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
+            zero_shot = np.mean(data.get_k_shot(0), axis = 0)
+            axn.plot(zero_shot[::-1], plt_range, marker, markersize=0.5, color=MODEL_STYLE_DICT[model_name][0])
+        #axn.yaxis.set_major_locator(MaxNLocator(len(TASK_LIST))) 
+        axn.set_yticks(plt_range)
+        axn.set_xticks(np.linspace(0, 1, 6))
+        axn.set_ylim(-1, len(TASK_LIST))
+        axn.set_yticklabels(TASK_LIST[::-1], fontsize=4) 
+
+        plt.show()
+
+
 
 def plot_all_holdout_curves(foldername, exp_type, model_list,  perf_type='correct', seeds=range(5), plot_swap=False):
     fig, axn = plt.subplots(5,10, sharey = True, sharex=True, figsize =(8, 8))
