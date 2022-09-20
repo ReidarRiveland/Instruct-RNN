@@ -27,10 +27,10 @@ class ContextTrainerConfig():
     context_dim: int    
     num_contexts: int = 128
 
-    epochs: int = 10
+    epochs: int = 15
     min_run_epochs: int = 1
     batch_len: int = 64
-    num_batches: int = 500
+    num_batches: int = 800
     stream_data: bool = False
 
     optim_alg: optim = optim.Adam

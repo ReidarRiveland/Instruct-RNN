@@ -274,7 +274,6 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
         data_checkpoint_path = file_name+'/'+untuned_model_name+\
                 '/seed'+str(seed)+'training_data_FOR_TUNING'
 
-
     tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
                                     epochs=35, min_run_epochs=5, lr=2e-5, lang_lr=1e-5, scheduler_gamma=0.99,
                                     save_for_tuning_epoch=np.nan, 
