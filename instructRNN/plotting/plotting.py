@@ -34,15 +34,16 @@ Purple = '#512DA8'
 
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None), 'simpleNetPlus': (Blue, '+'), 
                     'comNet': (lightBlue, 'None'), 'comNetPlus': (lightBlue, '+'), 
-                    'clipNet': (Yellow, None), 'clipNet_tuned': (Yellow, 'v'), 
-                    'clipNet_lin': (Yellow, 'X'), 'clipNet_lin_tuned': (Yellow, '*'), 
-
-                    'bowNet': (Orange, None), 'bowNet_lin': (Orange, 'X'), 
+                    #'clipNet': (Yellow, None), 'clipNet_tuned': (Yellow, 'v'), 
+                    'clipNet_lin': (Yellow, 'None'), 'clipNet_lin_tuned': (Yellow, 'v'), 
+                    #'bowNet': (Orange, None), 
+                    'bowNet_lin': (Orange, None), 
                     'gptNetXL': (Red, None), 'gptNetXL_tuned': (Red, 'v'), 
                     'gptNetXL_lin': (Red, 'X'), 'gptNetXL_tuned': (Red, '*'), 
-                    'bertNet': (Green, None), 'bertNet_tuned': (Green, 'v'),  
-                    'sbertNet': (Purple, None), 'sbertNet_tuned': (Purple, 'v'),
-                    'sbertNet_lin': (Purple, 'X'), 'sbertNet_lin_tuned': (Purple, '*')}
+                    #'bertNet': (Green, None), 'bertNet_tuned': (Green, 'v'),  
+                    'bertNet_lin': (Green, None), 'bertNet_lin_tuned': (Green, 'v'),  
+                    #'sbertNet': (Purple, None), 'sbertNet_tuned': (Purple, 'v'),
+                    'sbertNet_lin': (Purple, None), 'sbertNet_lin_tuned': (Purple, 'v')}
 
 def get_task_color(task): 
     index = TASK_LIST.index(task)
