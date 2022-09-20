@@ -82,7 +82,7 @@ if __name__ == "__main__":
                 tasks = list(holdouts[1])
             print(tasks)
             train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, 
-                                lr=0.05, num_contexts=100, tasks=tasks)
+                                lr=0.008, num_contexts=100, tasks=tasks)
 
         if args.mode == 'decoder' or args.mode == 'd': 
             from instructRNN.trainers.decoder_trainer import *
