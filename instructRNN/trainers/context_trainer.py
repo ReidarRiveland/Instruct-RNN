@@ -38,10 +38,10 @@ class ContextTrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.99}
+    scheduler_args: dict = {'gamma': 0.95}
 
     checker_threshold: float = 0.95
-    step_last_lr: bool = False
+    step_last_lr: bool = True
 
 class ContextTrainer(BaseTrainer): 
     def __init__(self, context_training_config: ContextTrainerConfig = None, from_checkpoint_dict:dict = None): 
