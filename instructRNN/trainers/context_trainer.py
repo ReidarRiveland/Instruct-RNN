@@ -44,8 +44,8 @@ class ContextTrainerConfig():
     step_last_lr: bool = True
 
 class ContextTrainer(BaseTrainer): 
-    def __init__(self, context_training_config: ContextTrainerConfig = None, from_checkpoint_dict:dict = None): 
-        super().__init__(context_training_config, from_checkpoint_dict)
+    def __init__(self, context_training_config: ContextTrainerConfig = None): 
+        super().__init__(context_training_config)
 
     def _record_session(self, contexts, task):
         if os.path.exists(self.file_path):pass

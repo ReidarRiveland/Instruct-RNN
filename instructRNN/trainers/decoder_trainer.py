@@ -38,17 +38,13 @@ class DecoderTrainerConfig():
     
 
 class DecoderTrainer(BaseTrainer):
-    def __init__(self, config:DecoderTrainerConfig=None, from_checkpoint_dict:dict=None): 
+    def __init__(self, config:DecoderTrainerConfig=None): 
         
         self.config = asdict(config, recurse=False)
         self.cur_epoch = 0 
         self.cur_step = 0
         self.teacher_loss_data = []
         self.loss_data = []
-
-        if from_checkpoint_dict is not None: 
-            for name, value in from_checkpoint_dict.items(): 
-                setattr(self, name, value)
 
         for name, value in self.config.items(): 
             setattr(self, name, value)
