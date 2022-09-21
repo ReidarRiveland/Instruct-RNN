@@ -1,3 +1,4 @@
+from typing import OrderedDict
 from instructRNN.models.language_models import *
 from instructRNN.models.sensorimotor_models import *
 
@@ -151,7 +152,6 @@ class BERTNet_tuned(InstructNet):
                                     LM_class= BERT,
                                     LM_load_str = 'bert-base-uncased',
                                     LM_output_nonlinearity='lin',
-
                                     LM_train_layers=['9', '10', '11', 'pooler'],
                                     **kw_args)
         super().__init__(config)
@@ -335,6 +335,3 @@ def make_default_model(model_str):
         return BoWNet_lin()
     else: 
         raise Exception('Model not found in make_default_model function, make sure its included there')
-
-
-

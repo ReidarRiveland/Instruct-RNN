@@ -1,3 +1,4 @@
+from email.policy import strict
 import torch
 from torch import optim
 import numpy as np
@@ -30,7 +31,7 @@ class TrainerConfig():
     epochs: int = 100
     min_run_epochs: int = 35
     batch_len: int = 64
-    num_batches: int = 24
+    num_batches: int = 150
     holdouts: list = []
     set_single_task: str = None
     stream_data: bool = False
@@ -44,7 +45,7 @@ class TrainerConfig():
     scheduler_gamma: float = 0.9
     scheduler_args: dict = {}
 
-    save_for_tuning_epoch: int = 30
+    save_for_tuning_epoch: int = 10
     checker_threshold: float = 0.95
     step_last_lr: bool = True
     test_repeats: int = None
@@ -122,7 +123,7 @@ class ModelTrainer(BaseTrainer):
 
         if model.info_type=='lang':
             if self.init_lang_lr is None: langLR = self.init_lr 
-            else: langLR = self.lang_lr
+            else: langLR = self.init_lang_lr
             optimizer = optim_alg([
                     {'params' : model.recurrent_units.parameters()},
                     {'params' : model.sensory_motor_outs.parameters()},
@@ -201,12 +202,13 @@ class ModelTrainer(BaseTrainer):
 
                 if self.cur_step%50 == 0:
                     self._print_training_status(task_type)
-                    if not is_testing:
-                        self._record_session(model, mode='CHECKPOINT')
 
                 if self._check_model_training() and not is_testing:
                     self._record_session(model, mode='FINAL')
                     return True
+
+            if not is_testing:
+                self._record_session(model, mode='CHECKPOINT')
 
             if self.scheduler is not None: self.scheduler.step()  
             if self.step_last_lr: self.step_scheduler.step()
@@ -235,13 +237,14 @@ def check_already_tested(file_name, seed, task, mode):
 
 def load_checkpoint(model, file_name, seed): 
     checkpoint_name = model.model_name+'_seed'+str(seed)+'_CHECKPOINT'
-    checkpoint_model_path = model.file_name+'/'+checkpoint_name+'.pt'
+    checkpoint_model_path = file_name+'/'+checkpoint_name+'.pt'
 
     print('\n Attempting to load model CHECKPOINT')
     if not exists(checkpoint_model_path): 
-        raise Exception('No model checkpoint found at' + checkpoint_model_path)
+        raise Exception('No model checkpoint found at ' + checkpoint_model_path)
     else:
-        model.load_state_dict(torch.load(checkpoint_model_path))
+        print(checkpoint_model_path)
+        model.load_state_dict(torch.load(checkpoint_model_path), strict=False)
         print('loaded model at '+ checkpoint_model_path)
     
     checkpoint_path = file_name+'/attrs/'+checkpoint_name
@@ -259,14 +262,14 @@ def load_tuning_checkpoint(model, trainer, file_name, seed):
     else:
         print('loaded model at '+ for_tuning_model_path)
     
-    model.load_state_dict(torch.load(for_tuning_model_path))
+    model.load_state_dict(torch.load(for_tuning_model_path), strict=False)
     data_checkpoint_path = file_name+'/'+untuned_model_name+\
             '/seed'+str(seed)+'training_data_FOR_TUNING'
     
     data_checkpoint = pickle.load(open(data_checkpoint_path, 'rb'))
     trainer.correct_data = data_checkpoint['correct_data']
     trainer.loss_data = data_checkpoint['loss_data']
-    model, trainer
+    return model, trainer
 
 def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=False, overwrite=False, **train_config_kwargs): 
     torch.manual_seed(seed)
@@ -298,11 +301,11 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     model = make_default_model(model_name)
 
     if use_checkpoint: 
-        model, trainer = load_checkpoint(model, file_name, seed)
+        model, trainer = load_checkpoint(model, file_name+'/'+model.model_name, seed)
 
     else: 
         tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
-                                        epochs=35, min_run_epochs=5, lr=2e-5, lang_lr=1e-5, scheduler_gamma=0.99,
+                                        epochs=35, min_run_epochs=5, init_lr=2e-5, init_lang_lr=1e-5, scheduler_gamma=0.99,
                                         save_for_tuning_epoch=np.nan, 
                                         **train_config_kwargs)
         trainer = ModelTrainer(tuning_config)
@@ -325,7 +328,7 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, over
             print('\n testing '+model_name+' seed'+str(seed)+' on '+task)
 
         testing_config = TrainerConfig(file_name, seed, set_single_task=task, 
-                                batch_len=256, num_batches=100, epochs=1, lr = 0.0008,
+                                batch_len=256, num_batches=100, epochs=1, init_lr = 0.0008,
                                 test_repeats = repeats, **train_config_kwargs)
         trainer = ModelTrainer(testing_config)
         for _ in range(repeats): 

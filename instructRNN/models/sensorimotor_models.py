@@ -5,6 +5,7 @@ from attrs import asdict, define, field
 import pathlib
 import pickle
 from scipy.stats import ortho_group
+from collections import OrderedDict
 
 
 from instructRNN.models.script_gru import ScriptGRU
@@ -117,12 +118,9 @@ class BaseNet(nn.Module):
         torch.save(self.state_dict(),
             file_path+'/'+self.model_name+suffix+'.pt')
 
-    def load_model(self, file_path, suffix='', return_attrs=False): 
-        self.load_state_dict(torch.load(
-            file_path+'/'+self.model_name+suffix+'.pt', 
-            map_location='cpu'))
-        if return_attrs:
-            return pickle.load(open(file_path+'/attrs/'+self.model_name+suffix+'_attrs', 'rb'))
+    def load_model(self, file_path, suffix=''): 
+        self.load_state_dict(torch.load(file_path+'/'+self.model_name+suffix+'.pt', 
+                map_location='cpu'), strict=False)
 
     def to(self, cuda_device): 
         super().to(cuda_device)
@@ -200,6 +198,17 @@ class InstructNet(BaseNet):
 
         outs, rnn_hid = super().forward(x, info_embedded)
         return outs, rnn_hid
+
+    def save_model(self, file_path, suffix=''):
+        if 'bow' in self.model_name: 
+            super().save_model(file_path, suffix)
+        else: 
+            reduced_state_dict = OrderedDict()
+            for n, p in self.state_dict().items(): 
+                if 'transformer' not in n or any([layer in n for layer in self.langModel.LM_train_layers]): 
+                    reduced_state_dict[n] = p
+                torch.save(reduced_state_dict,
+                    file_path+'/'+self.model_name+suffix+'.pt')
 
     def to(self, cuda_device): 
         super().to(cuda_device)
