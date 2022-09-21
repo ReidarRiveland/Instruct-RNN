@@ -54,8 +54,10 @@ if __name__ == "__main__":
     for job in jobs: 
         _seed, model, holdouts = job
 
-        if 'gpt' in model: stream_data=True
-        else: stream_data=False
+        # if 'gpt' in model: stream_data=True
+        # else: stream_data=False
+
+        stream_data = True
 
 
         if args.mode == 'pipeline': 

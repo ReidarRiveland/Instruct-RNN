@@ -204,11 +204,19 @@ class InstructNet(BaseNet):
             super().save_model(file_path, suffix)
         else: 
             reduced_state_dict = OrderedDict()
+            load_layers = self.langModel.LM_train_layers
+
+            if self.model_name == 'clipNet_lin_tuned' or self.model_name == 'clipNet_tuned': 
+                load_layers += ['bias']
+
+            print(load_layers)
+
             for n, p in self.state_dict().items(): 
-                if 'transformer' not in n or any([layer in n for layer in self.langModel.LM_train_layers+['bias']]): 
+                if 'transformer' not in n or any([layer in n for layer in load_layers]): 
                     reduced_state_dict[n] = p
-                torch.save(reduced_state_dict,
-                    file_path+'/'+self.model_name+suffix+'.pt')
+
+            torch.save(reduced_state_dict,
+                file_path+'/'+self.model_name+suffix+'.pt')
 
     def to(self, cuda_device): 
         super().to(cuda_device)
