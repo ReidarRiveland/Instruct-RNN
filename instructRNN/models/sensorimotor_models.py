@@ -205,7 +205,7 @@ class InstructNet(BaseNet):
         else: 
             reduced_state_dict = OrderedDict()
             for n, p in self.state_dict().items(): 
-                if 'transformer' not in n or any([layer in n for layer in self.langModel.LM_train_layers]): 
+                if 'transformer' not in n or any([layer in n for layer in self.langModel.LM_train_layers+['bias']]): 
                     reduced_state_dict[n] = p
                 torch.save(reduced_state_dict,
                     file_path+'/'+self.model_name+suffix+'.pt')
