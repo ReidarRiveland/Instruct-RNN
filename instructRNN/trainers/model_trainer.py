@@ -94,11 +94,11 @@ class ModelTrainer(BaseTrainer):
 
         if mode=='TESTING': 
             self.average_testing_data()
+            task= self.set_single_task
             tests_path = self.file_path+'/holdouts'
             test_info = self.instruct_str+task +'_'+self.seed_suffix
             if os.path.exists(tests_path):pass
             else: os.makedirs(tests_path)
-            task= self.set_single_task
             pickle.dump(checkpoint_attrs, open(self.file_path+'/attrs/'+self.instruct_str+self.seed_suffix+'_'+task+'_attrs', 'wb'))
             pickle.dump(self.loss_data, open(tests_path+'/'+test_info+'_loss', 'wb'))
             pickle.dump(self.correct_data, open(tests_path+'/'+test_info+'_correct', 'wb'))
