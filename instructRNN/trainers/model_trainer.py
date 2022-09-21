@@ -263,6 +263,7 @@ def load_tuning_checkpoint(model, trainer, file_name, seed):
     else:
         print('loaded model at '+ for_tuning_model_path)
 
+    model.load_state_dict(torch.load(for_tuning_model_path))
     data_checkpoint_path = file_name+'/'+untuned_model_name+\
             '/seed'+str(seed)+'training_data_FOR_TUNING'
     data_checkpoint = pickle.load(open(data_checkpoint_path, 'rb'))
@@ -307,6 +308,7 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
                                         save_for_tuning_epoch=np.nan, 
                                         **train_config_kwargs)
         trainer = ModelTrainer(tuning_config)
+
         model, trainer = load_tuning_checkpoint(model, trainer, file_name, seed)
 
     is_tuned = trainer.train(model, is_tuning=True)
