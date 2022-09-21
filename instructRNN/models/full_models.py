@@ -172,6 +172,7 @@ class BERTNet_lin_tuned(InstructNet):
     def __init__(self, **kw_args):
         config = InstructModelConfig('bertNet_lin_tuned', 
                                     LM_class= BERT,
+                                    LM_output_nonlinearity='lin',
                                     LM_load_str = 'bert-base-uncased',
                                     LM_train_layers=['9', '10', '11', 'pooler'],
                                     **kw_args)

@@ -11,6 +11,7 @@ from attrs import define, asdict
 import os
 import warnings
 from os.path import exists
+from instructRNN.analysis.model_analysis import task_eval
 
 from instructRNN.trainers.base_trainer import *
 from instructRNN.data_loaders.dataset import *
@@ -261,14 +262,13 @@ def load_tuning_checkpoint(model, trainer, file_name, seed):
         raise Exception('No model FOR TUNING found, train untuned version to create checkpoint \n')
     else:
         print('loaded model at '+ for_tuning_model_path)
-    
-    model.load_state_dict(torch.load(for_tuning_model_path), strict=False)
+
     data_checkpoint_path = file_name+'/'+untuned_model_name+\
             '/seed'+str(seed)+'training_data_FOR_TUNING'
-    
     data_checkpoint = pickle.load(open(data_checkpoint_path, 'rb'))
     trainer.correct_data = data_checkpoint['correct_data']
     trainer.loss_data = data_checkpoint['loss_data']
+
     return model, trainer
 
 def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=False, overwrite=False, **train_config_kwargs): 
@@ -299,10 +299,8 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
         return True
 
     model = make_default_model(model_name)
-
     if use_checkpoint: 
         model, trainer = load_checkpoint(model, file_name+'/'+model.model_name, seed)
-
     else: 
         tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
                                         epochs=35, min_run_epochs=5, init_lr=2e-5, init_lang_lr=1e-5, scheduler_gamma=0.99,
