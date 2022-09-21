@@ -4,6 +4,7 @@ from attrs import asdict
 import numpy as np 
 import torch
 from torch import Tensor
+import pickle
 
 def masked_MSE_Loss(nn_out: Tensor, nn_target: Tensor, mask: Tensor):
     """MSE loss (averaged over features then time) function with special weighting mask that prioritizes loss in response epoch 
@@ -22,8 +23,8 @@ def masked_MSE_Loss(nn_out: Tensor, nn_target: Tensor, mask: Tensor):
 
 
 class BaseTrainer(ABC): 
-    def __init__(self, config, from_checkpoint_dict): 
-        assert not (config is None and from_checkpoint_dict is None), \
+    def __init__(self, config): 
+        assert not (config is None), \
             'trainer must be initialized from training_config or from a checkpoint'
 
         self.config = asdict(config, recurse=False)
@@ -32,14 +33,11 @@ class BaseTrainer(ABC):
         self.correct_data = defaultdict(list)
         self.loss_data = defaultdict(list)
 
-        if from_checkpoint_dict is not None: 
-            for name, value in from_checkpoint_dict.items(): 
-                setattr(self, name, value)
-
         for name, value in self.config.items(): 
             setattr(self, name, value)
 
         self.seed_suffix = 'seed'+str(self.random_seed)
+
 
     def _check_model_training(self, duration=3): 
         min_run_elapsed = (self.cur_epoch >= self.min_run_epochs) or \
@@ -63,9 +61,9 @@ class BaseTrainer(ABC):
                 )
 
     def _record_session(self): 
-        record_attrs = ['config', 'optimizer', 'scheduler', 'cur_epoch', 'cur_step', 'correct_data', 'loss_data']
         checkpoint_attrs = {}
-        for attr in record_attrs: 
+        checkpoint_attrs['config_dict'] = self.config
+        for attr in ['cur_epoch', 'cur_step', 'correct_data', 'loss_data']: 
             checkpoint_attrs[attr]=getattr(self, attr)
         return checkpoint_attrs
 

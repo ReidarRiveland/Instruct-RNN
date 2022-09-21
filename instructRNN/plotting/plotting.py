@@ -1,4 +1,5 @@
 from ast import Mod
+from pyexpat import model
 from turtle import color
 import matplotlib
 from pyparsing import col
@@ -26,7 +27,7 @@ from sklearn.decomposition import PCA
 import warnings
 
 Blue = '#1C3FFD'
-lightBlue='#ACF0F2'
+lightBlue='#ADD8E6'
 Green = '#45BF55'
 Red = '#FF0000'
 Orange = '#FFA500'
@@ -86,7 +87,7 @@ def _plot_performance_curve(avg_perf, std_perf, plt_ax, model_name, **plt_args):
         color = MODEL_STYLE_DICT[model_name][0] 
         marker = MODEL_STYLE_DICT[model_name][1]
         plt_ax.fill_between(np.linspace(0, avg_perf.shape[-1], avg_perf.shape[-1]), np.min(np.array([np.ones(avg_perf.shape[-1]), avg_perf+std_perf]), axis=0), 
-                                        avg_perf-std_perf, color = color, alpha= 0.08)
+                                        avg_perf-std_perf, color = color, alpha= 0.1)
 
         plt_ax.plot(avg_perf, color = color, marker=marker, **plt_args)
 
@@ -112,6 +113,7 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
             axn.set_xlabel('Exposures to Novel Task', size=8, fontweight='bold')
 
             axn.xaxis.set_tick_params(labelsize=8)
+
             axn.yaxis.set_tick_params(labelsize=8)
             axn.yaxis.set_major_locator(MaxNLocator(10)) 
             axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
@@ -138,7 +140,7 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
                     mean, std = data.avg_tasks()
                     _plot_performance_curve(mean, std, ax2, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
 
-        fig.legend(labels=model_list, loc=2, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
+        fig.legend(labels=model_list, loc=4, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
         plt.show()
 
 def plot_all_curves(dataframe, axn, **plt_args):
@@ -348,29 +350,34 @@ def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwar
     return Patches
 
 def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_trials =50, epoch= 'stim_start', **scatter_kwargs): 
-    if pcs is None: 
-        pcs = range(dims)
+    with plt.style.context('ggplot'):
+        if pcs is None: 
+            pcs = range(dims)
 
-    if rep_depth == 'task': 
-        reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True)
-    elif rep_depth != 'task': 
-        reps = get_instruct_reps(model.langModel, depth=rep_depth)
-    reduced, _ = reduce_rep(reps, pcs=pcs)
+        if rep_depth == 'task': 
+            reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True)
+        elif rep_depth != 'task': 
+            reps = get_instruct_reps(model.langModel, depth=rep_depth)
+        reduced, _ = reduce_rep(reps, pcs=pcs)
 
-    fig = plt.figure(figsize=(14, 14))
-    if dims==2:
-        ax = fig.add_subplot()
-    else:
-        ax = fig.add_subplot(projection='3d')
+        fig = plt.figure(figsize=(14, 14))
+        if dims==2:
+            ax = fig.add_subplot()
+        else:
+            ax = fig.add_subplot(projection='3d')
 
-    Patches = _group_rep_scatter(reduced, tasks_to_plot, ax, dims, pcs, **scatter_kwargs)
-    Patches.append((Line2D([0], [0], linestyle='None', marker='X', color='grey', label='Contexts', 
-                    markerfacecolor='white', markersize=8)))
-    ax.set_xlabel('PC '+str(pcs[0]))
-    ax.set_ylabel('PC '+str(pcs[1]))
-    if dims==3: ax.set_zlabel('PC '+str(pcs[2]))
-    plt.legend(handles=Patches, fontsize='small')
-    plt.show()
+        Patches = _group_rep_scatter(reduced, tasks_to_plot, ax, dims, pcs, **scatter_kwargs)
+        Patches.append((Line2D([0], [0], linestyle='None', marker='X', color='grey', label='Contexts', 
+                        markerfacecolor='white', markersize=8)))
+        ax.set_xlabel('PC '+str(pcs[0]))
+        ax.set_xticklabels([])
+        ax.set_ylabel('PC '+str(pcs[1]))
+        ax.set_yticklabels([])
+        if dims==3: 
+            ax.set_zlabel('PC '+str(pcs[2]))
+            ax.set_zticklabels([])
+        plt.legend(handles=Patches, fontsize='small')
+        plt.show()
 
 def plot_hid_traj(model, tasks_to_plot, trial_indices = [0], pcs=range(3), **scatter_kwargs): 
     Patches = []
@@ -575,6 +582,42 @@ def plot_layer_ccgp(model_name):
 
 
 
+def plot_0_shot_spider(model_list, folder_name, exp_name, perf_type='correct', **kwargs):
+    with plt.style.context('ggplot'):
+
+        N = len(TASK_LIST)
+        
+        angles = [n / float(N) * 2 * np.pi for n in range(N)]
+        angles += angles[:1]
+        
+        plt.rc('figure', figsize=(12, 12))
+    
+        ax = plt.subplot(1,1,1, polar=True)
+    
+        ax.set_theta_offset(np.pi / 2)
+        ax.set_theta_direction(-1)
+    
+    
+        plt.xticks(angles[:-1], TASK_LIST, color='black', size=4)
+        ax.tick_params(axis='x')
+
+        ax.set_ylim(0, 1.05)
+        ax.yaxis.set_tick_params(labelsize=5)
+        ax.yaxis.set_major_locator(MaxNLocator(10)) 
+        ax.set_yticks(np.linspace(0, 1, 11))
+        ax.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
+
+        ax.set_rlabel_position(0)
+        
+        for model_name in model_list: 
+            data = HoldoutDataFrame(folder_name, exp_name, model_name, perf_type=perf_type)
+            zero_shot = list(np.nanmean(data.get_k_shot(0), axis=0))
+            zero_shot  += zero_shot[:1]
+            
+            ax.plot(angles, zero_shot, color = MODEL_STYLE_DICT[model_name][0], linewidth=0.5, linestyle='solid')
+            ax.fill(angles, zero_shot, color = MODEL_STYLE_DICT[model_name][0], alpha = 0.5)
+        plt.show()
+        
 
 
 # def plot_0_shot_spider(model_name, folder_name, exp_name, perf_type='correct', **kwargs):

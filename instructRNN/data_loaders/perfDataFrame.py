@@ -47,7 +47,7 @@ class HoldoutDataFrame():
             warnings.simplefilter("ignore", category=RuntimeWarning)
             data = self.data[seeds, :, k_shot]
             _mean = np.nanmean(data, axis=1)
-            std = np.nanvar(_mean, axis=0)
+            std = np.nanstd(_mean, axis=0)
             mean = np.nanmean(_mean, axis=0)
 
             return mean, std
