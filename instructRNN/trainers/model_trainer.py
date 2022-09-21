@@ -31,7 +31,7 @@ class TrainerConfig():
     epochs: int = 100
     min_run_epochs: int = 35
     batch_len: int = 64
-    num_batches: int = 150
+    num_batches: int = 2400
     holdouts: list = []
     set_single_task: str = None
     stream_data: bool = False
@@ -45,7 +45,7 @@ class TrainerConfig():
     scheduler_gamma: float = 0.9
     scheduler_args: dict = {}
 
-    save_for_tuning_epoch: int = 10
+    save_for_tuning_epoch: int = 30
     checker_threshold: float = 0.95
     step_last_lr: bool = True
     test_repeats: int = None
