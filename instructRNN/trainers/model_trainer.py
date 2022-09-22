@@ -282,7 +282,13 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=F
     
     model = make_default_model(model_name)
     if use_checkpoint: 
-        model, trainer = load_checkpoint(model, file_name, seed)
+        try:
+            model, trainer = load_checkpoint(model, file_name, seed)
+        except: 
+            print('Starting Training from untrained model')
+            trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
+            trainer = ModelTrainer(trainer_config)
+
     else: 
         trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
         trainer = ModelTrainer(trainer_config)
