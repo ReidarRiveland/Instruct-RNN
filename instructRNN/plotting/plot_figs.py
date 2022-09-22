@@ -13,9 +13,9 @@ plot_avg_holdout_curve('7.20models', 'swap',
 
 
 
-plot_all_holdout_curves('7.20models', 'swap', 
-                                ['clipNet_lin_tuned', 'sbertNet_lin_tuned'],
-                                seeds=range(3)
+plot_avg_holdout_curve('7.20models', 'swap', 
+                                ['clipNet_lin_tuned', 'sbertNet_lin_tuned', 'bertNet_lin', 'bertNet_lin_tuned'],
+                                seeds =range(5)
                                 )
 
 
