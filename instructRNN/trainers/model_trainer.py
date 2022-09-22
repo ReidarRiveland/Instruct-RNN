@@ -29,7 +29,7 @@ else:
 class TrainerConfig(): 
     file_path: str
     random_seed: int
-    epochs: int = 100
+    epochs: int = 150
     min_run_epochs: int = 35
     batch_len: int = 64
     num_batches: int = 2400
@@ -43,7 +43,7 @@ class TrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_type: str = 'exp'
-    scheduler_gamma: float = 0.9
+    scheduler_gamma: float = 0.95
     scheduler_args: dict = {}
 
     save_for_tuning_epoch: int = 30
@@ -276,6 +276,10 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=F
     torch.manual_seed(seed)
     label, holdouts = labeled_holdouts
     file_name = exp_folder+'/'+label+'/'+model_name   
+    if 'XL' in model_name: 
+        tuning_save = 40
+    else: 
+        tuning_save = 30
 
     if check_already_trained(file_name, seed) and not overwrite:
         return True
@@ -284,7 +288,7 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=F
     if use_checkpoint: 
         model, trainer = load_checkpoint(model, file_name, seed)
     else: 
-        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
+        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts,save_for_tuning_epoch=tuning_save, **train_config_kwargs)
         trainer = ModelTrainer(trainer_config)
 
     is_trained = trainer.train(model)
