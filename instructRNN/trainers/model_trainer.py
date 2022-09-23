@@ -29,7 +29,7 @@ else:
 class TrainerConfig(): 
     file_path: str
     random_seed: int
-    epochs: int = 150
+    epochs: int = 100
     min_run_epochs: int = 35
     batch_len: int = 64
     num_batches: int = 2400
@@ -276,10 +276,6 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=F
     torch.manual_seed(seed)
     label, holdouts = labeled_holdouts
     file_name = exp_folder+'/'+label+'/'+model_name   
-    if 'XL' in model_name: 
-        tuning_save = 40
-    else: 
-        tuning_save = 30
 
     if check_already_trained(file_name, seed) and not overwrite:
         return True
