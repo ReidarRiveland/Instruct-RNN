@@ -1,11 +1,13 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
 from attrs import asdict
 import itertools
-import pickle
 from attrs import define
 import pathlib
 
+from transformers import AutoTokenizer, AutoModel
 from transformers import GPT2Model, GPT2Tokenizer, GPTNeoForCausalLM
 from transformers import CLIPTokenizer, CLIPTextModel
 from transformers import BertModel, BertTokenizer
@@ -117,6 +119,7 @@ class SBERT(TransformerEmbedder):
             sbert_state_dict[key.replace('0.auto_model.', '')] = sbert_state_dict.pop(key)
         return sbert_state_dict
 
+
 class GPT(TransformerEmbedder): 
     def __init__(self, config): 
         super().__init__(config)
@@ -152,7 +155,6 @@ class GPTNeo(TransformerEmbedder):
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
-
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()
     def __init__(self, config): 
@@ -174,3 +176,12 @@ class BoW(InstructionEmbedder):
         freq_tensor = torch.stack(tuple(map(self._make_freq_tensor, x))).to(self.__device__)
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
+
+class MP(TransformerEmbedder):
+    def __init__(self, config):
+        super().__init__(config)
+        self.transformer = AutoModel.from_pretrained('sentence-transformers/'+self.LM_load_str, output_hidden_states=True)
+        self.tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/'+self.LM_load_str,)
+        self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
+        self.set_train_layers(self.LM_train_layers)
+        self.__init_proj_out__()
