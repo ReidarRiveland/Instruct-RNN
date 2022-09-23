@@ -442,15 +442,6 @@ def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot
     
 
 def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_trials=100, num_repeats=5, smoothing = 1e-7): 
-    # if task_variable == 'direction': 
-    #     labels = ["0", "$2\pi$"]
-    #     plt.xticks([0, np.pi, 2*np.pi], labels=['0', '$\pi$', '$2\pi$'])
-    # elif task_variable == 'diff_direction':
-    #     labels = ["$\pi$", "0"]
-    # elif task_variable == 'strength':
-    #     labels = ["0.3", "1.8"]
-    # elif task_variable =='diff_strength': 
-    #     labels = ["delta -0.5", "delta 0.5"]
     y_max = 1.0
     hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, main_var=True)
     for i, task in enumerate(tasks): 
@@ -518,6 +509,44 @@ def plot_CCGP_scores(model_list, rep_type_file_str = '', plot_swaps=False):
 
     plt.show()
 
+
+
+def plot_neural_resp(model, task, task_variable, unit, num_trials=100, num_repeats = 10, save_file=None):
+    assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
+    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=[task], num_repeats=num_repeats, main_var=True)[0,...]
+
+    if task_variable == 'direction' or task_variable=='diff_direction': 
+        labels = ["0", "$2\pi$"]
+        cmap = plt.get_cmap('twilight') 
+    elif task_variable == 'strength':
+        labels = ["0.3", "1.8"]
+        cmap = plt.get_cmap('plasma') 
+    elif task_variable =='diff_strength': 
+        labels = ["delta -0.5", "delta 0.5"]
+        cmap = plt.get_cmap('plasma') 
+
+    cNorm  = colors.Normalize(vmin=0, vmax=num_trials)
+    scalarMap = cm.ScalarMappable(norm=cNorm, cmap=cmap)
+
+    fig, axn = plt.subplots()
+    print(hid_mean.shape)
+    ylim = np.max(hid_mean[..., unit])
+    for i in range(hid_mean.shape[0]):
+        axn.plot(hid_mean[i, :, unit], c = scalarMap.to_rgba(i))
+
+
+    plt.xticks([30, 130], labels=['Stim. Onset', 'Reponse'])
+    plt.vlines(130, -1.5, ylim+0.15, colors='k', linestyles='dashed')
+    plt.vlines(30, -1.5, ylim+0.15, colors='k', linestyles='dashed')
+
+    axn.set_ylim(0, ylim+0.15)
+    cbar = plt.colorbar(scalarMap, orientation='vertical', label = task_variable.replace('_', ' '), ticks = [0, 100])
+    #plt.title(task + ' response for Unit' + str(unit))
+    cbar.set_ticklabels(labels)
+    if save_file is not None: 
+        plt.savefig('figs/'+save_file)
+    plt.show()
+    return axn
 
 
 # def plot_neural_resp(model, task_type, task_variable, unit, mod, num_repeats = 10, save_file=None):
