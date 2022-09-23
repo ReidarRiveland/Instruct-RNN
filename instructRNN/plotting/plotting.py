@@ -178,7 +178,6 @@ def plot_0_shot_lolli(foldername, exp_type, model_list,  perf_type='correct', se
         plt.show()
 
 
-
 def plot_all_holdout_curves(foldername, exp_type, model_list,  perf_type='correct', seeds=range(5), plot_swap=False):
     fig, axn = plt.subplots(5,10, sharey = True, sharex=True, figsize =(8, 8))
 
@@ -204,48 +203,6 @@ def plot_all_training_curves(foldername, exp_type, holdout_file, model_list, per
         plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=0.8, markevery=5)
 
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
-    plt.show()
-
-
-def plot_k_shot_learning(foldername, exp_type, model_list, ks=[0,1,3], seeds=range(5)): 
-    barWidth = 0.1
-    ks = [0, 1, 3]
-    plt.figure(figsize=(3, 6))
-
-    for i, model_name in enumerate(model_list):  
-        data = HoldoutDataFrame(foldername, exp_type, model_name,  seeds=seeds)
-    
-        all_mean = []
-        all_std = []
-        for k in ks: 
-            mean, std = data.avg_tasks(k_shot=k)
-            all_mean.append(mean)
-            all_std.append(std)
-
-        std = np.array(all_std)
-        len_values = len(ks)
-        if i == 0:
-            r = np.arange(len_values)
-        else:
-            r = [x + barWidth for x in r]
-
-        mark_size = 4
-        plt.plot(r, [vals+0.08 for vals in all_mean], marker=MODEL_STYLE_DICT[model_name][1], linestyle="", 
-            alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
-        error_range= (std, np.where(all_mean+std>1, (all_mean+std)-1, std))
-
-        markers, caps, bars = plt.errorbar(r, all_mean, yerr = error_range, elinewidth = 0.5, capsize=1.0, linestyle="", alpha=0.8, color = 'black', markersize=1)
-        plt.bar(r, all_mean, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
-
-
-    plt.ylim(0, 1.05)
-    plt.xlim(-0.15, len(ks))
-    plt.title('Few Shot Learning Performance', size=12)
-    plt.xlabel('Training Exmaples', fontweight='bold', size=8)
-    plt.yticks(np.linspace(0, 1, 11), size=8)
-    r = np.arange(len_values)
-    plt.xticks([r + barWidth + 0.2 for r in range(len_values)], [0, 1, 3], size=8)
-    _make_model_legend(model_list)
     plt.show()
 
 def plot_trained_performance(all_perf_dict):
@@ -282,7 +239,6 @@ def plot_trained_performance(all_perf_dict):
     plt.tight_layout()
     _make_model_legend(all_perf_dict.keys())
     plt.show()
-
 
 def plot_model_response(model, trials, plotting_index = 0, instructions = None, save_file=None):
     model.eval()
@@ -439,8 +395,6 @@ def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot
 
     plt.show()
 
-    
-
 def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_trials=100, num_repeats=5, smoothing = 1e-7): 
     y_max = 1.0
     hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, main_var=True)
@@ -455,60 +409,6 @@ def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_trials=100
     Patches = [mpatches.Patch(color=get_task_color(task), label=task) for task in tasks]
     plt.legend(handles=Patches)
     plt.show()
-
-
-def plot_CCGP_scores(model_list, rep_type_file_str = '', plot_swaps=False):
-    barWidth = 0.08
-    Patches = []
-    for i, model_name in enumerate(model_list):
-        if '_tuned' in model_name: marker_shape = MODEL_STYLE_DICT[model_name][1]
-        else: marker_shape='s'
-        Patches.append(Line2D([0], [0], linestyle='None', marker=marker_shape, color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
-                markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8))
-        len_values = 2
-        if i == 0:
-            r = np.arange(len_values)
-        else:
-            r = [x + barWidth for x in r]
-        if '_tuned' in model_name: 
-            mark_size = 4
-        else: 
-            mark_size = 3
-
-        if plot_swaps: mode_list = ['', '_swap']
-        else: mode_list = ['']
-        for j, swap_mode in enumerate(mode_list):
-            values = np.full(2, np.NAN)
-            spread_values = np.empty((len_values, 5))
-
-            CCGP_score = np.load(open('_ReLU128_4.11/CCGP_measures/'+rep_type_file_str+model_name+swap_mode+'_CCGP_scores.npz', 'rb'))
-            if swap_mode != '_swap': 
-                print('all_CCGP')
-                values[0] = np.mean(np.nan_to_num(CCGP_score['all_CCGP'][:, -1, :, :]))
-                spread_values[0, :] = np.mean(np.nan_to_num(CCGP_score['all_CCGP'][:, -1, :, :]), axis=(1,2))
-
-            values[1] = np.mean(np.nan_to_num(CCGP_score['holdout_CCGP']))
-            spread_values[1, :] = np.mean(np.nan_to_num(CCGP_score['holdout_CCGP']), axis=(1,2))
-
-            for k in range(2):
-                markers, caps, bars = plt.errorbar(r[k], values[k], yerr = np.std(spread_values[k, :]), elinewidth = 0.5, capsize=1.0, marker=marker_shape, linestyle="", mfc = [None, 'white'][j], alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
-
-            [bar.set_alpha(0.2) for bar in bars]
-
-    plt.hlines(0.5, 0, r[-1], linestyles='--', color='black')
-    plt.ylim(0.45, 0.95)
-    plt.title('CCGP Measures')
-    plt.ylabel('Percentage Correct')
-    r = np.arange(len_values)
-    plt.xticks([r + barWidth +0.15 for r in range(len_values)], ['all CCGP', 'holdout CCGP'])
-    #plt.yticks(np.linspace(0.4, 1, 6), size=8)
-
-    plt.tight_layout()
-
-    plt.legend(handles=Patches, fontsize=6, markerscale=0.5)
-
-    plt.show()
-
 
 
 def plot_neural_resp(model, task, task_variable, unit, num_trials=100, num_repeats = 10, save_file=None):
@@ -549,51 +449,6 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=100, num_repea
     return axn
 
 
-# def plot_neural_resp(model, task_type, task_variable, unit, mod, num_repeats = 10, save_file=None):
-#     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
-#     trials, _ = make_test_trials(task_type, task_variable, mod)
-#     _, hid_mean = get_hid_var_resp(model, task_type, trials, num_repeats=num_repeats)
-#     if task_variable == 'direction' or task_variable=='diff_direction': 
-#         labels = ["0", "$2\pi$"]
-#         cmap = plt.get_cmap('twilight') 
-#     # elif task_variable == 'diff_direction':
-#     #     labels = ["$\pi$", "0"]
-#     #     cmap = plt.get_cmap('twilight') 
-#     elif task_variable == 'strength':
-#         labels = ["0.3", "1.8"]
-#         cmap = plt.get_cmap('plasma') 
-#     elif task_variable =='diff_strength': 
-#         labels = ["delta -0.5", "delta 0.5"]
-#         cmap = plt.get_cmap('plasma') 
-#     cNorm  = colors.Normalize(vmin=0, vmax=100)
-#     scalarMap = cm.ScalarMappable(norm=cNorm, cmap=cmap)
-#     fig, axn = plt.subplots()
-#     ylim = np.max(hid_mean[:,:,unit])
-#     for i in [x*4 for x in range(25)]:
-#         plot = plt.plot(hid_mean[i, :, unit], c = scalarMap.to_rgba(i))
-#     plt.vlines(100, -1.5, ylim+0.15, colors='k', linestyles='dashed')
-#     if 'RT' in task_type: 
-#         plt.xticks([100], labels=['Stim. Onset/Reponse'])
-#     else:
-#         plt.xticks([20, 100], labels=['Stim. Onset', 'Reponse'])
-#         plt.vlines(20, -1.5, ylim+0.15, colors='k', linestyles='dashed')
-
-#     # elif 'DM' in task_type:
-#     #     plt.vlines(20, -1.5, ylim+0.15, colors='k', linestyles='dashed')
-#     #     plt.vlines(60, -1.5, ylim+0.15, colors='k', linestyles='dashed')
-#     #     plt.xticks([20, 60, 100], labels=['Stim. 1 Onset', 'Stim. 2 Onset', 'Reponse'])
-
-#     axn.set_ylim(0, ylim+0.15)
-#     cbar = plt.colorbar(scalarMap, orientation='vertical', label = task_variable.replace('_', ' '), ticks = [0, 100])
-#     plt.title(task_type + ' response for Unit' + str(unit))
-#     cbar.set_ticklabels(labels)
-#     if save_file is not None: 
-#         plt.savefig('figs/'+save_file)
-#     plt.show()
-#     return trials
-
-
-
 def plot_layer_ccgp(model_name): 
     layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
     all_holdout_ccgp = np.empty((50, len(layer_list)))
@@ -608,7 +463,6 @@ def plot_layer_ccgp(model_name):
 
     axn.scatter(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=0), marker=MODEL_STYLE_DICT[model_name][1], c=MODEL_STYLE_DICT[model_name][0])
     plt.show()
-
 
 
 def plot_0_shot_spider(model_list, folder_name, exp_name, perf_type='correct', **kwargs):
@@ -647,60 +501,6 @@ def plot_0_shot_spider(model_list, folder_name, exp_name, perf_type='correct', *
             ax.fill(angles, zero_shot, color = MODEL_STYLE_DICT[model_name][0], alpha = 0.5)
         plt.show()
         
-
-
-# def plot_0_shot_spider(model_name, folder_name, exp_name, perf_type='correct', **kwargs):
-#     data = HoldoutDataFrame(folder_name, exp_name, model_name, perf_type=perf_type)
-#     zero_shot = np.nanmean(data.get_k_shot(0), axis=0)
-#     labels = TASK_LIST
-
-#     angles = np.linspace(0, 2*np.pi, len(labels), endpoint=False)
-#     stats = np.concatenate((zero_shot,[zero_shot[0]]))
-#     angles = np.concatenate((angles,[angles[0]]))
-
-#     fig = plt.figure()
-#     ax = fig.add_subplot(111, polar=True)
-#     ax.plot(angles, stats, 'o-', linewidth=2)
-#     ax.fill(angles, stats, alpha=0.25)
-#     ax.set_thetagrids(angles * 180/np.pi, labels)
-#     ax.grid(True)
-
-
-
-#     return plt.show()
-
-
-
-# import plotly.graph_objects as go
-# def plot_0_shot_spider(model_list, folder_name, exp_name, perf_type='correct', **kwargs):
-#     fig = go.Figure()
-#     for model_name in model_list:
-#         data = HoldoutDataFrame(folder_name, exp_name, model_name, perf_type=perf_type)
-#         zero_shot = np.nanmean(data.get_k_shot(0), axis=0)
-#         fig.add_trace(go.Scatterpolar(
-#             r=zero_shot,
-#             theta=TASK_LIST,
-#             opacity=0.1,
-#             name=model_name,
-#             line = dict(
-#                 color = MODEL_STYLE_DICT[model_name][0]
-#             ),
-#             fill = 'toself'
-#             ))
-
-#     fig.update_layout(
-#     polar=dict(
-#         angularaxis=dict(
-#         visible=True,
-#         rotation = 90, 
-#         direction = 'clockwise',
-#         tickmode = 'auto',
-#         )),
-
-#     showlegend=False
-#     )
-
-#     fig.show()
 
 
 

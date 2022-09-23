@@ -898,27 +898,28 @@ test_instruct_dict['AntiMultiDM'] = ('pick the direction with minimal average va
 
 # test_instruct_dict['ConDM']
 
-# test_instruct_dict['Anti_ConDM']
+# test_instruct_dict['AntiConDM']
 
-# test_instruct_dict['ConMultiDM']
+# test_instruct_dict['DMMod1']
 
-# test_instruct_dict['Anti_ConMultiDM']
+# test_instruct_dict['DMMod2']
 
-# test_instruct_dict['DelayDM']
+# test_instruct_dict['AntiDMMod1']
 
-# test_instruct_dict['Anti_DelayDM']
+# test_instruct_dict['AntiDMMod2']
 
-# test_instruct_dict['DelayMultiDM']
+# test_instruct_dict['ConDM']
 
-# test_instruct_dict['Anti_DelayMultiDM']
+# test_instruct_dict['AntiConDM']
 
-# test_instruct_dict['DM_Mod1']
+# test_instruct_dict['DMMod1']
 
-# test_instruct_dict['DM_Mod2']
+# test_instruct_dict['DMMod2']
 
-# test_instruct_dict['Anti_DM_Mod1']
+# test_instruct_dict['AntiDMMod1']
 
-# test_instruct_dict['Anti_DM_Mod2']
+# test_instruct_dict['AntiDMMod2']
+
 
 test_instruct_dict['COMP1'] = ('when the first stimulus is stronger pick the first orientation otherwise do not respond', 
                                     'choose the initial stimulus if it is the stronger of the two presented stimuli otherwise do not respond', 
