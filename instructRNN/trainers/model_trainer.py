@@ -290,7 +290,7 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=F
             trainer = ModelTrainer(trainer_config)
 
     else: 
-        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts,save_for_tuning_epoch=tuning_save, **train_config_kwargs)
+        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
         trainer = ModelTrainer(trainer_config)
 
     is_trained = trainer.train(model)
