@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
         if args.mode == 'pipeline': 
             from instructRNN.trainers.model_trainer import *
-            run_pipeline(EXP_FOLDER, model, _seed, holdouts,overwrite=args.overwrite, ot = args.ot, stream_data=stream_data)      
+            run_pipeline(EXP_FOLDER, model, _seed, holdouts,overwrite=args.overwrite, use_checkpoint = args.use_checkpoint, ot = args.ot, stream_data=stream_data)      
 
         if args.mode == 'train': 
             from instructRNN.trainers.model_trainer import *

@@ -306,15 +306,19 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
         return True
 
     model = make_default_model(model_name)
-    if use_checkpoint: 
-        model, trainer = load_checkpoint(model, file_name+'/'+model.model_name, seed)
-    else: 
-        tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
+    tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
                                         epochs=35, min_run_epochs=5, init_lr=2e-5, init_lang_lr=1e-5, scheduler_gamma=0.99,
                                         save_for_tuning_epoch=np.nan, 
                                         **train_config_kwargs)
-        trainer = ModelTrainer(tuning_config)
+    trainer = ModelTrainer(tuning_config)
 
+    if use_checkpoint: 
+        try: 
+            model, trainer = load_checkpoint(model, file_name+'/'+model.model_name, seed)
+        except: 
+            print('couldnt load checkpoint, starting from standard tuning checkpoint')
+            model, trainer = load_tuning_checkpoint(model, trainer, file_name, seed)
+    else: 
         model, trainer = load_tuning_checkpoint(model, trainer, file_name, seed)
 
     is_tuned = trainer.train(model, is_tuning=True)
@@ -342,11 +346,11 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, mode = None, over
             trainer.train(model, is_testing=True, instruct_mode=mode)
         trainer._record_session(model, mode='TESTING')
 
-def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, ot=False, **train_config_kwargs):
+def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, ot=False, use_checkpoint=False, **train_config_kwargs):
     if not '_tuned' in model_name:
-        is_trained = train_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs) 
+        is_trained = train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs) 
     else: 
-        is_trained = tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=overwrite, **train_config_kwargs)
+        is_trained = tune_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs)
         
     if is_trained: 
         test_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=ot)
