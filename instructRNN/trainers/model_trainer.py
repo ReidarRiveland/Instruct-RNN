@@ -307,10 +307,7 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
 
     model = make_default_model(model_name)
 
-    if use_checkpoint: 
-        model, trainer = load_checkpoint(model, file_name+'/'+model.model_name, seed)
-    else: 
-        tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
+    tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
                                         epochs=35, min_run_epochs=5, init_lr=1e-4, init_lang_lr=3e-4, scheduler_gamma=0.99,
                                         save_for_tuning_epoch=np.nan, 
                                         **train_config_kwargs)
