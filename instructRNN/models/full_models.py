@@ -219,6 +219,17 @@ class SBERTNet_lin_tuned(InstructNet):
         super().__init__(config)
 
 
+class MPNet(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('MPnet', 
+                                    LM_class= MP,
+                                    LM_load_str = 'all-mpnet-base-v2', 
+                                    LM_train_layers=[], 
+                                    LM_output_nonlinearity='lin', 
+
+                                    **kw_args)
+        super().__init__(config)
+
 class CLIPNet(InstructNet):
     def __init__(self, **kw_args):
         config = InstructModelConfig('clipNet', 
@@ -282,6 +293,8 @@ class BoWNet_lin(InstructNet):
             
 
 def make_default_model(model_str): 
+    if model_str == 'MPNet': 
+        return MPNet()
     if model_str == 'simpleNet':
         return SimpleNet()
     if model_str == 'simpleNetPlus':
@@ -320,7 +333,7 @@ def make_default_model(model_str):
         return GPTNetXL_tuned()
     if model_str == 'gptNetXL_lin':
         return GPTNetXL_lin()
-    if model_str == 'gptNetXL_tuned':
+    if model_str == 'gptNetXL_lin_tuned':
         return GPTNetXL_lin_tuned()
     if model_str == 'clipNet': 
         return CLIPNet()

@@ -43,7 +43,7 @@ class TrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_type: str = 'exp'
-    scheduler_gamma: float = 0.9
+    scheduler_gamma: float = 0.95
     scheduler_args: dict = {}
 
     save_for_tuning_epoch: int = 30
@@ -306,8 +306,12 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
         return True
 
     model = make_default_model(model_name)
-    tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
-                                        epochs=35, min_run_epochs=5, init_lr=2e-5, init_lang_lr=1e-5, scheduler_gamma=0.99,
+
+    if use_checkpoint: 
+        model, trainer = load_checkpoint(model, file_name+'/'+model.model_name, seed)
+    else: 
+        tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
+                                        epochs=35, min_run_epochs=5, init_lr=1e-4, init_lang_lr=3e-4, scheduler_gamma=0.99,
                                         save_for_tuning_epoch=np.nan, 
                                         **train_config_kwargs)
     trainer = ModelTrainer(tuning_config)
