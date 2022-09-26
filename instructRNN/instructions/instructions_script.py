@@ -295,7 +295,6 @@ train_instruct_dict['ConAntiDM'] = ('opt for the stimulus presented with least s
                                     'opt for the weakest direction if you have high confidence otherwise do not respond'
                                     )  
 
-
 train_instruct_dict['DMMod1'] = ('select the orientation in the first modality that is strongest', 
                                 'choose the most intense stimulus that appears in the first modality', 
                                 'attend to the first modality and select the orientation displayed with highest intensity', 
@@ -830,47 +829,72 @@ test_instruct_dict['Go'] = ('select the presented direction',
                                 'respond with the displayed orientation', 
                                 'choose the presented direction')
 
-test_instruct_dict['RT Go'] = ('choose the direction shown immediately', 
+test_instruct_dict['RTGo'] = ('choose the direction shown immediately', 
                                     'select the direction presented immediately', 
                                     'select the displayed orientation as soon as stimulus appears', 
                                     'choose the direction presented immediately', 
                                     'immediately respond to the presented orientation')
 
-test_instruct_dict['Anti Go'] = ('select the opposing direction', 
+test_instruct_dict['AntiGo'] = ('select the opposing direction', 
                                         'choose the opposite of the presented direction', 
                                         'respond with the reverse orientation', 
                                         'go in the opposite of displayed orientation',
                                         'pick the converse of the stimulus orientation')
 
-test_instruct_dict['Anti RT Go'] = ('pick the converse of the stimulus direction immediately', 
+test_instruct_dict['AntiRTGo'] = ('pick the converse of the stimulus direction immediately', 
                                         'select the reverse of the displayed direction immediately', 
                                         'respond with the reverse orientation as soon as it is shown', 
                                         'choose the opposite of displayed orientation at stimulus onset',
                                         'immediately respond in the opposing direction as is shown')
 
-test_instruct_dict['Go_Mod1'] = ('choose the orientation in the first modality',
+test_instruct_dict['GoMod1'] = ('choose the orientation in the first modality',
                                 'opt for the stimulus that appears in the first modality',
-                                'attend to the first modality and respond in to the displayed direction',
+                                'only consider the first modality and respond in to the displayed direction',
                                 'go in the direction stimulus in the first modality',
-                                'select the orientation that is displayed in the first modality')
+                                'concentrate only on the first modality and choose the direction displayed there')
 
-test_instruct_dict['Go_Mod2'] =('respond to the stimulus in the second modality',
+test_instruct_dict['GoMod2'] =('respond to the stimulus in the second modality',
                               'select the direction that is displayed in the second modality',
-                              'focus on the second modality and choose the displayed direction',
+                              'only consider the second modality and choose the displayed direction',
                               'opt for the orientation in the second modality',
-                              'respond in the direction presented in the second modality')
+                              'concentrate only on the first modality and select the direction that appears there')
 
-test_instruct_dict['Anti_Go_Mod1'] =('go in the opposite direction of the stimulus presented in the first modality',
-                                    'attend to the first modality and choose the converse direction',
+test_instruct_dict['AntiGoMod1'] =('go in the opposite direction of the stimulus presented in the first modality',
+                                    'concentrate only on the first modality and choose the converse direction',
                                     'select the opposite of the direction displayed in the first modality',
                                     'pick the direction opposite of the one displayed in the first modality',
-                                    'choose the reverse of the direction displayed in the first modality')
+                                    'only consider stimulus in the first modality and respond in the opposite direction')
 
-test_instruct_dict['Anti_Go_Mod2'] =('attend to the second modality and go in the reverse of the displayed orientation',
+test_instruct_dict['AntiGoMod2'] =('concentrate only on the second modality and go in the reverse of the displayed orientation',
                                         'opt for the opposite of the direction in the second modality',
                                        'go in the converse of the direction displayed in the second modality',
-                                     'focus on the second modality and respond in the reverse direction' ,
+                                     'only consider the second modality and respond in the reverse direction' ,
                                      'pick the opposite of the orientation in the second modality')
+
+test_instruct_dict['RTGoMod1'] = ('concentrate only on the first modality and select the displayed stimulus immediately',
+                                  'choose the direction in the first modality as soon as it appears', 
+                                  'immediately choose the orientation in the first modality', 
+                                  'focus exclusively on the first modality and respond to the stimulus immediately', 
+                                  'select the direction in the first modality at stimulus onset')                            
+
+test_instruct_dict['RTGoMod2'] =('attend exclusively to the second modality and choose the stimulus as soon as it appears', 
+                                'as soon as the stimulus appears select the direction in the second modality', 
+                                'respond to the stimulus that is shown in the second modality immediately', 
+                                'only consider the second modality and select the displayed direction as soon as it appears', 
+                                'select the direction shown in the second modality as soon as it appears')
+
+test_instruct_dict['AntiRTGoMod1'] =('attend exclusively to the first modality and respond to the opposite direction of the stimulus as soon as it appears', 
+                                      'respond to the opposite of the stimulus in the first modality immediately', 
+                                      'only consider stimuli in the first modality and choose the opposite of the displayed direction at stimulus onset', 
+                                      'go in the opposite of the orientation displayed in the first modality as soon as it appears', 
+                                      'select the reverse of the direction displayed in the first modality immediately')
+
+test_instruct_dict['AntiRTGoMod2'] =('attend exclusively to the second modality and go in the opposite of the direction displayed there at once', 
+                                      'concentrate only on the second modality and respond to the reverse of the stimulus immediately', 
+                                      'choose the opposite of the orientation in the second modality at stimulus onset', 
+                                      'opt for the reverse of direction in the second modality immediately', 
+                                      'select the opposite of the stimulus that is displayed in the second modality as soon as it is shown')
+
 
 test_instruct_dict['DM'] = ('select the stimulus of greatest strength', 
                                 'choose the direction with maximal stimulus intensity', 
@@ -878,7 +902,7 @@ test_instruct_dict['DM'] = ('select the stimulus of greatest strength',
                                 'select the orientation displayed with greatest intensity', 
                                 'go in the direction of the most intense stimulus')
 
-test_instruct_dict['Anti_DM'] = ('choose the direction with lowest value', 
+test_instruct_dict['AntiDM'] = ('choose the direction with lowest value', 
                                     'respond in the direction that is presented with least intensity', 
                                     'pick the orientation with the lowest strength', 
                                     'go in the direction with weakest presentation strength',
@@ -896,30 +920,77 @@ test_instruct_dict['AntiMultiDM'] = ('pick the direction with minimal average va
                                             'choose the direction with lowest presentation strength over modalities',
                                             'select the orientation with weakest intensity over both modalities')
 
-# test_instruct_dict['ConDM']
+test_instruct_dict['ConDM'] = ('choose the strongest stimulus if you are convinced of your answer otherwise do not respond',
+                                'select the stimulus with greatest strength if there is no doubt in your mind otherwise do not respond', 
+                                'if you are positive then choose the direction presented with greatest strength otherwise do not respond', 
+                                'opt for the strongest direction displayed if you are certain about your answer otherwise do not respond', 
+                                'respond to the orientation with greatest strength if you are certain of the answer otherwise do not respond')
 
-# test_instruct_dict['AntiConDM']
+test_instruct_dict['AntiConDM'] = ('select the weakest direction if you are convinced of the answer otherwise do not respond', 
+                                	'respond to the stimulus with weakest strength if you are positive otherwise do not respond', 
+									'if you are certain of your answer select the weaker of the two directions otherwise do not respond', 
+									'if there is no doubt in your mind choose the stimulus with least strength otherwise do not respond', 
+									'opt for direction withg lowest strength if you are certain about your answer otherwise do not respond')
 
-# test_instruct_dict['DMMod1']
+test_instruct_dict['DMMod1'] = ('concentrate only on the first modality and choose the strongest direction', 
+								'focus only on the first modality and opt for the direction displayed with the greatest strength',
+								'attend exclusively to stimuli in the first modality and choose the strongest one', 
+								'only consider the first modality and choose the strongest direction', 
+								'consider only the stimuli in the first modality and opt for the stimulus presented with highest strength')
 
-# test_instruct_dict['DMMod2']
+test_instruct_dict['DMMod2'] = ('concentrate only on the second modality and select the strongest direction', 
+								'focus exclusively on the second modality and respond to the orientation presented with greatest strength', 
+								'only consider stimuli presented in the second modality and choose the strongest among them', 
+								'attend to the second modality and opt for the direction displayed with the most strength',
+								'consider only the stimuli in the second modality and select the one with the highest strength')
 
-# test_instruct_dict['AntiDMMod1']
+test_instruct_dict['AntiDMMod1'] = ('concentrate exclusively on the first modality and opt for the weakest direction', 
+									'only consider stimuli in the first modality and select the weakest of the displayed directions', 
+									'consider only the first modality and choose the direction with least strength', 
+									'focus exclusively on the first modality and respond to the weakest direction presented there', 
+									'concentrate on only the stimuli in the first modality and respond to the weakest direction')
 
-# test_instruct_dict['AntiDMMod2']
+test_instruct_dict['AntiDMMod2'] = ('attend exclusively to the second modality and opt for the direction with least strength', 
+										'concentrate only on the second modality select the orientation that appears weakest', 
+										'only consider the second modality and respond to the first presented with least strength', 
+										'consider only the stimuli presented in the second modality and choose the weakest one that appears there', 
+										'focus exclusively on the second modality and opt for the weakest direction')
 
-# test_instruct_dict['ConDM']
+test_instruct_dict['Dur1'] = ('select the initial stimulus if it is presented for a greater span of time than the second direction otherwise do not respond',
+								'if the first orientation is displayed for a greater length of time than the second direction respond to the first orientation othewise do not respond', 
+								'choose the initial direction if is displayed for a longer span of time than the second direction otherwise do not respond',
+								'opt for the first stimulus if it lasts for a greater length of time than the second stimulus otherwise do not respond', 
+								'if the initial orientation lasts for a larger span of time than the second orientation then select the initial orientation otherwise do not respond')
 
-# test_instruct_dict['AntiConDM']
+test_instruct_dict['Dur2'] = ('respond to the final direction if the stimulus is presented for a greater span of time than the first stimulus otherwise do not respond',
+								'if the second direction lasts for a greater length of time than the first direction then select the second direction otherwise do not respond',
+								'select the second orientation if it appears for a longer span of time than the first direction otherwise do not respond', 
+								'opt for the final stimulus if it is displayed for a span of time which is greater than the initial stimulus otherwise do not respond', 
+								'if the final stimulus appears for a length of time which is greater than the first stimulus then choose the final stimulus otherwise do not respond')								
 
-# test_instruct_dict['DMMod1']
+test_instruct_dict['MultiDur1'] = ('respond to the initial direction if the length of the stimulus integrated over both modalities is grearter than the second direction otherwise do not respond',
+									'choose the first stimulus if it spans a length of time which is greater than the second stimulus when summed over both modalities otherwise do not respond', 
+									'if the first direction is diplayed to a longer length of time summed over both modalities than the second direction then select the first direction otherwise do not respond',
+									'select the initial orientation if it has a longer time span when integrated over both modalities than the final direction otherwise do not respond',
+									'opt for the intial stimulus it it is displayed for a span of time which is longer than the span of the second stimulus summed over both modalities otherwise do not respond')
 
-# test_instruct_dict['DMMod2']
+test_instruct_dict['MultiDur2'] = 
 
-# test_instruct_dict['AntiDMMod1']
+# test_instruct_dict['AntiDur1']
 
-# test_instruct_dict['AntiDMMod2']
+# test_instruct_dict['AntiDur2']
 
+# test_instruct_dict['AntiMultiDur1']
+
+# test_instruct_dict['AntiMultiDur2']
+
+# test_instruct_dict['Dur1Mod1']
+
+# test_instruct_dict['Dur1Mod2']
+
+# test_instruct_dict['Dur2Mod1']
+
+# test_instruct_dict['Dur2Mod2']
 
 test_instruct_dict['COMP1'] = ('when the first stimulus is stronger pick the first orientation otherwise do not respond', 
                                     'choose the initial stimulus if it is the stronger of the two presented stimuli otherwise do not respond', 
@@ -944,6 +1015,24 @@ test_instruct_dict['MultiCOMP2']=('if the final orientation displays greater ove
                                         'choose the subsequent direction if it has higher combined intensity over modalities than the initial direction otherwise do not respond', 
                                         'select the second direction if it has a larger joint strength over modalities than the first direction otherwise do not respond',
                                         'respond to the second orientation if it has greater combined intensity than the first orientation otherwise do not respond')
+
+# test_instruct_dict['AntiCOMP1']
+
+# test_instruct_dict['AntiCOMP2']
+
+# test_instruct_dict['AntiMultiCOMP1']
+
+# test_instruct_dict['AntiMultiCOMP2']
+
+# test_instruct_dict['COMP1Mod1']
+
+# test_instruct_dict['COMP1Mod2']
+
+# test_instruct_dict['COMP2Mod1']
+
+# test_instruct_dict['COMP2Mod2']
+
+
 
 test_instruct_dict['DMS'] = ('respond if stimuli are presented in the same directions otherwise do not respond', 
                                 'go in the displayed direction if the stimuli match otherwise do not respond', 
