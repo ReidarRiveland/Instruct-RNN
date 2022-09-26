@@ -5,18 +5,28 @@ from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
 
 
-plot_avg_holdout_curve('7.20models', 'swap', 
-                                ['sbertNet_lin_tuned', 'sbertNet_lin', 'bowNet_lin', 'clipNet_lin', 'clipNet_lin_tuned',
-                                'simpleNet', 'bertNet_lin', 'bertNet_lin_tuned', 'gptNetXL_tuned', 'gptNetXL', 'simpleNetPlus', 'comNet', 'comNetPlus'], 
-                                seeds=range(3)
-                                )
 
+
+plot_avg_holdout_curve('7.20models', 'swap', 
+                                ['gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin', 'bertNet_lin', 'simpleNet', 'simpleNetPlus', 'comNet', 'comNetPlus', 'bowNet_lin'],
+                                seeds =range(0, 5)
+                                )
 
 
 plot_all_holdout_curves('7.20models', 'swap', 
-                                [ 'clipNet_lin_tuned'],
-                                seeds =[0]
+                                [ 'clipNet_lin'],
+                                seeds =range(8)
                                 )
+
+plot_avg_holdout_curve('7.20models', 'swap', 
+                                [ 'clipNet_lin', 'sbertNet_lin'],
+                                seeds =range(3, 8)
+                                )
+
+from instructRNN.data_loaders.perfDataFrame import HoldoutDataFrame
+data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', seeds=range(3,8))
+data.avg_tasks()
+
 
 
 EXP_FILE = '7.20models/swap_holdouts'
