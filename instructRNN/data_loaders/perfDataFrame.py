@@ -80,6 +80,7 @@ class TrainingDataFrame():
     exp_type: str 
     holdout_file: str
     model_name: str
+    file_suffix: str=''
     perf_type: str = 'correct'
     seeds: range = range(5)
     verbose: bool = True
@@ -99,12 +100,16 @@ class TrainingDataFrame():
             return mean, std
 
     def load_data(self): 
-        data = np.full((5, len(TASK_LIST), 2000), np.NaN)
-        for i in range(5):
+        data = np.full((5, len(TASK_LIST), 10000), np.NaN)
+        for i in self.seeds:
             seed_name = 'seed' + str(i)
             load_path = self.file_path+'/'+self.exp_type+'_holdouts/'+self.holdout_file+'/'+self.model_name+'/'+seed_name
+
             try:
-                data_dict = pickle.load(open(load_path+'_training_'+self.perf_type, 'rb'))
+                if self.file_suffix: 
+                    data_dict = pickle.load(open(load_path+'training_data'+self.file_suffix, 'rb'))['correct_data']                    
+                else: 
+                    data_dict = pickle.load(open(load_path+'_training_'+self.perf_type, 'rb'))
             except FileNotFoundError: 
                 if self.verbose:
                     print('No folder for '+ load_path)

@@ -1,6 +1,9 @@
 from ast import Mod
+from math import exp
 from pyexpat import model
+from random import seed
 from turtle import color
+from xml.dom.expatbuilder import theDOMImplementation
 import matplotlib
 from pyparsing import col
 from instructRNN.analysis.model_analysis import *
@@ -41,8 +44,8 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None), 'simpleNetPlus': (Blue, '+'),
                     'clipNet_lin': (Yellow, 'None'), 'clipNet_lin_tuned': (Yellow, 'v'), 
                     #'bowNet': (Orange, None), 
                     'bowNet_lin': (Orange, None), 
-                    'gptNetXL': (Red, None), 'gptNetXL_tuned': (Red, 'v'), 
-                    'gptNetXL_lin': (Red, 'X'), 'gptNetXL_lin_tuned': (Red, '*'), 
+                    'gptNet_lin': (Red, None), 'gptNet_lin_tuned': (Red, 'v'), 
+                    'gptNetXL_lin': (Red, None), 'gptNetXL_lin_tuned': (Red, 'V'), 
                     #'bertNet': (Green, None), 'bertNet_tuned': (Green, 'v'),  
                     'bertNet_lin': (Green, None), 'bertNet_lin_tuned': (Green, 'v'),  
                     #'sbertNet': (Purple, None), 'sbertNet_tuned': (Purple, 'v'),
@@ -143,6 +146,21 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
         fig.legend(labels=model_list, loc=4, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
         plt.show()
 
+def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', seeds=range(5)): 
+    with plt.style.context('ggplot'):
+        _, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(10, 8))
+        thresholds = np.linspace(0.1, 0.9, 9)
+        axn.set_xticks(range(len(thresholds)))
+        axn.set_xticklabels([f'>{x:.0%}' for x in thresholds]) 
+        for model_name in model_list:
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
+            mean, _ = data.avg_seeds(k_shot=0)
+            over_thresholds = [np.sum(mean>threshold) for threshold in thresholds]
+            axn.bar(range(len(thresholds)), over_thresholds, color=MODEL_STYLE_DICT[model_name][0], alpha=0.6)
+
+        plt.show()
+
+
 def plot_all_curves(dataframe, axn, **plt_args):
     for j, task in enumerate(TASK_LIST):
         ax = axn.flat[j]
@@ -194,12 +212,15 @@ def plot_all_holdout_curves(foldername, exp_type, model_list,  perf_type='correc
     plt.show()
 
 def plot_all_training_curves(foldername, exp_type, holdout_file, model_list, perf_type='correct', plot_swaps = False, seeds=range(5)):
-    fig, axn = plt.subplots(6,6, sharey = True, sharex=True, figsize =(8, 8))
+    fig, axn = plt.subplots(5,10, sharey = True, sharex=True, figsize =(8, 8))
 
     fig.suptitle('Avg. Performance on Heldout Tasks', size=14)        
 
     for model_name in model_list:
-        data = TrainingDataFrame(foldername, exp_type, holdout_file, model_name, perf_type=perf_type, seeds=seeds)
+        try:
+            data = TrainingDataFrame(foldername, exp_type, holdout_file, model_name, perf_type=perf_type, seeds=seeds)
+        except:
+            data = TrainingDataFrame(foldername, exp_type, holdout_file, model_name, file_suffix = '_FOR_TUNING', perf_type=perf_type, seeds=seeds)
         plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=0.8, markevery=5)
 
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
@@ -501,7 +522,4 @@ def plot_0_shot_spider(model_list, folder_name, exp_name, perf_type='correct', *
             ax.fill(angles, zero_shot, color = MODEL_STYLE_DICT[model_name][0], alpha = 0.5)
         plt.show()
         
-
-
-
 
