@@ -823,6 +823,7 @@ train_instruct_dict['DNMC'] = ('if stimuli are on different halves of display re
 
 
 test_instruct_dict = {}
+
 test_instruct_dict['Go'] = ('select the presented direction', 
                                 'respond in the direction shown',
                                 'respond in the direction displayed', 
@@ -926,11 +927,11 @@ test_instruct_dict['ConDM'] = ('choose the strongest stimulus if you are convinc
                                 'opt for the strongest direction displayed if you are certain about your answer otherwise do not respond', 
                                 'respond to the orientation with greatest strength if you are certain of the answer otherwise do not respond')
 
-test_instruct_dict['AntiConDM'] = ('select the weakest direction if you are convinced of the answer otherwise do not respond', 
+test_instruct_dict['ConAntiDM'] = ('select the weakest direction if you are convinced of the answer otherwise do not respond', 
                                 	'respond to the stimulus with weakest strength if you are positive otherwise do not respond', 
 									'if you are certain of your answer select the weaker of the two directions otherwise do not respond', 
 									'if there is no doubt in your mind choose the stimulus with least strength otherwise do not respond', 
-									'opt for direction withg lowest strength if you are certain about your answer otherwise do not respond')
+									'opt for direction with lowest strength if you are certain about your answer otherwise do not respond')
 
 test_instruct_dict['DMMod1'] = ('concentrate only on the first modality and choose the strongest direction', 
 								'focus only on the first modality and opt for the direction displayed with the greatest strength',
@@ -957,7 +958,7 @@ test_instruct_dict['AntiDMMod2'] = ('attend exclusively to the second modality a
 										'focus exclusively on the second modality and opt for the weakest direction')
 
 test_instruct_dict['Dur1'] = ('select the initial stimulus if it is presented for a greater span of time than the second direction otherwise do not respond',
-								'if the first orientation is displayed for a greater length of time than the second direction respond to the first orientation othewise do not respond', 
+								'if the first orientation is displayed for a greater length of time than the second direction respond to the first orientation otherwise do not respond', 
 								'choose the initial direction if is displayed for a longer span of time than the second direction otherwise do not respond',
 								'opt for the first stimulus if it lasts for a greater length of time than the second stimulus otherwise do not respond', 
 								'if the initial orientation lasts for a larger span of time than the second orientation then select the initial orientation otherwise do not respond')
@@ -968,11 +969,11 @@ test_instruct_dict['Dur2'] = ('respond to the final direction if the stimulus is
 								'opt for the final stimulus if it is displayed for a span of time which is greater than the initial stimulus otherwise do not respond', 
 								'if the final stimulus appears for a length of time which is greater than the first stimulus then choose the final stimulus otherwise do not respond')								
 
-test_instruct_dict['MultiDur1'] = ('respond to the initial direction if the length of the stimulus integrated over both modalities is grearter than the second direction otherwise do not respond',
+test_instruct_dict['MultiDur1'] = ('respond to the initial direction if the length of the stimulus integrated over both modalities is greater than the second direction otherwise do not respond',
 									'choose the first stimulus if it spans a length of time which is greater than the second stimulus when summed over both modalities otherwise do not respond', 
-									'if the first direction is diplayed to a longer length of time summed over both modalities than the second direction then select the first direction otherwise do not respond',
+									'if the first direction is displayed to a longer length of time summed over both modalities than the second direction then select the first direction otherwise do not respond',
 									'select the initial orientation if it has a longer time span when integrated over both modalities than the final direction otherwise do not respond',
-									'opt for the intial stimulus it it is displayed for a span of time which is longer than the span of the second stimulus summed over both modalities otherwise do not respond')
+									'opt for the initial stimulus it it is displayed for a span of time which is longer than the span of the second stimulus summed over both modalities otherwise do not respond')
 
 test_instruct_dict['MultiDur2'] = ('respond to the final orientation if it spans a greater period of time when summed over both modalities than the initial orientation otherwise do not respond',
 									'select the last direction if it is presented for a greater length of time than the initial direction when integrated over both modalities otherwise do not respond', 
@@ -1006,16 +1007,28 @@ test_instruct_dict['AntiMultiDur2'] = ('pick the latter orientation if it appear
 										
 test_instruct_dict['Dur1Mod1'] = ('concentrate only on the first modality and select the earlier direction if it lasts for a longer time span than the latter direction otherwise do not respond',
 									'focus exclusively on the first modality and choose the earlier stimulus if it is presented for a greater length of time than the second stimulus otherwise do not respond',
-									'consider only stimuli from the first modality and pick the respond in the direction of the first stimulus if it appears for a greater period of time than the second stimulus otherwise do not respond',
+									'consider only stimuli from the first modality and pick the first stimulus if it appears for a greater period of time than the second stimulus otherwise do not respond',
 									'concentrate exclusively on stimuli in the first modality and choose the first direction if it appears for a greater span of time than the second direction otherwise do not respond',
 									'only consider the first modality and opt for the earlier stimulus if it appears for a length of time which is greater than the latter stimulus otherwise do not respond')
-									
 
-# test_instruct_dict['Dur1Mod2']
 
-# test_instruct_dict['Dur2Mod1']
+test_instruct_dict['Dur1Mod2'] = ('concentrate only on the second modality and respond to the first direction if spans a greater length of time than the second stimulus otherwise do not respond',
+									'focus exclusively on the stimuli in the second modality and respond to the earlier direction if it is displayed for a greater length of time than the latter stimulus otherwise do not respond',
+									'only consider stimuli in the second modality and select the earlier orientation if it appears for a greater span of time than the first orientation otherwise do not respond',
+									'concentrate on the second modality and choose the initial direction if it lasts for a greater period of time than the second direction otherwise do not respond',
+									'attend exclusively to the second modality and respond to the first stimulus if it is presented for a greater span of time than the final stimulus otherwise do not respond')
 
-# test_instruct_dict['Dur2Mod2']
+test_instruct_dict['Dur2Mod1'] = ('concentrate only on the first modality and select the latter orientation if it spans a longer length of time than the earlier orientation otherwise do not respond',
+									'attend exclusively to the first modality and choose the latter stimulus if it last for longer than the initial stimulus otherwise do not respond',
+									'only consider stimuli in the first modality and opt for the second stimulus if it spans a period of time which is greater than the first stimulus otherwise do not respond',
+									'focus only on the first modality and select the latter direction if it lasts for a greater length of time than the earlier direction otherwise do not repsond',
+									'concentrate on only the stimuli in the first modality and pick the final stimulus if it spans a length of time which is greater than the first stimulus otherwise do not respond')
+
+test_instruct_dict['Dur2Mod2'] = ('focus exclusively on stimuli in the second modality and choose the final direction if it spans a period of time which is longer than the earlier direction otherwise do not respond',
+									'concentrate only on the second modality and opt for the last direction if it appears for a length of time that is greater than the earlier direction otherwise do not respond',
+									'only consider stimuli in the second modality and choose the final orientation if it is presented for a span of time which lasts longer than the initial orientation otherwise do not respond',
+									'concentrate only on stimuli in the second modality and select the latter stimulus if it lasts for a greater length of time than the earlier stimulus otherwise do not respond',
+									'attend exclusively to the second modality and opt for the final direction if it is presented for a length of time which is longer than that of the initial direction otherwise do not respond')
 
 test_instruct_dict['COMP1'] = ('when the first stimulus is stronger pick the first orientation otherwise do not respond', 
                                     'choose the initial stimulus if it is the stronger of the two presented stimuli otherwise do not respond', 
@@ -1041,23 +1054,54 @@ test_instruct_dict['MultiCOMP2']=('if the final orientation displays greater ove
                                         'select the second direction if it has a larger joint strength over modalities than the first direction otherwise do not respond',
                                         'respond to the second orientation if it has greater combined intensity than the first orientation otherwise do not respond')
 
-# test_instruct_dict['AntiCOMP1']
+test_instruct_dict['AntiCOMP1'] = ('select the earlier orientation if it is presented with less strength than the latter orientation otherwise do not respond',
+									'if the earlier direction appears less strong than the latter direction then select the earlier direction otherwise do not respond',
+									'opt for the earlier stimulus if it appears weaker than the final stimulus otherwise do not respond',
+									'choose the initial orientation if it is presented with lesser intensity compared to the latter stimulus otherwise do not respond',
+									'opt for the earlier direction it appear with lesser intensity than the final direction otherwise do not respond'
+									)
 
-# test_instruct_dict['AntiCOMP2']
+test_instruct_dict['AntiCOMP2'] = ('opt for the latter orientation if it presented with lesser strength than the earlier orientation otherwise do not respond',
+									'if the second stimulus appears with less strength compared to the earlier stimulus then opt for the second stimulus otherwise do not respond',
+									'choose the latter direction if it has lesser strength compared to the initial direction otherwise do not respond',
+									'if the latter stimulus appears with lesser intensity compared to the earlier stimulus then pick the latter stimulus otherwise do not respond',
+									'select the final direction if it is presented with less intensity compared to the initial direction otherwise do not respond')
 
-# test_instruct_dict['AntiMultiCOMP1']
+test_instruct_dict['AntiMultiCOMP1'] = ('opt for the earlier direction if it appears with lesser intensity compared to the latter direction when summed over both modalities otherwise do not respond',
+										'select the initial orientation if it is shown with lesser strength than the last orientation integrated across modalities otherwise do not respond',
+										'if the first stimulus has lesser strength when compared to the latter stimulus summed over both modalities then choose the latter stimulus otherwise do not respond',
+										'pick the earlier stimulus if it is presented with lower strength compared to the last stimulus when integrated over both modalities otherwise do not respond',
+										'if the first direction is shown with lesser strength compared to the strength of the second direction summed over both modalities then select the first direction otherwise do not repsond')
 
-# test_instruct_dict['AntiMultiCOMP2']
+test_instruct_dict['AntiMultiCOMP2'] = ('if the latter orientation is shown with lesser strength than the earlier orientation when added across modalities then opt for the latter orientation otherwise do not respond',
+										'choose the last displayed direction if it is shown with lesser intensity compared to the first direction when integrated over modalities otherwise do not respond',
+										'opt for the latter direction if it appears with less strength compared to the initial direction when stimuli strength are integrated over both modalities otherwise do not respond',
+										'select the last stimulus if it is displayed with a low strength compared to the first stimulus when intensity is summed over both modalities otherwise do not respond',
+										'pick the latter direction if it has less intensity compared to earlier direction when strength is integrated over both modalities otherwise do not respond')
 
-# test_instruct_dict['COMP1Mod1']
+test_instruct_dict['COMP1Mod1'] = ('concentrate only on stimuli from the first modality and opt for the first direction if it is presented with greater intensity compared to the latter direction otherwise do not respond',
+									'focus exclusively on the first modality and select the earlier stimulus if is appears with a greater contrast when compared to the final stimulus otherwise do not respond',
+									'only consider the first modality and if the earlier direction is presented with higher contrast than the latter direction opt for the earlier direction otherwise do not respond',
+									'exclusively attend to stimuli from the first modality and respond to the earlier orientation if it is displayed with higher intensity compared to the last orientation otherwise do not respond',
+									'concentrate only on the first modality and pick the earlier direction if it is displayed with higher contrast compared to the latter direction otherwise do not respond')
 
-# test_instruct_dict['COMP1Mod2']
+test_instruct_dict['COMP1Mod2'] = ('only consider stimuli from the second modality and select the earlier direction if it appears with a higher contrast than the latter direction otherwise do not respond',
+									'concentrate exclusively on the second modality and choose the earlier orientation if it is displayed with a greater intensity than the last orientation otherwise do not respond',
+									'focus entirely on the second modality and if the initial stimulus is displayed with higher contrast than the last stimulus respond to the first stimulus otherwise do not respond',
+									'consider only stimuli from the second modality and if the initial direction has a greater contrast when compared to the last direction then select the initial direction otherwise do not respond',
+									'attend exclusively to the second modality and if the first orientation is shown with a higher strength compared to the final direction then pick the first orientation otherwise do not respond')
 
-# test_instruct_dict['COMP2Mod1']
+test_instruct_dict['COMP2Mod1'] = ('only consider stimuli from the first modality and opt for the last direction if it appears with a higher contrast than the initial direction otherwise do not respond',
+									'focus solely on the stimuli from the first modality and choose the latter stimulus if it is presented with less strength compared to that of the earlier stimulus otherwise do not respond',
+									'concentrate only on the first modality and if the latter orientation appears stronger compared to the initial orientation then opt for the latter orientation otherwise do not respond', 
+									'attend exclusively to the first modality and select the final direction if it is presented with greater contrast compared to that of the earlier direction otherwise do not respond',
+									'consider only the first modality and respond to the last stimulus if is has a contrast which is higher compared to the contrast of the initial stimulus otherwise do not respond')
 
-# test_instruct_dict['COMP2Mod2']
-
-
+test_instruct_dict['COMP2Mod2'] = ('consider only stimuli from the second modality and choose the last orientation if it is displayed with a contrast that is higher than the contrast of the earlier orientation otherwise do not respond', 
+									'attend solely to the second modality and select the latter direction if it appears with a greater strength compared to that of the earlier direction otherwise do not respond', 
+									'concentrate only on stimuli from the second modality and if the last stimulus has a larger contrast compared to that of the earlier stimulus then select the last stimulus otherwise do not respond',
+									'focus exclusively on the second modality and if the last direction is displayed with a higher contrast compared to the initial direction respond to the last direction otherwise do not respond',
+									'only consider the second modality and pick the latter direction if it is displayed with greater intensity compared to the earlier direction otherwise do not respond')
 
 test_instruct_dict['DMS'] = ('respond if stimuli are presented in the same directions otherwise do not respond', 
                                 'go in the displayed direction if the stimuli match otherwise do not respond', 
@@ -1092,7 +1136,7 @@ def save_instruct_dicts(models_path):
 	else: 
 		os.makedirs(path)
 
-	pickle.dump(train_instruct_dict, open(path+'train_instruct_dict', 'wb'))
+	#pickle.dump(train_instruct_dict, open(path+'train_instruct_dict', 'wb'))
 	pickle.dump(test_instruct_dict, open(path+'test_instruct_dict', 'wb'))
 
 

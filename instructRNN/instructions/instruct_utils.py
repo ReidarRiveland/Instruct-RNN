@@ -1,3 +1,4 @@
+from cgi import test
 import numpy as np
 import pickle
 import itertools
@@ -21,8 +22,10 @@ except KeyError:
     
 train_instruct_dict = pickle.load(open(INSTRUCT_PATH+'train_instruct_dict', 'rb'))
 test_instruct_dict = pickle.load(open(INSTRUCT_PATH+'test_instruct_dict', 'rb'))
+combined_instruct_dict = {task: list(train_instruct_dict[task]+test_instruct_dict[task]) for task in TASK_LIST}
+
 inv_train_instruct_dict = inv_instruct_dict(train_instruct_dict)
- 
+inv_combined_instruct_dict = inv_instruct_dict(combined_instruct_dict)
  
 def get_all_sentences():
     combined_instruct= {task: list(train_instruct_dict[task]) for task in TASK_LIST}
@@ -54,7 +57,7 @@ def get_swap_task(task):
     return SWAPS_DICT[swap_label][swap_index]
 
 def get_instruction_dict(instruct_mode): 
-    assert instruct_mode in [None, 'swap', 'validation']
+    assert instruct_mode in [None, 'swap', 'validation', 'combined']
     if instruct_mode == 'swap': 
         swap_dict = {}
         for task in TASK_LIST: 
@@ -62,7 +65,8 @@ def get_instruction_dict(instruct_mode):
         return swap_dict
     elif instruct_mode == 'validation': 
         return test_instruct_dict
-
+    elif instruct_mode == 'combined': 
+        return combined_instruct_dict
     else: 
         return train_instruct_dict
 

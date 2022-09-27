@@ -104,7 +104,7 @@ def _make_model_legend(model_list):
                     markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=4))
     plt.legend(handles=Patches)
 
-def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct', plot_swaps = False, seeds=range(5), split=False):
+def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct', mode = '', plot_swaps = False, seeds=range(5), split=False):
     with plt.style.context('ggplot'):
         if split: 
             fig, axn, ax2 = split_axes()
@@ -127,7 +127,7 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
         axn.spines['right'].set_visible(False)
 
         for model_name in model_list:
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
             mean, std = data.avg_tasks()
             _plot_performance_curve(mean, std, axn, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
 
@@ -196,13 +196,13 @@ def plot_0_shot_lolli(foldername, exp_type, model_list,  perf_type='correct', se
         plt.show()
 
 
-def plot_all_holdout_curves(foldername, exp_type, model_list,  perf_type='correct', seeds=range(5), plot_swap=False):
+def plot_all_holdout_curves(foldername, exp_type, model_list,  mode = '', perf_type='correct', seeds=range(5), plot_swap=False):
     fig, axn = plt.subplots(5,10, sharey = True, sharex=True, figsize =(8, 8))
 
     fig.suptitle('Avg. Performance on Heldout Tasks', size=14)        
 
     for model_name in model_list:
-        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
+        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = '', seeds=seeds)
         plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=0.8, markevery=10)
         if plot_swap:
             data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds, mode='swap')

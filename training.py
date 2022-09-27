@@ -35,6 +35,8 @@ if __name__ == "__main__":
     parser.add_argument('--holdouts', type=int, default=None,  nargs='*', help='list of ints that index the holdout sets to use')
     parser.add_argument('--overwrite', default=False, action='store_true', help='whether or not to overwrite existing files')
     parser.add_argument('--use_checkpoint', default=False, action='store_true', help='whether or not to use checkpointed model')
+    parser.add_argument('--instruct_mode', type=str, default=None, help='what kind of instructions to show when testing')
+    parser.add_argument('--weight_mode', type=str, default=None, help='what kind of weight to tune when testing')
 
     parser.add_argument('--ot', default=False, action='store_true', help='retest')
     parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')
@@ -74,7 +76,7 @@ if __name__ == "__main__":
 
         if args.mode == 'test': 
             from instructRNN.trainers.model_trainer import *
-            test_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)   
+            test_model(EXP_FOLDER, model, _seed, holdouts, instruct_mode = args.instruct_mode, weight_mode=args.weight_mode, overwrite=args.overwrite)   
 
         if args.mode == 'context' or args.mode == 'c': 
             from instructRNN.trainers.context_trainer import *
