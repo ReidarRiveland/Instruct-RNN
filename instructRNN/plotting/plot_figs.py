@@ -24,8 +24,8 @@ plot_all_holdout_curves('7.20models', 'swap',
                                 )
 
 plot_avg_holdout_curve('7.20models', 'swap', 
-                                [ 'clipNet_lin', 'sbertNet_lin'],
-                                seeds =range(3, 8)
+                                [ 'gptNetXL_lin'],
+                                seeds =range(0, 5)
                                 )
 
 plot_all_training_curves('7.20models', 'multitask', 'Multitask', ['gptNet_lin'])
