@@ -167,7 +167,7 @@ class ModelTrainer(BaseTrainer):
             if instruct_mode is None: instruct_mode = ''
             if weight_mode is None: weight_mode = ''
             self.test_name_str= instruct_mode + weight_mode
-        else: 
+        elif not is_testing and instruct_mode is not None: 
             warnings.warn('instruct mode is not standard but doing something other than testing')
             
 
