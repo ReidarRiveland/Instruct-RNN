@@ -337,7 +337,7 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     is_tuned = trainer.train(model, is_tuning=True)
     return is_tuned
 
-def test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = None, weight_mode = None, overwrite=False, repeats=1, **train_config_kwargs): 
+def test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = None, weight_mode = None, overwrite=False, repeats=5, **train_config_kwargs): 
     torch.manual_seed(seed)
     
     label, holdouts = labeled_holdouts 
