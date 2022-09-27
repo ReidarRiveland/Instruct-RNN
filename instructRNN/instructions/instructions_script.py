@@ -974,17 +974,42 @@ test_instruct_dict['MultiDur1'] = ('respond to the initial direction if the leng
 									'select the initial orientation if it has a longer time span when integrated over both modalities than the final direction otherwise do not respond',
 									'opt for the intial stimulus it it is displayed for a span of time which is longer than the span of the second stimulus summed over both modalities otherwise do not respond')
 
-test_instruct_dict['MultiDur2'] = 
+test_instruct_dict['MultiDur2'] = ('respond to the final orientation if it spans a greater period of time when summed over both modalities than the initial orientation otherwise do not respond',
+									'select the last direction if it is presented for a greater length of time than the initial direction when integrated over both modalities otherwise do not respond', 
+									'opt for the final stimulus if it appears for a greater span of time than the initial stimulus when summed over both modalities otherwise do not respond',
+									'if the second direction is displayed for a length of time which is greater than the first direction when summed over both modalities then respond to the second direction otherwise do not respond',
+									'pick the final orientation if it appears for a span of time which is larger than the first orientation when integrated over both modalities otherwise do not respond')
 
-# test_instruct_dict['AntiDur1']
+test_instruct_dict['AntiDur1'] = ('select the earlier stimulus if it spans a length of time which is shorter than latter stimulus otherwise do not respond',
+									'opt for the earlier stimulus if it appears for a length of time which is less than the latter stimulus otherwise do not respond',
+									'if the earlier direction is presented for an amount of time which is less than the latter direction than choose the earlier direction otherwise do not respond', 
+									'choose the first orientation if it appears for a shorter span of time than the second stimulus otherwise do not respond',
+									'pick the earlier orientation if it is displayed for a length of time that is less than the final direction otherwise do not respond')
 
-# test_instruct_dict['AntiDur2']
+test_instruct_dict['AntiDur2'] = ('opt for the latter stimulus if is presented for a span of time which is less than the earlier stimulus otherwise do not respond',
+									'pick the final direction if it appears for a shorter length of time than the earlier direction otherwise do not respond', 
+									'if the latter orientation has a shorter time span than the first orientation select the latter orientation otherwise do not respond',
+									'select the latter stimulus if it has a shorter period of presentation than the first stimulus otherwise do not respond',
+									'choose the latter stimulus if it is presented for a shorter length of time than the first stimulus otherwise do not respond')
 
-# test_instruct_dict['AntiMultiDur1']
+test_instruct_dict['AntiMultiDur1'] = ('pick the earlier direction if its lasts for a span of time which is less than the latter direction when summed over both modalities otherwise do not respond',
+											'choose the first orientation if it is presented for a smaller amount of time than the second direction when integrated over both modalities otherwise do not respond',
+											'if the earlier stimulus appears for a shorter span of time when summed over both modalities than the second stimulus respond to the earlier stimulus otherwise do not respond',
+											'select the initial direction if it is displayed for a length of time which is shorter than the second direction when summed over both modalities otherwise do not respond',
+											'select the earlier stimulus if has a duration which is less than that of the second stimulus integrated over both modalities otherwise do not respond')
 
-# test_instruct_dict['AntiMultiDur2']
-
-# test_instruct_dict['Dur1Mod1']
+test_instruct_dict['AntiMultiDur2'] = ('pick the latter orientation if it appears for an amount of time which is less than the first orientation when summed across modalities otherwise do not respond',
+										'opt for the latter direction if it is presented for a span of time which is less than the earlier orientation when integrated over both modalities otherwise do not respond',
+										'respond to the latter stimulus if it appears for a length of time that is shorter than the earlier stimulus integrated across modalities otherwise do not respond',
+										'if the final direction is presented for a time span that is less than the initial direction when summed over both modalities then choose the final direction otherwise do not respond',
+										'if the latter stimulus appears for the shorter time span than the earlier stimulus when combined over both modalities then opt for the latter stimulus otherwise do not respond')
+										
+test_instruct_dict['Dur1Mod1'] = ('concentrate only on the first modality and select the earlier direction if it lasts for a longer time span than the latter direction otherwise do not respond',
+									'focus exclusively on the first modality and choose the earlier stimulus if it is presented for a greater length of time than the second stimulus otherwise do not respond',
+									'consider only stimuli from the first modality and pick the respond in the direction of the first stimulus if it appears for a greater period of time than the second stimulus otherwise do not respond',
+									'concentrate exclusively on stimuli in the first modality and choose the first direction if it appears for a greater span of time than the second direction otherwise do not respond',
+									'only consider the first modality and opt for the earlier stimulus if it appears for a length of time which is greater than the latter stimulus otherwise do not respond')
+									
 
 # test_instruct_dict['Dur1Mod2']
 
