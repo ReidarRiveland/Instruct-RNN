@@ -47,7 +47,7 @@ class TrainerConfig():
     scheduler_args: dict = {}
 
     save_for_tuning_epoch: int = 30
-    checker_threshold: float = 0.95
+    checker_threshold: float = 0.93
     step_last_lr: bool = True
     test_repeats: int = None
 
