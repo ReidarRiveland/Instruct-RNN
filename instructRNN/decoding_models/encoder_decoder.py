@@ -95,13 +95,11 @@ class EncoderDecoder(nn.Module):
 
         perf_dict = {}
         with torch.no_grad():
-            for i, mode in enumerate(['instructions', 'others']): 
-                perf_array = np.empty((len(tasks), num_repeats))
-                perf_array[:] = np.nan
+            for mode in ['instructions', 'others']: 
+                perf_array = np.full((len(tasks), num_repeats), np.nan)
                 for k in range(num_repeats): 
                     for j, task in enumerate(tasks):
                         print(task)
-                        task_info = []
                         ins, targets, _, target_dirs, _ = construct_trials(task, 100)
                         if mode == 'others': 
                             try:
@@ -121,18 +119,6 @@ class EncoderDecoder(nn.Module):
                         perf_array[j, k] = task_perf
                 perf_dict[mode] = perf_array
         return perf_dict, decoded_dict
-
-    # def _decoded_over_training(self, task, num_repeats=1, task_file='Multitask', lr=1e-1): 
-    #     context_trainer = ContextTrainer(self.sm_model, self.decoder.context_dim, task_file)
-    #     context_trainer.supervised_str=='supervised'
-    #     context = nn.Parameter(torch.randn((256, self.decoder.context_dim), device=device))
-
-    #     opt= optim.Adam([context], lr=lr, weight_decay=0.0)
-    #     sch = optim.lr_scheduler.ExponentialLR(opt, 0.99)
-    #     streamer = TaskDataSet(batch_len = 256, num_batches = 100, task_ratio_dict={task:1})
-    #     is_trained = context_trainer.train_context(streamer, 1, opt, sch, context, decoder=self.decoder)
-
-    #     return context_trainer._decode_during_training_, self.sm_model._correct_data_dict
 
     def _partner_model_over_t(self, partner_model, task, from_contexts=True, t_set = [120]): 
         ins, targets, _, target_dirs, _ = construct_trials(task, 128)
@@ -155,45 +141,3 @@ class EncoderDecoder(nn.Module):
         
         return task_perf_list, instruct_list
 
-    # def plot_partner_performance(self, all_perf_dict):
-    #     barWidth = 0.2
-    #     model_name = 'sbertNet_tuned'
-    #     for i, mode in enumerate(['instructions', 'context']):  
-
-    #         perf = all_perf_dict[mode]
-    #         values = list(np.mean(perf, axis=1))
-    #         std = np.std(perf, axis=1)
-            
-    #         len_values = len(Task.TASK_LIST)
-    #         if i == 0:
-    #             r = np.arange(len_values)
-    #         else:
-    #             r = [x + barWidth for x in r]
-    #         mark_size = 3
-    #         if mode == 'contexts': 
-    #             hatch_style = '/'
-    #             edge_color = 'white'
-    #         else: 
-    #             hatch_style = None
-    #             edge_color = None
-    #         plt.plot(r, [1.05]*16, linestyle="", alpha=0.8, color = ['blue', 'red'][i], markersize=mark_size)
-    #         plt.bar(r, values, width =barWidth, label = model_name, color = ['blue', 'red'][i], edgecolor = 'white')
-    #         #cap error bars at perfect performance 
-    #         error_range= (std, np.where(values+std>1, (values+std)-1, std))
-    #         print(error_range)
-    #         markers, caps, bars = plt.errorbar(r, values, yerr = error_range, elinewidth = 0.5, capsize=1.0, linestyle="", alpha=0.8, color = 'black', markersize=1)
-
-    #     plt.ylim(0, 1.15)
-    #     plt.title('Trained Performance')
-    #     plt.xlabel('Task Type', fontweight='bold')
-    #     plt.ylabel('Percentage Correct')
-    #     r = np.arange(len_values)
-    #     plt.xticks([r + barWidth for r in range(len_values)], Task.TASK_LIST, fontsize='xx-small', fontweight='bold')
-    #     plt.tight_layout()
-    #     Patches = [(Line2D([0], [0], linestyle='None', marker=MODEL_STYLE_DICT[model_name][1], color=MODEL_STYLE_DICT[model_name][0], label=model_name, 
-    #                 markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=8)) for model_name in list(all_perf_dict.keys()) if 'bert' in model_name or 'gpt' in model_name]
-    #     Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['bowNet'][0], label='bowNet'))
-    #     Patches.append(mpatches.Patch(color=MODEL_STYLE_DICT['simpleNet'][0], label='simpleNet'))
-    #     #plt.legend()
-    #     plt.show()
-    

@@ -10,8 +10,31 @@ from instructRNN.models.full_models import SBERTNet
 from instructRNN.instructions.instruct_utils import get_instructions
 from instructRNN.plotting.plotting import *
 
-EXP_FILE = '7.20models/swap_holdouts'
-sbertNet = SBERTNet_lin_tuned()
+EXP_FILE = '7.20models/multitask_holdouts'
+holdouts_file = 'Multitask'
+
+from instructRNN.instructions.instructions_script import save_instruct_dicts
+save_instruct_dicts('7.20models')
+
+clipNet = CLIPNet_lin()
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
+clipNet.to(device)
+perf_array = get_model_performance(clipNet, instruct_mode='validation')
+
+task_eval(clipNet, 'AntiGo', batch_size=64, instructions=['pick the converse of the stimulus orientation that appears']*64)
+
+list(zip(TASK_LIST, perf_array))
+
+
+gptNet = GPTNetXL_lin()
+gptNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed0')
+gptNet.to(device)
+perf_array = get_model_performance(gptNet, instruct_mode='validation')
+
+list(zip(TASK_LIST, perf_array))
+
+
+
 
 holdouts_file = 'swap9'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed4')
@@ -95,8 +118,8 @@ plot_task_var_heatmap(norm_task_var[sorted_indices, :], cluster_labels)
 
 
 
-# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ /home/reidar/Projects/Instruct-RNN/7.20models
-# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ /home/reidar/Projects/Instruct-RNN/7.20models
+# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' --exclude '*_opt*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ /home/reidar/Projects/Instruct-RNN/7.20models
+# rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' --exclude '*_opt*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ /home/reidar/Projects/Instruct-RNN/7.20models
 
 # rsync -a  -P --include '*gptNetXL_FOR_TUNING*' --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ /home/riveland/Instruct-RNN/7.20models
 # rsync -a  -P --exclude '*.npy*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/multitask_holdouts/Multitask/gptNet_lin /home/riveland/Instruct-RNN/7.20models/multitask_holdouts/Multitask/gptNet_lin

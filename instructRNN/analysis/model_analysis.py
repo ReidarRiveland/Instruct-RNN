@@ -28,38 +28,38 @@ else:
     device = torch.device('cpu')
     
 
-def task_eval(model, task, batch_size, noise=None, instructions = None): 
+def task_eval(model, task, batch_size, noise=None, instruct_mode = None, instructions = None): 
     ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, noise)
     if instructions is None: 
-        task_info = get_task_info(batch_size, task, model.info_type)
+        task_info = get_task_info(batch_size, task, model.info_type, instruct_mode=instruct_mode)
     else: 
         task_info = instructions
     out, _ = model(torch.Tensor(ins).to(model.__device__), task_info)
     return np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
-def get_model_performance(model, num_repeats = 1, batch_len=128): 
+def get_model_performance(model, num_repeats = 1, batch_len=128, instruct_mode=None): 
     model.eval()
-    model.to(device)
     perf_array = np.empty(len(TASK_LIST))
     with torch.no_grad():
         for i, task in enumerate(TASK_LIST):
             print(task)
             mean_list = [] 
             for _ in range(num_repeats): 
-                frac_correct = task_eval(model, task, batch_len)
+                frac_correct = task_eval(model, task, batch_len, instruct_mode=instruct_mode)
                 mean_list.append(frac_correct)
             perf_array[i] = np.mean(mean_list)
     return perf_array
 
-def get_multitask_val_performance(model, foldername, seeds=np.array(range(5))): 
-    performance = np.empty((len(seeds), len(TASK_LIST)))
-    model.instruct_model = 'validation'
-    for seed in seeds:
-        model.set_seed(seed)
-        model.load_model(foldername+'/Multitask')
-        perf = get_model_performance(model, 3)
-        performance[seed, :] = perf
-    return performance
+def eval_model_0_shot(model, folder_name, exp_type, seed, instruct_mode=None): 
+    if exp_type == 'swap': 
+        exp_dict = SWAPS_DICT
+    perf_array = np.full(len(TASK_LIST), np.NaN)
+    with torch.no_grad():
+        for holdout_label, tasks in exp_dict.keys(): 
+            model.load_model(folder_name+'/'+exp_type+'/'+holdout_label+'/'+model.model_name, suffix='_seed'+str(seed))
+            for task in tasks: 
+                perf_array[TASK_LIST.index(task)] = task_eval(model, task, 64, instruct_mode=instruct_mode)
+    return perf_array
 
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
     if depth.isnumeric(): 

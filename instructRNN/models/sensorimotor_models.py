@@ -110,7 +110,11 @@ class BaseNet(nn.Module):
         for p in self.parameters(): 
             p.requires_grad=False
     
-    def freeze_rnn_weights(self): 
+    def freeze_all_but_rnn_ins(self):
+        for n, p in self.named_parameters(): 
+            if 'ih' not in n: p.requires_grad=False
+    
+    def freeze_recurrent_weights(self): 
         for n, p in self.recurrent_units.named_parameters(): 
             if 'hh' in n: p.requires_grad=False
 
@@ -184,7 +188,7 @@ class InstructNet(BaseNet):
                                 self.LM_proj_out_layers)
 
         self.langModel = self.LM_class(self.LM_config)
-        
+    
 
     def forward(self, x, instruction = None, context = None):
         assert instruction is not None or context is not None, 'must have instruction or context input'

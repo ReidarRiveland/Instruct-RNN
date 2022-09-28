@@ -42,7 +42,7 @@ class HoldoutDataFrame():
             std = np.nanstd(data, axis=0)
             return mean, std
 
-    def avg_tasks(self, seeds=range(5), k_shot=slice(0, 100)): 
+    def avg_tasks(self, seeds=range(10), k_shot=slice(0, 100)): 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
             data = self.data[seeds, :, k_shot]
@@ -60,7 +60,7 @@ class HoldoutDataFrame():
         elif self.exp_type == 'family': 
             training_sets = FAMILY_DICT
 
-        data = np.full((5, len(TASK_LIST), 100), np.nan) #seeds, task, num_batches        
+        data = np.full((10, len(TASK_LIST), 100), np.nan) #seeds, task, num_batches        
         for i in self.seeds:
             seed_name = 'seed' + str(i)
             for label, tasks in training_sets.items():
@@ -80,6 +80,7 @@ class TrainingDataFrame():
     exp_type: str 
     holdout_file: str
     model_name: str
+    file_suffix: str=''
     perf_type: str = 'correct'
     seeds: range = range(5)
     verbose: bool = True
@@ -99,12 +100,16 @@ class TrainingDataFrame():
             return mean, std
 
     def load_data(self): 
-        data = np.full((5, len(TASK_LIST), 2000), np.NaN)
-        for i in range(5):
+        data = np.full((5, len(TASK_LIST), 10000), np.NaN)
+        for i in self.seeds:
             seed_name = 'seed' + str(i)
             load_path = self.file_path+'/'+self.exp_type+'_holdouts/'+self.holdout_file+'/'+self.model_name+'/'+seed_name
+
             try:
-                data_dict = pickle.load(open(load_path+'_training_'+self.perf_type, 'rb'))
+                if self.file_suffix: 
+                    data_dict = pickle.load(open(load_path+'training_data'+self.file_suffix, 'rb'))['correct_data']                    
+                else: 
+                    data_dict = pickle.load(open(load_path+'_training_'+self.perf_type, 'rb'))
             except FileNotFoundError: 
                 if self.verbose:
                     print('No folder for '+ load_path)

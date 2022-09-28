@@ -4,19 +4,35 @@ from instructRNN.models.full_models import *
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
 
-
-plot_avg_holdout_curve('7.20models', 'swap', 
-                                ['sbertNet_lin_tuned', 'sbertNet_lin', 'bowNet_lin', 'clipNet_lin', 'clipNet_lin_tuned',
-                                'simpleNet', 'bertNet_lin', 'bertNet_lin_tuned', 'gptNetXL_tuned', 'gptNetXL', 'simpleNetPlus', 'comNet', 'comNetPlus'], 
-                                seeds=range(3)
+plot_0_shot_task_hist('7.20models', 'swap', 
+                                [ 'clipNet_lin', 'sbertNet_lin', 'gptNetXL_lin'],
+                                seeds =range(0,1)
                                 )
 
+
+plot_avg_holdout_curve('7.20models', 'swap', 
+                                ['gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin', 'bertNet_lin', 'simpleNet', 'simpleNetPlus', 'comNet', 'comNetPlus', 'bowNet_lin'],
+                                seeds =range(0, 5)
+                                )
 
 
 plot_all_holdout_curves('7.20models', 'swap', 
-                                [ 'clipNet_lin_tuned'],
-                                seeds =[0]
+                                [ 'clipNet_lin', 'gptNetXL_lin'],
+                                seeds =range(4, 9)
                                 )
+
+plot_avg_holdout_curve('7.20models', 'swap', 
+                                [ 'clipNet_lin', 'gptNetXL_lin'],
+                                seeds =[4], mode = ''
+                                )
+
+plot_all_training_curves('7.20models', 'multitask', 'Multitask', ['gptNet_lin'])
+
+data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL_lin', seeds=[4], mode='combinedin_only')
+data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL_lin', seeds=[4])
+data.avg_tasks(k_shot=0)
+
+
 
 
 EXP_FILE = '7.20models/swap_holdouts'
@@ -26,8 +42,6 @@ sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='
 
 plot_neural_resp(sbertNet, 'DM','diff_strength', 15, num_trials=25)
 plot_neural_resp(sbertNet, 'DMMod2','diff_strength', 15, num_trials=25)
-
-
 
 plot_scatter(sbertNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
 plot_scatter(sbertNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, rep_depth='full')
