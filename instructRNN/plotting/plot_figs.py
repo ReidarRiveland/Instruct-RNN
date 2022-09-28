@@ -24,7 +24,7 @@ plot_all_holdout_curves('7.20models', 'swap',
 plot_all_training_curves('7.20models', 'multitask', 'Multitask', ['gptNet_lin'])
 
 data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL_lin', seeds=[4], mode='combinedin_only')
-data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL_lin', seeds=[4])
+data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', seeds=range(5,10))
 data.avg_tasks(k_shot=0)
 
 
