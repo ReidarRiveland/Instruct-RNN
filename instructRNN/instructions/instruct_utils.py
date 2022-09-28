@@ -28,8 +28,7 @@ inv_train_instruct_dict = inv_instruct_dict(train_instruct_dict)
 inv_combined_instruct_dict = inv_instruct_dict(combined_instruct_dict)
  
 def get_all_sentences():
-    combined_instruct= {task: list(train_instruct_dict[task]) for task in TASK_LIST}
-    all_sentences = list(itertools.chain.from_iterable(combined_instruct.values()))
+    all_sentences = list(itertools.chain.from_iterable(combined_instruct_dict.values()))
     return all_sentences
 
 def sort_vocab(): 
