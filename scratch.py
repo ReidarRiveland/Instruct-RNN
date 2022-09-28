@@ -13,23 +13,32 @@ from instructRNN.plotting.plotting import *
 EXP_FILE = '7.20models/multitask_holdouts'
 holdouts_file = 'Multitask'
 
-from instructRNN.instructions.instructions_script import save_instruct_dicts
-save_instruct_dicts('7.20models')
-
 clipNet = CLIPNet_lin()
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
 clipNet.to(device)
-perf_array = get_model_performance(clipNet, instruct_mode='validation')
+perf_array = get_model_performance(clipNet, instruct_mode='validation', num_repeats=5)
 
-task_eval(clipNet, 'AntiGo', batch_size=64, instructions=['pick the converse of the stimulus orientation that appears']*64)
+instructs = ['concentrate only on the second modality and respond to the first direction if spans a greater length of time than the second stimulus otherwise do not respond',
+									'focus exclusively on the stimuli in the second modality and respond to the initial direction if it is displayed for a greater length of time than the latter stimulus otherwise do not respond',
+									'only consider stimuli which appear in the second modality and select the first orientation if it appears for a greater span of time than the second orientation otherwise do not respond',
+									'concentrate only on stimuli which appear in the second modality and choose the initial direction if it lasts for a greater period of time than the second direction otherwise do not respond',
+									'attend exclusively to the second modality and respond to the first stimulus if it is presented for a greater span of time than the final stimulus otherwise do not respond']
+
+task_eval(clipNet, 'Dur1Mod2', batch_size=50, instructions=[instructs[3]]*50)
+
+task_eval(gptNet, 'Dur1Mod2', batch_size=50, instructions=[instructs[3]]*50)
+
+
 
 list(zip(TASK_LIST, perf_array))
 
 
 gptNet = GPTNetXL_lin()
-gptNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed0')
+gptNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+gptNet.model_name, suffix='_seed0')
 gptNet.to(device)
 perf_array = get_model_performance(gptNet, instruct_mode='validation')
+
+np.mean(perf_array)
 
 list(zip(TASK_LIST, perf_array))
 

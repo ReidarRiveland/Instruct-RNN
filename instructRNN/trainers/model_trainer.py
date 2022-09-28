@@ -43,11 +43,11 @@ class TrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_type: str = 'exp'
-    scheduler_gamma: float = 0.98
+    scheduler_gamma: float = 0.95
     scheduler_args: dict = {}
 
     save_for_tuning_epoch: int = 30
-    checker_threshold: float = 0.93
+    checker_threshold: float = 0.95
     step_last_lr: bool = True
     test_repeats: int = None
 
