@@ -148,19 +148,34 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
 
 def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', seeds=range(5)): 
     with plt.style.context('ggplot'):
-        _, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(10, 8))
-        thresholds = np.linspace(0.1, 0.9, 9)
-        axn.set_xticks(range(len(thresholds)))
-        axn.set_xticklabels([f'{x:.0%}' for x in thresholds]) 
-        for model_name in model_list:
-            if model_name == 'clipNet_lin':seeds = range(5,10)
-            else: seeds = range(5)
+        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+        fig.suptitle('Zero-Shot Performance Across Tasks')
+
+        axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+        axn.set_xlabel('Number of Tasks', size=8, fontweight='bold')
+
+        thresholds = np.linspace(0.1, 1.0, 10)
+        thresholds0 = np.linspace(0.0, 0.9, 10)
+
+        width = 1/(len(model_list)+1)
+        ind = np.arange(10)
+
+        axn.set_yticks(ind+0.5, minor=True)
+        axn.set_yticklabels([f'{x:.0%}>{y:.0%}' for x,y in list(zip(thresholds, thresholds0))], fontsize=5, minor=True) 
+        
+
+        axn.set_yticks(np.arange(11))
+        axn.yaxis.set_ticks_position('none') 
+
+        axn.set_yticklabels('') 
+
+        for i, model_name in enumerate(model_list):
             data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
             mean, _ = data.avg_seeds(k_shot=0)
             bins = np.zeros(10)
             for perf in mean: 
                 bins[int(np.floor((perf*10)-1e-5))]+=1
-            axn.bar(range(len(bins)), bins, color=MODEL_STYLE_DICT[model_name][0], alpha=0.6)
+            axn.barh((ind+(width/2))+(i*width), bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.6)
 
         plt.show()
 

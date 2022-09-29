@@ -63,7 +63,7 @@ def eval_model_0_shot(model, folder_name, exp_type, seed, instruct_mode=None):
 
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
     if depth.isnumeric(): 
-        rep_dim = 768
+        rep_dim = langModel.LM_intermediate_lang_dim
     elif depth == 'bow': 
         rep_dim = len(sort_vocab())
     else: 
