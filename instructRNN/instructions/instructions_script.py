@@ -669,7 +669,7 @@ train_instruct_dict['AntiMultiCOMP1'] = ('respond to the first direction if it i
 										'if the initial stimulus is presented with less intensity than the second stimulus averaged over both modalities then select the initial stimulus otherwise do not respond', 
 										'if the first direction is weaker averaged over both modalities than the final direction select the first direction otherwise do not respond', 
 										'if the initial orientation has less intensity combined over both modalities than the latter orientation respond to the initial orientation otherwise do not respond',
-										'select the first direction if it has less overall strength over both modalities than the second direction otherwises do not respond',
+										'select the first direction if it has less overall strength over both modalities than the second direction otherwise do not respond',
 										'choose the initial orientation if it is presented with lower overall intensity over both modalities than the final orientation otherwise do not respond', 
 										'if the first orientation has lower combined intensity over both modalities than the second orientation then select the first orientation otherwise do not respond', 
 										'respond to the initial stimulus if it is presented with less combined strength over both modalities than the latter stimulus otherwise do not respond',
@@ -1021,7 +1021,7 @@ test_instruct_dict['Dur1Mod2'] = ('concentrate only on the second modality and r
 test_instruct_dict['Dur2Mod1'] = ('concentrate only on the first modality and select the latter orientation if it spans a longer length of time than the earlier orientation otherwise do not respond',
 									'attend exclusively to the first modality and choose the latter stimulus if it last for longer than the initial stimulus otherwise do not respond',
 									'only consider stimuli in the first modality and opt for the second stimulus if it spans a period of time which is greater than the first stimulus otherwise do not respond',
-									'focus only on the first modality and select the latter direction if it lasts for a greater length of time than the earlier direction otherwise do not repsond',
+									'focus only on the first modality and select the latter direction if it lasts for a greater length of time than the earlier direction otherwise do not respond',
 									'concentrate on only the stimuli in the first modality and pick the final stimulus if it spans a length of time which is greater than the first stimulus otherwise do not respond')
 
 test_instruct_dict['Dur2Mod2'] = ('focus exclusively on stimuli in the second modality and choose the final direction if it spans a period of time which is longer than the earlier direction otherwise do not respond',
@@ -1071,7 +1071,7 @@ test_instruct_dict['AntiMultiCOMP1'] = ('opt for the first direction if it appea
 										'select the initial orientation if it is shown with decreased strength compared to the last orientation integrated across modalities otherwise do not respond',
 										'if the first stimulus has lower strength when compared to the latter stimulus summed over both modalities then choose the latter stimulus otherwise do not respond',
 										'pick the initial stimulus if it is presented with decreased strength compared to the latter stimulus when integrated over both modalities otherwise do not respond',
-										'if the first direction is shown with lower strength compared to the strength of the latter direction summed over both modalities then select the first direction otherwise do not repsond')
+										'if the first direction is shown with lower strength compared to the strength of the latter direction summed over both modalities then select the first direction otherwise do not respond')
 
 test_instruct_dict['AntiMultiCOMP2'] = ('if the last orientation is shown with less strength than the earlier orientation when added across modalities then opt for the latter orientation otherwise do not respond',
 										'choose the last displayed direction if it is shown with lower intensity compared to the first direction when integrated over modalities otherwise do not respond',

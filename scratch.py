@@ -14,6 +14,7 @@ EXP_FILE = '7.20models/multitask_holdouts'
 holdouts_file = 'Multitask'
 
 clipNet = CLIPNet_lin()
+
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
 clipNet.to(device)
 perf_array = get_model_performance(clipNet, instruct_mode='validation', num_repeats=5)

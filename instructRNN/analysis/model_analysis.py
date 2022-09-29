@@ -7,9 +7,9 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 from instructRNN.tasks.tasks import *
-from instructRNN.tasks.task_factory import _draw_ortho_dirs, DMFactory, TRIAL_LEN, _get_default_intervals, max_var_dir
+from instructRNN.tasks.task_factory import DMFactory, TRIAL_LEN, _get_default_intervals, max_var_dir
 from instructRNN.tasks.task_criteria import isCorrect
-from instructRNN.instructions.instruct_utils import train_instruct_dict, get_task_info, get_instruction_dict, sort_vocab
+from instructRNN.instructions.instruct_utils import get_task_info, get_instruction_dict, sort_vocab
 
 import sklearn.svm as svm
 from instructRNN.models.full_models import make_default_model
