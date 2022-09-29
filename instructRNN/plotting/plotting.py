@@ -151,12 +151,16 @@ def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct',
         _, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(10, 8))
         thresholds = np.linspace(0.1, 0.9, 9)
         axn.set_xticks(range(len(thresholds)))
-        axn.set_xticklabels([f'>{x:.0%}' for x in thresholds]) 
+        axn.set_xticklabels([f'{x:.0%}' for x in thresholds]) 
         for model_name in model_list:
+            if model_name == 'clipNet_lin':seeds = range(5,10)
+            else: seeds = range(5)
             data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
             mean, _ = data.avg_seeds(k_shot=0)
-            over_thresholds = [np.sum(mean>threshold) for threshold in thresholds]
-            axn.bar(range(len(thresholds)), over_thresholds, color=MODEL_STYLE_DICT[model_name][0], alpha=0.6)
+            bins = np.zeros(10)
+            for perf in mean: 
+                bins[int(np.floor((perf*10)-1e-5))]+=1
+            axn.bar(range(len(bins)), bins, color=MODEL_STYLE_DICT[model_name][0], alpha=0.6)
 
         plt.show()
 

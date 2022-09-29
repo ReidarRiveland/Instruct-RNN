@@ -18,17 +18,29 @@ plot_avg_holdout_curve('7.20models', 'swap',
 
 plot_all_holdout_curves('7.20models', 'swap', 
                                 [ 'clipNet_lin', 'gptNetXL_lin'],
-                                seeds =range(4, 9)
+                                seeds =range(5)
                                 )
 
 plot_all_training_curves('7.20models', 'multitask', 'Multitask', ['gptNet_lin'])
 
 data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL_lin', seeds=[4], mode='combinedin_only')
-data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', seeds=range(5,10))
-data.avg_tasks(k_shot=0)
+
+data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', seeds=range(5))
+
+mean, _ = data.avg_seeds(k_shot=0)
+np.mean(mean)
 
 
+list(zip(TASK_LIST, mean))
 
+thresholds = np.linspace(0.0, 1.0, 11)
+bins = np.zeros(10)
+
+for perf in data.avg_seeds(k_shot=0)[0]: 
+    bins[int(np.floor((perf*10)-1e-5))]+=1
+
+bins
+rm -r clipNet_lin_tmp
 
 EXP_FILE = '7.20models/swap_holdouts'
 sbertNet = SBERTNet_lin_tuned(LM_out_dim=64, rnn_hidden_dim=256)

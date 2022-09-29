@@ -367,6 +367,6 @@ def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False
         is_trained = tune_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs)
         
     if is_trained: 
-        test_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=ot)
-        if 'swap' in exp_folder: 
-            test_model(exp_folder, model_name, seed, labeled_holdouts, mode = 'swap', overwrite=ot)
+        for instruct_mode in [None, 'swap', 'combined']:
+            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, overwrite=ot)
+        
