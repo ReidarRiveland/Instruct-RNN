@@ -289,7 +289,7 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=F
     model = make_default_model(model_name)
 
     if model_name == 'gptNet_lin':
-        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, checker_threshold=0.9, scheduler_gamma=0.95, **train_config_kwargs)
+        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, checker_threshold=0.9, **train_config_kwargs)
     else:
         trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
 
@@ -318,7 +318,7 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
 
     if 'XL' in model_name:
         tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
-                                            epochs=50, min_run_epochs=5, init_lr=1e-5, init_lang_lr=1e-5, scheduler_gamma=0.99,
+                                            epochs=50, min_run_epochs=5, init_lr=2e-5, init_lang_lr=1e-5, scheduler_gamma=0.99,
                                             save_for_tuning_epoch=np.nan, 
                                             **train_config_kwargs)
     else: 

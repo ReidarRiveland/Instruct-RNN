@@ -6,7 +6,7 @@ from instructRNN.analysis.model_analysis import get_model_performance, get_task_
 
 from instructRNN.tasks.tasks import *
 import torch
-from instructRNN.models.full_models import SBERTNet
+from instructRNN.models.full_models import SBERTNet, BoWNet
 from instructRNN.instructions.instruct_utils import get_instructions
 from instructRNN.plotting.plotting import *
 
@@ -15,6 +15,9 @@ holdouts_file = 'Multitask'
 
 clipNet = CLIPNet_lin()
 
+attrs_dict = GPTNetXL_lin().langModel.transformer.__dict__
+
+attrs_dict
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
 clipNet.to(device)
 perf_array = get_model_performance(clipNet, instruct_mode='validation', num_repeats=5)
@@ -45,9 +48,9 @@ list(zip(TASK_LIST, perf_array))
 
 
 
-
-holdouts_file = 'swap9'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed4')
+clipNet = CLIPNet_lin()
+holdouts_file = 'swap0'
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
 
 def get_hidden_reps(model, num_trials, tasks=TASK_LIST, instruct_mode=None):
     hidden_reps = np.empty((num_trials, 150, 256, len(tasks)))
@@ -105,7 +108,7 @@ def plot_clustering(task_var):
 def get_norm_task_var(hid_reps): 
     task_var = np.mean(np.var(hid_reps[:, 30:, :,:], axis=1), axis=1)
     task_var = np.delete(task_var, np.where(np.sum(task_var, axis=0)<0.05)[0], axis=1)
-    return normalize(task_var, axis=1, norm='max').T
+    return normalize(task_var, axis=1, norm='l2').T
 
 def sort_units(norm_task_var): 
     labels = cluster_units(norm_task_var)
@@ -116,10 +119,10 @@ def sort_units(norm_task_var):
 
     return cluster_dict, cluster_labels, sorted_indices
 
-hid_reps = get_hidden_reps(sbertNet, 100, tasks= [task for task in TASK_LIST if 'Con' not in task])
+hid_reps = get_hidden_reps(clipNet, 100, tasks= [task for task in TASK_LIST if 'Con' not in task])
 #task_hid_reps = get_task_reps(sbertNet, num_trials = 100, epoch=None, tasks= [task for task in TASK_LIST if 'Con' not in task], max_var=True)
 
-norm_task_var = get_norm_task_var(task_hid_reps)
+norm_task_var = get_norm_task_var(hid_reps)
 norm_task_var.shape
 
 plot_clustering(norm_task_var)

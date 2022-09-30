@@ -56,7 +56,7 @@ SWAP_LIST = [
             ('ConAntiDM', 'COMP1', 'MultiDur2', 'COMP1Mod2', 'Go'),
 
             ('AntiGo', 'Dur1', 'ConDM', 'AntiDMMod1', 'AntiMultiDur2'),            
-            
+
             ]
 
 ALIGNED_LIST = [
@@ -99,21 +99,29 @@ INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
 MULTITASK_DICT = {'Multitask':[]}
 
 DICH_DICT = {
-    'dich0' : (['Go', 'RTGo', 'GoMod1', 'GoMod2', 'RTGoMod1', 'RTGoMod2'],
-                ['AntiGo', 'AntiRTGo', 'AntiGoMod1', 'AntiGoMod2', 'AntiRTGoMod1', 'AntiRTGoMod2']),
-    'dich1' : (['DM', 'ConDM', 'MultiDM', 'DMMod1', 'DMMod2'],
+    'dich0' : (['Go', 'GoMod1', 'GoMod2'], ['AntiGo', 'AntiGoMod1', 'AntiGoMod2']),
+    'dich1' : (['RTGo', 'RTGoMod1', 'RTGoMod2'], ['AntiRTGo', 'AntiRTGoMod1', 'AntiRTGoMod2']),
+    'dich2' : (['Go', 'GoMod1', 'GoMod2'], ['RTGo', 'RTGoMod1', 'RTGoMod2']),
+    'dich3' : (['AntiGo', 'AntiGoMod1', 'AntiGoMod2'], ['AntiRTGo', 'AntiRTGoMod1', 'AntiRTGoMod2']),
+
+    'dich4' : (['DM', 'ConDM', 'MultiDM', 'DMMod1', 'DMMod2'],
                 ['AntiDM', 'ConAntiDM', 'AntiMultiDM', 'AntiDMMod1', 'AntiDMMod2']),
-    'dich2' : (['COMP1', 'MultiCOMP1', 'AntiCOMP1', 'AntiMultiCOMP1', 'COMP1Mod1', 'COMP1Mod2'],
+
+    'dich5' : (['COMP1', 'MultiCOMP1', 'AntiCOMP1', 'AntiMultiCOMP1', 'COMP1Mod1', 'COMP1Mod2'],
                 ['COMP2', 'MultiCOMP2', 'AntiCOMP2', 'AntiMultiCOMP2', 'COMP2Mod1', 'COMP2Mod2']),
-    'dich3' : (['COMP1', 'MultiCOMP1', 'COMP2', 'MultiCOMP2'],
+                
+    'dich6' : (['COMP1', 'MultiCOMP1', 'COMP2', 'MultiCOMP2'],
                 ['AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2']), 
-    'dich4' : (['Dur1', 'AntiDur1', 'MultiDur1', 'AntiMultiDur1', 'Dur1Mod1', 'Dur1Mod2'],
+
+    'dich7' : (['Dur1', 'AntiDur1', 'MultiDur1', 'AntiMultiDur1', 'Dur1Mod1', 'Dur1Mod2'],
                 ['Dur2', 'AntiDur2', 'MultiDur2', 'AntiMultiDur2', 'Dur2Mod1', 'Dur2Mod2']), 
-    'dich5' : (['Dur1', 'Dur2', 'MultiDur1', 'MultiDur2'],
+
+    'dich8' : (['Dur1', 'Dur2', 'MultiDur1', 'MultiDur2'],
                 ['AntiDur1', 'AntiDur2', 'AntiMultiDur1', 'AntiMultiDur2']), 
-    'dich5' : (['DMS', 'DNMS'], ['DMC', 'DNMC']),
-    'dich6' : (['DNMS', 'DNMC'], ['DMS', 'DMC']), 
-    'dich7' : (['GoMod1', 'AntiGoMod1', 'RTGoMod1', 'AntiRTGoMod1', 'DMMod1', 'AntiDMMod1', 'COMP1Mod1', 'COMP2Mod1', 'Dur1Mod1', 'Dur2Mod1'], 
+
+    'dich9' : (['DMS', 'DNMS'], ['DMC', 'DNMC']),
+    'dich10' : (['DNMS', 'DNMC'], ['DMS', 'DMC']), 
+    'dich11' : (['GoMod1', 'AntiGoMod1', 'RTGoMod1', 'AntiRTGoMod1', 'DMMod1', 'AntiDMMod1', 'COMP1Mod1', 'COMP2Mod1', 'Dur1Mod1', 'Dur2Mod1'], 
                 ['GoMod2', 'AntiGoMod2', 'RTGoMod2', 'AntiRTGoMod2', 'DMMod2', 'AntiDMMod2', 'COMP1Mod2', 'COMP2Mod2', 'Dur1Mod2', 'Dur2Mod2'])
 }
 

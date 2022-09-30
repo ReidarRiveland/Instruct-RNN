@@ -73,9 +73,6 @@ clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_
 sim_scores = get_layer_sim_scores(clipNet, rep_depth='full')
 
 
-plot_layer_ccgp('simpleNet')
-
-
 plot_scatter(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
 plot_scatter(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, rep_depth='full')
 
@@ -83,3 +80,16 @@ plot_tuning_curve()
 
 plot_neural_resp(clipNet, 'DM','diff_strength', 15, num_trials=25)
 plot_neural_resp(clipNet, 'DMMod2','diff_strength', 15, num_trials=25)
+
+
+
+EXP_FILE = '7.20models/swap_holdouts'
+clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap9'
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
+
+plot_scatter(clipNet, ['DM', 'DMMod1', 'DMMod2', 'AntiDM', 'AntiDMMod1', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
+
+reps = get_task_reps(clipNet, num_trials = 100,  main_var=True)
+dich_scores, _ =  get_dich_CCGP(reps, [('DM', 'AntiDM'), ('DMMod1', 'AntiDMMod1'), ('DMMod2', 'AntiDMMod2'), ('MultiDM', 'AntiMultiDM')])
+np.mean(dich_scores)

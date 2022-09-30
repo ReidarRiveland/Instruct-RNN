@@ -749,7 +749,7 @@ class MatchingFactory(TaskFactory):
         self.matching_task = matching_task
         self.match_type = match_type
 
-        if max_var: 
+        if max_var or main_var: 
             dir0= _max_var_dir(self.num_trials, 1, True)[0,:]
             intervals = _get_default_intervals(self.num_trials)
 
