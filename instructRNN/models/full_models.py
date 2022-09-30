@@ -34,14 +34,6 @@ class SimpleNet(RuleNet):
         config = RuleModelConfig('simpleNet', **kw_args)
         super().__init__(config)
 
-class SimpleNetPlus_rand(RuleNet):
-    def __init__(self, **kw_args):
-        config = RuleModelConfig('simpleNetPlus_rand',
-                                add_rule_encoder=True,
-                                use_rand_rnn=True,
-                                 **kw_args)
-        super().__init__(config)
-
 class SimpleNetPlus(RuleNet):
     def __init__(self, **kw_args):
         config = RuleModelConfig('simpleNetPlus', add_rule_encoder=True, **kw_args)

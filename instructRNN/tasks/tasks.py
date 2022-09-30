@@ -36,16 +36,27 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             ]
 
 SWAP_LIST = [            
+
             ('AntiDMMod2', 'RTGo', 'DM', 'MultiCOMP2',  'AntiMultiDur1'), 
+
             ('COMP1Mod1', 'AntiGoMod2',  'DMS', 'AntiDur1', 'RTGoMod2'),
+
             ('RTGoMod1', 'AntiCOMP2', 'AntiRTGo', 'Dur2', 'MultiCOMP1'), 
+
             ('GoMod2', 'AntiMultiCOMP2', 'DMMod2', 'AntiRTGoMod1', 'AntiDur2'), 
+
             ('MultiDM', 'COMP2Mod2', 'AntiMultiCOMP1', 'AntiGoMod1', 'Dur1Mod1'),     
+
             ('AntiDM',  'AntiRTGoMod2', 'Dur2Mod2', 'AntiCOMP1', 'DNMS'), 
+
             ('MultiDur1',  'GoMod1', 'COMP2', 'DMC', 'Dur2Mod1'),
+
             ('COMP2Mod1', 'AntiMultiDM', 'DNMC', 'DMMod1', 'Dur1Mod2'),
+
             ('ConAntiDM', 'COMP1', 'MultiDur2', 'COMP1Mod2', 'Go'),
+
             ('AntiGo', 'Dur1', 'ConDM', 'AntiDMMod1', 'AntiMultiDur2'),            
+            
             ]
 
 ALIGNED_LIST = [

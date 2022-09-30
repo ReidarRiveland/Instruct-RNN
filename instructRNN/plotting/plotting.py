@@ -1,4 +1,5 @@
 from ast import Mod
+from cmath import nan
 from math import exp
 from pyexpat import model
 from random import seed
@@ -38,18 +39,18 @@ Yellow = '#FFEE58'
 Purple = '#800080'
 
 
-MODEL_STYLE_DICT = {'simpleNet': (Blue, None), 'simpleNetPlus': (Blue, '+'), 
-                    'comNet': (lightBlue, 'None'), 'comNetPlus': (lightBlue, '+'), 
+MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Blue, '+', 'simpleNetPlus'), 
+                    'comNet': (lightBlue, 'None', 'comNet'), 'comNetPlus': (lightBlue, '+', 'comNetPlus'), 
                     #'clipNet': (Yellow, None), 'clipNet_tuned': (Yellow, 'v'), 
-                    'clipNet_lin': (Yellow, 'None'), 'clipNet_lin_tuned': (Yellow, 'v'), 
+                    'clipNet_lin': (Yellow, 'None', 'clipNet'), 'clipNet_lin_tuned': (Yellow, 'v', 'clipNet (tuned)'), 
                     #'bowNet': (Orange, None), 
-                    'bowNet_lin': (Orange, None), 
-                    'gptNet_lin': (Red, None), 'gptNet_lin_tuned': (Red, 'v'), 
-                    'gptNetXL_lin': (Red, None), 'gptNetXL_lin_tuned': (Red, 'V'), 
+                    'bowNet_lin': (Orange, None, 'bowNet'), 
+                    'gptNet_lin': (Red, None, 'gptNet'), 'gptNet_lin_tuned': (Red, 'v','gptNet (tuned)'), 
+                    'gptNetXL_lin': (Red, None, 'gptNetXL'), 'gptNetXL_lin_tuned': (Red, 'V', 'gptNetXL (tuned)'), 
                     #'bertNet': (Green, None), 'bertNet_tuned': (Green, 'v'),  
-                    'bertNet_lin': (Green, None), 'bertNet_lin_tuned': (Green, 'v'),  
+                    'bertNet_lin': (Green, None, 'bertNet'), 'bertNet_lin_tuned': (Green, 'v', 'bertNet (tuned)'),  
                     #'sbertNet': (Purple, None), 'sbertNet_tuned': (Purple, 'v'),
-                    'sbertNet_lin': (Purple, None), 'sbertNet_lin_tuned': (Purple, 'v')}
+                    'sbertNet_lin': (Purple, None, 'sbertNet'), 'sbertNet_lin_tuned': (Purple, 'v', 'sbertNet (tuned)')}
 
 def get_task_color(task): 
     index = TASK_LIST.index(task)
@@ -146,7 +147,7 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
         fig.legend(labels=model_list, loc=4, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
         plt.show()
 
-def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', seeds=range(5)): 
+def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5)): 
     with plt.style.context('ggplot'):
         fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
         fig.suptitle('Zero-Shot Performance Across Tasks')
@@ -170,7 +171,7 @@ def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct',
         axn.set_yticklabels('') 
 
         for i, model_name in enumerate(model_list):
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode=mode, seeds=seeds)
             mean, _ = data.avg_seeds(k_shot=0)
             bins = np.zeros(10)
             for perf in mean: 
@@ -489,20 +490,24 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=100, num_repea
     return axn
 
 
-def plot_layer_ccgp(model_name): 
-    layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
-    all_holdout_ccgp = np.empty((50, len(layer_list)))
-    folder_path = '7.20models/swap_holdouts/CCGP_scores/sbertNet_lin_tuned'
-    for i, layer in enumerate(layer_list): 
-        all_holdout_ccgp[:, i] = np.load(folder_path+'/layer'+layer+'_task_holdout_seed0.npy')
-
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
-    axn.set_ylim(0.45, 1.0)
-    axn.set_xticks(range(len(layer_list)))
-    axn.set_xticklabels(layer_list)
-
-    axn.scatter(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=0), marker=MODEL_STYLE_DICT[model_name][1], c=MODEL_STYLE_DICT[model_name][0])
-    plt.show()
+def plot_layer_ccgp(model_list): 
+    with plt.style.context('ggplot'):
+        layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
+        _, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+        axn.set_ylim(0.45, 1.0)
+        axn.set_xticks(range(len(layer_list)))
+        axn.set_xticklabels(layer_list)
+        for model_name in model_list:
+            all_holdout_ccgp = np.full((50, len(layer_list)), np.nan)
+            folder_path = '7.20models/swap_holdouts/CCGP_scores/'+model_name
+            for i, layer in enumerate(layer_list): 
+                try: 
+                    all_holdout_ccgp[:, i] = np.load(folder_path+'/layer'+layer+'_task_holdout_seed0.npy')
+                except FileNotFoundError: 
+                    print('no data for layer {} for model {} seed '.format(layer, model_name))
+            print(MODEL_STYLE_DICT[model_name][1] == None)
+            axn.scatter(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=0), marker='.', c=MODEL_STYLE_DICT[model_name][0])
+        plt.show()
 
 
 def plot_0_shot_spider(model_list, folder_name, exp_name, perf_type='correct', **kwargs):

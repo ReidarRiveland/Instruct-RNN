@@ -287,16 +287,19 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=F
         return True
     
     model = make_default_model(model_name)
+
+    if model_name == 'gptNet_lin':
+        trainer_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, checker_threshold=0.9, scheduler_gamma=0.97, **train_config_kwargs)
+    else:
+        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
+
     if use_checkpoint: 
         try:
             model, trainer = load_checkpoint(model, file_name, seed)
         except: 
             print('Starting Training from untrained model')
-            trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
             trainer = ModelTrainer(trainer_config)
-
     else: 
-        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
         trainer = ModelTrainer(trainer_config)
 
     is_trained = trainer.train(model)
