@@ -51,7 +51,7 @@ class EncoderDecoder(nn.Module):
 
     def decode_set(self, num_trials, num_repeats = 1, from_contexts=False, tasks=TASK_LIST, t=120): 
         decoded_set = {}
-        confusion_mat = np.zeros((len(TASK_LIST), len(TASK_LIST)+1))
+        confusion_mat = np.zeros((len(tasks), len(TASK_LIST)+1))
         for _ in range(num_repeats): 
             for i, task in enumerate(tasks): 
                 tasks_decoded = defaultdict(list)
@@ -79,9 +79,9 @@ class EncoderDecoder(nn.Module):
 
         return decoded_set, confusion_mat
     
-    def plot_confuse_mat(self, num_trials, num_repeats, from_contexts=False, confusion_mat=None, fmt='g'): 
+    def plot_confuse_mat(self, num_trials, num_repeats, tasks=TASK_LIST, from_contexts=False, confusion_mat=None, fmt='g'): 
         if confusion_mat is None:
-            decoded_set, confusion_mat = self.decode_set(num_trials, num_repeats = num_repeats, from_contexts=from_contexts)
+            decoded_set, confusion_mat = self.decode_set(num_trials, tasks=tasks, num_repeats = num_repeats, from_contexts=from_contexts)
         res=sns.heatmap(confusion_mat, linewidths=0.5, linecolor='black', mask=confusion_mat == 0, xticklabels=TASK_LIST+['other'], yticklabels=TASK_LIST, annot=True, cmap='Blues', fmt=fmt, cbar=False)
         res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8)
         res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)

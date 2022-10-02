@@ -24,7 +24,7 @@ class DecoderTrainerConfig():
     epochs: int = 80
     batch_len: int = 32
     num_batches: int = 1200
-    stream_data: bool = False
+    stream_data: bool = True
     holdouts: list = []
 
     optim_alg: optim = optim.Adam
