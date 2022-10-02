@@ -29,7 +29,7 @@ else:
 class TrainerConfig(): 
     file_path: str
     random_seed: int
-    epochs: int = 150
+    epochs: int = 200
     min_run_epochs: int = 35
     batch_len: int = 64
     num_batches: int = 2400
