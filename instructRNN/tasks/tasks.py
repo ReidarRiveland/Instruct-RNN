@@ -98,8 +98,37 @@ FAMILY_DICT = dict(zip(['family'+str(num) for num in range(len(FAMILY_LIST))], F
 INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
 MULTITASK_DICT = {'Multitask':[]}
 
+# DICH_DICT = {
+#     'dich0' : (['Go', 'GoMod1', 'GoMod2'], ['AntiGo', 'AntiGoMod1', 'AntiGoMod2']),
+#     'dich1' : (['RTGo', 'RTGoMod1', 'RTGoMod2'], ['AntiRTGo', 'AntiRTGoMod1', 'AntiRTGoMod2']),
+#     'dich2' : (['Go', 'GoMod1', 'GoMod2'], ['RTGo', 'RTGoMod1', 'RTGoMod2']),
+#     'dich3' : (['AntiGo', 'AntiGoMod1', 'AntiGoMod2'], ['AntiRTGo', 'AntiRTGoMod1', 'AntiRTGoMod2']),
+
+#     'dich4' : (['DM', 'ConDM', 'MultiDM', 'DMMod1', 'DMMod2'],
+#                 ['AntiDM', 'ConAntiDM', 'AntiMultiDM', 'AntiDMMod1', 'AntiDMMod2']),
+
+#     'dich5' : (['COMP1', 'MultiCOMP1', 'AntiCOMP1', 'AntiMultiCOMP1', 'COMP1Mod1', 'COMP1Mod2'],
+#                 ['COMP2', 'MultiCOMP2', 'AntiCOMP2', 'AntiMultiCOMP2', 'COMP2Mod1', 'COMP2Mod2']),
+                
+#     'dich6' : (['COMP1', 'MultiCOMP1', 'COMP2', 'MultiCOMP2'],
+#                 ['AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2']), 
+
+#     'dich7' : (['Dur1', 'AntiDur1', 'MultiDur1', 'AntiMultiDur1', 'Dur1Mod1', 'Dur1Mod2'],
+#                 ['Dur2', 'AntiDur2', 'MultiDur2', 'AntiMultiDur2', 'Dur2Mod1', 'Dur2Mod2']), 
+
+#     'dich8' : (['Dur1', 'Dur2', 'MultiDur1', 'MultiDur2'],
+#                 ['AntiDur1', 'AntiDur2', 'AntiMultiDur1', 'AntiMultiDur2']), 
+
+#     'dich9' : (['DMS', 'DNMS'], ['DMC', 'DNMC']),
+#     'dich10' : (['DNMS', 'DNMC'], ['DMS', 'DMC']), 
+#     'dich11' : (['GoMod1', 'AntiGoMod1', 'RTGoMod1', 'AntiRTGoMod1', 'DMMod1', 'AntiDMMod1', 'COMP1Mod1', 'COMP2Mod1', 'Dur1Mod1', 'Dur2Mod1'], 
+#                 ['GoMod2', 'AntiGoMod2', 'RTGoMod2', 'AntiRTGoMod2', 'DMMod2', 'AntiDMMod2', 'COMP1Mod2', 'COMP2Mod2', 'Dur1Mod2', 'Dur2Mod2'])
+# }
+
+
 DICH_DICT = {
-    'dich0' : (['Go', 'GoMod1', 'GoMod2'], ['AntiGo', 'AntiGoMod1', 'AntiGoMod2']),
+    'dich0' : [('Go', 'AntiGo'), ('GoMod1', 'AntiGoMod1'), ('GoMod2', 'AntiGoMod2'), 
+                            ('RTGo', 'AntiRTGo'),('RTGoMod1', 'AntiRTGoMod1'), ('RTGoMod2', 'AntiRTGoMod2')],
     'dich1' : (['RTGo', 'RTGoMod1', 'RTGoMod2'], ['AntiRTGo', 'AntiRTGoMod1', 'AntiRTGoMod2']),
     'dich2' : (['Go', 'GoMod1', 'GoMod2'], ['RTGo', 'RTGoMod1', 'RTGoMod2']),
     'dich3' : (['AntiGo', 'AntiGoMod1', 'AntiGoMod2'], ['AntiRTGo', 'AntiRTGoMod1', 'AntiRTGoMod2']),
@@ -124,6 +153,7 @@ DICH_DICT = {
     'dich11' : (['GoMod1', 'AntiGoMod1', 'RTGoMod1', 'AntiRTGoMod1', 'DMMod1', 'AntiDMMod1', 'COMP1Mod1', 'COMP2Mod1', 'Dur1Mod1', 'Dur2Mod1'], 
                 ['GoMod2', 'AntiGoMod2', 'RTGoMod2', 'AntiRTGoMod2', 'DMMod2', 'AntiDMMod2', 'COMP1Mod2', 'COMP2Mod2', 'Dur1Mod2', 'Dur2Mod2'])
 }
+
 
 
 

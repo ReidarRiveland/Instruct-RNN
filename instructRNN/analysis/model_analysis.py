@@ -286,6 +286,10 @@ def get_dich_CCGP(reps, dich, holdouts_involved=[]):
             decoding_score = np.array([decoding_corrects0, decoding_corrects1]).mean()
             decoding_score_arr[i, j] = decoding_score
 
+            print('Train Pair ' + str(train_pair))
+            print('Test Pair ' + str(test_pair))
+            print('Score ' + str(decoding_score))
+
             in_test_pair = any([holdout_involved in test_pair for holdout_involved in holdouts_involved])
             in_train_pair = any([holdout_involved in train_pair for holdout_involved in holdouts_involved])
             if in_test_pair or in_train_pair: 
