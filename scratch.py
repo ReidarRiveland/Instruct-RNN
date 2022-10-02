@@ -10,41 +10,68 @@ from instructRNN.models.full_models import SBERTNet, BoWNet
 from instructRNN.instructions.instruct_utils import get_instructions
 from instructRNN.plotting.plotting import *
 
-EXP_FILE = '7.20models/multitask_holdouts'
-holdouts_file = 'Multitask'
-
-clipNet = CLIPNet_lin()
-
-attrs_dict = GPTNetXL_lin().langModel.transformer.__dict__
-
-attrs_dict
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
-clipNet.to(device)
-perf_array = get_model_performance(clipNet, instruct_mode='validation', num_repeats=5)
-
-instructs = ['concentrate only on the second modality and respond to the first direction if spans a greater length of time than the second stimulus otherwise do not respond',
-									'focus exclusively on the stimuli in the second modality and respond to the initial direction if it is displayed for a greater length of time than the latter stimulus otherwise do not respond',
-									'only consider stimuli which appear in the second modality and select the first orientation if it appears for a greater span of time than the second orientation otherwise do not respond',
-									'concentrate only on stimuli which appear in the second modality and choose the initial direction if it lasts for a greater period of time than the second direction otherwise do not respond',
-									'attend exclusively to the second modality and respond to the first stimulus if it is presented for a greater span of time than the final stimulus otherwise do not respond']
-
-task_eval(clipNet, 'Dur1Mod2', batch_size=50, instructions=[instructs[3]]*50)
-
-task_eval(gptNet, 'Dur1Mod2', batch_size=50, instructions=[instructs[3]]*50)
 
 
+EXP_FILE = '7.20models/swap_holdouts'
+clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap9'
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
 
-list(zip(TASK_LIST, perf_array))
+plot_scatter(clipNet, ['DM', 'DMMod1', 'DMMod2', 'AntiDM', 'AntiDMMod1', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, epoch='0', instruct_mode='combined')
+
+reps = get_task_reps(clipNet, num_trials = 100,  main_var=True, instruct_mode='combined')
+
+dich_scores, holdouts =  get_dich_CCGP(reps, DICH_DICT['dich2'], holdouts_involved=['AntiDMMod1'])
+np.mean(holdouts)
 
 
-gptNet = GPTNetXL_lin()
-gptNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+gptNet.model_name, suffix='_seed0')
-gptNet.to(device)
-perf_array = get_model_performance(gptNet, instruct_mode='validation')
+EXP_FILE = '7.20models/swap_holdouts'
+bertNet = BERTNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap9'
+bertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+bertNet.model_name, suffix='_seed0')
 
-np.mean(perf_array)
+SWAP_LIST[0]
 
-list(zip(TASK_LIST, perf_array))
+data = HoldoutDataFrame('7.20models', 'swap', 'bertNet_lin', seeds=range(5), mode='combined')
+mean, _ = data.avg_seeds(k_shot=0)
+
+list(zip(TASK_LIST, np.round(mean, 3)))
+
+
+plot_scatter(bertNet, ['DM', 'DMMod1', 'DMMod2', 'AntiDM', 'AntiDMMod1', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
+
+reps = get_task_reps(bertNet, num_trials = 100,  main_var=True, instruct_mode='combined')
+DICH_DICT['dich6']
+
+dich_scores, holdouts =  get_dich_CCGP(reps, DICH_DICT['dich2'], holdouts_involved=['AntiDMMod1'])
+holdouts
+
+
+berttask_scores, bert_dich_scores = get_holdout_CCGP('7.20models/swap_holdouts', 'bertNet_lin', 0)
+cliptask_scores, clip_dich_scores = get_holdout_CCGP('7.20models/swap_holdouts', 'clipNet_lin', 0)
+
+stacked = np.stack((bert_dich_scores, clip_dich_scores))
+
+stacked
+
+normalized_ccgp = stacked-np.min(stacked)/(np.max(stacked)-np.min(stacked))
+
+normalized_ccgp
+
+np.mean(normalized_ccgp, axis=1)
+
+
+task_scores[TASK_LIST.index('AntiMultiDur1')]
+
+list(zip(TASK_LIST, task_scores))
+
+
+DICH_DICT['dich2']
+np.mean(dich_scores[1,:])
+
+np.mean(task_scores)
+
+
 
 
 

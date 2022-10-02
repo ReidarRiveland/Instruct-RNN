@@ -5,7 +5,7 @@ import warnings
 
 from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT
 
-@dataclass(frozen=True)
+@dataclass
 class HoldoutDataFrame(): 
     file_path: str
     exp_type: str 
@@ -18,6 +18,9 @@ class HoldoutDataFrame():
 
 
     def __post_init__(self):
+        if ('simple' in self.model_name or 'com' in self.model_name) and self.mode == 'combined': 
+            self.mode = ''
+            
         self.load_data()
 
     def get_k_shot(self, k, task=None): 

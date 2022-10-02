@@ -144,7 +144,7 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
                     mean, std = data.avg_tasks()
                     _plot_performance_curve(mean, std, ax2, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
 
-        fig.legend(labels=model_list, loc=4, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
+        fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=4, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
         plt.show()
 
 def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5)): 
@@ -346,15 +346,15 @@ def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwar
         Patches.append(patch)
     return Patches
 
-def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_trials =50, epoch= 'stim_start', **scatter_kwargs): 
+def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_trials =50, epoch= 'stim_start', instruct_mode = None, **scatter_kwargs): 
     with plt.style.context('ggplot'):
         if pcs is None: 
             pcs = range(dims)
 
         if rep_depth == 'task': 
-            reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True)
+            reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True, instruct_mode=instruct_mode)
         elif rep_depth != 'task': 
-            reps = get_instruct_reps(model.langModel, depth=rep_depth)
+            reps = get_instruct_reps(model.langModel, depth=rep_depth, instruct_mode=instruct_mode)
         reduced, _ = reduce_rep(reps, pcs=pcs)
 
         fig = plt.figure(figsize=(14, 14))

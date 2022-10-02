@@ -4,28 +4,22 @@ from instructRNN.models.full_models import *
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
 
-plot_0_shot_task_hist('7.20models', 'swap', 
-                                [ 'clipNet_lin', 'sbertNet_lin', 'gptNetXL_lin'],
-                                seeds =range(0,1)
-                                )
-
-
 plot_avg_holdout_curve('7.20models', 'swap', 
-                                ['gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin', 'bertNet_lin', 'simpleNet', 'simpleNetPlus', 'comNet', 'comNetPlus', 'bowNet_lin'],
-                                seeds =range(0, 5)
+                                ['gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet'],
+                                seeds =range(0, 5),
+                                mode='combined'
+                                )
+
+plot_0_shot_task_hist('7.20models', 'swap', 
+                                [ 'clipNet_lin', 'sbertNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'simpleNet'][::-1],
+                                seeds =range(0,5),
+                                mode='combined'
                                 )
 
 
-plot_all_holdout_curves('7.20models', 'swap', 
-                                [ 'clipNet_lin', 'gptNetXL_lin'],
-                                seeds =range(5), mode='combined'
-                                )
+data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL_lin', seeds=range(5), mode='combined')
 
-plot_all_training_curves('7.20models', 'multitask', 'Multitask', ['gptNet_lin'])
-
-data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL_lin', seeds=[4], mode='combinedin')
-
-data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', seeds=range(5), mode='')
+#data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', seeds=range(5), mode='')
 
 mean, _ = data.avg_seeds(k_shot=0)
 np.mean(mean)
@@ -64,7 +58,6 @@ plot_scatter(sbertNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiD
 plot_scatter(sbertNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, rep_depth='full')
 
 
-
 EXP_FILE = '7.20models/swap_holdouts'
 clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap9'
@@ -81,15 +74,3 @@ plot_tuning_curve()
 plot_neural_resp(clipNet, 'DM','diff_strength', 15, num_trials=25)
 plot_neural_resp(clipNet, 'DMMod2','diff_strength', 15, num_trials=25)
 
-
-
-EXP_FILE = '7.20models/swap_holdouts'
-clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap9'
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
-
-plot_scatter(clipNet, ['DM', 'DMMod1', 'DMMod2', 'AntiDM', 'AntiDMMod1', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
-
-reps = get_task_reps(clipNet, num_trials = 100,  main_var=True)
-dich_scores, _ =  get_dich_CCGP(reps, [('DM', 'AntiDM'), ('DMMod1', 'AntiDMMod1'), ('DMMod2', 'AntiDMMod2'), ('MultiDM', 'AntiMultiDM')])
-np.mean(dich_scores)
