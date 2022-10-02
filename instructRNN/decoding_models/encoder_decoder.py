@@ -14,40 +14,37 @@ from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.instructions.instruct_utils import inv_train_instruct_dict, get_instructions
 
 class EncoderDecoder(nn.Module): 
-    def __init__(self, sm_model, decoder, load_folder=None): 
+    def __init__(self, sm_model, decoder): 
         super(EncoderDecoder, self).__init__()
         self.sm_model = sm_model
         self.decoder = decoder
         self.contexts = None
-        self.load_foldername = load_folder
+        self.sm_model.eval()
+        self.decoder.eval()
 
-    def load_model_componenets(self, task_file, seed, load_holdout_decoder=True):
-        self.sm_model.set_seed(seed)
-        self.sm_model.load(self.load_foldername+'/'+task_file)
-        
-        if load_holdout_decoder:
-            holdout_str = '_wHoldout'
-        else: 
-            holdout_str = ''
-        self.decoder.load(self.load_foldername+'/'+task_file+'/'+self.sm_model.model_name+'/decoders/seed'+str(seed)+'_rnn_decoder'+holdout_str)
+    def load_model_componenets(self, load_folder, seed):
+        self.sm_model.load_model(load_folder, suffix='_seed'+str(seed))
+        self.decoder.load_model(load_folder, suffix='_seed'+str(seed))
+        self.init_context_set(load_folder+'/'+self.sm_model.model_name, seed)
 
-        self.init_context_set(task_file, seed)
-
-    def init_context_set(self, file_name, seed, context_dim):
+    def init_context_set(self, file_name, seed, verbose=False):
+        context_dim = self.sm_model.langModel.LM_intermediate_lang_dim
         all_contexts = np.empty((len(TASK_LIST), 100, context_dim))
         for i, task in enumerate(TASK_LIST):
-            print('loading '+task)
             try: 
-                #need an underscore
-                filename = file_name+'/'+self.sm_model.model_name+'/contexts/seed'+str(seed)+'_'+task+'_context_vecs'+str(context_dim)
+                filename = file_name+'/contexts/seed'+str(seed)+'_'+task+'_context_vecs'+str(context_dim)
                 task_contexts = pickle.load(open(filename, 'rb'))
                 all_contexts[i, ...]=task_contexts[:100, :]
-            #except FileNotFoundError: 
-            except: 
-                print(filename)
-                print('no contexts for '+task+' for model file')
+            except FileNotFoundError: 
+                if verbose:
+                    print(filename)
+                    print('no contexts for '+task+' for model file')
 
         self.contexts = all_contexts
+
+    def to(self, cuda_device): 
+        self.sm_model.to(cuda_device)
+        self.decoder.to(cuda_device)
 
     def decode_set(self, num_trials, num_repeats = 1, from_contexts=False, tasks=TASK_LIST, t=120): 
         decoded_set = {}
@@ -88,37 +85,35 @@ class EncoderDecoder(nn.Module):
         plt.show()
         return decoded_set
 
-    def test_partner_model(self, partner_model, num_repeats=1, tasks=TASK_LIST, decoded_dict=None): 
+    def test_partner_model(self, partner_model, num_repeats=1, from_context=True, tasks=TASK_LIST, decoded_dict=None, mode='instructions'): 
         partner_model.eval()
         if decoded_dict is None: 
-            decoded_dict, _ = self.decode_set(100, from_contexts=True)
+            decoded_dict, _ = self.decode_set(100, from_contexts=from_context)
 
-        perf_dict = {}
         with torch.no_grad():
-            for mode in ['instructions', 'others']: 
-                perf_array = np.full((len(tasks), num_repeats), np.nan)
-                for k in range(num_repeats): 
-                    for j, task in enumerate(tasks):
-                        print(task)
-                        ins, targets, _, target_dirs, _ = construct_trials(task, 100)
-                        if mode == 'others': 
-                            try:
-                                task_info = list(np.random.choice(decoded_dict[task]['other'], 100))
-                                out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), task_info)
-                            except ValueError:
-                                continue
-                        elif mode == 'instructions':
-                            task_info = list(itertools.chain.from_iterable([value for value in decoded_dict[task].values()]))
+            perf_array = np.full((num_repeats, len(tasks)), np.nan)
+            for i in range(num_repeats): 
+                for j, task in enumerate(tasks):
+                    print(task)
+                    ins, targets, _, target_dirs, _ = construct_trials(task, 100)
+                    if mode == 'others': 
+                        try:
+                            task_info = list(np.random.choice(decoded_dict[task]['other'], 100))
                             out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), task_info)
-                        elif mode == 'context':
-                            task_index = TASK_LIST.index(task)
-                            task_info = self.contexts[task_index, ...]
-                            out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), context=torch.Tensor(task_info).to(partner_model.__device__))
-                        
-                        task_perf = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
-                        perf_array[j, k] = task_perf
-                perf_dict[mode] = perf_array
-        return perf_dict, decoded_dict
+                        except ValueError:
+                            continue
+                    elif mode == 'instructions':
+                        task_info = list(itertools.chain.from_iterable([value for value in decoded_dict[task].values()]))
+                        out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), task_info)
+                    elif mode == 'context':
+                        task_index = TASK_LIST.index(task)
+                        task_info = self.contexts[task_index, ...]
+                        out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), context=torch.Tensor(task_info).to(partner_model.__device__))                        
+
+                    task_perf = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
+
+                    perf_array[i, j] = task_perf
+        return perf_array
 
     def _partner_model_over_t(self, partner_model, task, from_contexts=True, t_set = [120]): 
         ins, targets, _, target_dirs, _ = construct_trials(task, 128)
