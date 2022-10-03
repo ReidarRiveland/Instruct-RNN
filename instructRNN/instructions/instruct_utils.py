@@ -66,6 +66,10 @@ def get_instruction_dict(instruct_mode):
         return test_instruct_dict
     elif instruct_mode == 'combined': 
         return combined_instruct_dict
+    elif instruct_mode == 'swap_combined': 
+        swap_dict = {}
+        for task in TASK_LIST: 
+            swap_dict[task] = combined_instruct_dict[get_swap_task(task)]
     else: 
         return train_instruct_dict
 
