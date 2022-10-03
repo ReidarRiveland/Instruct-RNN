@@ -497,7 +497,10 @@ def plot_task_var_heatmap(load_folder, model_name, seed, cmap = sns.color_palett
     res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 6)
     res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 4, rotation=0)
     plt.show()
-
-
         
 
+def decoding_confuse_mat(confusion_mat, fmt='g'): 
+    res=sns.heatmap(confusion_mat, linewidths=0.5, linecolor='black', mask=confusion_mat == 0, xticklabels=TASK_LIST+['other'], yticklabels=TASK_LIST, annot=True, cmap='Blues', fmt=fmt, cbar=False)
+    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8)
+    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
+    plt.show()

@@ -6,9 +6,13 @@ from instructRNN.analysis.model_analysis import get_model_performance, get_task_
 
 from instructRNN.tasks.tasks import *
 import torch
-from instructRNN.models.full_models import SBERTNet, BoWNet
+from instructRNN.models.full_models import *
 from instructRNN.instructions.instruct_utils import get_instructions
 from instructRNN.plotting.plotting import *
+from instructRNN.analysis.decoder_analysis import *
+
+
+
 
 
 
@@ -99,4 +103,4 @@ np.mean(task_scores)
 #pscp  riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ C:\Users\reida\OneDrive\Desktop\Projects\Instruct-RNN\7.20models
 # rsync -a  -P --include 'simpleNet_seed0.pt' --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/swap_holdouts/ C:\Users\reida\OneDrive\Desktop\Projects\Instruct-RNN\7.20models
 
-rename 'seed5' seed0 *; rename 'seed6' seed1 *; rename 'seed7' seed2 *; rename 'seed8' seed3 *; rename 'seed9' seed4 *
+#rename 'seed5' seed0 *; rename 'seed6' seed1 *; rename 'seed7' seed2 *; rename 'seed8' seed3 *; rename 'seed9' seed4 *

@@ -1,9 +1,11 @@
 import torch
 import numpy as np
+import itertools
 from instructRNN.decoding_models.decoder_models import DecoderRNN
 from instructRNN.decoding_models.encoder_decoder import EncoderDecoder
 from instructRNN.models.full_models import make_default_model
-from instructRNN.tasks.tasks import SWAPS_DICT, TASK_LIST
+from instructRNN.tasks.tasks import SWAPS_DICT, TASK_LIST, construct_trials
+from instructRNN.tasks.task_criteria import isCorrect
 
 def get_holdout_decoded_set(foldername, model_name, seed, from_contexts=False): 
     shallow_decoded_set = {}
@@ -16,7 +18,11 @@ def get_holdout_decoded_set(foldername, model_name, seed, from_contexts=False):
 
     for swap_label, swap_tasks in SWAPS_DICT.items(): 
         print(swap_label)
-        encoder.load_model_componenets(foldername+'/'+swap_label+'/'+model_name+'/', seed)
+        try:
+            encoder.load_model_componenets(foldername+'/'+swap_label+'/'+model_name+'/', seed)
+        except: 
+            print('NO DECODER!')
+            continue
         _shallow, _rich, _confuse_mat = encoder.decode_set(50, 1, tasks=swap_tasks, from_contexts=from_contexts)
         shallow_decoded_set = {**_shallow, **shallow_decoded_set}
         rich_decoded_set = {**_rich, **rich_decoded_set}
@@ -24,7 +30,36 @@ def get_holdout_decoded_set(foldername, model_name, seed, from_contexts=False):
 
     return rich_decoded_set, shallow_decoded_set, confuse_mat
 
+def test_partner_model(model_name, decoded_dict, num_trials=50, tasks = TASK_LIST): 
+    partner_model = make_default_model(model_name)
+    partner_model.load_state_dict(torch.load('7.20models/multitask_holdouts/Multitask/'+model_name+'/'+model_name+'_seed0.pt'))
+    partner_model.eval()
+    instruct_perf_array = np.full((len(TASK_LIST)), np.nan)
+    other_perf_array = np.full((len(TASK_LIST)), np.nan)
+    with torch.no_grad():
+        for task in tasks:
+            print(task)
+            ins, targets, _, target_dirs, _ = construct_trials(task, num_trials)
+        
+            try:
+                task_info = list(np.random.choice(decoded_dict[task]['other'], num_trials))
+                out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), instruction = task_info)
+                other_perf_array[TASK_LIST.index(task)] = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
+            except ValueError:
+                pass
+
+            task_instructs = list(itertools.chain.from_iterable([value for value in decoded_dict[task].values()]))
+            task_info = list(np.random.choice(task_instructs, num_trials))
+            out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), instruction = task_info)
+
+            instruct_perf_array[TASK_LIST.index(task)] = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
+
+    return instruct_perf_array, other_perf_array
+
+
 model_name = 'clipNet_lin'
 load_str = '7.20models/swap_holdouts'
 
 rich, shallow, conduse = get_holdout_decoded_set(load_str, 'clipNet_lin', 1, from_contexts=True)
+instruct_perf, other_perf = test_partner_model('clipNet_lin', rich, tasks=rich.keys())
+
