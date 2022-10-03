@@ -57,9 +57,3 @@ def test_partner_model(model_name, decoded_dict, num_trials=50, tasks = TASK_LIS
     return instruct_perf_array, other_perf_array
 
 
-model_name = 'clipNet_lin'
-load_str = '7.20models/swap_holdouts'
-
-rich, shallow, conduse = get_holdout_decoded_set(load_str, 'clipNet_lin', 1, from_contexts=True)
-instruct_perf, other_perf = test_partner_model('clipNet_lin', rich, tasks=rich.keys())
-

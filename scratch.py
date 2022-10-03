@@ -15,6 +15,28 @@ from instructRNN.analysis.decoder_analysis import *
 
 
 
+EXP_FILE = '7.20models/swap_holdouts'
+clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap9'
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
+
+
+
+
+
+
+
+model_name = 'clipNet_lin'
+load_str = '7.20models/swap_holdouts'
+
+rich, shallow, conduse = get_holdout_decoded_set(load_str, 'clipNet_lin', 1, from_contexts=True)
+instruct_perf, other_perf = test_partner_model('clipNet_lin', rich, tasks=rich.keys())
+
+
+
+
+
+
 
 EXP_FILE = '7.20models/swap_holdouts'
 clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
