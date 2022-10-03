@@ -27,11 +27,11 @@ class DecoderTrainerConfig():
     stream_data: bool = True
     holdouts: list = []
 
-    optim_alg: optim = optim.Adam
+    optim_alg: str = 'adam'
     lr: float = 1e-4
     weight_decay: float = 0.0
 
-    scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
+    scheduler_class: str = 'exp'
     scheduler_args: dict = {'gamma': 0.999}
 
     init_teacher_forcing_ratio: float = 0.5
@@ -39,7 +39,6 @@ class DecoderTrainerConfig():
 
 class DecoderTrainer(BaseTrainer):
     def __init__(self, config:DecoderTrainerConfig=None): 
-        
         self.config = asdict(config, recurse=False)
         self.cur_epoch = 0 
         self.cur_step = 0
@@ -48,8 +47,17 @@ class DecoderTrainer(BaseTrainer):
 
         for name, value in self.config.items(): 
             setattr(self, name, value)
-
         self.seed_suffix = 'seed'+str(self.random_seed)
+
+    @classmethod
+    def from_checkpoint(cls, checkpoint_path): 
+        attr_dict = pickle.load(open(checkpoint_path+'_attrs', 'rb'))
+        config = DecoderTrainerConfig(**attr_dict.pop('config'))
+        cls.checkpoint_path = checkpoint_path
+        cls = cls(config) 
+        for name, value in attr_dict.items(): 
+            setattr(cls, name, value)
+        return cls
 
     def _print_progress(self, decoder_loss, use_teacher_forcing, 
                                 decoded_sentence, target_instruct): 
@@ -73,7 +81,7 @@ class DecoderTrainer(BaseTrainer):
             self.loss_data.append(loss)
 
     def _record_session(self, decoder, mode):
-        record_attrs = ['config', 'optimizer', 'scheduler', 'cur_epoch', 'cur_step', 'teacher_loss_data', 'loss_data']
+        record_attrs = ['config', 'cur_epoch', 'teacher_loss_data', 'loss_data']
         checkpoint_attrs = {}
         for attr in record_attrs: 
             checkpoint_attrs[attr]=getattr(self, attr)
@@ -89,15 +97,18 @@ class DecoderTrainer(BaseTrainer):
         else: os.makedirs(self.file_path)
 
         if mode == 'CHECKPOINT':    
-            pickle.dump(checkpoint_attrs, open(record_file+'_CHECKPOINT_attrs'+holdouts_suffix, 'wb'))
-            decoder.save_model(record_file+'_CHECKPOINT'+holdouts_suffix)
+            chk_attr_path = record_file+'_CHECKPOINT_attrs'+holdouts_suffix
+            pickle.dump(checkpoint_attrs, open(chk_attr_path, 'wb'))
+            decoder.save_model(chk_attr_path)
+            torch.save(self.optimizer.state_dict(), chk_attr_path+'_opt')
 
         if mode=='FINAL': 
-            pickle.dump(checkpoint_attrs, open(record_file+'_attrs'+holdouts_suffix, 'wb'))
             os.remove(record_file+'_CHECKPOINT_attrs'+holdouts_suffix)
-            
-            decoder.save_model(record_file+holdouts_suffix)
             os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'.pt')
+            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'_opt')
+
+            pickle.dump(checkpoint_attrs, open(record_file+'_attrs'+holdouts_suffix, 'wb'))
+            decoder.save_model(record_file+holdouts_suffix)
 
     def _init_streamer(self):
         self.streamer = TaskDataSet(self.file_path.partition('/')[0]+'/training_data', 
@@ -108,7 +119,10 @@ class DecoderTrainer(BaseTrainer):
                         None)
 
     def _init_optimizer(self, decoder):
-        self.optimizer = self.optim_alg([
+        if self.optim_alg == 'adam': 
+            optim_alg = optim.Adam
+
+        self.optimizer = optim_alg([
             {'params' : decoder.gru.parameters()},
             {'params' : decoder.out.parameters()},
             {'params' : decoder.embedding.parameters()},
@@ -116,17 +130,28 @@ class DecoderTrainer(BaseTrainer):
         ], lr=self.lr, weight_decay=0.0)
         self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
 
-    def train(self, sm_model, decoder): 
+    def _init_scheduler(self): 
+        if self.scheduler_type == 'exp': 
+            scheduler_class = optim.lr_scheduler.ExponentialLR
+        self.scheduler = scheduler_class(self.optimizer, gamma=self.scheduler_gamma, **self.scheduler_args)
 
+    def init_optimizer(self, model):
+        self._init_optimizer(model)      
+        self._init_scheduler()
+        if hasattr(self, 'checkpoint_path'):
+            opt_path = self.checkpoint_path + '_opt'
+            self.optimizer.load_state_dict(torch.load(opt_path))  
+
+    def train(self, sm_model, decoder): 
         criterion = nn.NLLLoss(reduction='mean')
         teacher_forcing_ratio = self.init_teacher_forcing_ratio
         self.pad_len  = decoder.tokenizer.pad_len 
          
         self._init_streamer()
-        self._init_optimizer(decoder)
+        self.init_optimizer(decoder)
 
-        for i in tqdm(range(self.epochs), desc='epochs'): 
-            print('Epoch: ' + str(i)+'\n')
+        for self.cur_epoch in tqdm(range(self.cur_epoch, self.epochs), desc='epochs'): 
+            print('Epoch: ' + str(self.cur_epoch)+'\n')
             for j, data in enumerate(self.streamer.stream_batch()): 
                 ins, _, _, _, task_type = data
                 decoder_loss=0
@@ -192,26 +217,49 @@ def check_decoder_trained(file_name, seed, use_holdouts):
     except FileNotFoundError:
         return False
 
-def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, overwrite=False, **train_config_kwargs): 
+def load_checkpoint(model, file_name, seed): 
+    checkpoint_name = model.model_name+'_seed'+str(seed)+'_CHECKPOINT'
+    checkpoint_model_path = file_name+'/'+checkpoint_name+'.pt'
+
+    print('\n Attempting to load model CHECKPOINT')
+    if not os.exists(checkpoint_model_path): 
+        raise Exception('No model checkpoint found at ' + checkpoint_model_path)
+    else:
+        print(checkpoint_model_path)
+        model.load_state_dict(torch.load(checkpoint_model_path), strict=False)
+        print('loaded model at '+ checkpoint_model_path)
+    
+    checkpoint_path = file_name+'/attrs/'+checkpoint_name
+    trainer = DecoderTrainer.from_checkpoint(checkpoint_path)
+    return model, trainer
+
+def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, use_checkpoint = False, overwrite=False, **train_config_kwargs): 
     torch.manual_seed(seed)
     label, holdouts = labeled_holdouts
     file_name = exp_folder+'/'+label+'/'+model_name
 
     if not overwrite and check_decoder_trained(file_name+'/decoders', seed, use_holdouts):
-        return
-    else:  
-        print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts)+  '\n')
-        model = make_default_model(model_name)   
-        model.load_model(file_name, suffix='_seed'+str(seed))
-        model.to(device)
+        return True
 
-        decoder = DecoderRNN(256)
-        decoder.to(device)
+    print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts)+  '\n')
+    model = make_default_model(model_name)   
+    model.load_model(file_name, suffix='_seed'+str(seed))
+    model.to(device)
 
-        if use_holdouts: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)
-        else: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, **train_config_kwargs)
-        
-        trainer = DecoderTrainer(trainer_config)
-        trainer.train(model, decoder)
 
+    decoder = DecoderRNN(256)
+    decoder.to(device)
+
+    if use_checkpoint:
+        try: 
+            model, trainer = load_checkpoint(model, file_name, seed)
+        except: 
+            'NO checkpoint found, training model from starting point'
+
+
+    if use_holdouts: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)
+    else: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, **train_config_kwargs)
+    
+    trainer = DecoderTrainer(trainer_config)
+    trainer.train(model, decoder)
 

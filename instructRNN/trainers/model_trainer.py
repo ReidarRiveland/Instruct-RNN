@@ -134,12 +134,12 @@ class ModelTrainer(BaseTrainer):
 
         self.optimizer = optimizer
 
-    def _init_scheduler(self, optimizer):
+    def _init_scheduler(self):
         if self.scheduler_type == 'exp': 
             scheduler_class = optim.lr_scheduler.ExponentialLR
 
         self.scheduler = scheduler_class(self.optimizer, gamma=self.scheduler_gamma, **self.scheduler_args)
-        self.step_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, 
+        self.step_scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, 
                             milestones=[self.epochs-5, self.epochs-2, self.epochs-1], gamma=0.25)
 
     def _save_for_tuning(self, model): 
@@ -175,7 +175,7 @@ class ModelTrainer(BaseTrainer):
 
     def init_optimizer(self, model):
         self._init_optimizer(model)      
-        self._init_scheduler(self.optimizer)
+        self._init_scheduler()
         if hasattr(self, 'checkpoint_path'):
             opt_path = self.checkpoint_path + '_opt'
             self.optimizer.load_state_dict(torch.load(opt_path))  

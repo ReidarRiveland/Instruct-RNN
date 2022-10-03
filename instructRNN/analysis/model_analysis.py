@@ -5,20 +5,19 @@ from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+from itertools import chain
+import sklearn.svm as svm
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from collections import defaultdict
 
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import DMFactory, TRIAL_LEN, _get_default_intervals, max_var_dir
 from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.instructions.instruct_utils import get_task_info, get_instruction_dict, sort_vocab
-
-import sklearn.svm as svm
 from instructRNN.models.full_models import make_default_model
-
 from instructRNN.tasks.tasks import DICH_DICT, TASK_LIST, SWAPS_DICT
 
-import numpy as np
-from itertools import chain
-import sklearn.svm as svm
 import os
 
 if torch.cuda.is_available:
@@ -345,7 +344,7 @@ def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array):
         else: 
             continue
 
-def get_holdout_CCGP(exp_folder, model_name, seed, save=False, layer='task'): 
+def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task'): 
     print(DICH_DICT)
     holdout_CCGP = np.full((len(TASK_LIST), len(DICH_DICT)), np.NAN)
     if 'swap_holdouts' in exp_folder: 
@@ -358,7 +357,7 @@ def get_holdout_CCGP(exp_folder, model_name, seed, save=False, layer='task'):
         model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
 
         if layer == 'task':
-            reps = get_task_reps(model, num_trials = 100,  main_var=True, instruct_mode='combined')
+            reps = get_task_reps(model, num_trials = 100,  main_var=True, instruct_mode='combined', epoch=epoch)
         else: 
             reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
 
@@ -376,5 +375,43 @@ def get_holdout_CCGP(exp_folder, model_name, seed, save=False, layer='task'):
         np.save(file_path+'/'+'layer'+layer+'_dich_holdout_seed'+str(seed), dich_holdout_scores)
 
     return task_holdout_scores, dich_holdout_scores
+
+def get_norm_task_var(hid_reps): 
+    task_var = np.mean(np.var(hid_reps[:, 30:, :,:], axis=1), axis=1)
+    task_var = np.delete(task_var, np.where(np.sum(task_var, axis=0)<0.001)[0], axis=1)
+    normalized = np.divide(np.subtract(task_var, np.min(task_var, axis=0)[None, :]), (np.max(task_var, axis=0)-np.min(task_var, axis=0)[None, :])).T
+    return normalized
+
+def get_optim_clusters(task_var):
+    score_list = []
+    for i in range(3,25):
+        km = KMeans(n_clusters=i, random_state=12)
+        labels = km.fit_predict(task_var)
+        score = silhouette_score(task_var, labels)
+        score_list.append(score)
+    return list(range(3, 50))[np.argmax(np.array(score_list))]
+
+def cluster_units(task_var):
+    n_clusters = get_optim_clusters(task_var)
+    km = KMeans(n_clusters=n_clusters, random_state=42)
+    labels = km.fit_predict(task_var)
+    return labels
+
+def sort_units(norm_task_var): 
+    labels = cluster_units(norm_task_var)
+    cluster_labels, sorted_indices = list(zip(*sorted(zip(labels, range(256)))))
+    cluster_dict = defaultdict(list)
+    for key, value in zip(cluster_labels, sorted_indices): 
+        cluster_dict[key].append(value)
+    return cluster_dict, cluster_labels, sorted_indices
+
+def get_cluster_info(load_folder, model_name, seed):
+    model = make_default_model(model_name)
+    model.load_model(load_folder+'/'+model.model_name, suffix='_seed'+str(seed))
+    task_hid_reps = get_task_reps(model, num_trials = 100, epoch=None, tasks= [task for task in TASK_LIST if 'Con' not in task], max_var=True)
+    norm_task_var = get_norm_task_var(task_hid_reps)
+    cluster_labels = cluster_units(norm_task_var)
+    return norm_task_var, cluster_labels
+    
 
 

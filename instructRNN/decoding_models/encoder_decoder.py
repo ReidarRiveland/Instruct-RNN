@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn 
 import numpy as np
@@ -25,11 +24,11 @@ class EncoderDecoder(nn.Module):
     def load_model_componenets(self, load_folder, seed):
         self.sm_model.load_model(load_folder, suffix='_seed'+str(seed))
         self.decoder.load_model(load_folder, suffix='_seed'+str(seed))
-        self.init_context_set(load_folder+'/'+self.sm_model.model_name, seed)
+        self.init_context_set(load_folder, seed)
 
     def init_context_set(self, file_name, seed, verbose=False):
         context_dim = self.sm_model.langModel.LM_intermediate_lang_dim
-        all_contexts = np.empty((len(TASK_LIST), 100, context_dim))
+        all_contexts = np.full((len(TASK_LIST), 100, context_dim), np.nan)
         for i, task in enumerate(TASK_LIST):
             try: 
                 filename = file_name+'/contexts/seed'+str(seed)+'_'+task+'_context_vecs'+str(context_dim)
@@ -46,35 +45,37 @@ class EncoderDecoder(nn.Module):
         self.sm_model.to(cuda_device)
         self.decoder.to(cuda_device)
 
-    def decode_set(self, num_trials, num_repeats = 1, from_contexts=False, tasks=TASK_LIST, t=120): 
-        decoded_set = {}
+    def decode_set(self, num_trials, num_repeats = 1, from_contexts=False, tasks=TASK_LIST): 
+        shallow_decoded_set = {}
+        rich_decoded_set = {}
         confusion_mat = np.zeros((len(tasks), len(TASK_LIST)+1))
-        for _ in range(num_repeats): 
-            for i, task in enumerate(tasks): 
-                tasks_decoded = defaultdict(list)
+        with torch.no_grad():
+            for _ in range(num_repeats): 
+                for i, task in enumerate(tasks): 
+                    tasks_decoded = defaultdict(list)
 
-                ins, _, _, _, _ = construct_trials(task, num_trials)
+                    ins, _, _, _, _ = construct_trials(task, num_trials, noise=0)
 
-                if from_contexts: 
-                    task_info = torch.Tensor(self.contexts[i, ...]).to(self.sm_model.__device__)
-                    _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), context=task_info)
-                else: 
-                    task_info = get_instructions(num_trials, task, None)
-                    _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), task_info)
-                
-                decoded_sentences = self.decoder.decode_sentence(sm_hidden[:,0:t, :]) 
+                    if from_contexts: 
+                        task_info = torch.Tensor(self.contexts[TASK_LIST.index(task), :num_trials, :]).to(self.sm_model.__device__)
+                        _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), context=task_info)
+                    else: 
+                        task_info = get_instructions(num_trials, task, None)
+                        _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), task_info)
+                    
+                    decoded_sentences = self.decoder.decode_sentence(sm_hidden) 
+                    shallow_decoded_set[task] = decoded_sentences
+                    for instruct in decoded_sentences:
+                        try: 
+                            decoded_task = inv_train_instruct_dict[instruct]
+                            tasks_decoded[decoded_task].append(instruct)
+                            confusion_mat[i, TASK_LIST.index(decoded_task)] += 1
+                        except KeyError:
+                            tasks_decoded['other'].append(instruct)
+                            confusion_mat[i, -1] += 1
+                    rich_decoded_set[task] = tasks_decoded
 
-                for instruct in decoded_sentences:
-                    try: 
-                        decoded_task = inv_train_instruct_dict[instruct]
-                        tasks_decoded[decoded_task].append(instruct)
-                        confusion_mat[i, TASK_LIST.index(decoded_task)] += 1
-                    except KeyError:
-                        tasks_decoded['other'].append(instruct)
-                        confusion_mat[i, -1] += 1
-                decoded_set[task] = tasks_decoded
-
-        return decoded_set, confusion_mat
+        return shallow_decoded_set, rich_decoded_set, confusion_mat
     
     def plot_confuse_mat(self, num_trials, num_repeats, tasks=TASK_LIST, from_contexts=False, confusion_mat=None, fmt='g'): 
         if confusion_mat is None:

@@ -90,5 +90,5 @@ if __name__ == "__main__":
 
         if args.mode == 'decoder' or args.mode == 'd': 
             from instructRNN.trainers.decoder_trainer import *
-            train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, overwrite=args.overwrite)
+            train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, use_checkpoint = args.use_checkpoint, overwrite=args.overwrite)
 

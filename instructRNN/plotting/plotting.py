@@ -27,13 +27,15 @@ import matplotlib
 import torch
 
 from scipy.ndimage import gaussian_filter1d
-from sklearn.decomposition import PCA
 import warnings
+
+plt.style.use('ggplot')
 
 Blue = '#1C3FFD'
 lightBlue='#ADD8E6'
+lightRed = '#FF6D6A'
 Green = '#45BF55'
-Red = '#FF0000'
+Red = '#FF3131'
 Orange = '#FFA500'
 Yellow = '#FFEE58'
 Purple = '#800080'
@@ -45,8 +47,8 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Bl
                     'clipNet_lin': (Yellow, 'None', 'clipNet'), 'clipNet_lin_tuned': (Yellow, 'v', 'clipNet (tuned)'), 
                     #'bowNet': (Orange, None), 
                     'bowNet_lin': (Orange, None, 'bowNet'), 
-                    'gptNet_lin': (Red, None, 'gptNet'), 'gptNet_lin_tuned': (Red, 'v','gptNet (tuned)'), 
-                    'gptNetXL_lin': (Red, None, 'gptNetXL'), 'gptNetXL_lin_tuned': (Red, 'V', 'gptNetXL (tuned)'), 
+                    'gptNet_lin': (lightRed, None, 'gptNet'), 'gptNet_lin_tuned': (lightRed, 'v','gptNet (tuned)'), 
+                    'gptNetXL_lin': (Red, None, 'gptNetXL'), 'gptNetXL_lin_tuned': (Red, None, 'gptNetXL (tuned)'), 
                     #'bertNet': (Green, None), 'bertNet_tuned': (Green, 'v'),  
                     'bertNet_lin': (Green, None, 'bertNet'), 'bertNet_lin_tuned': (Green, 'v', 'bertNet (tuned)'),  
                     #'sbertNet': (Purple, None), 'sbertNet_tuned': (Purple, 'v'),
@@ -106,79 +108,77 @@ def _make_model_legend(model_list):
     plt.legend(handles=Patches)
 
 def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct', mode = '', plot_swaps = False, seeds=range(5), split=False):
-    with plt.style.context('ggplot'):
-        if split: 
-            fig, axn, ax2 = split_axes()
-        else: 
-            fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
-            fig.suptitle('Performance on Novel Tasks')
-            axn.set_ylim(0.0, 1.0)
-            axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
-            axn.set_xlabel('Exposures to Novel Task', size=8, fontweight='bold')
+    if split: 
+        fig, axn, ax2 = split_axes()
+    else: 
+        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+        fig.suptitle('Performance on Novel Tasks')
+        axn.set_ylim(0.0, 1.0)
+        axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+        axn.set_xlabel('Exposures to Novel Task', size=8, fontweight='bold')
 
-            axn.xaxis.set_tick_params(labelsize=8)
+        axn.xaxis.set_tick_params(labelsize=8)
 
-            axn.yaxis.set_tick_params(labelsize=8)
-            axn.yaxis.set_major_locator(MaxNLocator(10)) 
-            axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
+        axn.yaxis.set_tick_params(labelsize=8)
+        axn.yaxis.set_major_locator(MaxNLocator(10)) 
+        axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
 
-            #axn.set_yticks(np.linspace(0, 100, 11))
+        #axn.set_yticks(np.linspace(0, 100, 11))
 
-        axn.spines['top'].set_visible(False)
-        axn.spines['right'].set_visible(False)
+    axn.spines['top'].set_visible(False)
+    axn.spines['right'].set_visible(False)
 
-        for model_name in model_list:
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
+    for model_name in model_list:
+        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
+        mean, std = data.avg_tasks()
+        _plot_performance_curve(mean, std, axn, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
+
+        if plot_swaps: 
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
             mean, std = data.avg_tasks()
-            _plot_performance_curve(mean, std, axn, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
+            _plot_performance_curve(mean, std, axn, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
 
+        if split:
+            _plot_performance_curve(mean, std, ax2, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
             if plot_swaps: 
                 data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
                 mean, std = data.avg_tasks()
-                _plot_performance_curve(mean, std, axn, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
+                _plot_performance_curve(mean, std, ax2, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
 
-            if split:
-                _plot_performance_curve(mean, std, ax2, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
-                if plot_swaps: 
-                    data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
-                    mean, std = data.avg_tasks()
-                    _plot_performance_curve(mean, std, ax2, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
-
-        fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=4, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
-        plt.show()
+    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=4, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
+    plt.show()
 
 def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5)): 
-    with plt.style.context('ggplot'):
-        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
-        fig.suptitle('Zero-Shot Performance Across Tasks')
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+    fig.suptitle('Zero-Shot Performance Across Tasks')
 
-        axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
-        axn.set_xlabel('Number of Tasks', size=8, fontweight='bold')
+    axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+    axn.set_xlabel('Number of Tasks', size=8, fontweight='bold')
 
-        thresholds = np.linspace(0.1, 1.0, 10)
-        thresholds0 = np.linspace(0.0, 0.9, 10)
+    thresholds = np.linspace(0.1, 1.0, 10)
+    thresholds0 = np.linspace(0.0, 0.9, 10)
 
-        width = 1/(len(model_list)+1)
-        ind = np.arange(10)
+    width = 1/(len(model_list)+1)
+    ind = np.arange(10)
 
-        axn.set_yticks(ind+0.5, minor=True)
-        axn.set_yticklabels([f'{x:.0%}>{y:.0%}' for x,y in list(zip(thresholds, thresholds0))], fontsize=5, minor=True) 
-        
+    axn.set_yticks(ind+0.5, minor=True)
+    axn.set_yticklabels([f'{x:.0%}>{y:.0%}' for x,y in list(zip(thresholds, thresholds0))], fontsize=5, minor=True) 
+    
 
-        axn.set_yticks(np.arange(11))
-        axn.yaxis.set_ticks_position('none') 
+    axn.set_yticks(np.arange(11))
+    axn.yaxis.set_ticks_position('none') 
 
-        axn.set_yticklabels('') 
+    axn.set_yticklabels('') 
 
-        for i, model_name in enumerate(model_list):
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode=mode, seeds=seeds)
-            mean, _ = data.avg_seeds(k_shot=0)
-            bins = np.zeros(10)
-            for perf in mean: 
-                bins[int(np.floor((perf*10)-1e-5))]+=1
-            axn.barh((ind+(width/2))+(i*width), bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.6)
+    for i, model_name in enumerate(model_list):
+        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode=mode, seeds=seeds)
+        mean, _ = data.avg_seeds(k_shot=0)
+        bins = np.zeros(10)
+        for perf in mean: 
+            bins[int(np.floor((perf*10)-1e-5))]+=1
+        axn.barh((ind+(width/2))+(i*width), bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.6)
 
-        plt.show()
+    plt.show()
 
 
 def plot_all_curves(dataframe, axn, **plt_args):
@@ -190,30 +190,6 @@ def plot_all_curves(dataframe, axn, **plt_args):
         ax.yaxis.set_tick_params(labelsize=10)
         mean, std = dataframe.avg_seeds(task=task)
         _plot_performance_curve(mean, std, ax, dataframe.model_name, **plt_args)
-
-
-
-def plot_0_shot_lolli(foldername, exp_type, model_list,  perf_type='correct', seeds=range(5)):
-    with plt.style.context('ggplot'):
-
-        plt_range = range(len(TASK_LIST))
-        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
-        #axn.hlines(y=plt_range, xmin=0, xmax=1, color='skyblue')
-        for model_name in model_list: 
-            if MODEL_STYLE_DICT[model_name][1] is None: 
-                marker = 'o'
-            else: 
-                marker = MODEL_STYLE_DICT[model_name][1]
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
-            zero_shot = np.mean(data.get_k_shot(0), axis = 0)
-            axn.plot(zero_shot[::-1], plt_range, marker, markersize=0.5, color=MODEL_STYLE_DICT[model_name][0])
-        #axn.yaxis.set_major_locator(MaxNLocator(len(TASK_LIST))) 
-        axn.set_yticks(plt_range)
-        axn.set_xticks(np.linspace(0, 1, 6))
-        axn.set_ylim(-1, len(TASK_LIST))
-        axn.set_yticklabels(TASK_LIST[::-1], fontsize=4) 
-
-        plt.show()
 
 
 def plot_all_holdout_curves(foldername, exp_type, model_list,  mode = '', perf_type='correct', seeds=range(5), plot_swap=False):
@@ -347,34 +323,33 @@ def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwar
     return Patches
 
 def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_trials =50, epoch= 'stim_start', instruct_mode = None, **scatter_kwargs): 
-    with plt.style.context('ggplot'):
-        if pcs is None: 
-            pcs = range(dims)
+    if pcs is None: 
+        pcs = range(dims)
 
-        if rep_depth == 'task': 
-            reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True, instruct_mode=instruct_mode)
-        elif rep_depth != 'task': 
-            reps = get_instruct_reps(model.langModel, depth=rep_depth, instruct_mode=instruct_mode)
-        reduced, _ = reduce_rep(reps, pcs=pcs)
+    if rep_depth == 'task': 
+        reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True, instruct_mode=instruct_mode)
+    elif rep_depth != 'task': 
+        reps = get_instruct_reps(model.langModel, depth=rep_depth, instruct_mode=instruct_mode)
+    reduced, _ = reduce_rep(reps, pcs=pcs)
 
-        fig = plt.figure(figsize=(14, 14))
-        if dims==2:
-            ax = fig.add_subplot()
-        else:
-            ax = fig.add_subplot(projection='3d')
+    fig = plt.figure(figsize=(14, 14))
+    if dims==2:
+        ax = fig.add_subplot()
+    else:
+        ax = fig.add_subplot(projection='3d')
 
-        Patches = _group_rep_scatter(reduced, tasks_to_plot, ax, dims, pcs, **scatter_kwargs)
-        Patches.append((Line2D([0], [0], linestyle='None', marker='X', color='grey', label='Contexts', 
-                        markerfacecolor='white', markersize=8)))
-        ax.set_xlabel('PC '+str(pcs[0]))
-        ax.set_xticklabels([])
-        ax.set_ylabel('PC '+str(pcs[1]))
-        ax.set_yticklabels([])
-        if dims==3: 
-            ax.set_zlabel('PC '+str(pcs[2]))
-            ax.set_zticklabels([])
-        plt.legend(handles=Patches, fontsize='small')
-        plt.show()
+    Patches = _group_rep_scatter(reduced, tasks_to_plot, ax, dims, pcs, **scatter_kwargs)
+    Patches.append((Line2D([0], [0], linestyle='None', marker='X', color='grey', label='Contexts', 
+                    markerfacecolor='white', markersize=8)))
+    ax.set_xlabel('PC '+str(pcs[0]))
+    ax.set_xticklabels([])
+    ax.set_ylabel('PC '+str(pcs[1]))
+    ax.set_yticklabels([])
+    if dims==3: 
+        ax.set_zlabel('PC '+str(pcs[2]))
+        ax.set_zticklabels([])
+    plt.legend(handles=Patches, fontsize='small')
+    plt.show()
 
 def plot_hid_traj(model, tasks_to_plot, trial_indices = [0], pcs=range(3), **scatter_kwargs): 
     Patches = []
@@ -489,61 +464,40 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=100, num_repea
     plt.show()
     return axn
 
-
 def plot_layer_ccgp(model_list): 
-    with plt.style.context('ggplot'):
-        layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
-        _, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
-        axn.set_ylim(0.45, 1.0)
-        axn.set_xticks(range(len(layer_list)))
-        axn.set_xticklabels(layer_list)
-        for model_name in model_list:
-            all_holdout_ccgp = np.full((50, len(layer_list)), np.nan)
-            folder_path = '7.20models/swap_holdouts/CCGP_scores/'+model_name
-            for i, layer in enumerate(layer_list): 
-                try: 
-                    all_holdout_ccgp[:, i] = np.load(folder_path+'/layer'+layer+'_task_holdout_seed0.npy')
-                except FileNotFoundError: 
-                    print('no data for layer {} for model {} seed '.format(layer, model_name))
-            print(MODEL_STYLE_DICT[model_name][1] == None)
-            axn.scatter(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=0), marker='.', c=MODEL_STYLE_DICT[model_name][0])
-        plt.show()
+    layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
+    _, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+    axn.set_ylim(0.45, 1.0)
+    axn.set_xticks(range(len(layer_list)))
+    axn.set_xticklabels(layer_list)
+    for model_name in model_list:
+        all_holdout_ccgp = np.full((50, len(layer_list)), np.nan)
+        folder_path = '7.20models/swap_holdouts/CCGP_scores/'+model_name
+        for i, layer in enumerate(layer_list): 
+            try: 
+                all_holdout_ccgp[:, i] = np.load(folder_path+'/layer'+layer+'_task_holdout_seed0.npy')
+            except FileNotFoundError: 
+                print('no data for layer {} for model {} seed '.format(layer, model_name))
+        print(MODEL_STYLE_DICT[model_name][1] == None)
+        axn.scatter(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=0), marker='.', c=MODEL_STYLE_DICT[model_name][0])
+    plt.show()
+
+def plot_unit_clustering(load_folder, model_name, seed):
+    norm_var, cluster_labels = get_cluster_info(load_folder, model_name, seed)
+    tSNE = TSNE(n_components=2)
+    fitted = tSNE.fit_transform(norm_var)
+    plt.scatter(fitted[:, 0], fitted[:, 1], cmap = plt.cm.tab20, c = cluster_labels)
+    plt.show()
+
+def plot_task_var_heatmap(load_folder, model_name, seed, cmap = sns.color_palette("inferno", as_cmap=True)):
+    task_var, _ = get_cluster_info(load_folder, model_name, seed)
+    _, cluster_labels, sorted_indices = sort_units(task_var)
+    label_list = [task for task in TASK_LIST if 'Con' not in task]
+    res = sns.heatmap(task_var[sorted_indices, :].T, xticklabels = cluster_labels, yticklabels=label_list, vmin=0, cmap=cmap)
+    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 6)
+    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 4, rotation=0)
+    plt.show()
 
 
-def plot_0_shot_spider(model_list, folder_name, exp_name, perf_type='correct', **kwargs):
-    with plt.style.context('ggplot'):
-
-        N = len(TASK_LIST)
-        
-        angles = [n / float(N) * 2 * np.pi for n in range(N)]
-        angles += angles[:1]
-        
-        plt.rc('figure', figsize=(12, 12))
-    
-        ax = plt.subplot(1,1,1, polar=True)
-    
-        ax.set_theta_offset(np.pi / 2)
-        ax.set_theta_direction(-1)
-    
-    
-        plt.xticks(angles[:-1], TASK_LIST, color='black', size=4)
-        ax.tick_params(axis='x')
-
-        ax.set_ylim(0, 1.05)
-        ax.yaxis.set_tick_params(labelsize=5)
-        ax.yaxis.set_major_locator(MaxNLocator(10)) 
-        ax.set_yticks(np.linspace(0, 1, 11))
-        ax.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
-
-        ax.set_rlabel_position(0)
-        
-        for model_name in model_list: 
-            data = HoldoutDataFrame(folder_name, exp_name, model_name, perf_type=perf_type)
-            zero_shot = list(np.nanmean(data.get_k_shot(0), axis=0))
-            zero_shot  += zero_shot[:1]
-            
-            ax.plot(angles, zero_shot, color = MODEL_STYLE_DICT[model_name][0], linewidth=0.5, linestyle='solid')
-            ax.fill(angles, zero_shot, color = MODEL_STYLE_DICT[model_name][0], alpha = 0.5)
-        plt.show()
         
 

@@ -5,19 +5,25 @@ from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
 
 plot_avg_holdout_curve('7.20models', 'swap', 
-                                ['gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet'],
+                                ['gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet', 'gptNet_lin'],
                                 seeds =range(0, 5),
                                 mode='combined'
                                 )
 
 plot_0_shot_task_hist('7.20models', 'swap', 
-                                [ 'clipNet_lin', 'sbertNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'simpleNet'][::-1],
+                                [ 'clipNet_lin', 'sbertNet_lin',  'gptNetXL_lin', 'bertNet_lin',  'gptNet_lin', 'simpleNet'][::-1],
                                 seeds =range(0,5),
                                 mode='combined'
                                 )
 
 
-data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL_lin', seeds=range(5), mode='combined')
+plot_avg_holdout_curve('7.20models', 'swap', 
+                                ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin'],
+                                seeds =range(0, 5),
+                                mode='combined'
+                                )
+
+data = HoldoutDataFrame('7.20models', 'swap', 'gptNet_lin', seeds=range(5), mode='combined')
 
 #data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', seeds=range(5), mode='')
 
