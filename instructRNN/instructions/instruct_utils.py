@@ -56,7 +56,7 @@ def get_swap_task(task):
     return SWAPS_DICT[swap_label][swap_index]
 
 def get_instruction_dict(instruct_mode): 
-    assert instruct_mode in [None, 'swap', 'validation', 'combined']
+    assert instruct_mode in [None, 'swap', 'validation', 'combined', 'swap_combined']
     if instruct_mode == 'swap': 
         swap_dict = {}
         for task in TASK_LIST: 

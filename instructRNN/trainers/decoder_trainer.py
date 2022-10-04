@@ -32,7 +32,7 @@ class DecoderTrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_type: str = 'exp'
-    scheduler_args: dict = {'gamma': 0.999}
+    scheduler_gamma: float = 0.999
 
     init_teacher_forcing_ratio: float = 0.5
     
