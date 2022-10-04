@@ -52,11 +52,11 @@ def get_model_performance(model, num_repeats = 1, batch_len=128, instruct_mode=N
     return perf_array
 
 def eval_model_0_shot(model, folder_name, exp_type, seed, instruct_mode=None): 
-    if exp_type == 'swap': 
+    if 'swap' in exp_type: 
         exp_dict = SWAPS_DICT
     perf_array = np.full(len(TASK_LIST), np.NaN)
     with torch.no_grad():
-        for holdout_label, tasks in exp_dict.keys(): 
+        for holdout_label, tasks in exp_dict.items(): 
             model.load_model(folder_name+'/'+exp_type+'/'+holdout_label+'/'+model.model_name, suffix='_seed'+str(seed))
             for task in tasks: 
                 perf_array[TASK_LIST.index(task)] = task_eval(model, task, 64, instruct_mode=instruct_mode)
@@ -235,10 +235,10 @@ def get_noise_thresholdouts(correct_stats, diff_strength, noises, pos_cutoff=0.9
     return pos_thresholds, neg_thresholds
 
 
-def get_dich_CCGP(reps, dich, holdouts_involved=[]):
+def get_dich_CCGP(reps, dich, holdouts_involved=[], use_mean = False):
     dim = reps.shape[-1]
     num_trials = reps.shape[1]
-
+    labels = np.array([0]*num_trials+[1]*num_trials)
     decoding_score_arr = np.full((len(dich), len(dich)-1), np.nan)
     holdouts_score_list = []
 
@@ -247,24 +247,29 @@ def get_dich_CCGP(reps, dich, holdouts_involved=[]):
         test_pairs.remove(train_pair)
         train_reps = get_reps_from_tasks(reps,train_pair).reshape(-1, dim)
 
+        if use_mean:
+            train_reps = np.squeeze(get_reps_from_tasks(reps,train_pair).mean(axis=1))
+            labels = np.array([0, 1])
+        else: 
+            train_reps = get_reps_from_tasks(reps,train_pair).reshape(-1, dim)
+
         classifier = svm.LinearSVC(max_iter=100_000, random_state = 0, tol=1e-5)
         classifier.classes_=[0, 1]
-        classifier.fit(train_reps, np.array([0]*num_trials+[1]*num_trials))
+        classifier.fit(train_reps, labels)
 
         for j, test_pair in enumerate(test_pairs): 
-            decoding_corrects0 = np.array([0]*num_trials) == classifier.predict(reps[TASK_LIST.index(test_pair[0]), ...].reshape(-1, dim))
-            decoding_corrects1 = np.array([1]*num_trials) == classifier.predict(reps[TASK_LIST.index(test_pair[1]), ...].reshape(-1, dim))
-            decoding_score = np.array([decoding_corrects0, decoding_corrects1]).mean()
+            if use_mean: 
+                test_reps = np.squeeze(get_reps_from_tasks(reps,test_pair).mean(axis=1))
+            else: 
+                test_reps = get_reps_from_tasks(reps,test_pair).reshape(-1, dim)
+
+            decoding_score = classifier.score(test_reps, labels)
             decoding_score_arr[i, j] = decoding_score
 
             in_test_pair = any([holdout_involved in test_pair for holdout_involved in holdouts_involved])
             in_train_pair = any([holdout_involved in train_pair for holdout_involved in holdouts_involved])
 
-            # print(in_test_pair)
-            # print(in_train_pair)
-            # print('\n')
             if in_test_pair or in_train_pair: 
-            #if in_test_pair: 
                 holdouts_score_list.append(decoding_score)
 
     return decoding_score_arr, np.mean(holdouts_score_list)
@@ -300,20 +305,20 @@ def get_multitask_CCGP(exp_folder, model_name, seed, save=False, layer='task'):
 
 
 
-def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array): 
+def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array, use_mean): 
     for i, items in enumerate(DICH_DICT.items()): 
         _, dich = items
         all_dich_tasks = list(chain.from_iterable(dich))
         holdouts_involved = [holdout for holdout in holdouts if holdout in all_dich_tasks]
         
         if len(holdouts_involved)>0:
-            _, holdout_score = get_dich_CCGP(reps, dich, holdouts_involved=holdouts)
+            _, holdout_score = get_dich_CCGP(reps, dich, holdouts_involved=holdouts, use_mean=use_mean)
             indices = [TASK_LIST.index(task) for task in holdouts_involved]
             holdout_CCGP_array[indices, i] = holdout_score
         else: 
             continue
 
-def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task'): 
+def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task', use_mean=False): 
     holdout_CCGP = np.full((len(TASK_LIST), len(DICH_DICT)), np.NAN)
     if 'swap_holdouts' in exp_folder: 
         exp_dict = SWAPS_DICT
@@ -325,11 +330,11 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
 
         if layer == 'task':
-            reps = get_task_reps(model, num_trials = 50, instruct_mode='combined', epoch=epoch, main_var=True, noise=0.0)
+            reps = get_task_reps(model, num_trials = 250, instruct_mode='combined', epoch=epoch, noise=0.0)
         else: 
             reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
 
-        update_holdout_CCGP(reps, holdouts, holdout_CCGP)
+        update_holdout_CCGP(reps, holdouts, holdout_CCGP, use_mean=use_mean)
 
     task_holdout_scores = np.nanmean(holdout_CCGP, axis=1)
     dich_holdout_scores = np.nanmean(holdout_CCGP, axis=0)
@@ -341,6 +346,8 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         else: os.makedirs(file_path)
         np.save(file_path+'/'+'layer'+layer+'_task_holdout_seed'+str(seed), task_holdout_scores)
         np.save(file_path+'/'+'layer'+layer+'_dich_holdout_seed'+str(seed), dich_holdout_scores)
+        np.save(file_path+'/'+'layer'+layer+'_array_holdout_seed'+str(seed), holdout_CCGP)
+
 
     return task_holdout_scores, dich_holdout_scores, holdout_CCGP
 

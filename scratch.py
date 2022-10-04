@@ -64,17 +64,22 @@ holdouts_file = 'swap9'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 
+holdout_perf = eval_model_0_shot(clipNet, '7.20models', 'swap_holdouts', 4)
 
 
+reps = get_task_reps(clipNet)
 
-def get_all_ccgps(model_name , seeds):
+reps.shape
+
+
+def get_all_ccgps(model_name , seeds, use_mean=False):
     all_task = np.empty((len(seeds), len(TASK_LIST)))
-    all_dich = np.empty((len(seeds), 9))
-    all_full = np.empty((len(seeds), 50, 9))
+    all_dich = np.empty((len(seeds), len(DICH_DICT)))
+    all_full = np.empty((len(seeds), 50, len(DICH_DICT)))
 
     for i, seed in enumerate(seeds):
         print(seed)
-        task_score, dich_score, full_array = get_holdout_CCGP('7.20models/swap_holdouts', model_name, seed)
+        task_score, dich_score, full_array = get_holdout_CCGP('7.20models/swap_holdouts', model_name, seed, use_mean=use_mean)
         all_task[i, ...] = task_score
         all_dich[i, ...] = dich_score
         all_full[i, ...] = full_array
@@ -83,17 +88,35 @@ def get_all_ccgps(model_name , seeds):
 
 
 
-clip_task_scores, clip_dich_scores, clip_full_array = get_all_ccgps('clipNet_lin', range(0, 4))
+clip_task_scores, clip_dich_scores, clip_full_array = get_all_ccgps('clipNet_lin', [0])
 bert_task_scores, bert_dich_scores, bert_full_array = get_all_ccgps('bertNet_lin', range(0, 4))
 simple_task_scores, simple_dich_scores, simple_full_array = get_all_ccgps('simpleNet', range(0, 4))
-sbert_task_scores, sbert_dich_scores, sbert_full_array = get_all_ccgps('sbertNet_lin', range(5, 9))
+sbert_task_scores, sbert_dich_scores, sbert_full_array = get_all_ccgps('sbertNet_lin', [5])
 
 
 
 
 stacked = np.stack((clip_task_scores, sbert_task_scores, bert_task_scores, simple_task_scores))
-stacked = np.mean(stacked, axis=1)
+
+stacked = np.stack((clip_dich_scores, sbert_dich_scores, bert_dich_scores, simple_dich_scores))
+
+
+
+stacked = np.stack((clip_task_scores, sbert_task_scores))
+
+stacked = np.stack((clip_dich_scores, sbert_dich_scores))
+
+
+stacked = np.mean(stacked, axis=(1,2))
 stacked
+
+stacked = np.stack((clip_dich_scores, sbert_dich_scores, bert_dich_scores, simple_dich_scores))
+
+
+clip_full_array[0, 1, :]
+
+sbert_full_array[0, 1, :]
+
 
 (stacked-np.min(stacked, axis=0))/(np.max(stacked, axis=0)-np.min(stacked, axis=0))
 
@@ -101,9 +124,12 @@ stacked
 
 normalized_ccgp = (stacked-np.min(stacked, axis=0))/(np.max(stacked, axis=0)-np.min(stacked, axis=0))
 
+normalized_ccgp = (stacked-0.5)/(0.5)
+
+
 normalized_ccgp
 
-np.mean(normalized_ccgp, axis=1)
+np.mean(normalized_ccgp, axis=2)
 
 
 

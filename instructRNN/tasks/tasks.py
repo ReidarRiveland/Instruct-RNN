@@ -107,9 +107,8 @@ DICH_DICT = {
     'dich1' : [('Go', 'RTGo'), ('GoMod1', 'RTGoMod1'), ('GoMod2', 'RTGoMod2'), 
                             ('AntiGo', 'AntiRTGo'),('AntiGoMod1', 'AntiRTGoMod1'), ('AntiGoMod2', 'AntiRTGoMod2')],
 
-    'dich2' : [('DM', 'AntiDM'), ('DMMod1', 'AntiDMMod1'), ('DMMod2', 'AntiDMMod2'), ('MultiDM', 'AntiMultiDM'), ('ConDM', 'ConAntiDM')],
-
-    'dich3' : [('COMP1', 'AntiCOMP1'), ('COMP2', 'AntiCOMP2'), ('MultiCOMP1', 'AntiMultiCOMP1'), ('MultiCOMP2', 'AntiMultiCOMP2')],
+    'dich2' : [('DM', 'AntiDM'), ('DMMod1', 'AntiDMMod1'), ('DMMod2', 'AntiDMMod2'), ('MultiDM', 'AntiMultiDM'), ('ConDM', 'ConAntiDM'),
+                ('COMP1', 'AntiCOMP1'), ('COMP2', 'AntiCOMP2'), ('MultiCOMP1', 'AntiMultiCOMP1'), ('MultiCOMP2', 'AntiMultiCOMP2')],
 
     'dich4' : [('Dur1', 'AntiDur1'), ('Dur2', 'AntiDur2'), ('MultiDur1', 'AntiMultiDur1'), ('MultiDur2', 'AntiMultiDur2')],
 
