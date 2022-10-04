@@ -31,7 +31,7 @@ class DecoderTrainerConfig():
     lr: float = 1e-4
     weight_decay: float = 0.0
 
-    scheduler_class: str = 'exp'
+    scheduler_type: str = 'exp'
     scheduler_args: dict = {'gamma': 0.999}
 
     init_teacher_forcing_ratio: float = 0.5
@@ -128,7 +128,6 @@ class DecoderTrainer(BaseTrainer):
             {'params' : decoder.embedding.parameters()},
             {'params' : decoder.sm_decoder.parameters(), 'lr': self.lr}
         ], lr=self.lr, weight_decay=0.0)
-        self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
 
     def _init_scheduler(self): 
         if self.scheduler_type == 'exp': 
