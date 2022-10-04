@@ -4,10 +4,16 @@ from instructRNN.models.full_models import *
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
 
-plot_avg_holdout_curve('7.20models', 'family', 
+plot_avg_holdout_curve('7.20models', 'swap', 
                                 ['gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet', 'gptNet_lin'],
                                 seeds =range(0, 5),
-                                mode=''
+                                mode='combined'
+                                )
+
+plot_avg_holdout_curve('7.20models', 'swap', 
+                                ['sbertNet_lin'],
+                                seeds =range(5, 9),
+                                
                                 )
 
 plot_0_shot_task_hist('7.20models', 'swap', 
@@ -17,7 +23,7 @@ plot_0_shot_task_hist('7.20models', 'swap',
                                 )
 
 plot_avg_holdout_curve('7.20models', 'swap', 
-                                ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin'],
+                                ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin_tuned'],
                                 seeds =range(0, 5),
                                 mode='combined'
                                 )

@@ -22,10 +22,12 @@ import os
 
 if torch.cuda.is_available:
     device = torch.device(0)
-    print(torch.cuda.get_device_name(device), flush=True)
 else: 
     device = torch.device('cpu')
-    
+
+def get_reps_from_tasks(reps, tasks): 
+    indices = [TASK_LIST.index(task) for task in tasks]
+    return reps[indices, ...]
 
 def task_eval(model, task, batch_size, noise=None, instruct_mode = None, instructions = None): 
     ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, noise)
@@ -94,8 +96,8 @@ def get_rule_embedder_reps(model):
             reps[i, :] = model.rule_encoder(info).cpu().numpy()
     return reps
 
-def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, tasks=TASK_LIST, return_perf=False,
-        instruct_mode=None, contexts=None, default_intervals=False, max_var = False, main_var=False, num_repeats=1):
+def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, tasks=TASK_LIST, instruct_mode=None, 
+                    contexts=None, default_intervals=False, num_repeats=1, **trial_kwargs):
     model.eval()
     model.to(device)
     if epoch is None: 
@@ -108,9 +110,9 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
             for i, task in enumerate(tasks): 
                 if default_intervals and 'Dur' not in task:
                     intervals = _get_default_intervals(num_trials)
-                    ins, targets, _, target_dirs, _ =  construct_trials(task, num_trials, max_var = max_var, main_var = main_var, intervals=intervals, noise=0.0)
+                    ins, targets, _, target_dirs, _ =  construct_trials(task, num_trials, intervals=intervals, **trial_kwargs)
                 else: 
-                    ins, targets, _, target_dirs, _ =  construct_trials(task, num_trials, max_var = max_var, main_var=main_var, noise=0.0)
+                    ins, targets, _, target_dirs, _ =  construct_trials(task, num_trials, **trial_kwargs)
 
                 if contexts is not None: 
                     out, hid = model(torch.Tensor(ins).to(model.__device__), context=contexts[i, ...])
@@ -151,7 +153,7 @@ def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'):
     return embedded[..., pcs], explained_variance
 
 
-def get_layer_sim_scores(model, rep_depth='12'): 
+def get_layer_sim_scores(model, rep_depth='12', dist = 'pearson'): 
     if rep_depth.isnumeric(): 
         rep_dim = model.langModel.LM_intermediate_lang_dim
     if rep_depth =='full': 
@@ -170,7 +172,10 @@ def get_layer_sim_scores(model, rep_depth='12'):
     if rep_depth == 'rule_encoder': 
         reps = get_rule_embedder_reps(model)
 
-    sim_scores = 1-cosine_similarity(reps.reshape(-1, rep_dim))
+    if dist == 'pearson': 
+        sim_scores = 1-cosine_similarity(reps.reshape(-1, rep_dim))
+    else: 
+        sim_scores = 1-cosine_similarity(reps.reshape(-1, rep_dim))
     
     return sim_scores
 
@@ -229,39 +234,6 @@ def get_noise_thresholdouts(correct_stats, diff_strength, noises, pos_cutoff=0.9
     neg_thresholds = np.array((noises[neg_coords[0]], diff_strength[neg_coords[1]]))
     return pos_thresholds, neg_thresholds
 
-def get_reps_from_tasks(reps, tasks): 
-    indices = [TASK_LIST.index(task) for task in tasks]
-    return reps[indices, ...]
-
-# def get_dich_CCGP(reps, dich, holdouts_involved=[]):
-#     dim = reps.shape[-1]
-#     num_trials = reps.shape[1]
-
-#     all_dich_pairs = list(itertools.product(dich[0], dich[1]))
-#     decoding_score_arr = np.full((len(dich[0])**2, (len(dich[0])-1)**2), np.nan)
-#     holdouts_score_list = []
-
-#     for i, train_pair in enumerate(all_dich_pairs):
-#         test_pairs = [pair for pair in all_dich_pairs.copy() if (train_pair[1] not in pair and train_pair[0] not in pair)]
-#         train_reps = get_reps_from_tasks(reps,train_pair).reshape(-1, dim)
-
-#         classifier = svm.LinearSVC(max_iter=100_000)
-#         classifier.classes_=[-1, 1]
-#         classifier.fit(train_reps, np.array([0]*num_trials+[1]*num_trials))
-
-#         for j, test_pair in enumerate(test_pairs): 
-#             decoding_corrects0 = np.array([0]*num_trials) == classifier.predict(reps[TASK_LIST.index(test_pair[0]), ...].reshape(-1, dim))
-#             decoding_corrects1 = np.array([1]*num_trials) == classifier.predict(reps[TASK_LIST.index(test_pair[1]), ...].reshape(-1, dim))
-#             decoding_score = np.array([decoding_corrects0, decoding_corrects1]).mean()
-#             decoding_score_arr[i, j] = decoding_score
-
-#             in_test_pair = any([holdout_involved in test_pair for holdout_involved in holdouts_involved])
-#             in_train_pair = any([holdout_involved in train_pair for holdout_involved in holdouts_involved])
-#             if in_test_pair or in_train_pair: 
-#                 holdouts_score_list.append(decoding_score)
-
-#     return decoding_score_arr, np.mean(holdouts_score_list)
-
 
 def get_dich_CCGP(reps, dich, holdouts_involved=[]):
     dim = reps.shape[-1]
@@ -276,7 +248,7 @@ def get_dich_CCGP(reps, dich, holdouts_involved=[]):
         train_reps = get_reps_from_tasks(reps,train_pair).reshape(-1, dim)
 
         classifier = svm.LinearSVC(max_iter=100_000)
-        classifier.classes_=[-1, 1]
+        classifier.classes_=[0, 1]
         classifier.fit(train_reps, np.array([0]*num_trials+[1]*num_trials))
 
         for j, test_pair in enumerate(test_pairs): 
@@ -285,10 +257,6 @@ def get_dich_CCGP(reps, dich, holdouts_involved=[]):
             decoding_score = np.array([decoding_corrects0, decoding_corrects1]).mean()
             decoding_score_arr[i, j] = decoding_score
 
-            # print('Train Pair ' + str(train_pair))
-            # print('Test Pair ' + str(test_pair))
-            # print('Score ' + str(decoding_score))
-
             in_test_pair = any([holdout_involved in test_pair for holdout_involved in holdouts_involved])
             in_train_pair = any([holdout_involved in train_pair for holdout_involved in holdouts_involved])
 
@@ -296,6 +264,7 @@ def get_dich_CCGP(reps, dich, holdouts_involved=[]):
             # print(in_train_pair)
             # print('\n')
             if in_test_pair or in_train_pair: 
+            #if in_test_pair: 
                 holdouts_score_list.append(decoding_score)
 
     return decoding_score_arr, np.mean(holdouts_score_list)
@@ -345,7 +314,6 @@ def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array):
             continue
 
 def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task'): 
-    print(DICH_DICT)
     holdout_CCGP = np.full((len(TASK_LIST), len(DICH_DICT)), np.NAN)
     if 'swap_holdouts' in exp_folder: 
         exp_dict = SWAPS_DICT
@@ -357,7 +325,7 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
 
         if layer == 'task':
-            reps = get_task_reps(model, num_trials = 100,  main_var=True, instruct_mode='combined', epoch=epoch)
+            reps = get_task_reps(model, num_trials = 250, instruct_mode='combined', epoch=epoch, main_var=True)
         else: 
             reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
 
@@ -374,7 +342,7 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         np.save(file_path+'/'+'layer'+layer+'_task_holdout_seed'+str(seed), task_holdout_scores)
         np.save(file_path+'/'+'layer'+layer+'_dich_holdout_seed'+str(seed), dich_holdout_scores)
 
-    return task_holdout_scores, dich_holdout_scores
+    return task_holdout_scores, dich_holdout_scores, holdout_CCGP
 
 def get_norm_task_var(hid_reps): 
     task_var = np.mean(np.var(hid_reps[:, 30:, :,:], axis=1), axis=1)

@@ -114,7 +114,7 @@ DICH_DICT = {
     'dich4' : [('Dur1', 'AntiDur1'), ('Dur2', 'AntiDur2'), ('MultiDur1', 'AntiMultiDur1'), ('MultiDur2', 'AntiMultiDur2')],
 
     'dich5' : [('Dur1', 'Dur2'),  ('AntiDur1', 'AntiDur2'), ('MultiDur1', 'MultiDur2'), 
-                    ('AntiMultiDur1', 'AntiMultiDur2'), ('Dur1Mod1', 'Dur2Mod1'), ('Dur1Mod2', 'Dur2Mod2'),
+                    ('AntiMultiDur1', 'AntiMultiDur2'), ('Dur1Mod1', 'Dur2Mod1'), ('Dur1Mod2', 'Dur2Mod2'), 
                     ('COMP1', 'COMP2'), ('MultiCOMP1', 'MultiCOMP2'), ('AntiCOMP1', 'AntiCOMP2'), ('AntiMultiCOMP1', 'AntiMultiCOMP2'),
                     ('COMP1Mod1', 'COMP2Mod1'), ('COMP1Mod2', 'COMP2Mod2')],
 

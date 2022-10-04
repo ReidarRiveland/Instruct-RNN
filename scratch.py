@@ -1,4 +1,9 @@
+from asyncio import all_tasks
+from inspect import stack
 import numpy as np
+import scipy
+import sklearn
+from sqlalchemy import asc
 from instructRNN.instructions.instruct_utils import get_task_info
 from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.models.full_models import *
@@ -12,30 +17,7 @@ from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
 
-
-
-
-EXP_FILE = '7.20models/swap_holdouts'
-clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap9'
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
-
-
-
-
-
-
-
-model_name = 'clipNet_lin'
-load_str = '7.20models/swap_holdouts'
-
-rich, shallow, conduse = get_holdout_decoded_set(load_str, 'clipNet_lin', 1, from_contexts=True)
-instruct_perf, other_perf = test_partner_model('clipNet_lin', rich, tasks=rich.keys())
-
-
-
-
-
+from sklearn.preprocessing import normalize
 
 
 EXP_FILE = '7.20models/swap_holdouts'
@@ -43,50 +25,75 @@ clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap9'
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
 
-plot_scatter(clipNet, ['DM', 'DMMod1', 'DMMod2', 'AntiDM', 'AntiDMMod1', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, epoch='0', instruct_mode='combined')
+reps = get_instruct_reps(clipNet.langModel, depth='12')
 
-reps = get_task_reps(clipNet, num_trials = 100,  main_var=True, instruct_mode='combined')
+from sklearn.metrics.pairwise import cosine_similarity
+reps.shape
+reps.reshape(-1, 512).shape
+sim_score = np.corrcoef(reps.reshape(-1, 512))
 
-dich_scores, holdouts =  get_dich_CCGP(reps, DICH_DICT['dich2'], holdouts_involved=['AntiDMMod1'])
-np.mean(holdouts)
+normalized = np.divide(np.subtract(sim_score, np.min(sim_score, axis=0)[None, :]), (np.max(sim_score, axis=0)-np.min(sim_score, axis=0)[None, :]))
+normalized = np.divide(np.subtract(sim_score, np.min(sim_score, axis=1)[:, None]), (np.max(sim_score, axis=1)-np.min(sim_score, axis=1)[:, None]))
 
+normalized = np.divide(np.subtract(sim_score, np.min(sim_score)), (np.max(sim_score, axis=1)-np.min(sim_score)))
+
+
+normalized = normalize(sim_score)
+plot_RDM(normalized, cmap=sns.color_palette('inferno', as_cmap=True))
+
+
+
+
+#############################
+
+
+EXP_FILE = '7.20models/swap_holdouts'
+clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap9'
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
 
 EXP_FILE = '7.20models/swap_holdouts'
 bertNet = BERTNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap9'
 bertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+bertNet.model_name, suffix='_seed0')
 
-SWAP_LIST[0]
 
-data = HoldoutDataFrame('7.20models', 'swap', 'bertNet_lin', seeds=range(5), mode='combined')
-mean, _ = data.avg_seeds(k_shot=0)
-
-list(zip(TASK_LIST, np.round(mean, 3)))
-
-
-plot_scatter(bertNet, ['DM', 'DMMod1', 'DMMod2', 'AntiDM', 'AntiDMMod1', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
-
-reps = get_task_reps(bertNet, num_trials = 100,  main_var=True, instruct_mode='combined')
-DICH_DICT['dich6']
-
-dich_scores, holdouts =  get_dich_CCGP(reps, DICH_DICT['dich2'], holdouts_involved=['AntiDMMod1'])
-holdouts
-
-epoch='25'
-
-berttask_scores, bert_dich_scores = get_holdout_CCGP('7.20models/swap_holdouts', 'bertNet_lin', 0, epoch)
-cliptask_scores, clip_dich_scores = get_holdout_CCGP('7.20models/swap_holdouts', 'clipNet_lin', 1)
-sbertNettask_scores, sbertNet_dich_scores = get_holdout_CCGP('7.20models/swap_holdouts', 'sbertNet_lin', 1)
-simpletask_scores, simple_dich_scores = get_holdout_CCGP('7.20models/swap_holdouts', 'simpleNet', 0, epoch)
-
-clip_dich_scores
-sbertNet_dich_scores
+EXP_FILE = '7.20models/swap_holdouts'
+sbertNet = SBERTNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap9'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
 
-stacked = np.stack((berttask_scores, cliptask_scores, simpletask_scores, sbertNettask_scores))
 
-stacked = np.stack((bert_dich_scores, cliptask_scores, simpletask_scores, sbertNettask_scores))
 
+
+def get_all_ccgps(model_name , seeds):
+    all_task = np.empty((len(seeds), len(TASK_LIST)))
+    all_dich = np.empty((len(seeds), 9))
+    all_full = np.empty((len(seeds), 50, 9))
+
+    for i, seed in enumerate(seeds):
+        print(seed)
+        task_score, dich_score, full_array = get_holdout_CCGP('7.20models/swap_holdouts', model_name, seed)
+        all_task[i, ...] = task_score
+        all_dich[i, ...] = dich_score
+        all_full[i, ...] = full_array
+    
+    return all_task, all_dich, all_full
+
+
+
+clip_task_scores, clip_dich_scores, clip_full_array = get_all_ccgps('clipNet_lin', range(0, 4))
+bert_task_scores, bert_dich_scores, bert_full_array = get_all_ccgps('bertNet_lin', range(0, 4))
+simple_task_scores, simple_dich_scores, simple_full_array = get_all_ccgps('simpleNet', range(0, 4))
+sbert_task_scores, sbert_dich_scores, sbert_full_array = get_all_ccgps('sbertNet_lin', range(5, 9))
+
+
+
+
+stacked = np.stack((clip_task_scores, sbert_task_scores, bert_task_scores, simple_task_scores))
+stacked = np.mean(stacked, axis=1)
+stacked
 
 (stacked-np.min(stacked, axis=0))/(np.max(stacked, axis=0)-np.min(stacked, axis=0))
 
@@ -98,16 +105,6 @@ normalized_ccgp
 
 np.mean(normalized_ccgp, axis=1)
 
-
-task_scores[TASK_LIST.index('AntiMultiDur1')]
-
-list(zip(TASK_LIST, task_scores))
-
-
-DICH_DICT['dich2']
-np.mean(dich_scores[1,:])
-
-np.mean(task_scores)
 
 
 
