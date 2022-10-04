@@ -3,6 +3,7 @@ from attrs import define, asdict
 from tqdm import tqdm
 import pickle
 import os
+from os.path import exists
 
 import torch
 import torch.nn as nn
@@ -23,7 +24,7 @@ class DecoderTrainerConfig():
 
     epochs: int = 80
     batch_len: int = 32
-    num_batches: int = 1200
+    num_batches: int = 5
     stream_data: bool = True
     holdouts: list = []
 
@@ -47,7 +48,10 @@ class DecoderTrainer(BaseTrainer):
 
         for name, value in self.config.items(): 
             setattr(self, name, value)
+
         self.seed_suffix = 'seed'+str(self.random_seed)
+        self.teacher_forcing_ratio = self.init_teacher_forcing_ratio
+
 
     @classmethod
     def from_checkpoint(cls, checkpoint_path): 
@@ -81,7 +85,7 @@ class DecoderTrainer(BaseTrainer):
             self.loss_data.append(loss)
 
     def _record_session(self, decoder, mode):
-        record_attrs = ['config', 'cur_epoch', 'teacher_loss_data', 'loss_data']
+        record_attrs = ['config', 'cur_epoch', 'teacher_loss_data', 'loss_data', 'teacher_forcing_ratio']
         checkpoint_attrs = {}
         for attr in record_attrs: 
             checkpoint_attrs[attr]=getattr(self, attr)
@@ -97,10 +101,10 @@ class DecoderTrainer(BaseTrainer):
         else: os.makedirs(self.file_path)
 
         if mode == 'CHECKPOINT':    
-            chk_attr_path = record_file+'_CHECKPOINT_attrs'+holdouts_suffix
-            pickle.dump(checkpoint_attrs, open(chk_attr_path, 'wb'))
-            decoder.save_model(chk_attr_path)
-            torch.save(self.optimizer.state_dict(), chk_attr_path+'_opt')
+            chk_path = record_file+'_CHECKPOINT'+holdouts_suffix
+            pickle.dump(checkpoint_attrs, open(chk_path+'_attrs', 'wb'))
+            decoder.save_model(chk_path)
+            torch.save(self.optimizer.state_dict(), chk_path+'_opt')
 
         if mode=='FINAL': 
             os.remove(record_file+'_CHECKPOINT_attrs'+holdouts_suffix)
@@ -199,7 +203,7 @@ class DecoderTrainer(BaseTrainer):
                     self._record_session(decoder, 'CHECKPOINT')
                     
             self.scheduler.step()
-            teacher_forcing_ratio -= self.init_teacher_forcing_ratio/self.epochs
+            self.teacher_forcing_ratio -= self.init_teacher_forcing_ratio/self.epochs
             print('Teacher Force Ratio: ' + str(teacher_forcing_ratio))
         self._record_session(decoder, 'FINAL')
 
@@ -217,18 +221,18 @@ def check_decoder_trained(file_name, seed, use_holdouts):
         return False
 
 def load_checkpoint(model, file_name, seed): 
-    checkpoint_name = model.model_name+'_seed'+str(seed)+'_CHECKPOINT'
+    checkpoint_name = 'rnn_decoder_seed'+str(seed)+'_CHECKPOINT'
     checkpoint_model_path = file_name+'/'+checkpoint_name+'.pt'
 
     print('\n Attempting to load model CHECKPOINT')
-    if not os.exists(checkpoint_model_path): 
+    if not exists(checkpoint_model_path): 
         raise Exception('No model checkpoint found at ' + checkpoint_model_path)
     else:
         print(checkpoint_model_path)
-        model.load_state_dict(torch.load(checkpoint_model_path), strict=False)
+        model.load_state_dict(torch.load(checkpoint_model_path))
         print('loaded model at '+ checkpoint_model_path)
     
-    checkpoint_path = file_name+'/attrs/'+checkpoint_name
+    checkpoint_path = file_name+'/'+checkpoint_name
     trainer = DecoderTrainer.from_checkpoint(checkpoint_path)
     return model, trainer
 
@@ -251,14 +255,15 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, 
 
     if use_checkpoint:
         try: 
-            model, trainer = load_checkpoint(model, file_name, seed)
-        except: 
+            decoder, trainer = load_checkpoint(decoder, file_name+'/decoders', seed)
+        except FileNotFoundError: 
             'NO checkpoint found, training model from starting point'
-
-
-    if use_holdouts: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)
-    else: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, **train_config_kwargs)
+            trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, **train_config_kwargs)
+            trainer = DecoderTrainer(trainer_config)
+    else: 
+        trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, **train_config_kwargs)
+        trainer = DecoderTrainer(trainer_config)
+    #if use_holdouts: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)
     
-    trainer = DecoderTrainer(trainer_config)
     trainer.train(model, decoder)
 
