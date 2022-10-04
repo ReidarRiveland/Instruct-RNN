@@ -70,6 +70,7 @@ def get_instruction_dict(instruct_mode):
         swap_dict = {}
         for task in TASK_LIST: 
             swap_dict[task] = combined_instruct_dict[get_swap_task(task)]
+        return swap_dict
     else: 
         return train_instruct_dict
 
