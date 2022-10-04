@@ -1,7 +1,7 @@
 import os
 import itertools
 import instructRNN.models.full_models as full_models
-from instructRNN.analysis.model_analysis import get_holdout_CCGP
+from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP
 
 if __name__ == "__main__":
     import argparse
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     print(jobs)
     for job in jobs: 
         _seed, model = job
-        if args.mode == 'ccgp': 
+        if 'ccgp' in args.mode: 
             from instructRNN.analysis.model_analysis import * 
 
             if model in full_models.shallow_models: 
@@ -47,5 +47,10 @@ if __name__ == "__main__":
             print(_seed)
             print(layer_list)
             for layer in layer_list:
-                get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
+                if args.mode == 'holdout_ccgp':
+                    get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
+                elif args.mode == 'multi_ccgp': 
+                    get_multitask_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
+
+
 

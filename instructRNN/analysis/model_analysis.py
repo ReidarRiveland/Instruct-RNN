@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import numpy.linalg as LA
 
 from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
@@ -302,7 +303,7 @@ def get_multitask_CCGP(exp_folder, model_name, seed, save=False, layer='task'):
         else: os.makedirs(file_path)
         np.save(file_path+'/'+'layer'+layer+'_task_multi_seed'+str(seed), task_holdout_scores)
         np.save(file_path+'/'+'layer'+layer+'_dich_multi_seed'+str(seed), dich_holdout_scores)
-
+        np.save(file_path+'/'+'layer'+layer+'_array_multi_seed'+str(seed), multi_CCGP)
 
 
 def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array, use_mean): 
@@ -350,6 +351,12 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
 
 
     return task_holdout_scores, dich_holdout_scores, holdout_CCGP
+
+
+def get_model_sv(model):
+    reps = get_task_reps(model, num_trials=50, instruct_mode='combined', noise=0.0)
+    _, sv, _ = LA.svd(reps.reshape(-1, reps.shape[-1]))
+    return sv
 
 def get_norm_task_var(hid_reps): 
     task_var = np.mean(np.var(hid_reps[:, 30:, :,:], axis=1), axis=1)
