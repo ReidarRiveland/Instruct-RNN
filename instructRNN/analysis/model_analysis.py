@@ -247,7 +247,7 @@ def get_dich_CCGP(reps, dich, holdouts_involved=[]):
         test_pairs.remove(train_pair)
         train_reps = get_reps_from_tasks(reps,train_pair).reshape(-1, dim)
 
-        classifier = svm.LinearSVC(max_iter=100_000)
+        classifier = svm.LinearSVC(max_iter=10_000, random_state = 0, tol=1e-5)
         classifier.classes_=[0, 1]
         classifier.fit(train_reps, np.array([0]*num_trials+[1]*num_trials))
 
@@ -325,7 +325,7 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
 
         if layer == 'task':
-            reps = get_task_reps(model, num_trials = 250, instruct_mode='combined', epoch=epoch, main_var=True)
+            reps = get_task_reps(model, num_trials = 50, instruct_mode='combined', epoch=epoch, main_var=True, noise=0.0)
         else: 
             reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
 
