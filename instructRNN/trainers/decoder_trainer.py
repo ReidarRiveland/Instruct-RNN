@@ -132,7 +132,7 @@ class DecoderTrainer(BaseTrainer):
     def _init_scheduler(self): 
         if self.scheduler_type == 'exp': 
             scheduler_class = optim.lr_scheduler.ExponentialLR
-        self.scheduler = scheduler_class(self.optimizer, gamma=self.scheduler_gamma, **self.scheduler_args)
+        self.scheduler = scheduler_class(self.optimizer, gamma=self.scheduler_gamma)
 
     def init_optimizer(self, model):
         self._init_optimizer(model)      
