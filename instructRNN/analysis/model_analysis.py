@@ -247,7 +247,7 @@ def get_dich_CCGP(reps, dich, holdouts_involved=[]):
         test_pairs.remove(train_pair)
         train_reps = get_reps_from_tasks(reps,train_pair).reshape(-1, dim)
 
-        classifier = svm.LinearSVC(max_iter=10_000, random_state = 0, tol=1e-5)
+        classifier = svm.LinearSVC(max_iter=100_000, random_state = 0, tol=1e-5)
         classifier.classes_=[0, 1]
         classifier.fit(train_reps, np.array([0]*num_trials+[1]*num_trials))
 
