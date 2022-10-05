@@ -125,10 +125,6 @@ DICH_DICT = {
 }
 
 
-
-
-
-
 class Task(): 
     def __init__(self, num_trials, noise, factory, **factory_kwargs):
         if noise is None: 

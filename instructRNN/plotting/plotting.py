@@ -464,22 +464,26 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=100, num_repea
     plt.show()
     return axn
 
-def plot_layer_ccgp(model_list): 
+def plot_ccgp_corr(folder, exp_type, model_list):
+    _, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+    corr, p_val, ccgp, perf = get_perf_ccgp_corr(folder, exp_type, model_list)
+    a, b = np.polyfit(ccgp.flatten(), perf.flatten(), 1)
+
+    for i, model_name in enumerate(model_list):
+        axn.scatter(perf[i, :], ccgp[i, :], marker='.', c=MODEL_STYLE_DICT[model_name][0])
+    x = np.linspace(0, 1, 100)
+    #axn.plot(x, a*x+b)
+    plt.show()
+
+def plot_layer_ccgp(foldername, model_list, seeds=range(5)): 
     layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
     _, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
-    axn.set_ylim(0.45, 1.0)
+    axn.set_ylim(0.5, 1.0)
     axn.set_xticks(range(len(layer_list)))
     axn.set_xticklabels(layer_list)
     for model_name in model_list:
-        all_holdout_ccgp = np.full((50, len(layer_list)), np.nan)
-        folder_path = '7.20models/swap_holdouts/CCGP_scores/'+model_name
-        for i, layer in enumerate(layer_list): 
-            try: 
-                all_holdout_ccgp[:, i] = np.load(folder_path+'/layer'+layer+'_task_holdout_seed0.npy')
-            except FileNotFoundError: 
-                print('no data for layer {} for model {} seed '.format(layer, model_name))
-        print(MODEL_STYLE_DICT[model_name][1] == None)
-        axn.scatter(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=0), marker='.', c=MODEL_STYLE_DICT[model_name][0])
+        all_holdout_ccgp = load_holdout_ccgp(foldername, model_name, layer_list, seeds)
+        axn.plot(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=(0,2)), marker='.', c=MODEL_STYLE_DICT[model_name][0], linewidth=0.6)
     plt.show()
 
 def plot_unit_clustering(load_folder, model_name, seed):

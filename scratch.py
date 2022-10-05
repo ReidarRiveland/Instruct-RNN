@@ -20,6 +20,10 @@ from instructRNN.analysis.decoder_analysis import *
 from sklearn.preprocessing import normalize
 
 
+dichs = [('Go', 'AntiGo'), ('RTGo', 'AntiRTGo'), ('DM', 'AntiDM')]
+
+list(itertools.chain(*dichs))
+
 EXP_FILE = '7.20models/swap_holdouts'
 clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap9'
@@ -45,6 +49,8 @@ plot_RDM(normalized, cmap=sns.color_palette('inferno', as_cmap=True))
 
 
 #############################
+from instructRNN.instructions.instruct_utils import get_instructions
+
 
 
 EXP_FILE = '7.20models/swap_holdouts'
@@ -53,17 +59,34 @@ holdouts_file = 'swap9'
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
 
 
-reps = get_task_reps(clipNet, num_trials=50, instruct_mode='combined', noise=0.0)
-lang_reps = get_instruct_reps(clipNet.langModel, depth='12', instruct_mode='combined')
+EXP_FILE = '7.20models/swap_holdouts'
+sbertNet = SBERTNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap9'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed9')
 
 
-pcs, var_exp = reduce_rep(lang_reps, pcs=range(reps.shape[-1]))
+instructions  = get_instructions(64, 'Go')
 
-np.sum(var_exp[:1])
+tokens = clipNet.langModel.tokens_to_tensor(instructions)
+trans_out = clipNet.langModel.forward_transformer(instructions)
+trans_out[1][12]
 
 
 
 
+
+
+#clip_reps = get_task_reps(clipNet, num_trials=50, instruct_mode='combined', noise=0.0)
+clip_lang_reps = get_instruct_reps(clipNet.langModel, depth='2', instruct_mode='combined')
+
+#sbert_reps = get_task_reps(sbertNet, num_trials=50, instruct_mode='combined', noise=0.0)
+sbert_lang_reps = get_instruct_reps(sbertNet.langModel, depth='11', instruct_mode='combined')
+
+_, clip_var_xp = reduce_rep(clip_lang_reps, pcs=range(3))
+_, sbert_var_xp = reduce_rep(sbert_lang_reps, pcs=range(768))
+
+np.sum(clip_var_xp[:3])
+np.sum(sbert_var_xp[:25])
 
 def get_model_sv(model, layer='task'):
     if layer == 'task':
@@ -75,17 +98,22 @@ def get_model_sv(model, layer='task'):
     _, sv, _ = LA.svd(reps.reshape(-1, reps.shape[-1]))
     return sv
 
-def get_model_spectrum(model, layer='task'):
+def get_model_spectrum(model, layer='full'):
     if layer == 'task':
-        reps = get_task_reps(model, num_trials=50, instruct_mode='combined', noise=0.0)
+        reps = get_task_reps(model, num_trials=20, instruct_mode='combined', noise=0.0)
     else: 
-        print('here')
         reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
 
-    spectrum = LA.eigvals(np.corrcoef(reps.reshape(-1, reps.shape[-1])))
+    spectrum = LA.eigvals(np.cov(reps.reshape(-1, reps.shape[-1])))
     return spectrum
 
 spectrum = get_model_spectrum(clipNet)
+
+reps = get_instruct_reps(clipNet.langModel, depth='full', instruct_mode='combined')
+reps.shape
+
+
+#spectrum.shape
 
 
 def get_dim_across_models(load_folder, model_name, seeds, layer, mode='spectrum'):
@@ -102,7 +130,7 @@ def get_dim_across_models(load_folder, model_name, seeds, layer, mode='spectrum'
     else: 
         rep_dim = model.langModel.LM_out_dim 
 
-    sv_array = np.empty((len(seeds), len(exp_dict), 50**2))
+    sv_array = np.empty((len(seeds), len(exp_dict), 1000))
     for i, seed in enumerate(seeds):
         for j, holdout_label in enumerate(exp_dict.keys()):
             model.load_model(EXP_FILE+'/'+holdout_label+'/'+model.model_name, suffix='_seed'+str(seed))
@@ -115,15 +143,14 @@ def get_dim_across_models(load_folder, model_name, seeds, layer, mode='spectrum'
     return sv_array
 
 
-clip_sv_array = get_dim_across_models(EXP_FILE, 'clipNet_lin', [0], layer='task')
-sbert_sv_array = get_dim_across_models(EXP_FILE, 'sbertNet_lin', [5], layer='task')
-bert_sv_array = get_dim_across_models(EXP_FILE, 'bertNet_lin', [0], layer='task')
-simpleNet_sv_array = get_dim_across_models(EXP_FILE, 'simpleNet', [0], layer = 'task')
+clip_sv_array = get_dim_across_models(EXP_FILE, 'clipNet_lin', [0], layer='full')
+sbert_sv_array = get_dim_across_models(EXP_FILE, 'sbertNet_lin', [5], layer='full')
+bert_sv_array = get_dim_across_models(EXP_FILE, 'bertNet_lin', [0], layer='full')
+simpleNet_sv_array = get_dim_across_models(EXP_FILE, 'simpleNet', [0], layer = 'full')
 
 np.mean(clip_sv_array, axis=(0, 1))
 
-
-#########################################
+clip_sv_array.shape
 
 import matplotlib.pyplot as plt
 plt.plot(np.mean(clip_sv_array, axis=(0, 1))[:20])
@@ -133,25 +160,7 @@ plt.plot(np.mean(simpleNet_sv_array, axis=(0, 1))[:20])
 plt.legend(['clip', 'sbert', 'bert', 'simpleNet'])
 plt.show()
 
-
-EXP_FILE = '7.20models/swap_holdouts'
-bertNet = BERTNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap9'
-bertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+bertNet.model_name, suffix='_seed0')
-
-
-EXP_FILE = '7.20models/swap_holdouts'
-sbertNet = SBERTNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap9'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
-
-
-holdout_perf = eval_model_0_shot(clipNet, '7.20models', 'swap_holdouts', 4)
-
-
-reps = get_task_reps(clipNet)
-
-reps.shape
+#########################################
 
 
 def get_all_ccgps(model_name , seeds, use_mean=False):
@@ -161,7 +170,7 @@ def get_all_ccgps(model_name , seeds, use_mean=False):
 
     for i, seed in enumerate(seeds):
         print(seed)
-        task_score, dich_score, full_array = get_holdout_CCGP('7.20models/swap_holdouts', model_name, seed, use_mean=use_mean)
+        task_score, dich_score, full_array = get_holdout_CCGP('7.20models/swap_holdouts', model_name, seed, layer='12', use_mean=use_mean)
         all_task[i, ...] = task_score
         all_dich[i, ...] = dich_score
         all_full[i, ...] = full_array
@@ -170,27 +179,34 @@ def get_all_ccgps(model_name , seeds, use_mean=False):
 
 
 
-clip_task_scores, clip_dich_scores, clip_full_array = get_all_ccgps('clipNet_lin', [0])
-bert_task_scores, bert_dich_scores, bert_full_array = get_all_ccgps('bertNet_lin', range(0, 4))
-simple_task_scores, simple_dich_scores, simple_full_array = get_all_ccgps('simpleNet', range(0, 4))
-sbert_task_scores, sbert_dich_scores, sbert_full_array = get_all_ccgps('sbertNet_lin', [5])
+clip_task_scores, clip_dich_scores, clip_full_array = get_all_ccgps('clipNet_lin', range(5))
+# bert_task_scores, bert_dich_scores, bert_full_array = get_all_ccgps('bertNet_lin', range(0, 4))
+# simple_task_scores, simple_dich_scores, simple_full_array = get_all_ccgps('simpleNet', range(0, 4))
+sbert_task_scores, sbert_dich_scores, sbert_full_array = get_all_ccgps('sbertNet_lin', range(5, 10))
 
 
 
+# stacked = np.stack((clip_task_scores, sbert_task_scores, bert_task_scores, simple_task_scores))
 
-stacked = np.stack((clip_task_scores, sbert_task_scores, bert_task_scores, simple_task_scores))
+# stacked = np.stack((clip_dich_scores, sbert_dich_scores, bert_dich_scores, simple_dich_scores))
 
-stacked = np.stack((clip_dich_scores, sbert_dich_scores, bert_dich_scores, simple_dich_scores))
-
+stacked = np.stack((clip_dich_scores, sbert_dich_scores[4:10, :]))
 
 
 stacked = np.stack((clip_task_scores, sbert_task_scores))
 
-stacked = np.stack((clip_dich_scores, sbert_dich_scores))
+np.mean(stacked, axis=1)
 
-
-stacked = np.mean(stacked, axis=(1,2))
+np.mean(stacked, axis=(1,2))
 stacked
+
+
+
+
+
+
+
+
 
 stacked = np.stack((clip_dich_scores, sbert_dich_scores, bert_dich_scores, simple_dich_scores))
 
@@ -216,29 +232,36 @@ np.mean(normalized_ccgp, axis=2)
 
 #############
 
-from instructRNN.tasks.tasks import TASK_LIST, DICH_DICT
-import numpy as np
-folder_name = '7.20models/swap_holdouts/CCGP_scores'
+from instructRNN.analysis.model_analysis import *
+from instructRNN.data_loaders.perfDataFrame import *
+from scipy.stats import pearsonr
 model_list = ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet']
-seeds = range(5)
-layer = 'full'
-task_holdout_array = np.empty((len(model_list), len(seeds), len(TASK_LIST)))
-dich_holdout_array = np.empty((len(model_list), len(seeds), len(DICH_DICT)))
 
-for i, model_name in enumerate(model_list):
-    for j, seed in enumerate(seeds):
-        if model_name is 'sbertNet_lin': seed +=5
-        task_load_str = folder_name+'/'+model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+'.npy'
-        dich_load_str = folder_name+'/'+model_name+'/layer'+layer+'_dich_holdout_seed'+str(seed)+'.npy'
-        task_arr = np.load(open(task_load_str, 'rb'))
-        dich_arr = np.load(open(dich_load_str, 'rb'))
-        task_holdout_array[i, j, :] = task_arr
-        dich_holdout_array[i, j, :] = dich_arr
+def get_perf_ccgp_corr(folder, exp_type, model_list):
+    ccgp_scores = np.empty((len(model_list), len(TASK_LIST)))
+    perf_scores = np.empty((len(model_list), len(TASK_LIST)))
+    for i, model_name in enumerate(model_list): 
+        if model_name == 'sbertNet_lin': load_range = range(5, 9)
+        else: load_range = range(5)
+        task_ccgp = np.mean(load_holdout_ccgp(folder+'/'+exp_type+'_holdouts', model_name, ['task'], load_range), axis=(0,1))
+        data = HoldoutDataFrame(folder, exp_type, model_name, seeds=range(5), mode='combined')
+        perf_mean, _ = data.avg_seeds(k_shot=0)
+        ccgp_scores[i, :] = task_ccgp
+        perf_scores[i, :] = perf_mean
+    corr, p_val = pearsonr(ccgp_scores.flatten(), perf_scores.flatten())
+
+    return corr, p_val, ccgp_scores, perf_scores
 
 
-np.mean(task_holdout_array[1, ...])
+corr, p_val, ccgp_scores, perf_scores = get_perf_ccgp_corr('7.20models', 'swap', model_list)
 
-np.mean(task_holdout_array, axis=(1,2))
+corr, p_val
+
+
+ccgp_scores[0]
+
+pearsonr(perf_scores[0, :], ccgp_scores[0, :])
+
 
 
 

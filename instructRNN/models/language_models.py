@@ -137,7 +137,7 @@ class GPT(TransformerEmbedder):
 class CLIP(TransformerEmbedder): 
     def __init__(self, config): 
         super().__init__(config)
-        self.transformer = CLIPTextModel.from_pretrained(self.LM_load_str)
+        self.transformer = CLIPTextModel.from_pretrained(self.LM_load_str, output_hidden_states=True)
         self.tokenizer = CLIPTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
         self._reducer = None

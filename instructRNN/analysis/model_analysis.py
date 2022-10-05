@@ -3,6 +3,7 @@ import numpy as np
 import numpy.linalg as LA
 
 from sklearn.metrics.pairwise import cosine_similarity
+from scipy.stats import pearsonr
 from tqdm import tqdm
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -19,6 +20,7 @@ from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.instructions.instruct_utils import get_task_info, get_instruction_dict, sort_vocab
 from instructRNN.models.full_models import make_default_model
 from instructRNN.tasks.tasks import DICH_DICT, TASK_LIST, SWAPS_DICT
+from instructRNN.data_loaders.perfDataFrame import *
 
 import os
 
@@ -257,7 +259,7 @@ def get_dich_CCGP(reps, dich, holdouts_involved=[], use_mean = False):
         else: 
             train_reps = get_reps_from_tasks(reps,train_pair).reshape(-1, dim)
 
-        classifier = svm.LinearSVC(max_iter=100_000, random_state = 0, tol=1e-5)
+        classifier = svm.LinearSVC(max_iter=1_000_000, random_state = 0, tol=1e-5)
         classifier.classes_=[0, 1]
         classifier.fit(train_reps, labels)
 
@@ -353,6 +355,52 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
 
 
     return task_holdout_scores, dich_holdout_scores, holdout_CCGP
+
+def load_multi_ccgp(seeds):
+    task_holdout_array = np.full((len(seeds), len(TASK_LIST)), np.nan)
+    dich_holdout_array = np.full((len(seeds), len(DICH_DICT)), np.nan)
+
+    for i, seed in enumerate(seeds):
+        task_load_str = '7.20models/multitask_holdouts/CCGP_scores/simpleNet/layertask_task_multi_seed'+str(seed)+'.npy'
+        dich_load_str = '7.20models/multitask_holdouts/CCGP_scores/simpleNet/layertask_dich_multi_seed'+str(seed)+'.npy'
+        task_arr = np.load(open(task_load_str, 'rb'))
+        dich_arr = np.load(open(dich_load_str, 'rb'))
+        task_holdout_array[i, :] = task_arr
+        dich_holdout_array[i, :] = dich_arr
+
+    return task_holdout_array, dich_holdout_array
+
+
+def load_holdout_ccgp(folder_name, model_name, layer_list, seeds): 
+    task_holdout_array = np.full((len(seeds), len(layer_list), len(TASK_LIST)), np.nan)
+
+    for i, seed in enumerate(seeds):
+        if model_name is not 'sbertNet_lin': seed = i
+        for j, layer in enumerate(layer_list):
+            try:
+                task_load_str = folder_name+'/CCGP_scores/'+model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+'.npy'
+                task_arr = np.load(open(task_load_str, 'rb'))
+                task_holdout_array[i, j, :] = task_arr
+            except FileNotFoundError:
+                print('no data for layer {} for model {} seed {}'.format(layer, model_name, seed))
+                print(task_load_str)
+
+    return task_holdout_array
+
+def get_perf_ccgp_corr(folder, exp_type, model_list):
+    ccgp_scores = np.empty((len(model_list), len(TASK_LIST)))
+    perf_scores = np.empty((len(model_list), len(TASK_LIST)))
+    for i, model_name in enumerate(model_list): 
+        if model_name == 'sbertNet_lin': load_range = range(5, 9)
+        else: load_range = range(5)
+        task_ccgp = np.mean(load_holdout_ccgp(folder+'/'+exp_type+'_holdouts', model_name, ['task'], load_range), axis=(0,1))
+        data = HoldoutDataFrame(folder, exp_type, model_name, seeds=range(5), mode='combined')
+        perf_mean, _ = data.avg_seeds(k_shot=0)
+        ccgp_scores[i, :] = task_ccgp
+        perf_scores[i, :] = perf_mean
+    corr, p_val = pearsonr(ccgp_scores.flatten(), perf_scores.flatten())
+
+    return corr, p_val, ccgp_scores, perf_scores
 
 
 def get_model_sv(model):
