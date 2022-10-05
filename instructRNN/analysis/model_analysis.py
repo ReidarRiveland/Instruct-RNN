@@ -12,6 +12,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from collections import defaultdict
 
+
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import DMFactory, TRIAL_LEN, _get_default_intervals, max_var_dir
 from instructRNN.tasks.task_criteria import isCorrect
@@ -291,10 +292,9 @@ def get_multitask_CCGP(exp_folder, model_name, seed, save=False, layer='task'):
     for i, dich in enumerate(DICH_DICT.values()):
         decoding_score_arr, _ = get_dich_CCGP(reps, dich)
         decoding_score = np.mean(decoding_score_arr)
-        for task in dich[0]+dich[1]: 
+        for task in list(chain(*dich)): 
             multi_CCGP[TASK_LIST.index(task), i] = decoding_score
     
-
     task_holdout_scores = np.nanmean(multi_CCGP, axis=1)
     dich_holdout_scores = np.nanmean(multi_CCGP, axis=0)
 
