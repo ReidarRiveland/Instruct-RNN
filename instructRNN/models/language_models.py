@@ -71,6 +71,10 @@ class InstructionEmbedder(nn.Module):
             else: 
 
                 p.requires_grad=False
+    
+    def to(self, cuda_device):
+        super().to(cuda_device)
+        self.__device__ = cuda_device
 
 class TransformerEmbedder(InstructionEmbedder): 
     def __init__(self, config): 
