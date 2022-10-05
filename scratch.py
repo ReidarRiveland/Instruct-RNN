@@ -52,6 +52,88 @@ clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap9'
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
 
+
+reps = get_task_reps(clipNet, num_trials=50, instruct_mode='combined', noise=0.0)
+lang_reps = get_instruct_reps(clipNet.langModel, depth='12', instruct_mode='combined')
+
+
+pcs, var_exp = reduce_rep(lang_reps, pcs=range(reps.shape[-1]))
+
+np.sum(var_exp[:1])
+
+
+
+
+
+def get_model_sv(model, layer='task'):
+    if layer == 'task':
+        reps = get_task_reps(model, num_trials=50, instruct_mode='combined', noise=0.0)
+    else: 
+        print('here')
+        reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
+
+    _, sv, _ = LA.svd(reps.reshape(-1, reps.shape[-1]))
+    return sv
+
+def get_model_spectrum(model, layer='task'):
+    if layer == 'task':
+        reps = get_task_reps(model, num_trials=50, instruct_mode='combined', noise=0.0)
+    else: 
+        print('here')
+        reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
+
+    spectrum = LA.eigvals(np.corrcoef(reps.reshape(-1, reps.shape[-1])))
+    return spectrum
+
+spectrum = get_model_spectrum(clipNet)
+
+
+def get_dim_across_models(load_folder, model_name, seeds, layer, mode='spectrum'):
+    model = make_default_model(model_name)
+    if 'swap' in load_folder: 
+        exp_dict = SWAPS_DICT
+
+    if layer == 'task': 
+        rep_dim = model.rnn_hidden_dim
+    elif layer.isnumeric(): 
+        rep_dim = model.langModel.LM_intermediate_lang_dim
+    elif layer == 'bow': 
+        rep_dim = len(sort_vocab())
+    else: 
+        rep_dim = model.langModel.LM_out_dim 
+
+    sv_array = np.empty((len(seeds), len(exp_dict), 50**2))
+    for i, seed in enumerate(seeds):
+        for j, holdout_label in enumerate(exp_dict.keys()):
+            model.load_model(EXP_FILE+'/'+holdout_label+'/'+model.model_name, suffix='_seed'+str(seed))
+            if mode == 'spectrum': 
+                sv = get_model_spectrum(model, layer=layer)
+            else: 
+                sv = get_model_sv(model, layer=layer)
+            sv_array[i, j, :] = sv
+
+    return sv_array
+
+
+clip_sv_array = get_dim_across_models(EXP_FILE, 'clipNet_lin', [0], layer='task')
+sbert_sv_array = get_dim_across_models(EXP_FILE, 'sbertNet_lin', [5], layer='task')
+bert_sv_array = get_dim_across_models(EXP_FILE, 'bertNet_lin', [0], layer='task')
+simpleNet_sv_array = get_dim_across_models(EXP_FILE, 'simpleNet', [0], layer = 'task')
+
+np.mean(clip_sv_array, axis=(0, 1))
+
+
+#########################################
+
+import matplotlib.pyplot as plt
+plt.plot(np.mean(clip_sv_array, axis=(0, 1))[:20])
+plt.plot(np.mean(sbert_sv_array, axis=(0, 1))[:20])
+plt.plot(np.mean(bert_sv_array, axis=(0, 1))[:20])
+plt.plot(np.mean(simpleNet_sv_array, axis=(0, 1))[:20])
+plt.legend(['clip', 'sbert', 'bert', 'simpleNet'])
+plt.show()
+
+
 EXP_FILE = '7.20models/swap_holdouts'
 bertNet = BERTNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap9'
@@ -132,8 +214,31 @@ normalized_ccgp
 np.mean(normalized_ccgp, axis=2)
 
 
+#############
+
+from instructRNN.tasks.tasks import TASK_LIST, DICH_DICT
+import numpy as np
+folder_name = '7.20models/swap_holdouts/CCGP_scores'
+model_list = ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet']
+seeds = range(5)
+layer = 'full'
+task_holdout_array = np.empty((len(model_list), len(seeds), len(TASK_LIST)))
+dich_holdout_array = np.empty((len(model_list), len(seeds), len(DICH_DICT)))
+
+for i, model_name in enumerate(model_list):
+    for j, seed in enumerate(seeds):
+        if model_name is 'sbertNet_lin': seed +=5
+        task_load_str = folder_name+'/'+model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+'.npy'
+        dich_load_str = folder_name+'/'+model_name+'/layer'+layer+'_dich_holdout_seed'+str(seed)+'.npy'
+        task_arr = np.load(open(task_load_str, 'rb'))
+        dich_arr = np.load(open(dich_load_str, 'rb'))
+        task_holdout_array[i, j, :] = task_arr
+        dich_holdout_array[i, j, :] = dich_arr
 
 
+np.mean(task_holdout_array[1, ...])
+
+np.mean(task_holdout_array, axis=(1,2))
 
 
 

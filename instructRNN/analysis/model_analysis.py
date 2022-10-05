@@ -64,6 +64,8 @@ def eval_model_0_shot(model, folder_name, exp_type, seed, instruct_mode=None):
     return perf_array
 
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
+    langModel.eval()
+    langModel.to(device)
     if depth.isnumeric(): 
         rep_dim = langModel.LM_intermediate_lang_dim
     elif depth == 'bow': 
