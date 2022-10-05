@@ -24,7 +24,7 @@ class DecoderTrainerConfig():
 
     epochs: int = 80
     batch_len: int = 32
-    num_batches: int = 5
+    num_batches: int = 1600
     stream_data: bool = True
     holdouts: list = []
 
