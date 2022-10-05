@@ -20,6 +20,74 @@ from instructRNN.analysis.decoder_analysis import *
 from sklearn.preprocessing import normalize
 
 
+
+get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', 2, from_contexts=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 dichs = [('Go', 'AntiGo'), ('RTGo', 'AntiRTGo'), ('DM', 'AntiDM')]
 
 list(itertools.chain(*dichs))

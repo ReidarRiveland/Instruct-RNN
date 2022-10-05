@@ -65,10 +65,10 @@ class DecoderTrainer(BaseTrainer):
 
     def _print_progress(self, decoder_loss, use_teacher_forcing, 
                                 decoded_sentence, target_instruct): 
-        print('Teacher forcing: ' + str(use_teacher_forcing))
-        print('Decoder Loss: ' + str(decoder_loss/self.pad_len))
+        print('Teacher forcing: ' + str(use_teacher_forcing), flush=True)
+        print('Decoder Loss: ' + str(decoder_loss/self.pad_len), flush=True)
 
-        print('target instruction: ' + target_instruct[-1])
+        print('target instruction: ' + target_instruct[-1], flush=True)
         if use_teacher_forcing:
             try:
                 eos_index = decoded_sentence.index('[EOS]')
@@ -76,7 +76,7 @@ class DecoderTrainer(BaseTrainer):
                 eos_index = -1
             decoded_sentence = ' '.join(decoded_sentence[:eos_index])
         
-        print('decoded instruction: ' + decoded_sentence + '\n')
+        print('decoded instruction: ' + decoded_sentence + '\n', flush=True)
 
     def _log_step(self, loss, use_teacher_forcing): 
         if use_teacher_forcing: 
@@ -154,7 +154,7 @@ class DecoderTrainer(BaseTrainer):
         self.init_optimizer(decoder)
 
         for self.cur_epoch in tqdm(range(self.cur_epoch, self.epochs), desc='epochs'): 
-            print('Epoch: ' + str(self.cur_epoch)+'\n')
+            print('Epoch: ' + str(self.cur_epoch)+'\n', flush=True)
             for j, data in enumerate(self.streamer.stream_batch()): 
                 ins, _, _, _, task_type = data
                 decoder_loss=0

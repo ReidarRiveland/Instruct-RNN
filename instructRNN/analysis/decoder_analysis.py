@@ -57,3 +57,4 @@ def test_partner_model(model_name, decoded_dict, num_trials=50, tasks = TASK_LIS
     return instruct_perf_array, other_perf_array
 
 
+get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', 0, from_contexts=True)
