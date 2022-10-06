@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.patches as mpatches
 from matplotlib import colors, cm
-from matplotlib.lines import Line2D
+from matplotlib.lines import Line2D, lineStyles
 from matplotlib.ticker import MaxNLocator
 import matplotlib
 import torch
@@ -465,17 +465,23 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=100, num_repea
     return axn
 
 def plot_ccgp_corr(folder, exp_type, model_list):
-    _, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
     corr, p_val, ccgp, perf = get_perf_ccgp_corr(folder, exp_type, model_list)
-    a, b = np.polyfit(ccgp.flatten(), perf.flatten(), 1)
+    a, b = np.polyfit(perf.flatten(), ccgp.flatten(), 1)
+    
+    fig.suptitle('CCGP Correlates with Generalization')
+    axn.set_ylim(0.475, 1)
+    axn.set_ylabel('Holdout Task CCGP', size=8, fontweight='bold')
+    axn.set_xlabel('Zero-Shot Performance', size=8, fontweight='bold')
 
     for i, model_name in enumerate(model_list):
         axn.scatter(perf[i, :], ccgp[i, :], marker='.', c=MODEL_STYLE_DICT[model_name][0])
     x = np.linspace(0, 1, 100)
-    #axn.plot(x, a*x+b)
+    axn.text(0.1, 0.95, "$r^2=$"+str(round(corr, 3)), fontsize='small')
+    axn.plot(x, a*x+b, linewidth=0.8, linestyle='dotted', color='black')
     plt.show()
 
-def plot_layer_ccgp(foldername, model_list, seeds=range(5)): 
+def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False): 
     layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
     _, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
     axn.set_ylim(0.5, 1.0)
@@ -484,7 +490,30 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5)):
     for model_name in model_list:
         all_holdout_ccgp = load_holdout_ccgp(foldername, model_name, layer_list, seeds)
         axn.plot(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=(0,2)), marker='.', c=MODEL_STYLE_DICT[model_name][0], linewidth=0.6)
+        if plot_multis:
+            try: 
+                multi = load_multi_ccgp(model_name, seeds)
+                axn.scatter(len(layer_list)-1, np.mean(multi[0]), marker='*', c=MODEL_STYLE_DICT[model_name][0], markersize=0.8)
+            except: 
+                pass
     plt.show()
+
+
+def plot_layer_dim(model_list, layer, seeds=range(5)):
+    var_exp, thresh = get_dim_across_models(model_list, layer, seeds=seeds)
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+
+    mean_var_exp = np.mean(var_exp, axis=(1,2))
+    mean_thresh = np.mean(thresh, axis=(1,2))
+
+    for i, model_name in enumerate(model_list):
+        var_to_plot = mean_var_exp[i, ...]
+        model_color = MODEL_STYLE_DICT[model_name][0]
+        axn.plot(var_to_plot, c=model_color, linewidth=0.8)
+        axn.vlines(mean_thresh[i], ymin=0, ymax=np.max(mean_var_exp), color=model_color, linestyles='dotted')
+
+    plt.show()
+
 
 def plot_unit_clustering(load_folder, model_name, seed):
     norm_var, cluster_labels = get_cluster_info(load_folder, model_name, seed)

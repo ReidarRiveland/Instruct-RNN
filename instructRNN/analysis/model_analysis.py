@@ -66,6 +66,8 @@ def eval_model_0_shot(model, folder_name, exp_type, seed, instruct_mode=None):
                 perf_array[TASK_LIST.index(task)] = task_eval(model, task, 64, instruct_mode=instruct_mode)
     return perf_array
 
+
+
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
     langModel.eval()
     langModel.to(device)
@@ -158,7 +160,7 @@ def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'):
         explained_variance = None
     return embedded[..., pcs], explained_variance
 
-
+###get rid of first set of if statements
 def get_layer_sim_scores(model, rep_depth='12', dist = 'pearson'): 
     if rep_depth.isnumeric(): 
         rep_dim = model.langModel.LM_intermediate_lang_dim
@@ -356,13 +358,13 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
 
     return task_holdout_scores, dich_holdout_scores, holdout_CCGP
 
-def load_multi_ccgp(seeds):
+def load_multi_ccgp(model_name, seeds):
     task_holdout_array = np.full((len(seeds), len(TASK_LIST)), np.nan)
     dich_holdout_array = np.full((len(seeds), len(DICH_DICT)), np.nan)
 
     for i, seed in enumerate(seeds):
-        task_load_str = '7.20models/multitask_holdouts/CCGP_scores/simpleNet/layertask_task_multi_seed'+str(seed)+'.npy'
-        dich_load_str = '7.20models/multitask_holdouts/CCGP_scores/simpleNet/layertask_dich_multi_seed'+str(seed)+'.npy'
+        task_load_str = '7.20models/multitask_holdouts/CCGP_scores/'+model_name+'/layertask_task_multi_seed'+str(seed)+'.npy'
+        dich_load_str = '7.20models/multitask_holdouts/CCGP_scores/'+model_name+'/layertask_dich_multi_seed'+str(seed)+'.npy'
         task_arr = np.load(open(task_load_str, 'rb'))
         dich_arr = np.load(open(dich_load_str, 'rb'))
         task_holdout_array[i, :] = task_arr
@@ -370,20 +372,19 @@ def load_multi_ccgp(seeds):
 
     return task_holdout_array, dich_holdout_array
 
-
-def load_holdout_ccgp(folder_name, model_name, layer_list, seeds): 
+def load_holdout_ccgp(folder_name, model_name, layer_list, seeds, verbose=False): 
     task_holdout_array = np.full((len(seeds), len(layer_list), len(TASK_LIST)), np.nan)
 
     for i, seed in enumerate(seeds):
-        if model_name is not 'sbertNet_lin': seed = i
         for j, layer in enumerate(layer_list):
             try:
                 task_load_str = folder_name+'/CCGP_scores/'+model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+'.npy'
                 task_arr = np.load(open(task_load_str, 'rb'))
                 task_holdout_array[i, j, :] = task_arr
             except FileNotFoundError:
-                print('no data for layer {} for model {} seed {}'.format(layer, model_name, seed))
-                print(task_load_str)
+                if verbose: 
+                    print('no data for layer {} for model {} seed {}'.format(layer, model_name, seed))
+                    print(task_load_str)
 
     return task_holdout_array
 
@@ -391,9 +392,7 @@ def get_perf_ccgp_corr(folder, exp_type, model_list):
     ccgp_scores = np.empty((len(model_list), len(TASK_LIST)))
     perf_scores = np.empty((len(model_list), len(TASK_LIST)))
     for i, model_name in enumerate(model_list): 
-        if model_name == 'sbertNet_lin': load_range = range(5, 9)
-        else: load_range = range(5)
-        task_ccgp = np.mean(load_holdout_ccgp(folder+'/'+exp_type+'_holdouts', model_name, ['task'], load_range), axis=(0,1))
+        task_ccgp = np.mean(load_holdout_ccgp(folder+'/'+exp_type+'_holdouts', model_name, ['task'], range(5)), axis=(0,1))
         data = HoldoutDataFrame(folder, exp_type, model_name, seeds=range(5), mode='combined')
         perf_mean, _ = data.avg_seeds(k_shot=0)
         ccgp_scores[i, :] = task_ccgp
@@ -403,10 +402,41 @@ def get_perf_ccgp_corr(folder, exp_type, model_list):
     return corr, p_val, ccgp_scores, perf_scores
 
 
-def get_model_sv(model):
-    reps = get_task_reps(model, num_trials=50, instruct_mode='combined', noise=0.0)
-    _, sv, _ = LA.svd(reps.reshape(-1, reps.shape[-1]))
-    return sv
+def get_layer_dim(exp_folder, model_name, seed, layer='task', threshold = 0.9, keep_dims=25, save=False): 
+    if 'swap' in exp_folder: 
+        exp_dict = SWAPS_DICT
+    
+    var_exp_arr = np.empty((len(exp_dict), keep_dims))
+    thresholded = np.empty((len(exp_dict)))
+
+    model = make_default_model(model_name)
+    
+    for i, holdout_file in enumerate(exp_dict.keys()):
+        print('processing '+ holdout_file)
+        model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
+
+        if layer == 'task':
+            reps = get_task_reps(model, num_trials = 250, instruct_mode='combined',noise=0.0)
+        else: 
+            reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
+
+        _, var_exp = reduce_rep(reps, pcs=range(keep_dims))
+        for k in range(keep_dims):
+            if np.sum(var_exp[:k])>threshold:
+                break
+        
+        var_exp_arr[i, :] = var_exp
+        thresholded[i] = k
+
+    if save:
+        file_path = exp_folder+'/dim_measures/'+model_name
+        if os.path.exists(file_path):
+            pass
+        else: os.makedirs(file_path)
+        np.save(file_path+'/'+'layer'+layer+'_var_exp_arr_seed'+str(seed), var_exp_arr)
+        np.save(file_path+'/'+'layer'+layer+'_thresholds_seed'+str(seed), thresholded)
+
+    return var_exp_arr, thresholded
 
 def get_norm_task_var(hid_reps): 
     task_var = np.mean(np.var(hid_reps[:, 30:, :,:], axis=1), axis=1)

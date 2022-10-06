@@ -19,130 +19,14 @@ from instructRNN.analysis.decoder_analysis import *
 
 from sklearn.preprocessing import normalize
 
-
-
 get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', 2, from_contexts=True)
 
 
+multi = load_multi_ccgp('simpleNet', range(5))
 
+np.mean(multi[0])
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-dichs = [('Go', 'AntiGo'), ('RTGo', 'AntiRTGo'), ('DM', 'AntiDM')]
-
-list(itertools.chain(*dichs))
-
-EXP_FILE = '7.20models/swap_holdouts'
-clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap9'
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
-
-reps = get_instruct_reps(clipNet.langModel, depth='12')
-
-from sklearn.metrics.pairwise import cosine_similarity
-reps.shape
-reps.reshape(-1, 512).shape
-sim_score = np.corrcoef(reps.reshape(-1, 512))
-
-normalized = np.divide(np.subtract(sim_score, np.min(sim_score, axis=0)[None, :]), (np.max(sim_score, axis=0)-np.min(sim_score, axis=0)[None, :]))
-normalized = np.divide(np.subtract(sim_score, np.min(sim_score, axis=1)[:, None]), (np.max(sim_score, axis=1)-np.min(sim_score, axis=1)[:, None]))
-
-normalized = np.divide(np.subtract(sim_score, np.min(sim_score)), (np.max(sim_score, axis=1)-np.min(sim_score)))
-
-
-normalized = normalize(sim_score)
-plot_RDM(normalized, cmap=sns.color_palette('inferno', as_cmap=True))
-
-
-
-
-#############################
-from instructRNN.instructions.instruct_utils import get_instructions
-
-
-
-EXP_FILE = '7.20models/swap_holdouts'
-clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap9'
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
-
-
-EXP_FILE = '7.20models/swap_holdouts'
-sbertNet = SBERTNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap9'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed9')
-
-
-instructions  = get_instructions(64, 'Go')
-
-tokens = clipNet.langModel.tokens_to_tensor(instructions)
-trans_out = clipNet.langModel.forward_transformer(instructions)
-trans_out[1][12]
-
-
-
-
-
+###################
 
 #clip_reps = get_task_reps(clipNet, num_trials=50, instruct_mode='combined', noise=0.0)
 clip_lang_reps = get_instruct_reps(clipNet.langModel, depth='2', instruct_mode='combined')
@@ -153,7 +37,7 @@ sbert_lang_reps = get_instruct_reps(sbertNet.langModel, depth='11', instruct_mod
 _, clip_var_xp = reduce_rep(clip_lang_reps, pcs=range(3))
 _, sbert_var_xp = reduce_rep(sbert_lang_reps, pcs=range(768))
 
-np.sum(clip_var_xp[:3])
+clip_var_xp
 np.sum(sbert_var_xp[:25])
 
 def get_model_sv(model, layer='task'):
@@ -238,7 +122,7 @@ def get_all_ccgps(model_name , seeds, use_mean=False):
 
     for i, seed in enumerate(seeds):
         print(seed)
-        task_score, dich_score, full_array = get_holdout_CCGP('7.20models/swap_holdouts', model_name, seed, layer='12', use_mean=use_mean)
+        task_score, dich_score, full_array = get_holdout_CCGP('7.20models/swap_holdouts', model_name, seed, layer='9', use_mean=use_mean)
         all_task[i, ...] = task_score
         all_dich[i, ...] = dich_score
         all_full[i, ...] = full_array

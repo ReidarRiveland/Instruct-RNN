@@ -1,7 +1,7 @@
 import os
 import itertools
 import instructRNN.models.full_models as full_models
-from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP
+from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP, get_layer_dim
 
 if __name__ == "__main__":
     import argparse
@@ -30,27 +30,33 @@ if __name__ == "__main__":
     print(jobs)
     for job in jobs: 
         _seed, model = job
+        if model in full_models.shallow_models: 
+            layer_list = ['task']
+        elif model in full_models.big_models: 
+            layer_list = [str(layer) for layer in range(1, 25)] + ['full', 'task']
+        elif 'bow' in model: 
+            layer_list = ['bow', 'full', 'task']
+        else: 
+            layer_list = [str(layer) for layer in range(1, 13)] + ['full', 'task']
+        
+        print(EXP_FOLDER)
+        print(model)
+        print(_seed)
+        print(layer_list)
+    
         if 'ccgp' in args.mode: 
-            from instructRNN.analysis.model_analysis import * 
-
-            if model in full_models.shallow_models: 
-                layer_list = ['task']
-            elif model in full_models.big_models: 
-                layer_list = [str(layer) for layer in range(1, 25)] + ['full', 'task']
-            elif 'bow' in model: 
-                layer_list = ['bow', 'full', 'task']
-            else: 
-                layer_list = [str(layer) for layer in range(1, 13)] + ['full', 'task']
-            
-            print(EXP_FOLDER)
-            print(model)
-            print(_seed)
-            print(layer_list)
             for layer in layer_list:
                 if args.mode == 'holdout_ccgp':
                     get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
                 elif args.mode == 'multi_ccgp': 
                     get_multitask_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
+
+        elif 'dim' in args.mode: 
+            for layer in layer_list:
+                get_layer_dim(EXP_FOLDER, model, _seed, layer= layer, save=True)
+                
+
+
 
 
 
