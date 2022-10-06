@@ -26,7 +26,7 @@ clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_s
 plot_scatter(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
 plot_scatter(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, rep_depth='full')
 
-plot_task_var_heatmap(EXP_FILE+'/'+holdouts_file, 'clipNet_lin', 4)
+plot_task_var_heatmap('7.20models/multitask_holdouts/Multitask', 'simpleNet', 2)
 
 EXP_FILE = '7.20models/swap_holdouts'
 gptNet = GPTNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
@@ -36,24 +36,45 @@ gptNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+gptNet.model_name, suffix='_see
 plot_scatter(gptNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=100)
 plot_scatter(gptNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, rep_depth='full')
 
-plot_task_var_heatmap(EXP_FILE+'/'+holdouts_file, 'gptNet_lin', 4)
-
-
 plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'gptNet_lin', 'sbertNet_lin', 'simpleNet'][::-1], seeds=range(5), plot_multis=True)
+
 plot_ccgp_corr('7.20models', 'swap', ['clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'sbertNet_lin', 'gptNet_lin', 'simpleNet'])
 
 
 ###Go Only Neuron 
 plot_tuning_curve(clipNet, ['Go', 'AntiGo', 'GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2'], 2, [140]*6, np.linspace(0, np.pi*2, 100))
 
+###Direction Tuning FLip
+plot_tuning_curve(clipNet, ['Go', 'AntiGo', 'GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2'], 73, [140]*6)
+
+###sort of
+plot_tuning_curve(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], 11, [140]*6)
 
 
-plot_tuning_curve(clipNet, ['Go', 'AntiGo', 'GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2'], 27, [149]*6, np.linspace(0, np.pi*2, 100))
+###sort of
+plot_tuning_curve(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], 11, [140]*6)
+plot_tuning_curve(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], 16, [140]*6)
+plot_tuning_curve(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], 22, [140]*6)
+plot_tuning_curve(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], 41, [140]*6, smoothing=1e-1)
+
+plot_tuning_curve(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], 44, [140]*6, smoothing=1e-1)
+
+plot_tuning_curve(clipNet, ['DM', 'AntiDM'], 53, [140]*6, smoothing=1e-1)
+
+plot_tuning_curve(clipNet, ['DM', 'AntiDM'], 53, [140]*6, smoothing=1e-1)
+
+
+
+plot_tuning_curve(clipNet, ['COMP1', 'COMP2'], 56, [140]*6, smoothing=1e-1)
 
 
 
 
-plot_neural_resp(clipNet, 'MultiDM','diff_strength', 15, num_trials=25)
+plot_neural_resp(clipNet, 'AntiGo','direction', 73, num_trials=25)
+
+
+
+
 plot_neural_resp(clipNet, 'DMMod1','diff_strength', 15, num_trials=25)
 plot_neural_resp(clipNet, 'DMMod2','diff_strength', 15, num_trials=25)
 

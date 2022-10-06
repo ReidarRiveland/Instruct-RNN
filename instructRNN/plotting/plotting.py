@@ -411,23 +411,49 @@ def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot
 
     plt.show()
 
-def plot_tuning_curve(model, tasks, unit, times, var_of_interest_arr, num_trials=100, num_repeats=5, smoothing = 1e-7): 
+def plot_tuning_curve(model, tasks, unit, times, num_trials=50, num_repeats=20, smoothing = 1e-7): 
+    fig, axn = plt.subplots(1,1, sharey = True, sharex=True, figsize =(8, 4))
+
+    if 'Go' in tasks[0] or tasks[0] in ['DMS', 'DMNS', 'DMC', 'DNMC']:
+        x_label = "direction"
+        var_of_interest = np.linspace(0, np.pi*2, num_trials)
+        axn.set_xlim(0.0, 2*np.pi)
+        axn.set_xticks([0, 0.5*np.pi, np.pi, 1.5*np.pi, 2*np.pi])
+        axn.set_xticklabels(["0", r"$\frac{\pi}{2}$", "$\pi$", r"$\frac{3\pi}{2}$", "$2\pi$"]) 
+
+    elif 'DM' in tasks[0] or 'COMP' in tasks[0]: 
+        x_label = "coherence"
+        max_contrast = 0.5
+        min_contrast = 0.0
+        var_of_interest = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(np.ceil(num_trials/2))), 
+                np.linspace(min_contrast, max_contrast, num=int(np.floor(num_trials/2)))))
+        axn.set_xlim(-max_contrast, max_contrast)
+        tick_space = np.linspace(-max_contrast, max_contrast, 5)
+        axn.set_xticks(tick_space)
+        axn.set_xticklabels([str(tick_val) for tick_val in tick_space]) 
+
+    #elif 'Dur' in tasks[0]: 
+
     y_max = 1.0
     hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, main_var=True)
     for i, task in enumerate(tasks): 
         time = times[i]
         neural_resp = hid_mean[i, :, time, unit]        
-        plt.plot(var_of_interest_arr, gaussian_filter1d(neural_resp, smoothing), color=get_task_color(task))
+        axn.plot(var_of_interest, gaussian_filter1d(neural_resp, smoothing), color=get_task_color(task))
         y_max = max(y_max, neural_resp.max())
 
-    plt.title('Tuning curve for Unit ' + str(unit) + ' at time ' +str(time))
-    plt.ylim(-0.05, y_max+0.15)
+    plt.suptitle('Tuning curve for Unit ' + str(unit))
+    axn.set_ylim(-0.05, y_max+0.15)
+
+    axn.set_ylabel('Unit Activity', size=8, fontweight='bold')
+    axn.set_xlabel(x_label, size=8, fontweight='bold')
+
     Patches = [mpatches.Patch(color=get_task_color(task), label=task) for task in tasks]
     plt.legend(handles=Patches)
     plt.show()
 
 
-def plot_neural_resp(model, task, task_variable, unit, num_trials=100, num_repeats = 10, save_file=None):
+def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeats = 10, cmap=sns.color_palette("inferno", as_cmap=True)):
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
     hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=[task], num_repeats=num_repeats, main_var=True)[0,...]
 
@@ -459,8 +485,7 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=100, num_repea
     cbar = plt.colorbar(scalarMap, orientation='vertical', label = task_variable.replace('_', ' '), ticks = [0, 100])
     #plt.title(task + ' response for Unit' + str(unit))
     cbar.set_ticklabels(labels)
-    if save_file is not None: 
-        plt.savefig('figs/'+save_file)
+
     plt.show()
     return axn
 
@@ -483,7 +508,15 @@ def plot_ccgp_corr(folder, exp_type, model_list):
 
 def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False): 
     layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
-    _, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+    
+    fig.suptitle('CCGP Across Model Hierarchy')
+    axn.set_ylim(0.475, 1)
+    axn.set_ylabel('Holdout Task CCGP', size=8, fontweight='bold')
+    axn.set_xlabel('Model Layer', size=8, fontweight='bold')
+    axn.set_xticklabels([str(x) for x in range(1, 13)] + ['embed', 'task']) 
+
+
     axn.set_ylim(0.5, 1.0)
     axn.set_xticks(range(len(layer_list)))
     axn.set_xticklabels(layer_list)
@@ -492,9 +525,9 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False):
         axn.plot(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=(0,2)), marker='.', c=MODEL_STYLE_DICT[model_name][0], linewidth=0.6)
         if plot_multis:
             try: 
-                multi = load_multi_ccgp(model_name, seeds)
-                axn.scatter(len(layer_list)-1, np.mean(multi[0]), marker='*', c=MODEL_STYLE_DICT[model_name][0], markersize=0.8)
-            except: 
+                multi = load_multi_ccgp(model_name)
+                axn.scatter(len(layer_list)-1, np.mean(multi[0]), marker='*', c=MODEL_STYLE_DICT[model_name][0], s=8)
+            except FileNotFoundError: 
                 pass
     plt.show()
 

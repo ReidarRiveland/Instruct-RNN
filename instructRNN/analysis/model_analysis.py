@@ -138,8 +138,7 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
                         if epoch == 'stim_start': epoch_index = np.where(ins[j, :, 1:]>0.6)[0][0]+stim_start_buffer
                         if epoch == 'prep': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]-1
                         task_reps[k, i, j, :] = hid[j, epoch_index, :]
-    # if return_perf: 
-    #     np.mean(isCorrect(out, targets, target_dirs))
+
 
     return np.mean(task_reps, axis=0).astype(np.float64)
 
@@ -358,13 +357,13 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
 
     return task_holdout_scores, dich_holdout_scores, holdout_CCGP
 
-def load_multi_ccgp(model_name, seeds):
+def load_multi_ccgp(model_name, seeds=range(5), layer='task'):
     task_holdout_array = np.full((len(seeds), len(TASK_LIST)), np.nan)
     dich_holdout_array = np.full((len(seeds), len(DICH_DICT)), np.nan)
 
     for i, seed in enumerate(seeds):
-        task_load_str = '7.20models/multitask_holdouts/CCGP_scores/'+model_name+'/layertask_task_multi_seed'+str(seed)+'.npy'
-        dich_load_str = '7.20models/multitask_holdouts/CCGP_scores/'+model_name+'/layertask_dich_multi_seed'+str(seed)+'.npy'
+        task_load_str = '7.20models/multitask_holdouts/CCGP_scores/'+model_name+'/layer'+layer+'_task_multi_seed'+str(seed)+'.npy'
+        dich_load_str = '7.20models/multitask_holdouts/CCGP_scores/'+model_name+'/layer'+layer+'_dich_multi_seed'+str(seed)+'.npy'
         task_arr = np.load(open(task_load_str, 'rb'))
         dich_arr = np.load(open(dich_load_str, 'rb'))
         task_holdout_array[i, :] = task_arr
@@ -373,6 +372,23 @@ def load_multi_ccgp(model_name, seeds):
     return task_holdout_array, dich_holdout_array
 
 def load_holdout_ccgp(folder_name, model_name, layer_list, seeds, verbose=False): 
+    task_holdout_array = np.full((len(seeds), len(layer_list), len(TASK_LIST)), np.nan)
+
+    for i, seed in enumerate(seeds):
+        for j, layer in enumerate(layer_list):
+            try:
+                task_load_str = folder_name+'/CCGP_scores/'+model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+'.npy'
+                task_arr = np.load(open(task_load_str, 'rb'))
+                task_holdout_array[i, j, :] = task_arr
+            except FileNotFoundError:
+                if verbose: 
+                    print('no data for layer {} for model {} seed {}'.format(layer, model_name, seed))
+                    print(task_load_str)
+
+    return task_holdout_array
+
+
+def load_dim_measures(folder_name, model_name, layer_list, seeds, verbose=False): 
     task_holdout_array = np.full((len(seeds), len(layer_list), len(TASK_LIST)), np.nan)
 
     for i, seed in enumerate(seeds):
@@ -458,6 +474,27 @@ def get_layer_dim(exp_folder, model_name, seed, layer='task', threshold = 0.9, k
         np.save(file_path+'/'+'layer'+layer+'_thresholds_seed'+str(seed), thresholded)
 
     return var_exp_arr, thresholded
+
+def load_holdout_dim_measures(folder_name, model_name, layer_list, seeds=range(5), verbose=False): 
+    if 'swap' in folder_name: 
+        exp_dict = SWAPS_DICT
+    var_exp_array = np.full((len(seeds), len(layer_list), len(exp_dict), 25), np.nan)
+    thresholds_array = np.full((len(seeds), len(layer_list), len(exp_dict)), np.nan)
+
+    for i, seed in enumerate(seeds):
+        for j, layer in enumerate(layer_list):
+            try:
+                load_str = folder_name+'/dim_measures/'+model_name+'/layer'+layer
+                var_exp = np.load(open(load_str+'_var_exp_arr_seed'+str(seed)+'.npy', 'rb'))
+                threshold = np.load(open(load_str+'_thresholds_seed'+str(seed)+'.npy', 'rb'))
+                var_exp_array[i, j, ...] = var_exp
+                thresholds_array[i, j, :] = threshold
+            except FileNotFoundError:
+                if verbose: 
+                    print('no data for layer {} for model {} seed {}'.format(layer, model_name, seed))
+                    print(load_str)
+
+    return var_exp_array, thresholds_array
 
 def get_norm_task_var(hid_reps): 
     task_var = np.mean(np.var(hid_reps[:, 30:, :,:], axis=1), axis=1)
