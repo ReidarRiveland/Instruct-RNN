@@ -402,6 +402,27 @@ def get_perf_ccgp_corr(folder, exp_type, model_list):
     return corr, p_val, ccgp_scores, perf_scores
 
 
+def get_model_spectrum(model, layer='full'):
+    if layer == 'task':
+        reps = get_task_reps(model, num_trials=20, instruct_mode='combined', noise=0.0)
+    else: 
+        reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
+
+    spectrum = LA.eigvals(np.cov(reps.reshape(-1, reps.shape[-1])))
+    return spectrum
+
+
+def get_model_sv(model, layer='task'):
+    if layer == 'task':
+        reps = get_task_reps(model, num_trials=50, instruct_mode='combined', noise=0.0)
+    else: 
+        print('here')
+        reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
+
+    _, sv, _ = LA.svd(reps.reshape(-1, reps.shape[-1]))
+    return sv
+
+
 def get_layer_dim(exp_folder, model_name, seed, layer='task', threshold = 0.9, keep_dims=25, save=False): 
     if 'swap' in exp_folder: 
         exp_dict = SWAPS_DICT

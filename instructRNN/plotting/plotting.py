@@ -327,7 +327,7 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_t
         pcs = range(dims)
 
     if rep_depth == 'task': 
-        reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True, instruct_mode=instruct_mode)
+        reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True, instruct_mode=instruct_mode, noise=0.0)
     elif rep_depth != 'task': 
         reps = get_instruct_reps(model.langModel, depth=rep_depth, instruct_mode=instruct_mode)
     reduced, _ = reduce_rep(reps, pcs=pcs)
@@ -411,13 +411,13 @@ def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot
 
     plt.show()
 
-def plot_tuning_curve(model, tasks, unit, times, var_of_interest, num_trials=100, num_repeats=5, smoothing = 1e-7): 
+def plot_tuning_curve(model, tasks, unit, times, var_of_interest_arr, num_trials=100, num_repeats=5, smoothing = 1e-7): 
     y_max = 1.0
     hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, main_var=True)
     for i, task in enumerate(tasks): 
         time = times[i]
         neural_resp = hid_mean[i, :, time, unit]        
-        plt.plot(var_of_interest, gaussian_filter1d(neural_resp, smoothing), color=get_task_color(task))
+        plt.plot(var_of_interest_arr, gaussian_filter1d(neural_resp, smoothing), color=get_task_color(task))
         y_max = max(y_max, neural_resp.max())
 
     plt.title('Tuning curve for Unit ' + str(unit) + ' at time ' +str(time))
@@ -499,20 +499,20 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False):
     plt.show()
 
 
-def plot_layer_dim(model_list, layer, seeds=range(5)):
-    var_exp, thresh = get_dim_across_models(model_list, layer, seeds=seeds)
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+# def plot_layer_dim(model_list, layer, seeds=range(5)):
+#     var_exp, thresh = get_dim_across_models(model_list, layer, seeds=seeds)
+#     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
 
-    mean_var_exp = np.mean(var_exp, axis=(1,2))
-    mean_thresh = np.mean(thresh, axis=(1,2))
+#     mean_var_exp = np.mean(var_exp, axis=(1,2))
+#     mean_thresh = np.mean(thresh, axis=(1,2))
 
-    for i, model_name in enumerate(model_list):
-        var_to_plot = mean_var_exp[i, ...]
-        model_color = MODEL_STYLE_DICT[model_name][0]
-        axn.plot(var_to_plot, c=model_color, linewidth=0.8)
-        axn.vlines(mean_thresh[i], ymin=0, ymax=np.max(mean_var_exp), color=model_color, linestyles='dotted')
+#     for i, model_name in enumerate(model_list):
+#         var_to_plot = mean_var_exp[i, ...]
+#         model_color = MODEL_STYLE_DICT[model_name][0]
+#         axn.plot(var_to_plot, c=model_color, linewidth=0.8)
+#         axn.vlines(mean_thresh[i], ymin=0, ymax=np.max(mean_var_exp), color=model_color, linestyles='dotted')
 
-    plt.show()
+#     plt.show()
 
 
 def plot_unit_clustering(load_folder, model_name, seed):

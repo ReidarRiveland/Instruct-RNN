@@ -147,7 +147,6 @@ class DecoderTrainer(BaseTrainer):
 
     def train(self, sm_model, decoder): 
         criterion = nn.NLLLoss(reduction='mean')
-        teacher_forcing_ratio = self.init_teacher_forcing_ratio
         self.pad_len  = decoder.tokenizer.pad_len 
          
         self._init_streamer()
@@ -159,7 +158,7 @@ class DecoderTrainer(BaseTrainer):
                 ins, _, _, _, task_type = data
                 decoder_loss=0
 
-                use_teacher_forcing = True if np.random.random() < teacher_forcing_ratio else False
+                use_teacher_forcing = True if np.random.random() < self.teacher_forcing_ratio else False
                 target_instruct = get_instructions(self.batch_len, task_type, None)
 
                 target_tensor = decoder.tokenizer(target_instruct).to(device)
@@ -204,7 +203,7 @@ class DecoderTrainer(BaseTrainer):
                     
             self.scheduler.step()
             self.teacher_forcing_ratio -= self.init_teacher_forcing_ratio/self.epochs
-            print('Teacher Force Ratio: ' + str(teacher_forcing_ratio))
+            print('Teacher Force Ratio: ' + str(self.teacher_forcing_ratio))
         self._record_session(decoder, 'FINAL')
 
 def check_decoder_trained(file_name, seed, use_holdouts): 
