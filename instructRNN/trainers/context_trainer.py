@@ -29,7 +29,7 @@ class ContextTrainerConfig():
 
     epochs: int = 15
     min_run_epochs: int = 1
-    batch_len: int = 64
+    batch_len: int = 256
     num_batches: int = 800
     stream_data: bool = True
 
@@ -40,7 +40,7 @@ class ContextTrainerConfig():
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
     scheduler_args: dict = {'gamma': 0.99}
 
-    checker_threshold: float = 0.95
+    checker_threshold: float = 0.85
     step_last_lr: bool = False
 
 class ContextTrainer(BaseTrainer): 

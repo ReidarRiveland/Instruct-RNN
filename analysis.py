@@ -1,7 +1,7 @@
 import os
 import itertools
 import instructRNN.models.full_models as full_models
-from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP, get_layer_dim
+from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP, get_layer_dim, get_val_perf
 
 if __name__ == "__main__":
     import argparse
@@ -27,7 +27,6 @@ if __name__ == "__main__":
             return [jobs[job_index]]
 
     jobs = make_analysis_jobs(args.models, args.seeds, args.job_index)
-    print(jobs)
     for job in jobs: 
         _seed, model = job
         if model in full_models.shallow_models: 
@@ -42,8 +41,7 @@ if __name__ == "__main__":
         print(EXP_FOLDER)
         print(model)
         print(_seed)
-        print(layer_list)
-    
+
         if 'ccgp' in args.mode: 
             for layer in layer_list:
                 if args.mode == 'holdout_ccgp':
@@ -56,8 +54,8 @@ if __name__ == "__main__":
             for layer in layer_list:
                 get_layer_dim(EXP_FOLDER, model, _seed, layer= layer, save=True)
                 
-
-
-
+        if args.mode == 'val':
+            get_val_perf(EXP_FOLDER, model, _seed, save=True)
+                
 
 

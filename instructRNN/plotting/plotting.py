@@ -531,22 +531,29 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False):
                 pass
     plt.show()
 
+def plot_layer_dim(model_list, layer):
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+    
+    fig.suptitle('Model Dimensionality')
+    axn.set_ylabel('Proportion Variance Explained', size=8, fontweight='bold')
+    axn.set_xlabel('PCs', size=8, fontweight='bold')
 
-# def plot_layer_dim(model_list, layer, seeds=range(5)):
-#     var_exp, thresh = get_dim_across_models(model_list, layer, seeds=seeds)
-#     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+    var_exp_array = np.full((len(model_list), 5, 1, len(SWAPS_DICT), 25), np.nan)
+    thresholds_array = np.full((len(model_list), 5, 1, len(SWAPS_DICT)), np.nan)
 
-#     mean_var_exp = np.mean(var_exp, axis=(1,2))
-#     mean_thresh = np.mean(thresh, axis=(1,2))
+    for i, model_name in enumerate(model_list):
+        var_exp, thresholds = load_holdout_dim_measures('7.20models/swap_holdouts', model_name, [layer], verbose=True)
+        var_exp_array[i, ...] = var_exp
+        thresholds_array[i, ...] = thresholds
 
-#     for i, model_name in enumerate(model_list):
-#         var_to_plot = mean_var_exp[i, ...]
-#         model_color = MODEL_STYLE_DICT[model_name][0]
-#         axn.plot(var_to_plot, c=model_color, linewidth=0.8)
-#         axn.vlines(mean_thresh[i], ymin=0, ymax=np.max(mean_var_exp), color=model_color, linestyles='dotted')
+    ymax = np.max(np.mean(var_exp_array, axis=(1,2,3)))
 
-#     plt.show()
+    for i, model_name in enumerate(model_list):
+        model_color = MODEL_STYLE_DICT[model_name][0]
+        axn.plot(np.mean(var_exp_array[i, ...], axis=(0,1,2))[:20], c=model_color, linewidth=0.8)
+        axn.vlines(np.mean(thresholds_array[i, ...]), ymin=0, ymax=ymax, color=model_color, linestyles='dotted')
 
+    plt.show()
 
 def plot_unit_clustering(load_folder, model_name, seed):
     norm_var, cluster_labels = get_cluster_info(load_folder, model_name, seed)

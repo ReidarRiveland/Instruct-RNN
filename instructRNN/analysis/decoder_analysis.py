@@ -7,24 +7,6 @@ from instructRNN.models.full_models import make_default_model
 from instructRNN.tasks.tasks import SWAPS_DICT, TASK_LIST, construct_trials
 from instructRNN.tasks.task_criteria import isCorrect
 
-
-# model_name = 'clipNet_lin'
-# sm_model = make_default_model(model_name)
-# rnn_decoder = DecoderRNN(256, drop_p=0.0)
-# encoder = EncoderDecoder(sm_model, rnn_decoder)
-# encoder.to(0)
-
-# seed = 0
-# swap_label= 'swap0'
-# tasks = SWAPS_DICT[swap_label]
-# encoder.load_model_componenets('7.20models/swap_holdouts/'+swap_label+'/'+model_name+'/', seed, tasks)
-
-
-
-# encoder.contexts[TASK_LIST.index(tasks[0])]
-
-
-
 def get_holdout_decoded_set(foldername, model_name, seed, from_contexts=False): 
     shallow_decoded_set = {}
     rich_decoded_set = {}
@@ -71,4 +53,3 @@ def test_partner_model(model_name, decoded_dict, num_trials=50, tasks = TASK_LIS
     return instruct_perf_array, other_perf_array
 
 
-#get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', 0, from_contexts=True)
