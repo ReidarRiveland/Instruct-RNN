@@ -26,7 +26,7 @@ class ContextTrainerConfig():
     file_path: str
     random_seed: int
     context_dim: int    
-    num_contexts: int = 128
+    num_contexts: int = 100
 
     epochs: int = 15
     min_run_epochs: int = 1
@@ -35,7 +35,7 @@ class ContextTrainerConfig():
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.01
+    lr: float = 0.02
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
@@ -70,7 +70,7 @@ class ContextTrainer(BaseTrainer):
 
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        nn.init.normal_(context, std=1.5)
+        nn.init.normal_(context, std=1)
         return context
     
     def _init_optimizer(self, context):
@@ -174,7 +174,7 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer,
         else:        
             print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ '\n')
             if task == 'DMC':
-                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, batch_len=256, checker_threshold=0.8, **train_config_kwargs)
+                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, lor=0.005, batch_len=256, checker_threshold=0.8, **train_config_kwargs)
             else:
                 trainer_config = ContextTrainerConfig(file_name, seed, context_dim, **train_config_kwargs)
             trainer = ContextTrainer(trainer_config)
