@@ -52,19 +52,15 @@ if __name__ == "__main__":
     EXP_FOLDER =MODEL_FOLDER+'/'+args.exp+'_holdouts'
 
     jobs = make_training_jobs(args.exp, args.models, args.seeds, args.holdouts, args.job_index)
-    print(jobs)
     for job in jobs: 
         _seed, model, holdouts = job
-
-        # if 'gpt' in model: stream_data=True
-        # else: stream_data=False
 
         stream_data = True
 
 
         if args.mode == 'pipeline': 
             from instructRNN.trainers.model_trainer import *
-            run_pipeline(EXP_FOLDER, model, _seed, holdouts,overwrite=args.overwrite, use_checkpoint = args.use_checkpoint, ot = args.ot, stream_data=stream_data)      
+            run_pipeline(EXP_FOLDER, model, _seed, holdouts,overwrite=args.overwrite, use_checkpoint = args.use_checkpoint, ot = args.ot)    
 
         if args.mode == 'train': 
             from instructRNN.trainers.model_trainer import *
