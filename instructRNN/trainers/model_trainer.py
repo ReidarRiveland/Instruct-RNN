@@ -35,7 +35,7 @@ class TrainerConfig():
     num_batches: int = 2400
     holdouts: list = []
     set_single_task: str = None
-    stream_data: bool = False
+    stream_data: bool = True
 
     optim_alg: str = 'adam'
     init_lr: float = 0.001

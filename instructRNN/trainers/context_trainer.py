@@ -31,7 +31,7 @@ class ContextTrainerConfig():
     min_run_epochs: int = 1
     batch_len: int = 64
     num_batches: int = 800
-    stream_data: bool = False
+    stream_data: bool = True
 
     optim_alg: optim = optim.Adam
     lr: float = 0.01
@@ -65,7 +65,7 @@ class ContextTrainer(BaseTrainer):
                 ' ----- Task Type: '+task_type+\
                 ' ----- Performance: ' + str(self.correct_data[task_type][-1])+\
                 ' ----- Loss: ' + "{:.3e}".format(self.loss_data[task_type][-1])
-        print(status_str)
+        print(status_str, flush=True)
 
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
