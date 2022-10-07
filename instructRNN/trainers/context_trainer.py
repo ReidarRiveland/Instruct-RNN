@@ -1,3 +1,4 @@
+from tabnanny import check
 import warnings
 
 import torch
@@ -29,7 +30,7 @@ class ContextTrainerConfig():
 
     epochs: int = 15
     min_run_epochs: int = 1
-    batch_len: int = 256
+    batch_len: int = 64
     num_batches: int = 800
     stream_data: bool = True
 
@@ -40,7 +41,7 @@ class ContextTrainerConfig():
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
     scheduler_args: dict = {'gamma': 0.99}
 
-    checker_threshold: float = 0.85
+    checker_threshold: float = 0.95
     step_last_lr: bool = False
 
 class ContextTrainer(BaseTrainer): 
@@ -172,7 +173,10 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer,
             continue 
         else:        
             print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ '\n')
-            trainer_config = ContextTrainerConfig(file_name, seed, context_dim, **train_config_kwargs)
+            if task == 'DMC':
+                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, batch_len=256, lr=0.005, checker_threshold=0.8, **train_config_kwargs)
+            else:
+                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, **train_config_kwargs)
             trainer = ContextTrainer(trainer_config)
             trainer.train(model, task, as_batch=as_batch)
 
