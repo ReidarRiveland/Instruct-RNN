@@ -33,7 +33,7 @@ if __name__ == "__main__":
         if model in full_models.shallow_models: 
             layer_list = ['task']
         elif model in full_models.big_models: 
-            layer_list = [str(layer) for layer in range(1, 25)] + ['full', 'task']
+            layer_list = [str(layer) for layer in range(12, 25)] + ['full', 'task']
         elif 'bow' in model: 
             layer_list = ['bow', 'full', 'task']
         else: 
@@ -47,6 +47,7 @@ if __name__ == "__main__":
         if 'ccgp' in args.mode: 
             for layer in layer_list:
                 if args.mode == 'holdout_ccgp':
+
                     get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
                 elif args.mode == 'multi_ccgp': 
                     get_multitask_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)

@@ -24,23 +24,23 @@ class EncoderDecoder(nn.Module):
         if 'clip' in sm_model.model_name :
             decoder.tokenizer.index2word[2] = '<|endoftext|>'
 
-    def load_model_componenets(self, load_folder, seed):
+    def load_model_componenets(self, load_folder, seed, tasks=TASK_LIST):
         self.sm_model.load_model(load_folder, suffix='_seed'+str(seed))
         self.decoder.load_model(load_folder, suffix='_seed'+str(seed))
-        self.init_context_set(load_folder, seed)
+        self.init_context_set(load_folder, seed, tasks)
 
-    def init_context_set(self, file_name, seed, verbose=False):
+    def init_context_set(self, file_name, seed, tasks, verbose=True):
         context_dim = self.sm_model.langModel.LM_intermediate_lang_dim
         all_contexts = np.full((len(TASK_LIST), 100, context_dim), np.nan)
-        for i, task in enumerate(TASK_LIST):
-            try: 
-                filename = file_name+'/contexts/seed'+str(seed)+'_'+task+'_context_vecs'+str(context_dim)
-                task_contexts = pickle.load(open(filename, 'rb'))
-                all_contexts[i, ...]=task_contexts[:100, :]
-            except FileNotFoundError: 
-                if verbose:
-                    print(filename)
-                    print('no contexts for '+task+' for model file')
+        for i, task in enumerate(tasks):
+            #try: 
+            filename = file_name+'contexts/seed'+str(seed)+'_'+task+'_context_vecs'+str(context_dim)
+            task_contexts = pickle.load(open(filename, 'rb'))
+            all_contexts[TASK_LIST.index(task), ...]=task_contexts[:100, :]
+            # except FileNotFoundError: 
+            #     if verbose:
+            #         print(filename)
+            #         print('no contexts for '+task+' for model file')
 
         self.contexts = all_contexts
 

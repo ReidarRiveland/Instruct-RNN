@@ -145,7 +145,7 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
                 mean, std = data.avg_tasks()
                 _plot_performance_curve(mean, std, ax2, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
 
-    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=4, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
+    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
     plt.show()
 
 def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5)): 
@@ -453,7 +453,7 @@ def plot_tuning_curve(model, tasks, unit, times, num_trials=50, num_repeats=20, 
     plt.show()
 
 
-def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeats = 10, cmap=sns.color_palette("inferno", as_cmap=True)):
+def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeats = 10, smoothing = 1e-7, cmap=sns.color_palette("inferno", as_cmap=True)):
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
     hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=[task], num_repeats=num_repeats, main_var=True)[0,...]
 
@@ -464,7 +464,7 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeat
         labels = ["0.3", "1.8"]
         cmap = plt.get_cmap('plasma') 
     elif task_variable =='diff_strength': 
-        labels = ["delta -0.5", "delta 0.5"]
+        labels = [r"$\Delta$ -0.5", r"$\Delta$ 0.5"]
         cmap = plt.get_cmap('plasma') 
 
     cNorm  = colors.Normalize(vmin=0, vmax=num_trials)
@@ -474,7 +474,7 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeat
     print(hid_mean.shape)
     ylim = np.max(hid_mean[..., unit])
     for i in range(hid_mean.shape[0]):
-        axn.plot(hid_mean[i, :, unit], c = scalarMap.to_rgba(i))
+        axn.plot( gaussian_filter1d(hid_mean[i, :, unit], smoothing), c = scalarMap.to_rgba(i))
 
 
     plt.xticks([30, 130], labels=['Stim. Onset', 'Reponse'])
@@ -482,7 +482,7 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeat
     plt.vlines(30, -1.5, ylim+0.15, colors='k', linestyles='dashed')
 
     axn.set_ylim(0, ylim+0.15)
-    cbar = plt.colorbar(scalarMap, orientation='vertical', label = task_variable.replace('_', ' '), ticks = [0, 100])
+    cbar = plt.colorbar(scalarMap, orientation='vertical', label = task_variable.replace('_', ' '), ticks = [0, hid_mean.shape[0]])
     #plt.title(task + ' response for Unit' + str(unit))
     cbar.set_ticklabels(labels)
 
