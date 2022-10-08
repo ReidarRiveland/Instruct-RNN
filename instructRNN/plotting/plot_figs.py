@@ -95,3 +95,18 @@ unit=113
 plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothing=1)
 plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1)
 
+
+
+
+EXP_FILE = '7.20models/swap_holdouts'
+clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap5'
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
+
+
+
+unit=4
+plot_neural_resp(clipNet, 'DM','diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'AntiDM','diff_strength', unit, num_trials=25, smoothing=1)
+
+plot_tuning_curve(clipNet, ['DM', 'AntiDM'], 4, [120]*6, smoothing=1)
