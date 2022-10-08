@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import itertools
 import instructRNN.models.full_models as full_models
 from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP, get_layer_dim, get_val_perf
@@ -45,12 +46,16 @@ if __name__ == "__main__":
         if 'ccgp' in args.mode: 
             for layer in layer_list:
                 if args.mode == 'holdout_ccgp':
-
-                    get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
+                    try:
+                        np.load(EXP_FOLDER+'/CCGP_scores/'+model+'/'+'layer'+layer+'_task_holdout_seed'+str(_seed)+'.npy')
+                        print('Already trained: '+EXP_FOLDER+'/'+'layer'+layer+'_task_holdout_seed'+str(_seed))
+                        continue
+                    except FileNotFoundError:
+                        get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
                 elif args.mode == 'multi_ccgp': 
                     get_multitask_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
 
-        elif 'dim' in args.mode: 
+        elif 'dim' in args.mode:    
             for layer in layer_list:
                 get_layer_dim(EXP_FOLDER, model, _seed, layer= layer, save=True)
                 

@@ -18,45 +18,15 @@ from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
 
-var_exp, thresholds = load_holdout_dim_measures('7.20models/swap_holdouts', 'clipNet_lin', ['task'], verbose=True)
-
-np.mean(var_exp, axis=(0,1,2))
-
-np.mean(thresholds)
-
-
-model_list = ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'simpleNet']
-
-
-
-
-
-plot_layer_dim(model_list, 'task')
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 decoded_set = get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', 4, from_contexts=True)
 
 
+decoded_set[0].keys()
 
-
-
-
-
-
-
+perf_array = test_partner_model('clipNet_lin', decoded_set[0], 50, tasks=decoded_set[0].keys())
+np.nanmean(perf_array[0])
 
 
 

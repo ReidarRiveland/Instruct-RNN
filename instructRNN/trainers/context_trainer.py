@@ -28,7 +28,7 @@ class ContextTrainerConfig():
     context_dim: int    
     num_contexts: int = 100
 
-    epochs: int = 15
+    epochs: int = 5
     min_run_epochs: int = 1
     batch_len: int = 64
     num_batches: int = 800
@@ -168,7 +168,7 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer,
         context_dim = model.langModel.LM_intermediate_lang_dim 
     file_name = exp_folder+'/'+labels+'/'+model_name+'/contexts'
 
-    for task in tasks: 
+    for task in tasks[::-1]: 
         if not overwrite and check_already_trained(file_name, seed, task, context_dim):
             continue 
         else:        
