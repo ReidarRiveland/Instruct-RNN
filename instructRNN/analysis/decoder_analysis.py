@@ -18,11 +18,14 @@ def get_holdout_decoded_set(foldername, model_name, seed, from_contexts=False):
 
     for swap_label, swap_tasks in SWAPS_DICT.items(): 
         print(swap_label)
-        encoder.load_model_componenets(foldername+'/'+swap_label+'/'+model_name+'/', seed, swap_tasks)
-        _shallow, _rich, _confuse_mat = encoder.decode_set(50, 1, tasks=swap_tasks, from_contexts=from_contexts)
-        shallow_decoded_set = {**_shallow, **shallow_decoded_set}
-        rich_decoded_set = {**_rich, **rich_decoded_set}
-        confuse_mat[[TASK_LIST.index(task) for task in swap_tasks], :] = _confuse_mat
+        try: 
+            encoder.load_model_componenets(foldername+'/'+swap_label+'/'+model_name+'/', seed, swap_tasks)
+            _shallow, _rich, _confuse_mat = encoder.decode_set(50, 1, tasks=swap_tasks, from_contexts=from_contexts)
+            shallow_decoded_set = {**_shallow, **shallow_decoded_set}
+            rich_decoded_set = {**_rich, **rich_decoded_set}
+            confuse_mat[[TASK_LIST.index(task) for task in swap_tasks], :] = _confuse_mat
+        except: 
+            pass
 
     return rich_decoded_set, shallow_decoded_set, confuse_mat
 
