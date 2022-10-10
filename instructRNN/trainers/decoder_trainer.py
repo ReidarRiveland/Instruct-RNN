@@ -244,10 +244,14 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, 
         return True
 
     print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts)+  '\n')
+    if use_holdouts:
+        holdouts=holdouts
+    else: 
+        holdouts = []
+
     model = make_default_model(model_name)   
     model.load_model(file_name, suffix='_seed'+str(seed))
     model.to(device)
-
 
     decoder = DecoderRNN(256)
     decoder.to(device)
@@ -257,12 +261,11 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, 
             decoder, trainer = load_checkpoint(decoder, file_name+'/decoders', seed)
         except FileNotFoundError: 
             'NO checkpoint found, training model from starting point'
-            trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, **train_config_kwargs)
+            trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)    
             trainer = DecoderTrainer(trainer_config)
     else: 
-        trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, **train_config_kwargs)
+        trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)
         trainer = DecoderTrainer(trainer_config)
-    #if use_holdouts: trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)
     
     trainer.train(model, decoder)
 
