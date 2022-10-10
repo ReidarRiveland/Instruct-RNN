@@ -546,4 +546,27 @@ def get_cluster_info(load_folder, model_name, seed):
     return norm_task_var, cluster_labels
     
 
+def get_model_clusters(foldername, model_name, seed, num_repeats=10, save=False):
+    if 'swap' in foldername: 
+        exp_dict = SWAPS_DICT
+
+    num_cluster_array = np.full((len(exp_dict), num_repeats), np.nan)
+    model = make_default_model(model_name)
+
+    for i, holdout_file in enumerate(exp_dict.keys()):
+        for j in range(num_repeats):
+            print('processing '+ holdout_file)
+            model.load_model(foldername+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
+            task_hid_reps = get_task_reps(model, num_trials = 100, epoch=None, tasks= [task for task in TASK_LIST if 'Con' not in task], max_var=True)
+            task_var = get_norm_task_var(task_hid_reps)
+            optim_clusters = get_optim_clusters(task_var)
+            num_cluster_array[i, j] = optim_clusters
+
+
+    if save:
+        file_path = foldername+'/cluster_measures/'+model_name
+        if os.path.exists(file_path):
+            pass
+        else: os.makedirs(file_path)
+        np.save(file_path+'/optim_clusters_seed'+str(seed), num_cluster_array)
 

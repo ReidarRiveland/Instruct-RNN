@@ -2,14 +2,14 @@ import os
 import numpy as np
 import itertools
 import instructRNN.models.full_models as full_models
-from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP, get_layer_dim, get_val_perf
+from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP, get_layer_dim, get_val_perf, get_model_clusters
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('folder', help='folder where models and data will be stored')
     parser.add_argument('exp', help='type of experiment, refering to which holdout sets to use, must be \'swap\' or \'aligned\' ')
-    parser.add_argument('--mode', default='ccgp', help='training mode to use, must be \'train\', \'tune\', \'test\', \'decoder\' ( \'d\'),\'context\' ( \'c\')')
+    parser.add_argument('--mode', default='holdout_ccgp', help='training mode to use, must be \'train\', \'tune\', \'test\', \'decoder\' ( \'d\'),\'context\' ( \'c\')')
     parser.add_argument('--models', default=full_models.small_models, nargs='*', help='list of model names to train, default is all models')
     parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')
 
@@ -59,8 +59,13 @@ if __name__ == "__main__":
             for layer in layer_list:
                 get_layer_dim(EXP_FOLDER, model, _seed, layer= layer, save=True)
                 
-        if args.mode == 'val':
+        elif args.mode == 'val':
             get_val_perf(EXP_FOLDER, model, _seed, save=True)
                 
+        elif args.mode == 'clusters':
+            get_model_clusters(EXP_FOLDER, model, _seed, save=True)
+                
+
+
 
 
