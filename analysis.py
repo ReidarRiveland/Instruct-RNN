@@ -44,7 +44,7 @@ if __name__ == "__main__":
         print(_seed)
 
         if 'ccgp' in args.mode: 
-            for layer in layer_list:
+            for layer in layer_list[::-1]:
                 if args.mode == 'holdout_ccgp':
                     try:
                         np.load(EXP_FOLDER+'/CCGP_scores/'+model+'/'+'layer'+layer+'_task_holdout_seed'+str(_seed)+'.npy')
