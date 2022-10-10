@@ -54,6 +54,12 @@ class ContextTrainer(BaseTrainer):
         filename = self.file_path+'/'+self.seed_suffix+'_'+task
         pickle.dump(contexts.detach().cpu().numpy(), open(filename+'_context_vecs'+str(self.context_dim), 'wb'))
 
+    def _record_chk(self, contexts, task): 
+        if os.path.exists(self.file_path):pass
+        else: os.makedirs(self.file_path)
+        filename = self.file_path+'/'+self.seed_suffix+'_'+task
+        pickle.dump(contexts.detach().cpu().numpy(), open(filename+'_chk_context_vecs'+str(self.context_dim), 'wb'))
+
     def _log_step(self, task_type, frac_correct, loss, task_loss= None, sparsity_loss=None): 
         self.correct_data[task_type].append(frac_correct)
         self.loss_data[task_type].append(loss)
@@ -70,7 +76,7 @@ class ContextTrainer(BaseTrainer):
 
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        nn.init.normal_(context, std=2.5)
+        nn.init.normal_(context, std=1)
         return context
     
     def _init_optimizer(self, context):
@@ -119,7 +125,7 @@ class ContextTrainer(BaseTrainer):
         warnings.warn('Model has not reach specified performance threshold during training')
         return False
     
-    def train(self, model, task, as_batch=True):
+    def train(self, model, task, as_batch=False, chk_contexts=None, range_start=0):
         self.streamer = TaskDataSet(self.file_path.partition('/')[0], 
                 self.stream_data, 
                 self.batch_len, 
@@ -135,14 +141,19 @@ class ContextTrainer(BaseTrainer):
             return is_trained
 
         else: 
-            all_contexts = torch.empty((self.num_contexts, self.context_dim))
-            for i in range(self.num_contexts): 
+            if chk_contexts is not None: 
+                all_contexts=chk_contexts
+            else: 
+                all_contexts = torch.full((self.num_contexts, self.context_dim), np.nan)
+
+            for i in range(range_start, self.num_contexts): 
                 is_trained = False 
                 while not is_trained: 
                     print('Training '+str(i)+'th context')
-                    context = self._init_contexts(20)
+                    context = self._init_contexts(1)
                     is_trained = self._train(model, context)
                 all_contexts[i, :] = torch.mean(context, dim=0)
+                self._record_chk(all_contexts, task)
             self._record_session(all_contexts, task)                
 
 
@@ -153,6 +164,15 @@ def check_already_trained(file_name, seed, task, context_dim):
         return True
     except FileNotFoundError:
         return False
+
+def load_chk(file_name, seed, task, context_dim): 
+    try: 
+        chk_contexts = pickle.load(open(file_name+'/seed'+str(seed)+'_'+task+'_chk_context_vecs'+str(context_dim), 'rb'))
+        chk_index_start = np.max(np.where(np.isnan(chk_contexts)[:, 0] == False))
+        print('\n contexts at ' + file_name + ' for seed '+str(seed)+' and task '+task+' loading checkpoint')
+        return chk_contexts, chk_index_start
+    except FileNotFoundError:
+        return None, 0
 
 def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, 
                     as_batch = False, tasks = TASK_LIST, overwrite=False, **train_config_kwargs): 
@@ -178,5 +198,5 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer,
             else:
                 trainer_config = ContextTrainerConfig(file_name, seed, context_dim, **train_config_kwargs)
             trainer = ContextTrainer(trainer_config)
-            trainer.train(model, task, as_batch=as_batch)
-
+            chk_contexts, chk_start_range = load_chk(file_name, seed, task, context_dim)
+            trainer.train(model, task, as_batch=as_batch, chk_contexts=chk_contexts, range_start=chk_start_range)
