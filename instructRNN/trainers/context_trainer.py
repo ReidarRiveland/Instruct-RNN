@@ -142,7 +142,7 @@ class ContextTrainer(BaseTrainer):
 
         else: 
             if chk_contexts is not None: 
-                all_contexts=chk_contexts
+                all_contexts=torch.tensor(chk_contexts)
             else: 
                 all_contexts = torch.full((self.num_contexts, self.context_dim), np.nan)
 
@@ -155,6 +155,7 @@ class ContextTrainer(BaseTrainer):
                 all_contexts[i, :] = torch.mean(context, dim=0)
                 self._record_chk(all_contexts, task)
             self._record_session(all_contexts, task)                
+
 
 
 def check_already_trained(file_name, seed, task, context_dim): 

@@ -68,7 +68,7 @@ def _draw_durs(num_trials, multi, tar=None):
                                 [short1, long1]]))
     else: 
         long_dur = np.floor(np.random.uniform(700, 1000, num_trials)/DELTA_T).astype(int)
-        short_dur = np.floor(np.random.uniform(500, (long_dur*DELTA_T)-150, num_trials)/DELTA_T).astype(int)
+        short_dur = np.floor(np.random.uniform(500, (long_dur*DELTA_T)-160, num_trials)/DELTA_T).astype(int)
         if tar == 'short':
             _durs = np.array([long_dur, short_dur])[None, ...]
         else:
