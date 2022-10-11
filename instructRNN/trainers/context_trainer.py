@@ -28,14 +28,14 @@ class ContextTrainerConfig():
     context_dim: int    
     num_contexts: int = 100
 
-    epochs: int = 5
+    epochs: int = 8
     min_run_epochs: int = 1
     batch_len: int = 64
     num_batches: int = 800
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.02
+    lr: float = 0.01
     weight_decay: float = 0.0
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
