@@ -255,7 +255,7 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, 
     if not overwrite and check_decoder_trained(file_name+'/decoders', seed, use_holdouts, use_dropout):
         return True
 
-    print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts)+ 'with dropout' + str(use_dropout) + \n')
+    print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts)+ 'with dropout' + str(use_dropout) + '\n')
     if use_holdouts:
         holdouts=holdouts
     else: 
