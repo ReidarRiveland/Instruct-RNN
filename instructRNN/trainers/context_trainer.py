@@ -195,7 +195,7 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer,
         else:        
             print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ '\n')
             if task == 'DMC' or 'task' =='DNMC':
-                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, batch_len=256, checker_threshold=0.8, **train_config_kwargs)
+                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, batch_len=64, checker_threshold=0.8, **train_config_kwargs)
             else:
                 trainer_config = ContextTrainerConfig(file_name, seed, context_dim, **train_config_kwargs)
             trainer = ContextTrainer(trainer_config)
