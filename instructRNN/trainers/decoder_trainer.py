@@ -101,18 +101,18 @@ class DecoderTrainer(BaseTrainer):
         else: os.makedirs(self.file_path)
 
         if mode == 'CHECKPOINT':    
-            chk_path = record_file+'_CHECKPOINT'+holdouts_suffix
+            chk_path = record_file+'_CHECKPOINT'+holdouts_suffix+self.drop_str
             pickle.dump(checkpoint_attrs, open(chk_path+'_attrs', 'wb'))
             decoder.save_model(chk_path)
             torch.save(self.optimizer.state_dict(), chk_path+'_opt')
 
         if mode=='FINAL': 
-            pickle.dump(checkpoint_attrs, open(record_file+'_attrs'+holdouts_suffix, 'wb'))
-            decoder.save_model(record_file+holdouts_suffix)
+            pickle.dump(checkpoint_attrs, open(record_file+'_attrs'+holdouts_suffix+self.drop_str, 'wb'))
+            decoder.save_model(record_file+holdouts_suffix+self.drop_str)
 
-            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'_attrs')
-            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'.pt')
-            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'_opt')
+            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+self.drop_str+'_attrs')
+            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+self.drop_str+'.pt')
+            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+self.drop_str+'_opt')
 
 
     def _init_streamer(self):
@@ -147,6 +147,11 @@ class DecoderTrainer(BaseTrainer):
             self.optimizer.load_state_dict(torch.load(opt_path))  
 
     def train(self, sm_model, decoder): 
+        if decoder.drop_p > 0.0:
+            self.drop_str = 'wDropout'
+        else: 
+            self.drop_str = ''
+
         criterion = nn.NLLLoss(reduction='mean')
         self.pad_len  = decoder.tokenizer.pad_len 
          
@@ -207,14 +212,20 @@ class DecoderTrainer(BaseTrainer):
             print('Teacher Force Ratio: ' + str(self.teacher_forcing_ratio))
         self._record_session(decoder, 'FINAL')
 
-def check_decoder_trained(file_name, seed, use_holdouts): 
+def check_decoder_trained(file_name, seed, use_holdouts, use_dropout): 
     if use_holdouts: 
         holdouts_suffix = '_wHoldout'
     else: 
         holdouts_suffix = ''
 
+    if use_dropout: 
+        drop_str = '_wDropout'
+    else: 
+        drop_str = ''
+
+
     try: 
-        pickle.load(open(file_name+'/rnn_decoder_seed'+str(seed)+holdouts_suffix+'_attrs', 'rb'))
+        pickle.load(open(file_name+'/rnn_decoder_seed'+str(seed)+holdouts_suffix+drop_str+'_attrs', 'rb'))
         print('\n Model at ' + file_name + ' for seed '+str(seed)+' and holdouts ' + str(use_holdouts) +' aleady trained')
         return True
     except FileNotFoundError:
@@ -236,15 +247,15 @@ def load_checkpoint(model, file_name, seed):
     trainer = DecoderTrainer.from_checkpoint(checkpoint_path)
     return model, trainer
 
-def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, use_checkpoint = False, overwrite=False, **train_config_kwargs): 
+def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, use_checkpoint = False, overwrite=False, use_dropout=False, **train_config_kwargs): 
     torch.manual_seed(seed)
     label, holdouts = labeled_holdouts
     file_name = exp_folder+'/'+label+'/'+model_name
 
-    if not overwrite and check_decoder_trained(file_name+'/decoders', seed, use_holdouts):
+    if not overwrite and check_decoder_trained(file_name+'/decoders', seed, use_holdouts, use_dropout):
         return True
 
-    print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts)+  '\n')
+    print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts)+ 'with dropout' + str(use_dropout) + \n')
     if use_holdouts:
         holdouts=holdouts
     else: 
@@ -253,8 +264,9 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, 
     model = make_default_model(model_name)   
     model.load_model(file_name, suffix='_seed'+str(seed))
     model.to(device)
-
-    decoder = DecoderRNN(256)
+    if use_dropout: p=0.1
+    else: p=0.0
+    decoder = DecoderRNN(256, drop_p=p)
     decoder.to(device)
 
     if use_checkpoint:

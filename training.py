@@ -44,6 +44,8 @@ if __name__ == "__main__":
     parser.add_argument('--layer', default='emb', help='the dim corresponding to the layer the contexts gets trained at, \
                                                     must be emd or last, only for use if mode is context')
     parser.add_argument('--use_holdouts', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
+    parser.add_argument('--use_dropout', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
+
     parser.add_argument('--job_index', type=int, help='for use with slurm sbatch script, indexes the combination of seed and holdout tasks along with the model')
     args = parser.parse_args()
 
@@ -85,5 +87,5 @@ if __name__ == "__main__":
 
         if args.mode == 'decoder' or args.mode == 'd': 
             from instructRNN.trainers.decoder_trainer import *
-            train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, use_checkpoint = args.use_checkpoint, overwrite=args.overwrite)
+            train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, use_checkpoint = args.use_checkpoint, use_dropout = args.use_dropout, overwrite=args.overwrite)
 

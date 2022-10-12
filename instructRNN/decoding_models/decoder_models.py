@@ -3,10 +3,8 @@ import numpy as np
 
 import torch
 import torch.nn as nn
-import pickle
 
-from instructRNN.instructions.instruct_utils import train_instruct_dict, count_vocab
-from instructRNN.tasks.tasks import TASK_LIST
+from instructRNN.instructions.instruct_utils import count_vocab
 from instructRNN.models.script_gru import ScriptGRU
 
 device = torch.device(0)
@@ -77,40 +75,7 @@ class RNNtokenizer():
         else:
             self.word2count[word] += 1
 
-class BaseDecoder(nn.Module):
-    def __init__(self):
-        super(BaseDecoder, self).__init__()
-
-        self.init_instructions(train_instruct_dict)
-        self.contexts = None
-        self.validation_ratio = 0.2
-
-    def init_instructions(self, instruct_dict): 
-        self.instruct_dict = instruct_dict
-        self.instruct_array = np.array([self.instruct_dict[task] for task in TASK_LIST]).squeeze()
-
-    def save_model(self, save_string): 
-        torch.save(self.state_dict(), save_string+'.pt')
-
-    def save_model_data(self, save_string): 
-        pickle.dump(self.teacher_loss_list, open(save_string+'_teacher_loss_list', 'wb'))
-        pickle.dump(self.loss_list, open(save_string+'_loss_list', 'wb'))
-
-    def load_model(self, load_string, suffix=''): 
-        self.load_state_dict(torch.load(load_string+'decoders/'+self.decoder_name+suffix+'.pt', map_location=torch.device('cpu')))
-
-    def get_instruct_embedding_pair(self, task_index, instruct_index, training=True): 
-        assert self.contexts is not None, 'must initalize decoder contexts with init_context_set'
-        if training:
-            context_rep_index = np.random.randint(self.contexts.shape[1]-self.contexts.shape[1]*self.validation_ratio, size=instruct_index.shape[0])
-        else: 
-            context_rep_index = np.random.randint(self.contexts.shape[1],size=instruct_index.shape[0])
-        rep = self.contexts[task_index, context_rep_index, :]
-        instruct = self.instruct_array[task_index, instruct_index]
-        return list(instruct), torch.Tensor(rep)
-
-
-class DecoderRNN(BaseDecoder):
+class DecoderRNN(nn.Module):
     def __init__(self, hidden_size, sm_hidden_dim=256, drop_p = 0.0):
         super().__init__()
         self.decoder_name = 'rnn_decoder'
@@ -122,6 +87,13 @@ class DecoderRNN(BaseDecoder):
         self.out = nn.Linear(self.hidden_size, self.tokenizer.n_words)
         self.sm_decoder = SMDecoder(self.hidden_size, sm_hidden_dim, drop_p=drop_p)
         self.softmax = nn.LogSoftmax(dim=1)
+        self.drop_p = drop_p
+
+    def save_model(self, save_string): 
+        torch.save(self.state_dict(), save_string+'.pt')
+        
+    def load_model(self, load_string, suffix=''): 
+        self.load_state_dict(torch.load(load_string+'decoders/'+self.decoder_name+suffix+'.pt', map_location=torch.device('cpu')))
 
     def draw_next(self, logits, k_sample=1):
         top_k = logits.topk(k_sample)
