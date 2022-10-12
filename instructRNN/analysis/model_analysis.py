@@ -336,7 +336,7 @@ def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array, use_mean, max_iter=1
         else: 
             continue
 
-def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task', use_mean=False, max_iter=10_000_000): 
+def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task', use_mean=False, instruct_mode='combined', max_iter=10_000_000): 
     holdout_CCGP = np.full((len(TASK_LIST), len(DICH_DICT)), np.NAN)
     if 'swap_holdouts' in exp_folder: 
         exp_dict = SWAPS_DICT
@@ -348,9 +348,9 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
 
         if layer == 'task':
-            reps = get_task_reps(model, num_trials = 250, instruct_mode='combined', epoch=epoch)
+            reps = get_task_reps(model, num_trials = 250, instruct_mode=instruct_mode, epoch=epoch)
         else: 
-            reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
+            reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode=instruct_mode)
 
         update_holdout_CCGP(reps, holdouts, holdout_CCGP, use_mean=use_mean, max_iter=max_iter)
 
@@ -362,9 +362,9 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         if os.path.exists(file_path):
             pass
         else: os.makedirs(file_path)
-        np.save(file_path+'/'+'layer'+layer+'_task_holdout_seed'+str(seed), task_holdout_scores)
-        np.save(file_path+'/'+'layer'+layer+'_dich_holdout_seed'+str(seed), dich_holdout_scores)
-        np.save(file_path+'/'+'layer'+layer+'_array_holdout_seed'+str(seed), holdout_CCGP)
+        np.save(file_path+'/'+'layer'+layer+'_task_holdout_seed'+str(seed)+instruct_mode, task_holdout_scores)
+        np.save(file_path+'/'+'layer'+layer+'_dich_holdout_seed'+str(seed)+instruct_mode, dich_holdout_scores)
+        np.save(file_path+'/'+'layer'+layer+'_array_holdout_seed'+str(seed)+instruct_mode, holdout_CCGP)
 
 
     return task_holdout_scores, dich_holdout_scores, holdout_CCGP

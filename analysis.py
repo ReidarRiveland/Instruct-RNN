@@ -53,6 +53,9 @@ if __name__ == "__main__":
                 except FileNotFoundError:
                     get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
 
+        if args.mode == 'swap_ccgp':
+            get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= 'task', instruct_mode='swap', save=True)
+
         elif args.mode == 'multi_ccgp': 
             get_multitask_CCGP(EXP_FOLDER, model, _seed, layer= 'task', save=True)
 
