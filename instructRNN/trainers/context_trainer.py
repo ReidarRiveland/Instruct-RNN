@@ -26,7 +26,7 @@ class ContextTrainerConfig():
     file_path: str
     random_seed: int
     context_dim: int    
-    num_contexts: int = 100
+    num_contexts: int = 64
 
     epochs: int = 8
     min_run_epochs: int = 1
