@@ -5,11 +5,9 @@ from instructRNN.models.sensorimotor_models import *
 all_models = ['simpleNet', 'simpleNetPlus',
             'comNet', 'comNetPlus',
 
-            'gptNetXL', 'gptNetXL_tuned',
             'gptNetXL_lin', 'gptNetXL_lin_tuned',
 
-            #'gptNet', 'gptNetXL_tuned',
-            #'gptNet_lin', 'gptNet_lin_tuned',
+            'gptNet_lin', 'gptNet_lin_tuned',
 
             #'bertNet', 'bertNet_tuned',
             'bertNet_lin', 'bertNet_lin_tuned',
@@ -20,7 +18,7 @@ all_models = ['simpleNet', 'simpleNetPlus',
             #'clipNet', 'clipNet_tuned', 
             'clipNet_lin', 'clipNet_lin_tuned', 
 
-            'bowNet', 'bowNet_lin'
+            'bowNet_lin'
             ]
 
 small_models = [model for model in all_models if 'XL' not in model] 
