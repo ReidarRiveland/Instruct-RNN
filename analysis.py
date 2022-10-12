@@ -43,17 +43,18 @@ if __name__ == "__main__":
         print(model)
         print(_seed)
 
-        if 'ccgp' in args.mode: 
+
+        if args.mode == 'holdout_ccgp':
             for layer in layer_list[::-1]:
-                if args.mode == 'holdout_ccgp':
-                    try:
-                        np.load(EXP_FOLDER+'/CCGP_scores/'+model+'/'+'layer'+layer+'_task_holdout_seed'+str(_seed)+'.npy')
-                        print('Already trained: '+EXP_FOLDER+'/'+'layer'+layer+'_task_holdout_seed'+str(_seed))
-                        continue
-                    except FileNotFoundError:
-                        get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
-                elif args.mode == 'multi_ccgp': 
-                    get_multitask_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
+                try:
+                    np.load(EXP_FOLDER+'/CCGP_scores/'+model+'/'+'layer'+layer+'_task_holdout_seed'+str(_seed)+'.npy')
+                    print('Already trained: '+EXP_FOLDER+'/'+'layer'+layer+'_task_holdout_seed'+str(_seed))
+                    continue
+                except FileNotFoundError:
+                    get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
+
+        elif args.mode == 'multi_ccgp': 
+            get_multitask_CCGP(EXP_FOLDER, model, _seed, layer= 'task', save=True)
 
         elif 'dim' in args.mode:    
             for layer in layer_list:
