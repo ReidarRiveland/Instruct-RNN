@@ -348,7 +348,7 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
 
         if layer == 'task':
-            reps = get_task_reps(model, num_trials = 250, instruct_mode='combined', epoch=epoch, noise=0.0)
+            reps = get_task_reps(model, num_trials = 250, instruct_mode='combined', epoch=epoch)
         else: 
             reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
 
@@ -384,7 +384,7 @@ def load_multi_ccgp(model_name, seeds=range(5), layer='task'):
     return task_holdout_array, dich_holdout_array
 
 def load_holdout_ccgp(folder_name, model_name, layer_list, seeds, verbose=False): 
-    task_holdout_array = np.full((len(seeds), len(layer_list), len(TASK_LIST)), np.nan)
+    task_holdout_array = np.full((len(seeds), len(layer_list), len(TASK_LIST)), np.nan)        
 
     for i, seed in enumerate(seeds):
         for j, layer in enumerate(layer_list):

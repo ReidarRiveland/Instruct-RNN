@@ -56,7 +56,7 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Bl
 
 def get_task_color(task): 
     index = TASK_LIST.index(task)
-    return plt.get_cmap('Paired')(index%12)
+    return plt.get_cmap('Paired')(index%16)
 
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
@@ -148,7 +148,32 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
     fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
     plt.show()
 
-def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5)): 
+def plot_all_task_lolli(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5)):
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 14))
+
+    width = 1/(len(model_list)+1)
+    ind = np.arange(len(TASK_LIST))
+
+    for i, model_name in enumerate(model_list): 
+        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
+        zero_shot, std = data.avg_seeds(k_shot=0)
+        axn.scatter( zero_shot[::-1], (ind+(width/2))+(i*width), marker='o', s = 2, color=MODEL_STYLE_DICT[model_name][0])
+        #axn.scatter( zero_shot[::-1], ind, marker='o', s = 3, color=MODEL_STYLE_DICT[model_name][0])
+        axn.hlines((ind+(width/2))+(i*width), xmin=zero_shot[::-1]-std[::-1], xmax=np.min((np.ones_like(std), zero_shot[::-1]+std[::-1]), axis=0), color=MODEL_STYLE_DICT[model_name][0], linewidth=0.2)
+        #axn.hlines(ind, xmin=zero_shot[::-1]-std[::-1], xmax=zero_shot[::-1]+std[::-1], color=MODEL_STYLE_DICT[model_name][0], linewidth=0.4)
+
+    axn.set_yticks(ind)
+    axn.set_yticklabels('')
+    axn.tick_params(axis='y', which='minor', bottom=False)
+    axn.set_yticks(ind+0.5, minor=True)
+    axn.set_yticklabels(TASK_LIST[::-1], fontsize=4, minor=True) 
+    axn.set_xticks(np.linspace(0, 1, 11))
+
+    axn.set_xticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5)
+    axn.set_ylim(-0.15, len(TASK_LIST))
+    plt.show()
+
+def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_err=False): 
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
     fig.suptitle('Zero-Shot Performance Across Tasks')
 
@@ -167,19 +192,21 @@ def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct',
 
     axn.set_yticks(np.arange(11))
     axn.yaxis.set_ticks_position('none') 
-
     axn.set_yticklabels('') 
 
     for i, model_name in enumerate(model_list):
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode=mode, seeds=seeds)
-        mean, _ = data.avg_seeds(k_shot=0)
-        bins = np.zeros(10)
-        for perf in mean: 
-            bins[int(np.floor((perf*10)-1e-5))]+=1
-        axn.barh((ind+(width/2))+(i*width), bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.6)
+        perf = data.data[:, :, 0]
+        bins = np.zeros((len(range(5)), 10))
+        for iy, ix in np.ndindex(perf.shape):
+            bins[iy, int(np.floor((perf[iy, ix]*10)-1e-5))]+=1
+        mean_bins = np.mean(bins, axis=0)
+        std_bins = np.std(bins, axis=0)
 
+        axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.6)
+        if plot_err:
+            axn.hlines((ind+(width))+(i*width), np.max((np.zeros_like(mean_bins), mean_bins-std_bins), axis=0), mean_bins+std_bins, color='black', linewidth=0.5)
     plt.show()
-
 
 def plot_all_curves(dataframe, axn, **plt_args):
     for j, task in enumerate(TASK_LIST):
@@ -322,12 +349,12 @@ def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwar
         Patches.append(patch)
     return Patches
 
-def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_trials =50, epoch= 'stim_start', instruct_mode = None, **scatter_kwargs): 
+def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_trials =50, epoch= 'stim_start', instruct_mode = 'combined', **scatter_kwargs): 
     if pcs is None: 
         pcs = range(dims)
 
     if rep_depth == 'task': 
-        reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True, instruct_mode=instruct_mode, noise=0.0)
+        reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True, instruct_mode=instruct_mode)
     elif rep_depth != 'task': 
         reps = get_instruct_reps(model.langModel, depth=rep_depth, instruct_mode=instruct_mode)
     reduced, _ = reduce_rep(reps, pcs=pcs)
@@ -493,7 +520,7 @@ def plot_ccgp_corr(folder, exp_type, model_list):
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
     corr, p_val, ccgp, perf = get_perf_ccgp_corr(folder, exp_type, model_list)
     a, b = np.polyfit(perf.flatten(), ccgp.flatten(), 1)
-    
+    print(p_val)
     fig.suptitle('CCGP Correlates with Generalization')
     axn.set_ylim(0.475, 1)
     axn.set_ylabel('Holdout Task CCGP', size=8, fontweight='bold')
@@ -503,32 +530,37 @@ def plot_ccgp_corr(folder, exp_type, model_list):
         axn.scatter(perf[i, :], ccgp[i, :], marker='.', c=MODEL_STYLE_DICT[model_name][0])
     x = np.linspace(0, 1, 100)
     axn.text(0.1, 0.95, "$r^2=$"+str(round(corr, 3)), fontsize='small')
+    axn.text(0.1, 0.93, "p<.001", fontsize=6)
+
     axn.plot(x, a*x+b, linewidth=0.8, linestyle='dotted', color='black')
     plt.show()
 
 def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False): 
-    layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
     
     fig.suptitle('CCGP Across Model Hierarchy')
     axn.set_ylim(0.475, 1)
     axn.set_ylabel('Holdout Task CCGP', size=8, fontweight='bold')
     axn.set_xlabel('Model Layer', size=8, fontweight='bold')
-    axn.set_xticklabels([str(x) for x in range(1, 13)] + ['embed', 'task']) 
 
-
-    axn.set_ylim(0.5, 1.0)
-    axn.set_xticks(range(len(layer_list)))
-    axn.set_xticklabels(layer_list)
     for model_name in model_list:
+        if model_name == 'gptNetXL_lin': 
+            layer_list = [str(x) for x in range(12, 24)] + ['full', 'task']
+        else: 
+            layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
+
         all_holdout_ccgp = load_holdout_ccgp(foldername, model_name, layer_list, seeds)
         axn.plot(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=(0,2)), marker='.', c=MODEL_STYLE_DICT[model_name][0], linewidth=0.6)
         if plot_multis:
             try: 
                 multi = load_multi_ccgp(model_name)
-                axn.scatter(len(layer_list)-1, np.mean(multi[0]), marker='*', c=MODEL_STYLE_DICT[model_name][0], s=8)
+                axn.scatter(len(layer_list)-1, np.mean(multi[0]), marker='*', c=MODEL_STYLE_DICT[model_name][0], s=10)
             except FileNotFoundError: 
                 pass
+
+    axn.set_xticklabels([str(x) for x in range(1, 13)] + ['embed', 'task']) 
+    axn.set_ylim(0.5, 1.0)
+    axn.set_xticks(range(len(layer_list)))
     plt.show()
 
 def plot_layer_dim(model_list, layer):

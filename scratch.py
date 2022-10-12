@@ -18,15 +18,17 @@ from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
 
+data = HoldoutDataFrame('7.20models', 'swap', 'simpleNet', perf_type='correct', seeds=range(5), mode='combined')
+
+data.avg_seeds('AntiDMMod1')
+
+decoded_set = get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', 3)
 
 
-decoded_set = get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', 4, from_contexts=True)
-
-
-decoded_set[0].keys()
+len(decoded_set[0].keys())
 
 perf_array = test_partner_model('clipNet_lin', decoded_set[0], 50, tasks=decoded_set[0].keys())
-np.nanmean(perf_array[0])
+list(zip(TASK_LIST, perf_array[0]))
 
 
 
