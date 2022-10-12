@@ -18,25 +18,51 @@ from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
 
-data = HoldoutDataFrame('7.20models', 'swap', 'simpleNet', perf_type='correct', seeds=range(5), mode='combined')
 
-data.avg_seeds('AntiDMMod1')
-
-decoded_set = get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', 3)
+decoded_set = get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', 0, from_contexts=True, with_holdouts=True)
 
 
-len(decoded_set[0].keys())
 
-perf_array = test_partner_model('clipNet_lin', decoded_set[0], 50, tasks=decoded_set[0].keys())
+plot_decoding_confuse_mat(decoded_set[-1], linewidth=0.25, annot_kws={'fontsize':4.5})
+
+
+
+decoded_set[0]['AntiCOMP2']['other']
+
+perf_array = test_partner_model('clipNet_lin', decoded_set[0], num_trials = 50, tasks=decoded_set[0].keys(), contexts=decoded_set[-1], partner_seed=3)
+
+
+
+np.mean(perf_array[2])
+
 list(zip(TASK_LIST, perf_array[0]))
 
 
 
+def plot_partner_perf_lolli(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5)):
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 14))
 
+    width = 1/(len(model_list)+1)
+    ind = np.arange(len(TASK_LIST))
 
+    for i, model_name in enumerate(model_list): 
+        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
+        zero_shot, std = data.avg_seeds(k_shot=0)
+        axn.scatter( zero_shot[::-1], (ind+(width/2))+(i*width), marker='o', s = 2, color=MODEL_STYLE_DICT[model_name][0])
+        #axn.scatter( zero_shot[::-1], ind, marker='o', s = 3, color=MODEL_STYLE_DICT[model_name][0])
+        axn.hlines((ind+(width/2))+(i*width), xmin=zero_shot[::-1]-std[::-1], xmax=np.min((np.ones_like(std), zero_shot[::-1]+std[::-1]), axis=0), color=MODEL_STYLE_DICT[model_name][0], linewidth=0.2)
+        #axn.hlines(ind, xmin=zero_shot[::-1]-std[::-1], xmax=zero_shot[::-1]+std[::-1], color=MODEL_STYLE_DICT[model_name][0], linewidth=0.4)
 
+    axn.set_yticks(ind)
+    axn.set_yticklabels('')
+    axn.tick_params(axis='y', which='minor', bottom=False)
+    axn.set_yticks(ind+0.5, minor=True)
+    axn.set_yticklabels(TASK_LIST[::-1], fontsize=4, minor=True) 
+    axn.set_xticks(np.linspace(0, 1, 11))
 
-
+    axn.set_xticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5)
+    axn.set_ylim(-0.15, len(TASK_LIST))
+    plt.show()
 
 
 

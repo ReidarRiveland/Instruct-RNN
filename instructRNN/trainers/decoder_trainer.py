@@ -107,12 +107,13 @@ class DecoderTrainer(BaseTrainer):
             torch.save(self.optimizer.state_dict(), chk_path+'_opt')
 
         if mode=='FINAL': 
-            os.remove(record_file+'_CHECKPOINT_attrs'+holdouts_suffix)
+            pickle.dump(checkpoint_attrs, open(record_file+'_attrs'+holdouts_suffix, 'wb'))
+            decoder.save_model(record_file+holdouts_suffix)
+
+            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'_attrs')
             os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'.pt')
             os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'_opt')
 
-            pickle.dump(checkpoint_attrs, open(record_file+'_attrs'+holdouts_suffix, 'wb'))
-            decoder.save_model(record_file+holdouts_suffix)
 
     def _init_streamer(self):
         self.streamer = TaskDataSet(self.file_path.partition('/')[0]+'/training_data', 

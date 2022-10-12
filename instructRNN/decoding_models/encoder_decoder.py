@@ -24,9 +24,16 @@ class EncoderDecoder(nn.Module):
         if 'clip' in sm_model.model_name :
             decoder.tokenizer.index2word[2] = '<|endoftext|>'
 
-    def load_model_componenets(self, load_folder, seed, tasks=TASK_LIST):
-        self.sm_model.load_model(load_folder, suffix='_seed'+str(seed))
-        self.decoder.load_model(load_folder, suffix='_seed'+str(seed))
+    def load_model_componenets(self, load_folder, seed, tasks=TASK_LIST, with_holdout=False):
+        suffix = '_seed'+str(seed)
+
+        if with_holdout:
+            decoder_suffix = suffix + '_CHECKPOINT_wHoldout'
+        else: 
+            decoder_suffix = suffix
+
+        self.sm_model.load_model(load_folder, suffix=suffix)
+        self.decoder.load_model(load_folder, suffix=decoder_suffix)
         self.init_context_set(load_folder, seed, tasks)
 
     def init_context_set(self, file_name, seed, tasks, verbose=True):

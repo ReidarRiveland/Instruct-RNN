@@ -62,7 +62,7 @@ class RNNtokenizer():
         sent = []
         for token in tokens: 
             sent.append(self.index2word[token])
-            if sent[-1] == "[EOS]":
+            if sent[-1] == "[EOS]" or sent[-1] == "<|endoftext|>" :
                 break
         return ' '.join(sent[:-1])
 

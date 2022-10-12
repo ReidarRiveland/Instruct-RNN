@@ -249,41 +249,6 @@ def plot_all_training_curves(foldername, exp_type, holdout_file, model_list, per
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
 
-def plot_trained_performance(all_perf_dict):
-    barWidth = 0.1
-    for i, model_name in enumerate(all_perf_dict.keys()):  
-        perf = all_perf_dict[model_name]
-        values = list(np.mean(perf, axis=0))
-        std = np.std(perf, axis=0)
-        
-        len_values = len(TASK_LIST)
-        if i == 0:
-            r = np.arange(len_values)
-        else:
-            r = [x + barWidth for x in r]
-        if '_layer_11' in model_name: 
-            mark_size = 4
-        else: 
-            mark_size = 3
-        plt.plot(r, [1.05]*16, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, color = MODEL_STYLE_DICT[model_name][0], markersize=mark_size)
-        plt.bar(r, values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white')
-        # plt.plot(r, [1.05]*16, marker=MODEL_STYLE_DICT[model_name][1], linestyle="", alpha=0.8, markeredgecolor = MODEL_STYLE_DICT[model_name][0], color='white', markersize=mark_size)
-        # plt.bar(r, values, width =barWidth, label = model_name, color = MODEL_STYLE_DICT[model_name][0], edgecolor = 'white', hatch='/')
-        #cap error bars at perfect performance 
-        error_range= (std, np.where(values+std>1, (values+std)-1, std))
-        print(error_range)
-        markers, caps, bars = plt.errorbar(r, values, yerr = error_range, elinewidth = 0.5, capsize=1.0, linestyle="", alpha=0.8, color = 'black', markersize=1)
-
-    plt.ylim(0, 1.15)
-    plt.title('Trained Performance')
-    plt.xlabel('Task Type', fontweight='bold')
-    plt.ylabel('Percentage Correct')
-    r = np.arange(len_values)
-    plt.xticks([r + barWidth+0.25 for r in range(len_values)], TASK_LIST, fontsize='xx-small', fontweight='bold')
-    plt.tight_layout()
-    _make_model_legend(all_perf_dict.keys())
-    plt.show()
-
 def plot_model_response(model, trials, plotting_index = 0, instructions = None, save_file=None):
     model.eval()
     with torch.no_grad(): 
@@ -376,49 +341,6 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_t
         ax.set_zlabel('PC '+str(pcs[2]))
         ax.set_zticklabels([])
     plt.legend(handles=Patches, fontsize='small')
-    plt.show()
-
-def plot_hid_traj(model, tasks_to_plot, trial_indices = [0], pcs=range(3), **scatter_kwargs): 
-    Patches = []
-    fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_subplot(111, projection='3d')
-    reps = get_task_reps(model, epoch=None, num_trials = 10, max_var=True)
-    reduced, _ = reduce_rep(reps, pcs=pcs)
-    for task in tasks_to_plot: 
-        task_index = TASK_LIST.index(task)
-        task_color = get_task_color(task)
-        for trial_index in trial_indices: 
-            ax.scatter(reduced[task_index, trial_index, 1:, 0], reduced[task_index, trial_index, 1:, 1], reduced[task_index, trial_index, 1:, 2], 
-                            color = task_color, **scatter_kwargs)
-            ax.scatter(reduced[task_index, trial_index, 0, 0], reduced[task_index, trial_index, 0, 1], reduced[task_index, trial_index, 0, 2], 
-                            color='white', edgecolor= task_color, marker='*', s=10)
-            ax.scatter(reduced[task_index, trial_index, TRIAL_LEN-1, 0], reduced[task_index, trial_index, TRIAL_LEN-1, 1], reduced[task_index, trial_index, TRIAL_LEN-1, 2], 
-                            color='white', edgecolor= task_color, marker='o', s=10)
-            ax.scatter(reduced[task_index, trial_index, 129, 0], reduced[task_index, trial_index, 129, 1], reduced[task_index, trial_index, 129, 2], 
-                            color='white', edgecolor= task_color, marker = 'P', **scatter_kwargs)
-
-            if 'COMP' in task: 
-                ax.scatter(reduced[task_index, trial_index, 89, 0], reduced[task_index, trial_index, 89, 1], reduced[task_index, trial_index, 89, 2], 
-                                    color='white', edgecolor= task_color, marker = 'X', **scatter_kwargs)
-            if 'RT' in task: 
-                ax.scatter(reduced[task_index, trial_index, 129, 0], reduced[task_index, trial_index, 129, 1], reduced[task_index, trial_index, 129, 2], 
-                            color='white', edgecolor= task_color, marker = 'X', **scatter_kwargs)
-            else: 
-                ax.scatter(reduced[task_index, trial_index, 29, 0], reduced[task_index, trial_index, 29, 1], reduced[task_index, trial_index, 29, 2], 
-                            color='white', edgecolor= task_color, marker = 'X', s=10)
-
-        Patches.append(Line2D([], [], linestyle='None', marker='.', color=task_color, label=task, markersize=4))
-                
-    ax.set_xlabel('PC 1')
-    ax.set_ylabel('PC 2')
-    ax.set_zlabel('PC 3')
-    ax.set_zlim(-6, 6)
-    marker_list = [('*', 'Start'), ('X', 'Stim. Onset'), ('P', 'Resp.'), ('o', 'End')]
-    marker_patches = [(Line2D([0], [0], linestyle='None', marker=marker[0], color='grey', label=marker[1], 
-            markerfacecolor='white', markersize=8)) for marker in marker_list]
-    Patches += marker_patches
-    plt.legend(handles = Patches, fontsize = 'x-small')
-    plt.tight_layout()
     plt.show()
 
 def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', save_file=None):
@@ -604,8 +526,10 @@ def plot_task_var_heatmap(load_folder, model_name, seed, cmap = sns.color_palett
     plt.show()
         
 
-def decoding_confuse_mat(confusion_mat, fmt='g'): 
-    res=sns.heatmap(confusion_mat, linewidths=0.5, linecolor='black', mask=confusion_mat == 0, xticklabels=TASK_LIST+['other'], yticklabels=TASK_LIST, annot=True, cmap='Blues', fmt=fmt, cbar=False)
-    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 8)
-    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
+def plot_decoding_confuse_mat(confusion_mat, cmap='Blues', **heatmap_args): 
+    res=sns.heatmap(confusion_mat, linecolor='black', mask=confusion_mat == 0, 
+                            xticklabels=TASK_LIST+['other'], yticklabels=TASK_LIST, annot=True, cmap=cmap, cbar=False, **heatmap_args)
+    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 5)
+    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 5)
     plt.show()
+
