@@ -189,12 +189,12 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer,
         context_dim = model.langModel.LM_intermediate_lang_dim 
     file_name = exp_folder+'/'+labels+'/'+model_name+'/contexts'
 
-    for task in tasks[::-1]: 
+    for task in tasks: 
         if not overwrite and check_already_trained(file_name, seed, task, context_dim):
             continue 
         else:        
             print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ '\n')
-            if task == 'DMC' or 'task' =='DNMC':
+            if (task == 'DMC' or 'task' =='DNMC') and 'swap' in labels:
                 trainer_config = ContextTrainerConfig(file_name, seed, context_dim, batch_len=64, checker_threshold=0.8, **train_config_kwargs)
             else:
                 trainer_config = ContextTrainerConfig(file_name, seed, context_dim, **train_config_kwargs)

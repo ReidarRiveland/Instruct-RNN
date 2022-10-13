@@ -10,6 +10,7 @@
 *_attrs
 *hidden_reps
 #*.sbatch
+*decoder_perf*
 
 
 

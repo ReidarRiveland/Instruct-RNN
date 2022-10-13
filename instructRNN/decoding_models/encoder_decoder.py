@@ -24,13 +24,17 @@ class EncoderDecoder(nn.Module):
         if 'clip' in sm_model.model_name :
             decoder.tokenizer.index2word[2] = '<|endoftext|>'
 
-    def load_model_componenets(self, load_folder, seed, tasks=TASK_LIST, with_holdout=False):
+    def load_model_componenets(self, load_folder, seed, tasks=TASK_LIST, with_holdout=False, with_dropout=False):
         suffix = '_seed'+str(seed)
 
         if with_holdout:
-            decoder_suffix = suffix + '_CHECKPOINT_wHoldout'
+            decoder_suffix = suffix + '_wHoldout'
         else: 
             decoder_suffix = suffix
+
+        if with_dropout:
+            decoder_suffix += 'wDropout'
+
 
         self.sm_model.load_model(load_folder, suffix=suffix)
         self.decoder.load_model(load_folder, suffix=decoder_suffix)
@@ -40,14 +44,9 @@ class EncoderDecoder(nn.Module):
         context_dim = self.sm_model.langModel.LM_intermediate_lang_dim
         all_contexts = np.full((len(TASK_LIST), 100, context_dim), np.nan)
         for i, task in enumerate(tasks):
-            #try: 
             filename = file_name+'contexts/seed'+str(seed)+'_'+task+'_context_vecs'+str(context_dim)
             task_contexts = pickle.load(open(filename, 'rb'))
             all_contexts[TASK_LIST.index(task), ...]=task_contexts[:100, :]
-            # except FileNotFoundError: 
-            #     if verbose:
-            #         print(filename)
-            #         print('no contexts for '+task+' for model file')
 
         self.contexts = all_contexts
 

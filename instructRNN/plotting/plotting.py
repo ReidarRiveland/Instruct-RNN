@@ -155,7 +155,7 @@ def plot_all_task_lolli(foldername, exp_type, model_list, perf_type='correct', m
     ind = np.arange(len(TASK_LIST))
 
     for i, model_name in enumerate(model_list): 
-        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
+        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
         zero_shot, std = data.avg_seeds(k_shot=0)
         axn.scatter( zero_shot[::-1], (ind+(width/2))+(i*width), marker='o', s = 2, color=MODEL_STYLE_DICT[model_name][0])
         #axn.scatter( zero_shot[::-1], ind, marker='o', s = 3, color=MODEL_STYLE_DICT[model_name][0])
@@ -464,7 +464,7 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False):
     axn.set_ylim(0.475, 1)
     axn.set_ylabel('Holdout Task CCGP', size=8, fontweight='bold')
     axn.set_xlabel('Model Layer', size=8, fontweight='bold')
-
+    patches = []
     for model_name in model_list:
         if model_name == 'gptNetXL_lin': 
             layer_list = [str(x) for x in range(12, 24)] + ['full', 'task']
@@ -479,7 +479,11 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False):
                 axn.scatter(len(layer_list)-1, np.mean(multi[0]), marker='*', c=MODEL_STYLE_DICT[model_name][0], s=10)
             except FileNotFoundError: 
                 pass
+        patches.append(Line2D([0], [0], label = MODEL_STYLE_DICT[model_name][2], color= MODEL_STYLE_DICT[model_name][0], marker = 'o', linestyle = 'None', markersize=4))
 
+
+    patches.append(Line2D([0], [0], label = 'Multitask', color= 'grey', marker = '*', linestyle = 'None', markersize=4))
+    axn.legend(handles = patches, fontsize='x-small')
     axn.set_xticklabels([str(x) for x in range(1, 13)] + ['embed', 'task']) 
     axn.set_ylim(0.5, 1.0)
     axn.set_xticks(range(len(layer_list)))

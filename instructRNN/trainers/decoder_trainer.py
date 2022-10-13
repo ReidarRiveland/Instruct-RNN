@@ -264,7 +264,7 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, 
     model = make_default_model(model_name)   
     model.load_model(file_name, suffix='_seed'+str(seed))
     model.to(device)
-    if use_dropout: p=0.1
+    if use_dropout: p=0.05
     else: p=0.0
     decoder = DecoderRNN(256, drop_p=p)
     decoder.to(device)

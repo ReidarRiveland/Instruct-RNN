@@ -30,15 +30,11 @@ plot_all_holdout_curves('7.20models', 'family',
                                 mode='combined'
                                 )
 
-
-
 plot_0_shot_task_hist('7.20models', 'swap', 
                                 [ 'clipNet_lin', 'sbertNet_lin',  'gptNetXL_lin', 'bertNet_lin',  'gptNet_lin', 'simpleNet'][::-1],
                                 seeds =range(0,5),
                                 mode='combined'
                                 )
-
-
 
 plot_all_task_lolli('7.20models', 'swap', 
                                 [ 'clipNet_lin', 'sbertNet_lin',  'gptNetXL_lin', 'bertNet_lin',  'gptNet_lin', 'simpleNet'][::-1],
@@ -93,7 +89,7 @@ plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3
 
 
 
-plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'gptNet_lin', 'sbertNet_lin', 'simpleNet', 'gptNetXL_lin'][::-1], seeds=range(5), plot_multis=True)
+plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'], seeds=range(5), plot_multis=True)
 
 plot_ccgp_corr('7.20models', 'swap', ['clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'sbertNet_lin', 'gptNet_lin', 'gptNetXL_lin', 'simpleNet'])
 

@@ -1,5 +1,6 @@
 from asyncio import all_tasks
 from inspect import stack
+from click import style
 from cv2 import threshold
 import numpy as np
 import scipy
@@ -19,53 +20,74 @@ from instructRNN.analysis.decoder_analysis import *
 
 
 
-decoded_set = get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', 0, from_contexts=True, with_holdouts=True)
+decoded_set = get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', [0, 1, 3], from_contexts=True)
+
+holdout_perf_array = test_holdout_partner_perf('7.20models/swap_holdouts', 'clipNet_lin', decoded_set[0], decoded_set[-1], partner_seeds=range(5))
+
+multi_perf_array = test_multi_partner_perf('clipNet_lin', decoded_set[0], decoded_set[-1])
 
 
 
-plot_decoding_confuse_mat(decoded_set[-1], linewidth=0.25, annot_kws={'fontsize':4.5})
+def plot_partner_perf_lolli(load_str='holdout', plot_holdouts=False, plot_multi_only=False):
+    to_plot_colors = [('All Decoded', '#0392cf'), ('Novel Decoded', '#7bc043'), ('Embedding', '#edc951')]
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(16, 8))
+    plt.suptitle('Partner Model Performance on Decoded Instructions')
 
+    axn.set_ylabel('Task', size=8, fontweight='bold')
+    axn.set_xlabel('Performance', size=8, fontweight='bold')
 
-
-decoded_set[0]['AntiCOMP2']['other']
-
-perf_array = test_partner_model('clipNet_lin', decoded_set[0], num_trials = 50, tasks=decoded_set[0].keys(), contexts=decoded_set[-1], partner_seed=3)
-
-
-
-np.mean(perf_array[2])
-
-list(zip(TASK_LIST, perf_array[0]))
-
-
-
-def plot_partner_perf_lolli(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5)):
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 14))
-
-    width = 1/(len(model_list)+1)
     ind = np.arange(len(TASK_LIST))
 
-    for i, model_name in enumerate(model_list): 
-        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds)
-        zero_shot, std = data.avg_seeds(k_shot=0)
-        axn.scatter( zero_shot[::-1], (ind+(width/2))+(i*width), marker='o', s = 2, color=MODEL_STYLE_DICT[model_name][0])
-        #axn.scatter( zero_shot[::-1], ind, marker='o', s = 3, color=MODEL_STYLE_DICT[model_name][0])
-        axn.hlines((ind+(width/2))+(i*width), xmin=zero_shot[::-1]-std[::-1], xmax=np.min((np.ones_like(std), zero_shot[::-1]+std[::-1]), axis=0), color=MODEL_STYLE_DICT[model_name][0], linewidth=0.2)
-        #axn.hlines(ind, xmin=zero_shot[::-1]-std[::-1], xmax=zero_shot[::-1]+std[::-1], color=MODEL_STYLE_DICT[model_name][0], linewidth=0.4)
+    if plot_multi_only:
+        mode_list = [('multi_', 'solid', 'o')]
+    else: 
+        mode_list = [('holdout_', 'dashed', 'D'), ('multi_', 'solid', 'o')]
 
-    axn.set_yticks(ind)
-    axn.set_yticklabels('')
-    axn.tick_params(axis='y', which='minor', bottom=False)
-    axn.set_yticks(ind+0.5, minor=True)
-    axn.set_yticklabels(TASK_LIST[::-1], fontsize=4, minor=True) 
+    for mode in mode_list:
+        perf_data = np.load(mode[0]+load_str+'_decoder_perf.npy')
+        for i in range(len(perf_data)): 
+            perf = np.nanmean(perf_data[i], axis=(0,1))
+            print(perf.shape)
+            axn.scatter(perf[::-1], ind+1, marker=mode[2], s = 2, color=to_plot_colors[i][1])
+            axn.vlines(np.nanmean(perf), 0, len(TASK_LIST)+1, color=to_plot_colors[i][1], linestyle=mode[1], linewidth=0.8)
+
+    axn.tick_params('y', bottom=False, top=False)
+    axn.set_yticks(range(len(TASK_LIST)+3))
+    axn.set_yticklabels(['']+TASK_LIST[::-1] + ['', ''], fontsize=4) 
     axn.set_xticks(np.linspace(0, 1, 11))
+    
+    patches = []
+    if plot_holdouts: 
+        data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', mode='combined')
+        zero_shot, std = data.avg_seeds(k_shot=0)
+        axn.vlines(np.nanmean(zero_shot), 0, len(TASK_LIST)+1, color=MODEL_STYLE_DICT['clipNet_lin'][0], linestyle='dashed', linewidth=0.8)
+        axn.scatter(zero_shot[::-1], ind+1, marker='D', s = 2, color=MODEL_STYLE_DICT['clipNet_lin'][0])
+        patches.append(Line2D([0], [0], label = 'Instructions', color= MODEL_STYLE_DICT['clipNet_lin'][0], marker = 's', linestyle = 'None', markersize=4))
 
+
+    for style in to_plot_colors:
+        patches.append(Line2D([0], [0], label = style[0], color= style[1], marker = 's', linestyle='None', markersize=4))
+
+
+    patches.append(Line2D([0], [0], label = 'Multitask Partners', color= 'grey', marker = 'o', linestyle = 'None', markersize=4))
+    patches.append(Line2D([0], [0], label = 'Multitask Partner', color= 'grey', linestyle='solid', markersize=4))
+
+    patches.append(Line2D([0], [0], label = 'Holdout Partners', color= 'grey', marker = 'D', linestyle = 'None', markersize=2))
+    patches.append(Line2D([0], [0], label = 'Holdout Partners', color= 'grey', linestyle='dashed', markersize=2))
+
+
+
+
+    axn.legend(handles = patches, fontsize='x-small')
+    
     axn.set_xticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5)
-    axn.set_ylim(-0.15, len(TASK_LIST))
+    axn.set_ylim(-0.2, len(TASK_LIST)+1)
+    axn.set_xlim(0, 1.01)
+
     plt.show()
 
 
-
+plot_partner_perf_lolli(load_str='holdout', plot_holdouts=True, plot_multi_only=False)
 
 
 
@@ -121,4 +143,6 @@ get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', 2, from_conte
 #pscp  riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ C:\Users\reida\OneDrive\Desktop\Projects\Instruct-RNN\7.20models
 # rsync -a  -P --include 'simpleNet_seed0.pt' --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/swap_holdouts/ C:\Users\reida\OneDrive\Desktop\Projects\Instruct-RNN\7.20models
 
-#rename 'seed5' seed0 *; rename 'seed6' seed1 *; rename 'seed7' seed2 *; rename 'seed8' seed3 *; rename 'seed9' seed4 *
+
+
+# rsync -a  -P --exclude '*_attrs*' --exclude '*.npy*' --exclude '*_opt*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/multitask_holdouts/Multitask/clipNet_lin/ /home/riveland/Instruct-RNN/7.20models/multitask_holdouts/Multitask/clipNet_lin
