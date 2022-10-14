@@ -50,6 +50,13 @@ plot_avg_holdout_curve('7.20models', 'swap',
                                 )
 
 
+plot_0_shot_task_hist('7.20models', 'swap', 
+                                [ 'clipNet_lin', 'sbertNet_lin',  'gptNetXL_lin', 'bertNet_lin',  'gptNet_lin', 'simpleNet'][::-1],
+                                seeds =range(0,5),
+                                mode='swap'
+                                )
+
+
 
 plot_all_task_lolli('7.20models', 'swap', 
                                 [ 'clipNet_lin', 'sbertNet_lin',  'gptNetXL_lin', 'bertNet_lin',  'gptNet_lin', 'simpleNet'][::-1],
