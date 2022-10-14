@@ -112,7 +112,7 @@ def get_comp_rule(batch_size, task_type, instruct_mode=None):
     return torch.Tensor(task_rule)
 
 def get_input_rule(batch_size, task_type, instruct_mode=None): 
-    if 'swap' in instruct_mode: 
+    if instruct_mode == 'swap' or instruct_mode == 'swap_combined': 
         swapped_task = get_swap_task(task_type)
         task_rule = one_hot_input_rule(batch_size, swapped_task)
     elif instruct_mode == 'masked': 
