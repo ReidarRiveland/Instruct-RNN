@@ -3,7 +3,7 @@ import itertools
 from instructRNN.tasks.tasks import MULTITASK_DICT, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT
 from instructRNN.models.full_models import small_models
 
-def make_training_jobs(exp, models, seeds, holdouts, job_index, mode):
+def make_training_jobs(exp, models, seeds, holdouts, job_index):
     if exp == 'swap': 
         _holdout_dict = SWAPS_DICT
     elif args.exp == 'aligned': 
@@ -19,8 +19,7 @@ def make_training_jobs(exp, models, seeds, holdouts, job_index, mode):
         holdout_dict = dict([list(_holdout_dict.items())[i] for i in args.holdouts])
 
 
-    if mode == 'context':
-        jobs = list(itertools.product(seeds, models, holdout_dict.items()))
+    jobs = list(itertools.product(seeds, models, holdout_dict.items()))
 
     if job_index is None: 
         return jobs
