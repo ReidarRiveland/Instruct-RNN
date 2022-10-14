@@ -29,8 +29,6 @@ import torch
 from scipy.ndimage import gaussian_filter1d
 import warnings
 
-plt.style.use('ggplot')
-
 Blue = '#1C3FFD'
 lightBlue='#ADD8E6'
 lightRed = '#FF6D6A'
@@ -63,7 +61,6 @@ plt.rcParams['savefig.dpi'] = 300
 
 from matplotlib import rc
 plt.rcParams["font.family"] = "serif"
-
 
 def split_axes():
     inset1_lims = (-1, 10)
@@ -123,14 +120,16 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
         axn.yaxis.set_major_locator(MaxNLocator(10)) 
         axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
 
-        #axn.set_yticks(np.linspace(0, 100, 11))
 
     axn.spines['top'].set_visible(False)
     axn.spines['right'].set_visible(False)
+    axn.set_axisbelow(True)
+    axn.grid(visible=True, color='grey', linewidth=0.5)
 
     for model_name in model_list:
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
         mean, std = data.avg_tasks()
+        axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=3)
         _plot_performance_curve(mean, std, axn, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
 
         if plot_swaps: 
@@ -175,6 +174,14 @@ def plot_all_task_lolli(foldername, exp_type, model_list, perf_type='correct', m
 
 def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_err=False): 
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+
+    axn.set_axisbelow(True)
+    axn.grid(visible=True, color='grey', axis='x', linewidth=0.5)
+
+
+    axn.spines['top'].set_visible(False)
+    axn.spines['right'].set_visible(False)
+
     fig.suptitle('Zero-Shot Performance Across Tasks')
 
     axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
@@ -448,11 +455,17 @@ def plot_ccgp_corr(folder, exp_type, model_list):
     axn.set_ylabel('Holdout Task CCGP', size=8, fontweight='bold')
     axn.set_xlabel('Zero-Shot Performance', size=8, fontweight='bold')
 
+    axn.spines['top'].set_visible(False)
+    axn.spines['right'].set_visible(False)
+    axn.set_axisbelow(True)
+    axn.grid(visible=True, color='grey', linewidth=0.5)
+
+
     for i, model_name in enumerate(model_list):
         axn.scatter(perf[i, :], ccgp[i, :], marker='.', c=MODEL_STYLE_DICT[model_name][0])
     x = np.linspace(0, 1, 100)
-    axn.text(0.1, 0.95, "$r^2=$"+str(round(corr, 3)), fontsize='small')
-    axn.text(0.1, 0.93, "p<.001", fontsize=6)
+    axn.text(0.01, 0.95, "$r^2=$"+str(round(corr, 3)), fontsize=7)
+    axn.text(0.01, 0.93, "p<.001", fontsize=5)
 
     axn.plot(x, a*x+b, linewidth=0.8, linestyle='dotted', color='black')
     plt.show()
@@ -460,6 +473,12 @@ def plot_ccgp_corr(folder, exp_type, model_list):
 def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False): 
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
     
+    axn.spines['top'].set_visible(False)
+    axn.spines['right'].set_visible(False)
+    axn.set_axisbelow(True)
+    axn.grid(visible=True, color='grey', linewidth=0.5)
+
+
     fig.suptitle('CCGP Across Model Hierarchy')
     axn.set_ylim(0.475, 1)
     axn.set_ylabel('Holdout Task CCGP', size=8, fontweight='bold')
@@ -472,7 +491,7 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False):
             layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
 
         all_holdout_ccgp = load_holdout_ccgp(foldername, model_name, layer_list, seeds)
-        axn.plot(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=(0,2)), marker='.', c=MODEL_STYLE_DICT[model_name][0], linewidth=0.6)
+        axn.plot(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=(0,2)), marker='.', c=MODEL_STYLE_DICT[model_name][0], linewidth=0.8)
         if plot_multis:
             try: 
                 multi = load_multi_ccgp(model_name)
@@ -485,7 +504,7 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False):
     patches.append(Line2D([0], [0], label = 'Multitask', color= 'grey', marker = '*', linestyle = 'None', markersize=4))
     axn.legend(handles = patches, fontsize='x-small')
     axn.set_xticklabels([str(x) for x in range(1, 13)] + ['embed', 'task']) 
-    axn.set_ylim(0.5, 1.0)
+    axn.set_ylim(0.475, 1)
     axn.set_xticks(range(len(layer_list)))
     plt.show()
 

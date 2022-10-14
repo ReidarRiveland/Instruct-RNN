@@ -6,7 +6,7 @@ from instructRNN.tasks.task_factory import *
 
 
 plot_avg_holdout_curve('7.20models', 'swap', 
-                                ['gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet', 'simpleNetPlus', 'gptNet_lin'],
+                                ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'],
                                 seeds =range(0, 5),
                                 mode='combined'
                                 )

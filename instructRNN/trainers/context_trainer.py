@@ -176,7 +176,7 @@ def load_chk(file_name, seed, task, context_dim):
         return None, 0
 
 def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, 
-                    as_batch = False, tasks = TASK_LIST, overwrite=False, **train_config_kwargs): 
+                    as_batch = False, tasks = TASK_LIST, overwrite=False, reverse=false, **train_config_kwargs): 
      
     torch.manual_seed(seed)
     labels, _ = labeled_holdouts
@@ -188,6 +188,9 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer,
     elif layer=='last': 
         context_dim = model.langModel.LM_intermediate_lang_dim 
     file_name = exp_folder+'/'+labels+'/'+model_name+'/contexts'
+
+    if reverse: 
+        tasks = tasks[::-1]
 
     for task in tasks: 
         if not overwrite and check_already_trained(file_name, seed, task, context_dim):
