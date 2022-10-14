@@ -91,13 +91,26 @@ plot_partner_perf_lolli(load_str='holdout', plot_holdouts=True, plot_multi_only=
 
 
 
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 
 
 
+EXP_FILE = '7.20models/swap_holdouts'
+clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap9'
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
 
 
+reps = get_instruct_reps(clipNet.langModel, depth='12', instruct_mode='combined')
+
+rep_reshaped = reps.reshape(-1, 512)
+sim_score = np.corrcoef(rep_reshaped)
+sim_score
+(sim_score-np.min(sim_score, axis=0))/(np.max(sim_score, axis=0)-np.min(sim_score, axis=0))
+
+plot_RDM(sim_score, sns.color_palette("inferno", as_cmap=True))
 
 
 

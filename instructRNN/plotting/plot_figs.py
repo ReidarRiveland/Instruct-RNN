@@ -12,9 +12,21 @@ plot_avg_holdout_curve('7.20models', 'swap',
                                 )
 
 
-plot_all_holdout_curves('7.20models', 'swap', 
+plot_0_shot_task_hist('7.20models', 'swap', 
+                                [ 'clipNet_lin', 'sbertNet_lin',  'gptNetXL_lin', 'bertNet_lin',  'gptNet_lin', 'simpleNet'][::-1],
+                                seeds =range(0,5),
+                                mode='combined'
+                                )
+
+plot_avg_holdout_curve('7.20models', 'swap', 
                                 ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'simpleNetPlus', 'gptNet_lin_tuned'],
                                 seeds =range(0, 5),
+                                mode='combined'
+                                )
+
+plot_0_shot_task_hist('7.20models', 'swap', 
+                            ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'simpleNetPlus', 'gptNet_lin_tuned'][::-1],
+                                seeds =range(0,5),
                                 mode='combined'
                                 )
 
@@ -24,17 +36,20 @@ plot_avg_holdout_curve('7.20models', 'family',
                                 mode='combined'
                                 )
 
-plot_all_holdout_curves('7.20models', 'family', 
-                                ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'simpleNetPlus', 'gptNet_lin_tuned'],
-                                seeds =range(0, 5),
-                                mode='combined'
-                                )
 
-plot_0_shot_task_hist('7.20models', 'swap', 
-                                [ 'clipNet_lin', 'sbertNet_lin',  'gptNetXL_lin', 'bertNet_lin',  'gptNet_lin', 'simpleNet'][::-1],
+plot_0_shot_task_hist('7.20models', 'family', 
+                            ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'simpleNetPlus', 'gptNet_lin_tuned'][::-1],
                                 seeds =range(0,5),
                                 mode='combined'
                                 )
+
+plot_avg_holdout_curve('7.20models', 'swap', 
+                                ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'],
+                                seeds =range(0, 5),
+                                mode='swap_combined'
+                                )
+
+
 
 plot_all_task_lolli('7.20models', 'swap', 
                                 [ 'clipNet_lin', 'sbertNet_lin',  'gptNetXL_lin', 'bertNet_lin',  'gptNet_lin', 'simpleNet'][::-1],
