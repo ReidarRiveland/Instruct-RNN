@@ -342,7 +342,7 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_t
         pcs = range(dims)
 
     if rep_depth == 'task': 
-        reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True, instruct_mode=instruct_mode)
+        reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=False, instruct_mode=instruct_mode)
     elif rep_depth != 'task': 
         reps = get_instruct_reps(model.langModel, depth=rep_depth, instruct_mode=instruct_mode)
     reduced, _ = reduce_rep(reps, pcs=pcs)

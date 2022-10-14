@@ -78,8 +78,6 @@ clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap9'
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
 
-plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'clipNet_lin', 2)
-
 plot_scatter(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
 plot_scatter(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, rep_depth='full')
 
@@ -110,10 +108,46 @@ simpleNet.load_model('7.20models/multitask_holdouts/Multitask/'+simpleNet.model_
 plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
 
 
-
 plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'], seeds=range(5), plot_multis=True)
 
 plot_ccgp_corr('7.20models', 'swap', ['clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'sbertNet_lin', 'gptNet_lin', 'gptNetXL_lin', 'simpleNet'])
+
+#############
+
+plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'clipNet_lin', 2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
