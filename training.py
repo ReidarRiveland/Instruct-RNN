@@ -3,7 +3,7 @@ import itertools
 from instructRNN.tasks.tasks import MULTITASK_DICT, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT
 from instructRNN.models.full_models import small_models
 
-def make_training_jobs(exp, models, seeds, holdouts, job_index):
+def make_training_jobs(exp, models, seeds, holdouts, job_index, mode):
     if exp == 'swap': 
         _holdout_dict = SWAPS_DICT
     elif args.exp == 'aligned': 
@@ -18,7 +18,9 @@ def make_training_jobs(exp, models, seeds, holdouts, job_index):
     else: 
         holdout_dict = dict([list(_holdout_dict.items())[i] for i in args.holdouts])
 
-    jobs = list(itertools.product(seeds, models, holdout_dict.items()))
+
+    if mode == 'context':
+        jobs = list(itertools.product(seeds, models, holdout_dict.items()))
 
     if job_index is None: 
         return jobs
@@ -43,6 +45,9 @@ if __name__ == "__main__":
     
     parser.add_argument('--layer', default='emb', help='the dim corresponding to the layer the contexts gets trained at, \
                                                     must be emd or last, only for use if mode is context')
+    parser.add_argument('--reverse', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
+
+
     parser.add_argument('--use_holdouts', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
     parser.add_argument('--use_dropout', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
 
@@ -83,7 +88,7 @@ if __name__ == "__main__":
             else: 
                 tasks = list(holdouts[1])
             print(tasks)
-            train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, tasks=tasks)
+            train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, tasks=tasks, reverse=args.reverse)
 
         if args.mode == 'decoder' or args.mode == 'd': 
             from instructRNN.trainers.decoder_trainer import *
