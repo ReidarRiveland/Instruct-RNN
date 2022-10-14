@@ -402,23 +402,26 @@ class DMFactory(TaskFactory):
     def __init__(self, num_trials,  noise, str_chooser,
                         timing= 'full', mod=None, multi=False, 
                         dir_arr = None, coh_arr = None, max_var=False,
-                        main_var = False, intervals= None, cond_arr=None):
+                        main_var = False, intervals= None, cond_arr=None, 
+                        max_contrast=0.5, min_contrast=0.1):
         super().__init__(num_trials, timing, noise)
         self.cond_arr = cond_arr
         self.timing = timing
         self.str_chooser = str_chooser
         self.mod = mod
         self.multi = multi
+        self.max_contrast=max_contrast
+        self.min_contrast = min_contrast
 
         if max_var: 
             dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2, shuffle=True)
-            coh_arr = max_var_coh(self.num_trials)
+            coh_arr = self.max_var_coh(self.mod)
             intervals = _get_default_intervals(self.num_trials)
 
         if main_var:
             if self.mod is None: main_mod = 0 
             else: main_mod = self.mod
-            coh_arr = max_var_coh(self.num_trials, main_mod = main_mod)
+            coh_arr = self.max_var_coh(main_mod)
             dir_arr = const_dirs(self.num_trials, self.multi)
             intervals = _get_default_intervals(self.num_trials)
 
@@ -483,6 +486,9 @@ class DMFactory(TaskFactory):
         chosen_str = self.str_chooser(strs, axis=0)
         target_dirs = np.where(chosen_str, directions[1, :], directions[0, :])
         return target_dirs
+    
+    def max_var_coh(self, main_mod):
+        return max_var_coh(self.num_trials, max_contrast=self.max_contrast, min_contrast=self.min_contrast, main_mod = main_mod, shuffle=False)
 
 class ConDMFactory(TaskFactory): 
     def __init__(self, num_trials,  noise, str_chooser, threshold_folder,
@@ -641,7 +647,8 @@ class COMPFactory(TaskFactory):
     def __init__(self, num_trials,  noise, resp_stim, str_chooser,
                             mod=None, multi=False, timing= 'delay', 
                             dir_arr=None, coh_arr=None, max_var = False, main_var =False,
-                            intervals= None, cond_arr=None, target_dirs=None):
+                            intervals= None, cond_arr=None, target_dirs=None,
+                            max_contrast=0.5, min_contrast=0.1):
         super().__init__(num_trials, timing, noise)
         self.cond_arr = cond_arr
         self.str_chooser = str_chooser
@@ -650,15 +657,20 @@ class COMPFactory(TaskFactory):
         self.resp_stim = resp_stim
         self.mod = mod
         self.multi = multi
+        self.max_contrast=max_contrast
+        self.min_contrast = min_contrast
+
 
         if max_var: 
             dir_arr = max_var_dir(self.num_trials, self.mod, self.multi, 2, shuffle=True)
-            coh_arr = max_var_coh(self.num_trials)
+            coh_arr = self.max_var_coh(self.mod)
             intervals = _get_default_intervals(self.num_trials)
 
         if main_var: 
+            if self.mod is None: main_mod = 0 
+            else: main_mod = self.mod
             dir_arr = const_dirs(self.num_trials, self.multi)
-            coh_arr = max_var_coh(self.num_trials)
+            coh_arr = self.max_var_coh(main_mod)
             intervals = _get_default_intervals(self.num_trials)
 
         if self.cond_arr is None: 
@@ -737,6 +749,10 @@ class COMPFactory(TaskFactory):
             stim_dirs = np.nansum(self.cond_arr[:,self.resp_stim,0,:], axis=0)
         target_dirs = np.where(self.req_resp, stim_dirs, np.full(self.num_trials, np.NaN))
         return target_dirs
+
+    
+    def max_var_coh(self, main_mod):
+        return max_var_coh(self.num_trials, max_contrast=self.max_contrast, min_contrast=self.min_contrast, main_mod = main_mod, shuffle=False)
 
 class MatchingFactory(TaskFactory):
     def __init__(self, num_trials,  noise, matching_task, match_type,

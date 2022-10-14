@@ -71,7 +71,7 @@ plot_avg_holdout_curve('7.20models', 'swap',
                                 )
 
 
-
+####PC PLOTS
 EXP_FILE = '7.20models/swap_holdouts'
 
 clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
@@ -117,6 +117,7 @@ plot_ccgp_corr('7.20models', 'swap', ['clipNet_lin', 'bertNet_lin', 'bowNet_lin'
 
 
 
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
 
 ###Go Only Neuron 
 plot_tuning_curve(clipNet, ['Go', 'AntiGo', 'GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2'], 2, [140]*6)
@@ -126,28 +127,18 @@ plot_tuning_curve(clipNet, ['Go', 'AntiGo', 'GoMod1', 'AntiGoMod1', 'GoMod2', 'A
 
 ###sort of
 plot_tuning_curve(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], 11, [140]*6)
-
-
-###sort of
-plot_tuning_curve(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], 11, [140]*6)
-plot_tuning_curve(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], 16, [140]*6)
-plot_tuning_curve(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], 22, [140]*6)
-plot_tuning_curve(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], 41, [140]*6, smoothing=1e-1)
-
-plot_tuning_curve(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], 97, [120]*6, smoothing=1)
-
-plot_tuning_curve(clipNet, ['COMP1', 'COMP2'], 56, [140]*6, smoothing=1e-1)
-
-
-
-
 plot_neural_resp(clipNet, 'AntiGo','direction', 73, num_trials=25)
 
 
-unit=113
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
+unit=9
 plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothing=1)
 plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1)
 
+
+unit=18
+plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1)
 
 
 

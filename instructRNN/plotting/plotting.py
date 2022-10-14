@@ -383,7 +383,7 @@ def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot
 
     plt.show()
 
-def plot_tuning_curve(model, tasks, unit, times, num_trials=50, num_repeats=20, smoothing = 1e-7): 
+def plot_tuning_curve(model, tasks, unit, times, num_trials=50, num_repeats=20, smoothing = 1e-7, **trial_kwargs): 
     fig, axn = plt.subplots(1,1, sharey = True, sharex=True, figsize =(8, 4))
 
     if 'Go' in tasks[0] or tasks[0] in ['DMS', 'DMNS', 'DMC', 'DNMC']:
@@ -399,15 +399,15 @@ def plot_tuning_curve(model, tasks, unit, times, num_trials=50, num_repeats=20, 
         min_contrast = 0.0
         var_of_interest = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(np.ceil(num_trials/2))), 
                 np.linspace(min_contrast, max_contrast, num=int(np.floor(num_trials/2)))))
-        axn.set_xlim(-max_contrast, max_contrast)
-        tick_space = np.linspace(-max_contrast, max_contrast, 5)
-        axn.set_xticks(tick_space)
-        axn.set_xticklabels([str(tick_val) for tick_val in tick_space]) 
+        # axn.set_xlim(-max_contrast, max_contrast)
+        # tick_space = np.linspace(-max_contrast, max_contrast, 5)
+        # axn.set_xticks(tick_space)
+        # axn.set_xticklabels([str(tick_val) for tick_val in tick_space]) 
 
     #elif 'Dur' in tasks[0]: 
 
     y_max = 1.0
-    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, main_var=True)
+    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, main_var=True, **trial_kwargs)
     for i, task in enumerate(tasks): 
         time = times[i]
         neural_resp = hid_mean[i, :, time, unit]        
@@ -425,9 +425,9 @@ def plot_tuning_curve(model, tasks, unit, times, num_trials=50, num_repeats=20, 
     plt.show()
 
 
-def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeats = 10, smoothing = 1e-7, cmap=sns.color_palette("inferno", as_cmap=True)):
+def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeats = 10, smoothing = 1e-7, cmap=sns.color_palette("inferno", as_cmap=True), **trial_kwargs):
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
-    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=[task], num_repeats=num_repeats, max_var=True)[0,...]
+    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=[task], num_repeats=num_repeats, main_var=True, **trial_kwargs)[0,...]
 
     if task_variable == 'direction' or task_variable=='diff_direction': 
         labels = ["0", "$2\pi$"]
@@ -437,16 +437,14 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeat
         cmap = plt.get_cmap('plasma') 
     elif task_variable =='diff_strength': 
         labels = [r"$\Delta$ -0.5", r"$\Delta$ 0.5"]
-        cmap = plt.get_cmap('plasma') 
+        cmap = plt.get_cmap('seismic') 
 
-    cNorm  = colors.Normalize(vmin=0, vmax=num_trials)
-    scalarMap = cm.ScalarMappable(norm=cNorm, cmap=cmap)
+    mappable = cm.ScalarMappable(cmap=cmap)
 
     fig, axn = plt.subplots()
-    print(hid_mean.shape)
     ylim = np.max(hid_mean[..., unit])
     for i in range(hid_mean.shape[0]):
-        axn.plot( gaussian_filter1d(hid_mean[i, :, unit], smoothing), c = scalarMap.to_rgba(i))
+        axn.plot(hid_mean[i, :, unit], c = cmap(i/hid_mean.shape[0]))
 
 
     plt.xticks([30, 130], labels=['Stim. Onset', 'Reponse'])
@@ -454,7 +452,7 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeat
     plt.vlines(30, -1.5, ylim+0.15, colors='k', linestyles='dashed')
 
     axn.set_ylim(0, ylim+0.15)
-    cbar = plt.colorbar(scalarMap, orientation='vertical', label = task_variable.replace('_', ' '), ticks = [0, hid_mean.shape[0]])
+    cbar = plt.colorbar(mappable, orientation='vertical', label = task_variable.replace('_', ' '), ticks = [0, hid_mean.shape[0]])
     #plt.title(task + ' response for Unit' + str(unit))
     cbar.set_ticklabels(labels)
 

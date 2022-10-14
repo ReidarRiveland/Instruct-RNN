@@ -1,11 +1,6 @@
-from asyncio import all_tasks
-from inspect import stack
-from click import style
-from cv2 import threshold
 import numpy as np
 import scipy
 import sklearn
-from sqlalchemy import asc
 from instructRNN.instructions.instruct_utils import get_task_info
 from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.models.full_models import *
@@ -43,19 +38,35 @@ clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap9'
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
 
-SWAP_LIST[-1]
 
-cluster_dict, cluster_labels, sorted_indices= plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'clipNet_lin', 2)
+hid_mean = get_task_reps(clipNet, epoch=None, num_trials=50, tasks=['AntiDMMod2'], num_repeats=20, main_var=True)[0,...]
+
+unit=119
+cmap = plt.get_cmap('seismic') 
+fig, axn = plt.subplots()
+ylim = np.max(hid_mean[..., unit])
+for i in range(hid_mean.shape[0]):
+    axn.plot(hid_mean[i, :, unit], c = cmap(i/hid_mean.shape[0]))
+
+plt.plot(hid_mean[:, 140, 119])
+
+plt.show()
+
+
+
+
+
+
 
 cluster_dict[7][5]
 
 unit=119
-plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothing=1)
-plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'DMMod1', 'diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=50, smoothing=1)
 plot_neural_resp(clipNet, 'DMMod2','diff_strength', unit, num_trials=25, smoothing=1)
-plot_neural_resp(clipNet, 'AntiDMMod2','diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'AntiDMMod2','diff_strength', unit, num_trials=50, smoothing=1)
 
-plot_tuning_curve(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], unit, [80]*4, num_trials=25, smoothing=1)
+plot_tuning_curve(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], unit, [140]*4, num_trials=50, smoothing=1)
 
 
 
