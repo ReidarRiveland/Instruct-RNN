@@ -176,7 +176,7 @@ def load_chk(file_name, seed, task, context_dim):
         return None, 0
 
 def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, 
-                    as_batch = False, tasks = TASK_LIST, overwrite=False, reverse=false, **train_config_kwargs): 
+                    as_batch = False, tasks = TASK_LIST, overwrite=False, reverse=False, **train_config_kwargs): 
      
     torch.manual_seed(seed)
     labels, _ = labeled_holdouts
