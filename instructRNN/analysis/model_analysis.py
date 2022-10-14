@@ -33,8 +33,8 @@ def get_reps_from_tasks(reps, tasks):
     indices = [TASK_LIST.index(task) for task in tasks]
     return reps[indices, ...]
 
-def task_eval(model, task, batch_size, noise=None, instruct_mode = None, instructions = None): 
-    ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, noise)
+def task_eval(model, task, batch_size, noise=None, instruct_mode = None, instructions = None, **trial_kwargs): 
+    ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, noise, **trial_kwargs)
     if instructions is None: 
         task_info = get_task_info(batch_size, task, model.info_type, instruct_mode=instruct_mode)
     else: 
@@ -300,7 +300,7 @@ def get_multitask_CCGP(exp_folder, model_name, seed, save=False, layer='task', m
     model.load_model(exp_folder+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
 
     if layer == 'task':
-        reps = get_task_reps(model, num_trials = 100,  main_var=True)
+        reps = get_task_reps(model, num_trials = 100)
     else: 
         reps = get_instruct_reps(model.langModel, depth=layer)
     
