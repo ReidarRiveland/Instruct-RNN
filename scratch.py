@@ -20,78 +20,19 @@ from instructRNN.analysis.decoder_analysis import *
 
 
 
-decoded_set = get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', [0, 1, 3], from_contexts=True)
+# decoded_set = get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', [0, 1, 3], from_contexts=True)
 
-holdout_perf_array = test_holdout_partner_perf('7.20models/swap_holdouts', 'clipNet_lin', decoded_set[0], decoded_set[-1], partner_seeds=range(5))
+# holdout_perf_array = test_holdout_partner_perf('7.20models/swap_holdouts', 'clipNet_lin', decoded_set[0], decoded_set[-1], partner_seeds=range(5))
 
-multi_perf_array = test_multi_partner_perf('clipNet_lin', decoded_set[0], decoded_set[-1])
-
-
-
-def plot_partner_perf_lolli(load_str='holdout', plot_holdouts=False, plot_multi_only=False):
-    to_plot_colors = [('All Decoded', '#0392cf'), ('Novel Decoded', '#7bc043'), ('Embedding', '#edc951')]
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(16, 8))
-    plt.suptitle('Partner Model Performance on Decoded Instructions')
-
-    axn.set_ylabel('Task', size=8, fontweight='bold')
-    axn.set_xlabel('Performance', size=8, fontweight='bold')
-
-    ind = np.arange(len(TASK_LIST))
-
-    if plot_multi_only:
-        mode_list = [('multi_', 'solid', 'o')]
-    else: 
-        mode_list = [('holdout_', 'dashed', 'D'), ('multi_', 'solid', 'o')]
-
-    for mode in mode_list:
-        perf_data = np.load(mode[0]+load_str+'_decoder_perf.npy')
-        for i in range(len(perf_data)): 
-            perf = np.nanmean(perf_data[i], axis=(0,1))
-            print(perf.shape)
-            axn.scatter(perf[::-1], ind+1, marker=mode[2], s = 2, color=to_plot_colors[i][1])
-            axn.vlines(np.nanmean(perf), 0, len(TASK_LIST)+1, color=to_plot_colors[i][1], linestyle=mode[1], linewidth=0.8)
-
-    axn.tick_params('y', bottom=False, top=False)
-    axn.set_yticks(range(len(TASK_LIST)+3))
-    axn.set_yticklabels(['']+TASK_LIST[::-1] + ['', ''], fontsize=4) 
-    axn.set_xticks(np.linspace(0, 1, 11))
-    
-    patches = []
-    if plot_holdouts: 
-        data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', mode='combined')
-        zero_shot, std = data.avg_seeds(k_shot=0)
-        axn.vlines(np.nanmean(zero_shot), 0, len(TASK_LIST)+1, color=MODEL_STYLE_DICT['clipNet_lin'][0], linestyle='dashed', linewidth=0.8)
-        axn.scatter(zero_shot[::-1], ind+1, marker='D', s = 2, color=MODEL_STYLE_DICT['clipNet_lin'][0])
-        patches.append(Line2D([0], [0], label = 'Instructions', color= MODEL_STYLE_DICT['clipNet_lin'][0], marker = 's', linestyle = 'None', markersize=4))
-
-
-    for style in to_plot_colors:
-        patches.append(Line2D([0], [0], label = style[0], color= style[1], marker = 's', linestyle='None', markersize=4))
-
-
-    patches.append(Line2D([0], [0], label = 'Multitask Partners', color= 'grey', marker = 'o', linestyle = 'None', markersize=4))
-    patches.append(Line2D([0], [0], label = 'Multitask Partner', color= 'grey', linestyle='solid', markersize=4))
-
-    patches.append(Line2D([0], [0], label = 'Holdout Partners', color= 'grey', marker = 'D', linestyle = 'None', markersize=2))
-    patches.append(Line2D([0], [0], label = 'Holdout Partners', color= 'grey', linestyle='dashed', markersize=2))
+# multi_perf_array = test_multi_partner_perf('clipNet_lin', decoded_set[0], decoded_set[-1])
 
 
 
-
-    axn.legend(handles = patches, fontsize='x-small')
-    
-    axn.set_xticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5)
-    axn.set_ylim(-0.2, len(TASK_LIST)+1)
-    axn.set_xlim(0, 1.01)
-
-    plt.show()
-
-
-plot_partner_perf_lolli(load_str='holdout', plot_holdouts=True, plot_multi_only=False)
+# plot_partner_perf_lolli(load_str='holdout', plot_holdouts=True, plot_multi_only=False)
 
 
 
-from sklearn.metrics.pairwise import cosine_similarity
+# from sklearn.metrics.pairwise import cosine_similarity
 
 
 
@@ -101,6 +42,25 @@ EXP_FILE = '7.20models/swap_holdouts'
 clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap9'
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
+
+SWAP_LIST[-1]
+
+cluster_dict, cluster_labels, sorted_indices= plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'clipNet_lin', 2)
+
+cluster_dict[7][5]
+
+unit=119
+plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'DMMod2','diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'AntiDMMod2','diff_strength', unit, num_trials=25, smoothing=1)
+
+plot_tuning_curve(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], unit, [80]*4, num_trials=25, smoothing=1)
+
+
+
+
+
 
 
 reps = get_instruct_reps(clipNet.langModel, depth='12', instruct_mode='combined')

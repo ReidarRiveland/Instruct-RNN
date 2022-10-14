@@ -570,3 +570,21 @@ def get_model_clusters(foldername, model_name, seed, num_repeats=10, save=False)
         else: os.makedirs(file_path)
         np.save(file_path+'/optim_clusters_seed'+str(seed), num_cluster_array)
 
+
+def load_cluster_measures(folder_name, model_list, seeds=range(5), verbose=False): 
+    if 'swap' in folder_name: 
+        exp_dict = SWAPS_DICT
+    num_cluster_array = np.full((len(seeds), len(model_list), len(exp_dict), 10), np.nan)
+
+    for i, seed in enumerate(seeds):
+        for j, model_name in enumerate(model_list):
+            try:
+                load_str = folder_name+'/cluster_measures/'+model_name+'/optim_clusters_seed'+str(seed)
+                clusters = np.load(open(load_str+'.npy', 'rb'))
+                num_cluster_array[i, j, ...] = clusters
+            except FileNotFoundError:
+                if verbose: 
+                    print('no data for model {} seed {}'.format( model_name, seed))
+                    print(load_str)
+
+    return num_cluster_array

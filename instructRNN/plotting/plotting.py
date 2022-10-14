@@ -150,15 +150,30 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
 def plot_all_task_lolli(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5)):
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 14))
 
-    width = 1/(len(model_list)+1)
+    width = 1/(len(model_list)+2)
     ind = np.arange(len(TASK_LIST))
+
+    axn.spines['top'].set_visible(False)
+    axn.spines['right'].set_visible(False)
+    axn.set_axisbelow(True)
+    axn.grid(visible=True, color='grey', linewidth=0.5)
 
     for i, model_name in enumerate(model_list): 
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
         zero_shot, std = data.avg_seeds(k_shot=0)
-        axn.scatter( zero_shot[::-1], (ind+(width/2))+(i*width), marker='o', s = 2, color=MODEL_STYLE_DICT[model_name][0])
-        #axn.scatter( zero_shot[::-1], ind, marker='o', s = 3, color=MODEL_STYLE_DICT[model_name][0])
-        axn.hlines((ind+(width/2))+(i*width), xmin=zero_shot[::-1]-std[::-1], xmax=np.min((np.ones_like(std), zero_shot[::-1]+std[::-1]), axis=0), color=MODEL_STYLE_DICT[model_name][0], linewidth=0.2)
+        y_mark = (ind)+((i+2)*width)
+        #axn.scatter( zero_shot[::-1], (ind+(width/2))+(i*width), marker='o', s = 2, color=MODEL_STYLE_DICT[model_name][0])
+        axn.scatter( zero_shot[::-1], y_mark, marker='o', s = 2, color=MODEL_STYLE_DICT[model_name][0])
+        #axn.hlines((ind+(width/2))+(i*width), xmin=np.max((np.ones_zeros(std), zero_shot[::-1]-std[::-1]), axis=0), xmax=np.min((np.ones_like(std), zero_shot[::-1]+std[::-1]), axis=0), color=MODEL_STYLE_DICT[model_name][0], linewidth=0.2)
+        std_max = np.min((np.ones_like(std), zero_shot[::-1]+std[::-1]), axis=0)
+        std_min = np.max((np.zeros_like(std), zero_shot[::-1]-std[::-1]), axis=0)
+        axn.hlines(y_mark, xmin=std_min, xmax=std_max, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.6, alpha=0.5)
+
+        axn.vlines(std_max, ymin= y_mark-0.2, ymax=y_mark+0.2, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.6, alpha=0.5)
+        axn.vlines(std_min, ymin= y_mark-0.2, ymax=y_mark+0.2, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.6, alpha=0.5)
+
+        #axn.vlines(ind, xmin=np.max((np.zeros_like(std), zero_shot[::-1]-std[::-1]), axis=0), xmax=np.min((np.ones_like(std), zero_shot[::-1]+std[::-1]), axis=0), 
+        #                           color=MODEL_STYLE_DICT[model_name][0], linewidth=0.6)                                    
         #axn.hlines(ind, xmin=zero_shot[::-1]-std[::-1], xmax=zero_shot[::-1]+std[::-1], color=MODEL_STYLE_DICT[model_name][0], linewidth=0.4)
 
     axn.set_yticks(ind)
@@ -170,6 +185,7 @@ def plot_all_task_lolli(foldername, exp_type, model_list, perf_type='correct', m
 
     axn.set_xticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5)
     axn.set_ylim(-0.15, len(TASK_LIST))
+    plt.tight_layout()
     plt.show()
 
 def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_err=False): 
@@ -411,7 +427,7 @@ def plot_tuning_curve(model, tasks, unit, times, num_trials=50, num_repeats=20, 
 
 def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeats = 10, smoothing = 1e-7, cmap=sns.color_palette("inferno", as_cmap=True)):
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
-    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=[task], num_repeats=num_repeats, main_var=True)[0,...]
+    hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=[task], num_repeats=num_repeats, max_var=True)[0,...]
 
     if task_variable == 'direction' or task_variable=='diff_direction': 
         labels = ["0", "$2\pi$"]
@@ -541,12 +557,13 @@ def plot_unit_clustering(load_folder, model_name, seed):
 
 def plot_task_var_heatmap(load_folder, model_name, seed, cmap = sns.color_palette("inferno", as_cmap=True)):
     task_var, _ = get_cluster_info(load_folder, model_name, seed)
-    _, cluster_labels, sorted_indices = sort_units(task_var)
+    cluters_dict, cluster_labels, sorted_indices = sort_units(task_var)
     label_list = [task for task in TASK_LIST if 'Con' not in task]
     res = sns.heatmap(task_var[sorted_indices, :].T, xticklabels = cluster_labels, yticklabels=label_list, vmin=0, cmap=cmap)
     res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 6)
     res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 4, rotation=0)
     plt.show()
+    return cluters_dict, cluster_labels, sorted_indices
         
 
 def plot_decoding_confuse_mat(confusion_mat, cmap='Blues', **heatmap_args): 
@@ -556,3 +573,62 @@ def plot_decoding_confuse_mat(confusion_mat, cmap='Blues', **heatmap_args):
     res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 5)
     plt.show()
 
+
+
+def plot_partner_perf_lolli(load_str='holdout', plot_holdouts=False, plot_multi_only=False):
+    to_plot_colors = [('All Decoded', '#0392cf'), ('Novel Decoded', '#7bc043'), ('Embedding', '#edc951')]
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(16, 8))
+    plt.suptitle('Partner Model Performance on Decoded Instructions')
+
+    axn.set_ylabel('Task', size=8, fontweight='bold')
+    axn.set_xlabel('Performance', size=8, fontweight='bold')
+
+    ind = np.arange(len(TASK_LIST))
+
+    if plot_multi_only:
+        mode_list = [('multi_', 'solid', 'o')]
+    else: 
+        mode_list = [('holdout_', 'dashed', 'D'), ('multi_', 'solid', 'o')]
+
+    for mode in mode_list:
+        perf_data = np.load(mode[0]+load_str+'_decoder_perf.npy')
+        for i in range(len(perf_data)): 
+            perf = np.nanmean(perf_data[i], axis=(0,1))
+            print(perf.shape)
+            axn.scatter(perf[::-1], ind+1, marker=mode[2], s = 2, color=to_plot_colors[i][1])
+            axn.vlines(np.nanmean(perf), 0, len(TASK_LIST)+1, color=to_plot_colors[i][1], linestyle=mode[1], linewidth=0.8)
+
+    axn.tick_params('y', bottom=False, top=False)
+    axn.set_yticks(range(len(TASK_LIST)+3))
+    axn.set_yticklabels(['']+TASK_LIST[::-1] + ['', ''], fontsize=4) 
+    axn.set_xticks(np.linspace(0, 1, 11))
+    
+    patches = []
+    if plot_holdouts: 
+        data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', mode='combined')
+        zero_shot, std = data.avg_seeds(k_shot=0)
+        axn.vlines(np.nanmean(zero_shot), 0, len(TASK_LIST)+1, color=MODEL_STYLE_DICT['clipNet_lin'][0], linestyle='dashed', linewidth=0.8)
+        axn.scatter(zero_shot[::-1], ind+1, marker='D', s = 2, color=MODEL_STYLE_DICT['clipNet_lin'][0])
+        patches.append(Line2D([0], [0], label = 'Instructions', color= MODEL_STYLE_DICT['clipNet_lin'][0], marker = 's', linestyle = 'None', markersize=4))
+
+
+    for style in to_plot_colors:
+        patches.append(Line2D([0], [0], label = style[0], color= style[1], marker = 's', linestyle='None', markersize=4))
+
+
+    patches.append(Line2D([0], [0], label = 'Multitask Partners', color= 'grey', marker = 'o', linestyle = 'None', markersize=4))
+    patches.append(Line2D([0], [0], label = 'Multitask Partner', color= 'grey', linestyle='solid', markersize=4))
+
+    patches.append(Line2D([0], [0], label = 'Holdout Partners', color= 'grey', marker = 'D', linestyle = 'None', markersize=2))
+    patches.append(Line2D([0], [0], label = 'Holdout Partners', color= 'grey', linestyle='dashed', markersize=2))
+
+
+
+
+    axn.legend(handles = patches, fontsize='x-small')
+    
+    axn.set_xticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5)
+    axn.set_ylim(-0.2, len(TASK_LIST)+1)
+    axn.set_xlim(0, 1.01)
+
+    plt.show()
