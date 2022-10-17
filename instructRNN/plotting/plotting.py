@@ -1,3 +1,4 @@
+from turtle import color
 from instructRNN.analysis.model_analysis import *
 from instructRNN.tasks.tasks import TASK_LIST
 from instructRNN.data_loaders.perfDataFrame import HoldoutDataFrame, TrainingDataFrame
@@ -203,7 +204,8 @@ def plot_all_task_bar(foldername, exp_type, model_list, perf_type='correct', mod
             zero_shot = np.squeeze(np.mean(data, axis=0))
 
         x_mark = (ind+(width/2))+(i*width)
-        axn.bar(x_mark,  zero_shot, width, align='edge', color=MODEL_STYLE_DICT[model_name][0])
+        axn.scatter(x_mark,  zero_shot, color=MODEL_STYLE_DICT[model_name][0], s=3)
+        axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.5)
 
     axn.set_xticks(ind)
     axn.set_xticklabels('')
