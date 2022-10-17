@@ -15,15 +15,22 @@ from instructRNN.analysis.decoder_analysis import *
 
 
 
-decoded_set = get_decoded_set('7.20models/multitask_holdouts', 'clipNet_lin', exp = 'multi', seeds=range(5), from_contexts=True)
+decoder_pipline('7.20models/multitask_holdouts', 'clipNet_lin')
 
-decoded_set[0].keys()
 
-holdout_perf_array = test_multi_partner_perf('7.20models/multitask_holdouts', 'clipNet_lin', decoded_set[0], decoded_set[-1], partner_seeds=range(5))
+#decoded_set = get_decoded_set('7.20models/multitask_holdouts', 'clipNet_lin', seeds=range(5), from_contexts=True, save=True)
+
+#decoded_set[0].keys()
+
+holdout_perf_array = test_holdout_partner_perf('7.20models/multitask_holdouts', 'clipNet_lin', partner_seeds=range(5), save=True)
+
+
+
+
 
 len(holdout_perf_array)
 
-np.mean(holdout_perf_array[2])
+np.save('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/multi_decoder_multi_partner_other_perf.npy', holdout_perf_array[1])
 
 
 # multi_perf_array = test_multi_partner_perf('clipNet_lin', decoded_set[0], decoded_set[-1])

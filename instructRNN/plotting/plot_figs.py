@@ -4,19 +4,16 @@ from instructRNN.models.full_models import *
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
 
-data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', perf_type='correct', mode='combined', seeds=range(5))
-perf = data.data[:, :, 0]
-np.mean(perf)
+to_plot_models = ['simpleNet', 'bowNet_lin', 'gptNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin']
 
-plot_all_training_curves('7.20models', 'multitask', 'Multitask',
-                                ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'][::-1],
-                                seeds =range(0, 5))
+##VALIDATION
+plot_all_task_bar('7.20models', 'swap', to_plot_models[1:][::-1], seeds =range(0, 5), mode='validation')
 
-plot_avg_holdout_curve('7.20models', 'swap', 
-                                ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'],
-                                seeds =range(0, 5),
-                                mode='combined'
-                                )
+
+###HOLDOUTS
+plot_avg_holdout_curve('7.20models', 'swap', to_plot_models, seeds =range(0, 5), mode='combined')
+
+plot_0_shot_task_hist('7.20models', 'swap', to_plot_models, seeds =range(0,5), mode='combined')
 
 plot_all_task_bar('7.20models', 'swap', 
                                 ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'],
@@ -24,12 +21,8 @@ plot_all_task_bar('7.20models', 'swap',
                                 mode='combined',
                                 )
 
-plot_0_shot_task_hist('7.20models', 'swap', 
-                                [ 'clipNet_lin', 'sbertNet_lin',  'gptNetXL_lin', 'bertNet_lin',  'gptNet_lin', 'simpleNet'][::-1],
-                                seeds =range(0,5),
-                                mode='combined'
-                                )
 
+##TUNED HOLDOUTS
 plot_avg_holdout_curve('7.20models', 'swap', 
                                 ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'simpleNetPlus', 'gptNet_lin_tuned'],
                                 seeds =range(0, 5),
@@ -42,12 +35,10 @@ plot_0_shot_task_hist('7.20models', 'swap',
                                 mode='combined'
                                 )
 
-plot_avg_holdout_curve('7.20models', 'family', 
-                                ['gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet', 'simpleNetPlus', 'gptNet_lin'],
-                                seeds =range(0, 5),
-                                mode='combined'
-                                )
 
+
+
+###SWAP HOLDOUTS
 plot_avg_holdout_curve('7.20models', 'swap', 
                                 ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'],
                                 seeds =range(0, 5),
@@ -66,8 +57,21 @@ plot_all_task_bar('7.20models', 'swap',
                                 mode='swap_combined'
                                 )
 
-plot_avg_holdout_curve('7.20models', 'swap', 
-                                ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin_tuned'],
+###FAMILY
+plot_avg_holdout_curve('7.20models', 'family', 
+                                ['gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet', 'simpleNetPlus', 'gptNet_lin'],
+                                seeds =range(0, 5),
+                                mode='combined'
+                                )
+
+plot_avg_holdout_curve('7.20models', 'family', 
+                                ['gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet', 'simpleNetPlus', 'gptNet_lin'],
+                                seeds =range(0, 5),
+                                mode='combined'
+                                )
+
+plot_all_task_bar('7.20models', 'family', 
+                                ['gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet', 'simpleNetPlus', 'gptNet_lin'],
                                 seeds =range(0, 5),
                                 mode='combined'
                                 )

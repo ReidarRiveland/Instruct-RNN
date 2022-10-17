@@ -3,7 +3,7 @@ import numpy as np
 import itertools
 import instructRNN.models.full_models as full_models
 from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP, get_layer_dim, get_val_perf, get_model_clusters
-from instructRNN.analysis.decoder_analysis import decoder_pipline
+from instructRNN.analysis.decoder_analysis import decoder_pipeline
 
 if __name__ == "__main__":
     import argparse
@@ -27,6 +27,13 @@ if __name__ == "__main__":
             return jobs
         else:
             return [jobs[job_index]]
+
+    if args.mode == 'decode':
+        decoder_pipeline('7.20models/multitask_holdouts', 'clipNet_lin')
+        decoder_pipeline('7.20models/swap_holdouts', 'clipNet_lin', sm_holdout=True)
+        decoder_pipeline('7.20models/swap_holdouts', 'clipNet_lin', sm_holdout=True, decoder_holdout=True)
+
+
 
     jobs = make_analysis_jobs(args.models, args.seeds, args.job_index)
     for job in jobs: 
@@ -70,10 +77,5 @@ if __name__ == "__main__":
         elif args.mode == 'clusters':
             get_model_clusters(EXP_FOLDER, model, _seed, save=True)
                 
-        elif args.mode == 'decode':
-            decoder_pipline('7.20models/multitask_holdouts', 'clipNet_lin')
-            decoder_pipline('7.20models/swap_holdouts', 'clipNet_lin', sm_holdout=True)
-            decoder_pipline('7.20models/swap_holdouts', 'clipNet_lin', sm_holdout=True, decoder_holdout=True)
-
 
 

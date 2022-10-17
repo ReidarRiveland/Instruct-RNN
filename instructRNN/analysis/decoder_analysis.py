@@ -182,7 +182,7 @@ def test_holdout_partner_perf(foldername, model_name, num_trials = 50, partner_s
     return instruct_perf_array, other_perf_array, contexts_perf_array
 
 
-def decoder_pipline(foldername, model_name, decoder_holdout=False, sm_holdout=False, seeds=range(5)): 
+def decoder_pipeline(foldername, model_name, decoder_holdout=False, sm_holdout=False, seeds=range(5)): 
     get_decoded_set(foldername, model_name, seeds=seeds, from_contexts=True, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
     test_multi_partner_perf(foldername, model_name, seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
     test_holdout_partner_perf(foldername, model_name, seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
