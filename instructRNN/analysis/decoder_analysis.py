@@ -1,4 +1,5 @@
 import os
+from pip import main
 import torch
 import numpy as np
 import pickle
@@ -9,11 +10,15 @@ from instructRNN.models.full_models import make_default_model
 from instructRNN.tasks.tasks import SWAPS_DICT, TASK_LIST, construct_trials
 from instructRNN.tasks.task_criteria import isCorrect
 
-def get_decoded_set(foldername, model_name, seeds=range(5), from_contexts=False, with_holdouts=False, with_dropout=False, save=False): 
-    if 'swap' in foldername:
+def get_decoded_set(foldername, model_name, seeds=range(5), from_contexts=False, sm_holdouts=False, decoder_holdouts=False, with_dropout=False, save=False): 
+    if sm_holdouts: assert 'swap' in foldername
+    
+    if sm_holdouts:
         exp_dict = SWAPS_DICT
+        sm_str = 'holdout'
     else: 
         exp_dict = {'Multitask': TASK_LIST}
+        sm_str = 'multi'
 
     full_shallow_set = {}
     full_rich_set = {}
@@ -36,7 +41,7 @@ def get_decoded_set(foldername, model_name, seeds=range(5), from_contexts=False,
         all_contexts = np.full(full_all_contexts.shape[1:], np.nan)
         for swap_label, swap_tasks in exp_dict.items(): 
             print(swap_label)
-            encoder.load_model_componenets(foldername+'/'+swap_label+'/'+model_name+'/', seed, swap_tasks, with_holdout=with_holdouts, with_dropout=with_dropout)
+            encoder.load_model_componenets(foldername+'/'+swap_label+'/'+model_name+'/', seed, swap_tasks, with_holdout=decoder_holdouts, with_dropout=with_dropout)
             for task in swap_tasks:
                 all_contexts[TASK_LIST.index(task), ...] = encoder.contexts[TASK_LIST.index(task), ...]
             _shallow, _rich, _confuse_mat = encoder.decode_set(50, 1, tasks=swap_tasks, from_contexts=from_contexts)
@@ -54,12 +59,12 @@ def get_decoded_set(foldername, model_name, seeds=range(5), from_contexts=False,
         if os.path.exists(file_path):
             pass
         else: os.makedirs(file_path)
-        if with_holdouts: holdout_str='wHoldouts'
-        else: holdout_str = ''
+        if decoder_holdouts: decoder_str='holdout'
+        else: decoder_str = 'multi'
 
-        pickle.dump(full_rich_set, open(file_path+'/decoded_instruct_'+holdout_str+'_dict', 'wb'))
-        np.save(file_path+'/confuse_mat_'+holdout_str+'.npy',full_confuse_mat)
-        np.save(file_path+'/contexts_'+holdout_str+'.npy', full_all_contexts)
+        pickle.dump(full_rich_set, open(file_path+'/sm_'+sm_str+'decoder_'+decoder_str+'_instructs_dict', 'wb'))
+        np.save(file_path+'/sm_'+sm_str+'decoder_'+decoder_str+'_confuse_mat.npy',full_confuse_mat)
+        np.save(file_path+'/sm_'+sm_str+'decoder_'+decoder_str+'_contexts.npy', full_all_contexts)
 
     return full_rich_set, full_shallow_set, full_confuse_mat, full_all_contexts
 
@@ -100,10 +105,17 @@ def test_partner_model(load_folder, model_name, decoded_dict, contexts = None, n
     partner_model.load_state_dict(torch.load(load_folder+'/Multitask/'+model_name+'/'+model_name+'_seed'+str(partner_seed)+'.pt'), strict=False)
     return _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks)
 
-def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_LIST, partner_seeds=range(5), with_holdouts= False, save=False):
+def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_LIST, partner_seeds=range(5), decoder_holdouts=False, sm_holdouts= False, save=False):
     file_path = foldername+'/decoder_perf/'+model_name
-    full_decoded_dict = pickle.load(open(file_path+'/decoded_instruct_'+holdout_str+'_dict', 'rb'))
-    contexts = np.load(file_path+'/contexts_'+holdout_str+'.npy')
+    
+    if decoder_holdouts: decoder_str='holdout'
+    else: decoder_str = 'multi'
+    
+    if sm_holdouts: sm_str = 'holdout'
+    else: sm_str = 'multi'
+
+    full_decoded_dict = pickle.load(open(file_path+'/sm_'+sm_str+'decoder_'+decoder_str+'_instructs_dict', 'rb'))
+    contexts = np.load(file_path+'/sm_'+sm_str+'decoder_'+decoder_str+'_contexts.npy')
 
     instruct_perf_array = np.full((len(full_decoded_dict), len(partner_seeds), len(TASK_LIST)), np.nan)
     other_perf_array = np.full((len(full_decoded_dict), len(partner_seeds), len(TASK_LIST)), np.nan)
@@ -117,22 +129,26 @@ def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_
             other_perf_array[i,j, ...] = other_perf
             contexts_perf_array[i, j, ...] = contexts_perf
 
-
     if save:
         file_path = foldername+'/decoder_perf/'+model_name
         if os.path.exists(file_path):
             pass
         else: os.makedirs(file_path)
-        if with_holdouts: holdout_str='wHoldouts'
-        else: holdout_str = ''
-        np.save(file_path+'/'+holdout_str+,full_confuse_mat)
-        np.save(file_path+'/'+holdout_str, full_all_contexts)
-
+        np.save(file_path+'/sm_'+sm_str+'decoder_'+decoder_str+'_decoder_multi_partner_all_perf',instruct_perf_array)
+        np.save(file_path+'/sm_'+sm_str+'decoder_'+decoder_str+'_decoder_multi_partner_other_perf',other_perf_array)
+        np.save(file_path+'/sm_'+sm_str+'decoder_'+decoder_str+'_decoder_multi_partner_context_perf',contexts_perf_array)
     return instruct_perf_array, other_perf_array, contexts_perf_array
 
-def test_holdout_partner_perf(load_folder, model_name, full_decoded_dict, contexts, num_trials = 50, partner_seeds = range(5), save=False):
-    if 'swap' in load_folder:
-        exp_dict = SWAPS_DICT
+def test_holdout_partner_perf(foldername, model_name, num_trials = 50, partner_seeds = range(5), decoder_holdouts=False, sm_holdouts= False, save=False):
+    file_path = foldername+'/decoder_perf/'+model_name
+    if decoder_holdouts: decoder_str='holdout'
+    else: decoder_str = 'multi'
+    
+    if sm_holdouts: sm_str = 'holdout'
+    else: sm_str = 'multi'
+
+    full_decoded_dict = pickle.load(open(file_path+'/sm_'+sm_str+'decoder_'+decoder_str+'_instructs_dict', 'rb'))
+    contexts = np.load(file_path+'/sm_'+sm_str+'decoder_'+decoder_str+'_contexts.npy')
 
     instruct_perf_array = np.full((len(partner_seeds), len(full_decoded_dict), len(TASK_LIST)), np.nan)
     other_perf_array = np.full((len(partner_seeds), len(full_decoded_dict),  len(TASK_LIST)), np.nan)
@@ -140,9 +156,9 @@ def test_holdout_partner_perf(load_folder, model_name, full_decoded_dict, contex
     
     partner_model = make_default_model(model_name)
     for i, seed in enumerate(partner_seeds):
-        for holdout_file, holdouts in exp_dict.items():
+        for holdout_file, holdouts in SWAPS_DICT.items():
             print('processing '+ holdout_file)
-            partner_model.load_model(load_folder+'/'+holdout_file+'/'+partner_model.model_name, suffix='_seed'+str(seed))
+            partner_model.load_model('7.20models/swap_holdouts/'+holdout_file+'/'+partner_model.model_name, suffix='_seed'+str(seed))
             for j, item in enumerate(full_decoded_dict.items()): 
                 decoder_seed, decoded_set = item
                 if decoder_seed == seed: 
@@ -154,6 +170,20 @@ def test_holdout_partner_perf(load_folder, model_name, full_decoded_dict, contex
                 other_perf_array[i, j, [TASK_LIST.index(task) for task in holdouts]] = other_perf
                 contexts_perf_array[i, j, [TASK_LIST.index(task) for task in holdouts]] = contexts_perf
 
+    if save:
+        file_path = foldername+'/decoder_perf/'+model_name
+        if os.path.exists(file_path):
+            pass
+        else: os.makedirs(file_path)
+        np.save(file_path+'/sm_'+sm_str+'decoder_'+decoder_str+'_decoder_holdout_partner_all_perf',instruct_perf_array)
+        np.save(file_path+'/sm_'+sm_str+'decoder_'+decoder_str+'_decoder_holdout_partner_other_perf',other_perf_array)
+        np.save(file_path+'/sm_'+sm_str+'decoder_'+decoder_str+'_decoder_holdout_partner_context_perf',contexts_perf_array)
+
     return instruct_perf_array, other_perf_array, contexts_perf_array
 
+
+def decoder_pipline(foldername, model_name, decoder_holdout=False, sm_holdout=False, seeds=range(5)): 
+    get_decoded_set(foldername, model_name, seeds=seeds, from_contexts=True, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
+    test_multi_partner_perf(foldername, model_name, seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
+    test_holdout_partner_perf(foldername, model_name, seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
 

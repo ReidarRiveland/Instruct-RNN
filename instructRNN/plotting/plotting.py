@@ -654,13 +654,59 @@ def plot_partner_perf_lolli(load_str='holdout', plot_holdouts=False, plot_multi_
     patches.append(Line2D([0], [0], label = 'Holdout Partners', color= 'grey', marker = 'D', linestyle = 'None', markersize=2))
     patches.append(Line2D([0], [0], label = 'Holdout Partners', color= 'grey', linestyle='dashed', markersize=2))
 
-
-
-
     axn.legend(handles = patches, fontsize='x-small')
     
     axn.set_xticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5)
     axn.set_ylim(-0.2, len(TASK_LIST)+1)
     axn.set_xlim(0, 1.01)
+
+    plt.show()
+
+
+
+
+def plot_partner_perf_bar(foldername, decoder_type):
+    mode_dict = {'All Instructions': ('all_perf', '#0392cf'), 'Novel Instructions': ('other_perf', '#7bc043'), 'Embeddings': ('context_perf','#edc951')}
+    multi_holdout_formatting = {'multi': {}, 'holdout': {'alpha':0.7, 'edgecolor':'white', 'hatch':'///'}}
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(16, 8))
+
+    axn.set_ylabel('Perforamance', size=8, fontweight='bold')
+
+    width = 1/4
+
+
+    axn.set_axisbelow(True)
+    axn.grid(visible=True, color='grey', axis='y', linewidth=0.5)
+
+
+    axn.spines['top'].set_visible(False)
+    axn.spines['right'].set_visible(False)
+
+
+    for i, mode_value in enumerate(mode_dict.values()):
+        for j, values in enumerate(multi_holdout_formatting.items()):
+            holdouts, formatting = values
+            perf_data = np.nanmean(np.load(foldername+'/multi_decoder_'+holdouts+'_partner_'+mode_value[0]+'.npy'))
+            x_mark = ((i)+width)+((j*1.05*width))
+            axn.bar(x_mark, perf_data, width, align='edge', color=mode_value[1], **formatting)
+                        
+    axn.set_yticks(np.linspace(0, 1, 11))            
+    axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5) 
+    axn.set_xticklabels('') 
+    axn.xaxis.set_ticks_position('none') 
+    patches = []
+
+    for label, mode in mode_dict.items():
+        patches.append(mpatches.Patch(label = label, facecolor= mode[1]))
+    patches.append(mpatches.Patch(facecolor='gray', edgecolor='white', label='Multitask Partner'))
+    patches.append(mpatches.Patch(facecolor='gray', edgecolor='white', hatch='///', label='Holdout Partner'))
+        
+        
+        
+
+    axn.legend(handles = patches, fontsize='x-small')
+    
+    axn.set_ylim(0.0, 1.0)
+    axn.set_xlim(0, 3)
 
     plt.show()
