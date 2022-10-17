@@ -102,7 +102,7 @@ def _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks
 
 def test_partner_model(load_folder, model_name, decoded_dict, contexts = None, num_trials=50, tasks = TASK_LIST, partner_seed=3): 
     partner_model = make_default_model(model_name)
-    partner_model.load_state_dict(torch.load(load_folder+'/Multitask/'+model_name+'/'+model_name+'_seed'+str(partner_seed)+'.pt'), strict=False)
+    partner_model.load_state_dict(torch.load('7.20models/multitask_holdouts/Multitask/'+model_name+'/'+model_name+'_seed'+str(partner_seed)+'.pt'), strict=False)
     return _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks)
 
 def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_LIST, partner_seeds=range(5), decoder_holdouts=False, sm_holdouts= False, save=False):
@@ -183,7 +183,10 @@ def test_holdout_partner_perf(foldername, model_name, num_trials = 50, partner_s
 
 
 def decoder_pipeline(foldername, model_name, decoder_holdout=False, sm_holdout=False, seeds=range(5)): 
-    get_decoded_set(foldername, model_name, seeds=seeds, from_contexts=True, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
+    try: 
+        np.load(foldername+'/decoder_perf/clipNet_lin/contexts_multi.npy')
+    except:
+        get_decoded_set(foldername, model_name, seeds=seeds, from_contexts=True, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
     test_multi_partner_perf(foldername, model_name, partner_seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
     test_holdout_partner_perf(foldername, model_name, partner_seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
 
