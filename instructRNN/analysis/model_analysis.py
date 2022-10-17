@@ -21,6 +21,7 @@ from instructRNN.instructions.instruct_utils import get_task_info, get_instructi
 from instructRNN.models.full_models import make_default_model
 from instructRNN.tasks.tasks import DICH_DICT, TASK_LIST, SWAPS_DICT
 from instructRNN.data_loaders.perfDataFrame import *
+from instructRNN.data_loaders.analysis_loaders import *
 
 import os
 
@@ -198,7 +199,6 @@ def get_layer_sim_scores(model, rep_depth='12', dist = 'pearson'):
     
     return sim_scores
 
-
 def get_DM_perf(model, noises, diff_strength, num_repeats=100, mod=0, task='DM'):
     num_trials = len(diff_strength)
     pstim1_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
@@ -369,52 +369,7 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
 
     return task_holdout_scores, dich_holdout_scores, holdout_CCGP
 
-def load_multi_ccgp(model_name, seeds=range(5), layer='task'):
-    task_holdout_array = np.full((len(seeds), len(TASK_LIST)), np.nan)
-    dich_holdout_array = np.full((len(seeds), len(DICH_DICT)), np.nan)
 
-    for i, seed in enumerate(seeds):
-        task_load_str = '7.20models/multitask_holdouts/CCGP_scores/'+model_name+'/layer'+layer+'_task_multi_seed'+str(seed)+'.npy'
-        dich_load_str = '7.20models/multitask_holdouts/CCGP_scores/'+model_name+'/layer'+layer+'_dich_multi_seed'+str(seed)+'.npy'
-        task_arr = np.load(open(task_load_str, 'rb'))
-        dich_arr = np.load(open(dich_load_str, 'rb'))
-        task_holdout_array[i, :] = task_arr
-        dich_holdout_array[i, :] = dich_arr
-
-    return task_holdout_array, dich_holdout_array
-
-def load_holdout_ccgp(folder_name, model_name, layer_list, seeds, verbose=False): 
-    task_holdout_array = np.full((len(seeds), len(layer_list), len(TASK_LIST)), np.nan)        
-
-    for i, seed in enumerate(seeds):
-        for j, layer in enumerate(layer_list):
-            try:
-                task_load_str = folder_name+'/CCGP_scores/'+model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+'.npy'
-                task_arr = np.load(open(task_load_str, 'rb'))
-                task_holdout_array[i, j, :] = task_arr
-            except FileNotFoundError:
-                if verbose: 
-                    print('no data for layer {} for model {} seed {}'.format(layer, model_name, seed))
-                    print(task_load_str)
-
-    return task_holdout_array
-
-
-def load_dim_measures(folder_name, model_name, layer_list, seeds, verbose=False): 
-    task_holdout_array = np.full((len(seeds), len(layer_list), len(TASK_LIST)), np.nan)
-
-    for i, seed in enumerate(seeds):
-        for j, layer in enumerate(layer_list):
-            try:
-                task_load_str = folder_name+'/CCGP_scores/'+model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+'.npy'
-                task_arr = np.load(open(task_load_str, 'rb'))
-                task_holdout_array[i, j, :] = task_arr
-            except FileNotFoundError:
-                if verbose: 
-                    print('no data for layer {} for model {} seed {}'.format(layer, model_name, seed))
-                    print(task_load_str)
-
-    return task_holdout_array
 
 def get_perf_ccgp_corr(folder, exp_type, model_list):
     ccgp_scores = np.empty((len(model_list), len(TASK_LIST)))
@@ -487,27 +442,6 @@ def get_layer_dim(exp_folder, model_name, seed, layer='task', threshold = 0.9, k
 
     return var_exp_arr, thresholded
 
-def load_holdout_dim_measures(folder_name, model_name, layer_list, seeds=range(5), verbose=False): 
-    if 'swap' in folder_name: 
-        exp_dict = SWAPS_DICT
-    var_exp_array = np.full((len(seeds), len(layer_list), len(exp_dict), 25), np.nan)
-    thresholds_array = np.full((len(seeds), len(layer_list), len(exp_dict)), np.nan)
-
-    for i, seed in enumerate(seeds):
-        for j, layer in enumerate(layer_list):
-            try:
-                load_str = folder_name+'/dim_measures/'+model_name+'/layer'+layer
-                var_exp = np.load(open(load_str+'_var_exp_arr_seed'+str(seed)+'.npy', 'rb'))
-                threshold = np.load(open(load_str+'_thresholds_seed'+str(seed)+'.npy', 'rb'))
-                var_exp_array[i, j, ...] = var_exp
-                thresholds_array[i, j, :] = threshold
-            except FileNotFoundError:
-                if verbose: 
-                    print('no data for layer {} for model {} seed {}'.format(layer, model_name, seed))
-                    print(load_str)
-
-    return var_exp_array, thresholds_array
-
 def get_norm_task_var(hid_reps): 
     task_var = np.mean(np.var(hid_reps[:, 30:, :,:], axis=1), axis=1)
     task_var = np.delete(task_var, np.where(np.sum(task_var, axis=0)<0.001)[0], axis=1)
@@ -540,7 +474,7 @@ def sort_units(norm_task_var):
 def get_cluster_info(load_folder, model_name, seed):
     model = make_default_model(model_name)
     model.load_model(load_folder+'/'+model.model_name, suffix='_seed'+str(seed))
-    task_hid_reps = get_task_reps(model, num_trials = 100, epoch=None, tasks= [task for task in TASK_LIST if 'Con' not in task], max_var=True)
+    task_hid_reps = get_task_reps(model, num_trials = 100, epoch=None, tasks= TASK_LIST, max_var=True)
     norm_task_var = get_norm_task_var(task_hid_reps)
     cluster_labels = cluster_units(norm_task_var)
     return norm_task_var, cluster_labels
@@ -570,21 +504,3 @@ def get_model_clusters(foldername, model_name, seed, num_repeats=10, save=False)
         else: os.makedirs(file_path)
         np.save(file_path+'/optim_clusters_seed'+str(seed), num_cluster_array)
 
-
-def load_cluster_measures(folder_name, model_list, seeds=range(5), verbose=False): 
-    if 'swap' in folder_name: 
-        exp_dict = SWAPS_DICT
-    num_cluster_array = np.full((len(seeds), len(model_list), len(exp_dict), 10), np.nan)
-
-    for i, seed in enumerate(seeds):
-        for j, model_name in enumerate(model_list):
-            try:
-                load_str = folder_name+'/cluster_measures/'+model_name+'/optim_clusters_seed'+str(seed)
-                clusters = np.load(open(load_str+'.npy', 'rb'))
-                num_cluster_array[i, j, ...] = clusters
-            except FileNotFoundError:
-                if verbose: 
-                    print('no data for model {} seed {}'.format( model_name, seed))
-                    print(load_str)
-
-    return num_cluster_array

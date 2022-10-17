@@ -42,11 +42,11 @@ class EncoderDecoder(nn.Module):
 
     def init_context_set(self, file_name, seed, tasks, verbose=True):
         context_dim = self.sm_model.langModel.LM_intermediate_lang_dim
-        all_contexts = np.full((len(TASK_LIST), 100, context_dim), np.nan)
+        all_contexts = np.full((len(TASK_LIST), 64, context_dim), np.nan)
         for i, task in enumerate(tasks):
             filename = file_name+'contexts/seed'+str(seed)+'_'+task+'_context_vecs'+str(context_dim)
             task_contexts = pickle.load(open(filename, 'rb'))
-            all_contexts[TASK_LIST.index(task), ...]=task_contexts[:100, :]
+            all_contexts[TASK_LIST.index(task), ...]=task_contexts[:64, :]
 
         self.contexts = all_contexts
 

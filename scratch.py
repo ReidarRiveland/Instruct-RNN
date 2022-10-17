@@ -15,9 +15,16 @@ from instructRNN.analysis.decoder_analysis import *
 
 
 
-# decoded_set = get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', [0, 1, 3], from_contexts=True)
+decoded_set = get_decoded_set('7.20models/multitask_holdouts', 'clipNet_lin', exp = 'multi', seeds=range(5), from_contexts=True)
 
-# holdout_perf_array = test_holdout_partner_perf('7.20models/swap_holdouts', 'clipNet_lin', decoded_set[0], decoded_set[-1], partner_seeds=range(5))
+decoded_set[0].keys()
+
+holdout_perf_array = test_multi_partner_perf('7.20models/multitask_holdouts', 'clipNet_lin', decoded_set[0], decoded_set[-1], partner_seeds=range(5))
+
+len(holdout_perf_array)
+
+np.mean(holdout_perf_array[2])
+
 
 # multi_perf_array = test_multi_partner_perf('clipNet_lin', decoded_set[0], decoded_set[-1])
 
@@ -28,6 +35,35 @@ from instructRNN.analysis.decoder_analysis import *
 
 
 # from sklearn.metrics.pairwise import cosine_similarity
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

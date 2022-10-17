@@ -92,7 +92,7 @@ class TrainingDataFrame():
     def __post_init__(self):
         self.load_data()
 
-    def avg_seeds(self, task=None, k_shot=slice(0, 2000)): 
+    def avg_seeds(self, task=None, k_shot=slice(0, 100_000)): 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
             i = TASK_LIST.index(task) if task in TASK_LIST else slice(0, len(TASK_LIST))
@@ -103,7 +103,7 @@ class TrainingDataFrame():
             return mean, std
 
     def load_data(self): 
-        data = np.full((5, len(TASK_LIST), 10000), np.NaN)
+        data = np.full((5, len(TASK_LIST), 100_000), np.NaN)
         for i in self.seeds:
             seed_name = 'seed' + str(i)
             load_path = self.file_path+'/'+self.exp_type+'_holdouts/'+self.holdout_file+'/'+self.model_name+'/'+seed_name

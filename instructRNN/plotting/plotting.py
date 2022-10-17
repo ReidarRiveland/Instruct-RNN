@@ -1,17 +1,8 @@
-from ast import Mod
-from cmath import nan
-from math import exp
-from pyexpat import model
-from random import seed
-from turtle import color
-from xml.dom.expatbuilder import theDOMImplementation
-import matplotlib
-from pyparsing import col
 from instructRNN.analysis.model_analysis import *
 from instructRNN.tasks.tasks import TASK_LIST
 from instructRNN.data_loaders.perfDataFrame import HoldoutDataFrame, TrainingDataFrame
+from instructRNN.data_loaders.analysis_loaders import *
 from instructRNN.tasks.task_criteria import isCorrect
-
 from instructRNN.instructions.instruct_utils import train_instruct_dict, test_instruct_dict
 from instructRNN.tasks.task_factory import STIM_DIM
 from instructRNN.instructions.instruct_utils import get_task_info
@@ -20,10 +11,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.patches as mpatches
-from matplotlib import colors, cm
-from matplotlib.lines import Line2D, lineStyles
+from matplotlib import cm
+from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator
-import matplotlib
 import torch
 
 from scipy.ndimage import gaussian_filter1d
@@ -188,8 +178,49 @@ def plot_all_task_lolli(foldername, exp_type, model_list, perf_type='correct', m
     plt.tight_layout()
     plt.show()
 
+
+
+def plot_all_task_bar(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_title=''):
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(14, 4))
+
+    width = 1/(len(model_list)+1)
+    ind = np.arange(len(TASK_LIST))
+
+    axn.spines['top'].set_visible(False)
+    axn.spines['right'].set_visible(False)
+    axn.set_axisbelow(True)
+    axn.grid(visible=True, color='grey', axis='y', linewidth=0.5)
+
+    fig.suptitle(plot_title)
+    axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+
+    for i, model_name in enumerate(model_list): 
+        if mode is not 'validation':
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
+            zero_shot, std = data.avg_seeds(k_shot=0)
+        else: 
+            data = load_val_perf([model_name])
+            zero_shot = np.squeeze(np.mean(data, axis=0))
+
+        x_mark = (ind+(width/2))+(i*width)
+        axn.bar(x_mark,  zero_shot, width, align='edge', color=MODEL_STYLE_DICT[model_name][0])
+
+    axn.set_xticks(ind)
+    axn.set_xticklabels('')
+    axn.tick_params(axis='x', which='minor', bottom=False)
+    axn.set_xticks(ind+0.75, minor=True)
+    axn.set_xticklabels(TASK_LIST, fontsize=4, minor=True, rotation=45, ha='right') 
+    axn.set_xlim(-0.15, len(ind))
+
+    axn.set_yticks(np.linspace(0, 1, 11))
+    axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5)
+    axn.set_ylim(0.0, 1)
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_err=False): 
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
 
     axn.set_axisbelow(True)
     axn.grid(visible=True, color='grey', axis='x', linewidth=0.5)
@@ -216,6 +247,7 @@ def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct',
     axn.set_yticks(np.arange(11))
     axn.yaxis.set_ticks_position('none') 
     axn.set_yticklabels('') 
+    axn.set_xlim(0, 27)
 
     for i, model_name in enumerate(model_list):
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode=mode, seeds=seeds)
@@ -257,16 +289,13 @@ def plot_all_holdout_curves(foldername, exp_type, model_list,  mode = '', perf_t
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
 
-def plot_all_training_curves(foldername, exp_type, holdout_file, model_list, perf_type='correct', plot_swaps = False, seeds=range(5)):
+def plot_all_training_curves(foldername, exp_type, holdout_file, model_list, perf_type='correct', seeds=range(5)):
     fig, axn = plt.subplots(5,10, sharey = True, sharex=True, figsize =(8, 8))
 
     fig.suptitle('Avg. Performance on Heldout Tasks', size=14)        
 
     for model_name in model_list:
-        try:
-            data = TrainingDataFrame(foldername, exp_type, holdout_file, model_name, perf_type=perf_type, seeds=seeds)
-        except:
-            data = TrainingDataFrame(foldername, exp_type, holdout_file, model_name, file_suffix = '_FOR_TUNING', perf_type=perf_type, seeds=seeds)
+        data = TrainingDataFrame(foldername, exp_type, holdout_file, model_name, perf_type=perf_type, seeds=seeds)
         plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=0.8, markevery=5)
 
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
@@ -406,13 +435,12 @@ def plot_tuning_curve(model, tasks, unit, times, num_trials=50, num_repeats=20, 
 
     #elif 'Dur' in tasks[0]: 
 
-    y_max = 1.0
     hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, main_var=True, **trial_kwargs)
     for i, task in enumerate(tasks): 
         time = times[i]
         neural_resp = hid_mean[i, :, time, unit]        
         axn.plot(var_of_interest, gaussian_filter1d(neural_resp, smoothing), color=get_task_color(task))
-        y_max = max(y_max, neural_resp.max())
+        y_max = neural_resp.max()
 
     plt.suptitle('Tuning curve for Unit ' + str(unit))
     axn.set_ylim(-0.05, y_max+0.15)
@@ -554,14 +582,20 @@ def plot_unit_clustering(load_folder, model_name, seed):
     plt.show()
 
 def plot_task_var_heatmap(load_folder, model_name, seed, cmap = sns.color_palette("inferno", as_cmap=True)):
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(12, 4))
+
     task_var, _ = get_cluster_info(load_folder, model_name, seed)
     cluters_dict, cluster_labels, sorted_indices = sort_units(task_var)
-    label_list = [task for task in TASK_LIST if 'Con' not in task]
-    res = sns.heatmap(task_var[sorted_indices, :].T, xticklabels = cluster_labels, yticklabels=label_list, vmin=0, cmap=cmap)
-    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 6)
+
+    res = sns.heatmap(task_var[sorted_indices, :].T, xticklabels = cluster_labels, yticklabels=TASK_LIST, vmin=0, cmap=cmap, ax=axn)
+    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 5)
     res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 4, rotation=0)
+    axn.set_ylabel('Tasks', size=8, fontweight='bold')
+    axn.set_xlabel('Clustered Task Variance', size=8, fontweight='bold')
+    plt.suptitle('Functional Clustering')
+    plt.tight_layout()
     plt.show()
-    return cluters_dict, cluster_labels, sorted_indices
+    return task_var, cluters_dict, cluster_labels, sorted_indices
         
 
 def plot_decoding_confuse_mat(confusion_mat, cmap='Blues', **heatmap_args): 
