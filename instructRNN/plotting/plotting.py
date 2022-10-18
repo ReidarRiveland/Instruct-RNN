@@ -174,7 +174,7 @@ def plot_all_training_curves(foldername, exp_type, holdout_file, model_list, per
     plt.show()
 
 
-def plot_all_task_bar(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_title=''):
+def plot_all_task_lolli(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_title=''):
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(14, 4))
 
     width = 1/(len(model_list)+1)
@@ -196,7 +196,7 @@ def plot_all_task_bar(foldername, exp_type, model_list, perf_type='correct', mod
             data = load_val_perf([model_name])
             zero_shot = np.squeeze(np.mean(data, axis=0))
         
-        axn.axhline(np.mean(zero_shot), color=MODEL_STYLE_DICT[model_name][0], linewidth=1.0, linestyle='dashed', alpha=0.8, zorder=0)
+        axn.axhline(np.mean(zero_shot), color=MODEL_STYLE_DICT[model_name][0], linewidth=1.0, alpha=0.8, zorder=0)
         x_mark = (ind+(width/2))+(i*width)
         axn.scatter(x_mark,  zero_shot, color=MODEL_STYLE_DICT[model_name][0], s=3)
         axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.5)
@@ -205,12 +205,15 @@ def plot_all_task_bar(foldername, exp_type, model_list, perf_type='correct', mod
     axn.set_xticklabels('')
     axn.tick_params(axis='x', which='minor', bottom=False)
     axn.set_xticks(ind+0.75, minor=True)
-    axn.set_xticklabels(TASK_LIST, fontsize=4, minor=True, rotation=45, ha='right') 
+    axn.set_xticklabels(TASK_LIST, fontsize=6, minor=True, rotation=45, ha='right', fontweight='bold') 
     axn.set_xlim(-0.15, len(ind))
 
     axn.set_yticks(np.linspace(0, 1, 11))
-    axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5)
+    axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=8)
     axn.set_ylim(0.0, 1)
+    
+    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
+
     plt.tight_layout()
     plt.show()
 
