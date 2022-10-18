@@ -32,15 +32,11 @@ Purple = '#800080'
 
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Blue, '+', 'simpleNetPlus'), 
                     'comNet': (lightBlue, 'None', 'comNet'), 'comNetPlus': (lightBlue, '+', 'comNetPlus'), 
-                    #'clipNet': (Yellow, None), 'clipNet_tuned': (Yellow, 'v'), 
                     'clipNet_lin': (Yellow, 'None', 'clipNet'), 'clipNet_lin_tuned': (Yellow, 'v', 'clipNet (tuned)'), 
-                    #'bowNet': (Orange, None), 
                     'bowNet_lin': (Orange, None, 'bowNet'), 
                     'gptNet_lin': (lightRed, None, 'gptNet'), 'gptNet_lin_tuned': (lightRed, 'v','gptNet (tuned)'), 
                     'gptNetXL_lin': (Red, None, 'gptNetXL'), 'gptNetXL_lin_tuned': (Red, None, 'gptNetXL (tuned)'), 
-                    #'bertNet': (Green, None), 'bertNet_tuned': (Green, 'v'),  
                     'bertNet_lin': (Green, None, 'bertNet'), 'bertNet_lin_tuned': (Green, 'v', 'bertNet (tuned)'),  
-                    #'sbertNet': (Purple, None), 'sbertNet_tuned': (Purple, 'v'),
                     'sbertNet_lin': (Purple, None, 'sbertNet'), 'sbertNet_lin_tuned': (Purple, 'v', 'sbertNet (tuned)')}
 
 def get_task_color(task): 
@@ -138,47 +134,44 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
     fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
     plt.show()
 
-def plot_all_task_lolli(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5)):
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 14))
 
-    width = 1/(len(model_list)+2)
-    ind = np.arange(len(TASK_LIST))
+def plot_all_curves(dataframe, axn, **plt_args):
+    for j, task in enumerate(TASK_LIST):
+        ax = axn.flat[j]
+        ax.set_ylim(-0.05, 1.05)
+        ax.set_title(task, size=6, pad=1)
+        ax.xaxis.set_tick_params(labelsize=5)
+        ax.yaxis.set_tick_params(labelsize=10)
+        mean, std = dataframe.avg_seeds(task=task)
+        _plot_performance_curve(mean, std, ax, dataframe.model_name, **plt_args)
 
-    axn.spines['top'].set_visible(False)
-    axn.spines['right'].set_visible(False)
-    axn.set_axisbelow(True)
-    axn.grid(visible=True, color='grey', linewidth=0.5)
 
-    for i, model_name in enumerate(model_list): 
-        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
-        zero_shot, std = data.avg_seeds(k_shot=0)
-        y_mark = (ind)+((i+2)*width)
-        #axn.scatter( zero_shot[::-1], (ind+(width/2))+(i*width), marker='o', s = 2, color=MODEL_STYLE_DICT[model_name][0])
-        axn.scatter( zero_shot[::-1], y_mark, marker='o', s = 2, color=MODEL_STYLE_DICT[model_name][0])
-        #axn.hlines((ind+(width/2))+(i*width), xmin=np.max((np.ones_zeros(std), zero_shot[::-1]-std[::-1]), axis=0), xmax=np.min((np.ones_like(std), zero_shot[::-1]+std[::-1]), axis=0), color=MODEL_STYLE_DICT[model_name][0], linewidth=0.2)
-        std_max = np.min((np.ones_like(std), zero_shot[::-1]+std[::-1]), axis=0)
-        std_min = np.max((np.zeros_like(std), zero_shot[::-1]-std[::-1]), axis=0)
-        axn.hlines(y_mark, xmin=std_min, xmax=std_max, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.6, alpha=0.5)
+def plot_all_holdout_curves(foldername, exp_type, model_list,  mode = '', perf_type='correct', seeds=range(5), plot_swap=False):
+    fig, axn = plt.subplots(5,10, sharey = True, sharex=True, figsize =(8, 8))
 
-        axn.vlines(std_max, ymin= y_mark-0.2, ymax=y_mark+0.2, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.6, alpha=0.5)
-        axn.vlines(std_min, ymin= y_mark-0.2, ymax=y_mark+0.2, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.6, alpha=0.5)
+    fig.suptitle('Avg. Performance on Heldout Tasks', size=14)        
 
-        #axn.vlines(ind, xmin=np.max((np.zeros_like(std), zero_shot[::-1]-std[::-1]), axis=0), xmax=np.min((np.ones_like(std), zero_shot[::-1]+std[::-1]), axis=0), 
-        #                           color=MODEL_STYLE_DICT[model_name][0], linewidth=0.6)                                    
-        #axn.hlines(ind, xmin=zero_shot[::-1]-std[::-1], xmax=zero_shot[::-1]+std[::-1], color=MODEL_STYLE_DICT[model_name][0], linewidth=0.4)
+    for model_name in model_list:
+        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = '', seeds=seeds)
+        plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=0.8, markevery=10)
+        if plot_swap:
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds, mode='swap')
+            plot_all_curves(data, axn, linewidth = 0.6, linestyle = '--', alpha=1, markersize=0.8, markevery=10)
 
-    axn.set_yticks(ind)
-    axn.set_yticklabels('')
-    axn.tick_params(axis='y', which='minor', bottom=False)
-    axn.set_yticks(ind+0.5, minor=True)
-    axn.set_yticklabels(TASK_LIST[::-1], fontsize=4, minor=True) 
-    axn.set_xticks(np.linspace(0, 1, 11))
-
-    axn.set_xticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5)
-    axn.set_ylim(-0.15, len(TASK_LIST))
-    plt.tight_layout()
+    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
 
+def plot_all_training_curves(foldername, exp_type, holdout_file, model_list, perf_type='correct', seeds=range(5)):
+    fig, axn = plt.subplots(5,10, sharey = True, sharex=True, figsize =(8, 8))
+
+    fig.suptitle('Avg. Performance on Heldout Tasks', size=14)        
+
+    for model_name in model_list:
+        data = TrainingDataFrame(foldername, exp_type, holdout_file, model_name, perf_type=perf_type, seeds=seeds)
+        plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=0.8, markevery=5)
+
+    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
+    plt.show()
 
 
 def plot_all_task_bar(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_title=''):
@@ -190,7 +183,7 @@ def plot_all_task_bar(foldername, exp_type, model_list, perf_type='correct', mod
     axn.spines['top'].set_visible(False)
     axn.spines['right'].set_visible(False)
     axn.set_axisbelow(True)
-    axn.grid(visible=True, color='grey', axis='y', linewidth=0.5)
+    axn.grid(visible=True, color='grey', axis='y', linewidth=0.5, alpha=0.5)
 
     fig.suptitle(plot_title)
     axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
@@ -202,7 +195,8 @@ def plot_all_task_bar(foldername, exp_type, model_list, perf_type='correct', mod
         else: 
             data = load_val_perf([model_name])
             zero_shot = np.squeeze(np.mean(data, axis=0))
-
+        
+        axn.axhline(np.mean(zero_shot), color=MODEL_STYLE_DICT[model_name][0], linewidth=1.0, linestyle='dashed', alpha=0.8, zorder=0)
         x_mark = (ind+(width/2))+(i*width)
         axn.scatter(x_mark,  zero_shot, color=MODEL_STYLE_DICT[model_name][0], s=3)
         axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.5)
@@ -263,44 +257,6 @@ def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct',
         axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.6)
         if plot_err:
             axn.hlines((ind+(width))+(i*width), np.max((np.zeros_like(mean_bins), mean_bins-std_bins), axis=0), mean_bins+std_bins, color='black', linewidth=0.5)
-    plt.show()
-
-def plot_all_curves(dataframe, axn, **plt_args):
-    for j, task in enumerate(TASK_LIST):
-        ax = axn.flat[j]
-        ax.set_ylim(-0.05, 1.05)
-        ax.set_title(task, size=6, pad=1)
-        ax.xaxis.set_tick_params(labelsize=5)
-        ax.yaxis.set_tick_params(labelsize=10)
-        mean, std = dataframe.avg_seeds(task=task)
-        _plot_performance_curve(mean, std, ax, dataframe.model_name, **plt_args)
-
-
-def plot_all_holdout_curves(foldername, exp_type, model_list,  mode = '', perf_type='correct', seeds=range(5), plot_swap=False):
-    fig, axn = plt.subplots(5,10, sharey = True, sharex=True, figsize =(8, 8))
-
-    fig.suptitle('Avg. Performance on Heldout Tasks', size=14)        
-
-    for model_name in model_list:
-        data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = '', seeds=seeds)
-        plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=0.8, markevery=10)
-        if plot_swap:
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds, mode='swap')
-            plot_all_curves(data, axn, linewidth = 0.6, linestyle = '--', alpha=1, markersize=0.8, markevery=10)
-
-    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
-    plt.show()
-
-def plot_all_training_curves(foldername, exp_type, holdout_file, model_list, perf_type='correct', seeds=range(5)):
-    fig, axn = plt.subplots(5,10, sharey = True, sharex=True, figsize =(8, 8))
-
-    fig.suptitle('Avg. Performance on Heldout Tasks', size=14)        
-
-    for model_name in model_list:
-        data = TrainingDataFrame(foldername, exp_type, holdout_file, model_name, perf_type=perf_type, seeds=seeds)
-        plot_all_curves(data, axn, linewidth = 0.6, linestyle = '-', alpha=1, markersize=0.8, markevery=5)
-
-    fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
 
 def plot_model_response(model, trials, plotting_index = 0, instructions = None, save_file=None):
@@ -601,94 +557,104 @@ def plot_task_var_heatmap(load_folder, model_name, seed, cmap = sns.color_palett
         
 
 def plot_decoding_confuse_mat(confusion_mat, cmap='Blues', **heatmap_args): 
-    res=sns.heatmap(confusion_mat, linecolor='black', mask=confusion_mat == 0, 
-                            xticklabels=TASK_LIST+['other'], yticklabels=TASK_LIST, annot=True, cmap=cmap, cbar=False, **heatmap_args)
-    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 5)
+    res=sns.heatmap(confusion_mat, linecolor='gray', mask=confusion_mat == 0, 
+                            xticklabels=TASK_LIST+['novel'], yticklabels=TASK_LIST, annot=True, cmap=cmap, cbar=False, **heatmap_args)
+             
+    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 5, rotation=45, ha='right')
     res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 5)
     plt.show()
 
 
 
-def plot_partner_perf_lolli(load_str='holdout', plot_holdouts=False, plot_multi_only=False):
-    to_plot_colors = [('All Decoded', '#0392cf'), ('Novel Decoded', '#7bc043'), ('Embedding', '#edc951')]
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(16, 8))
-    plt.suptitle('Partner Model Performance on Decoded Instructions')
+def plot_partner_perf_lolli(plot_holdouts=False, plot_multi_only=False):
+    with plt.style.context('ggplot'):
 
-    axn.set_ylabel('Task', size=8, fontweight='bold')
-    axn.set_xlabel('Performance', size=8, fontweight='bold')
+        to_plot_colors = [('All Decoded', '#0392cf'), ('Novel Decoded', '#7bc043'), ('Embedding', '#edc951')]
+        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(16, 8))
+        plt.suptitle('Partner Model Performance on Decoded Instructions')
 
-    ind = np.arange(len(TASK_LIST))
+        # axn.set_axisbelow(True)
+        # axn.grid(visible=True, color='grey', axis='y', linewidth=0.5)
 
-    if plot_multi_only:
-        mode_list = [('multi_', 'solid', 'o')]
-    else: 
-        mode_list = [('holdout_', 'dashed', 'D'), ('multi_', 'solid', 'o')]
+        axn.set_ylabel('Task', size=8, fontweight='bold')
+        axn.set_xlabel('Performance', size=8, fontweight='bold')
 
-    for mode in mode_list:
-        perf_data = np.load(mode[0]+load_str+'_decoder_perf.npy')
-        for i in range(len(perf_data)): 
-            perf = np.nanmean(perf_data[i], axis=(0,1))
-            print(perf.shape)
-            axn.scatter(perf[::-1], ind+1, marker=mode[2], s = 2, color=to_plot_colors[i][1])
-            axn.vlines(np.nanmean(perf), 0, len(TASK_LIST)+1, color=to_plot_colors[i][1], linestyle=mode[1], linewidth=0.8)
+        ind = np.arange(len(TASK_LIST))
 
-    axn.tick_params('y', bottom=False, top=False)
-    axn.set_yticks(range(len(TASK_LIST)+3))
-    axn.set_yticklabels(['']+TASK_LIST[::-1] + ['', ''], fontsize=4) 
-    axn.set_xticks(np.linspace(0, 1, 11))
-    
-    patches = []
-    if plot_holdouts: 
-        data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', mode='combined')
-        zero_shot, std = data.avg_seeds(k_shot=0)
-        axn.vlines(np.nanmean(zero_shot), 0, len(TASK_LIST)+1, color=MODEL_STYLE_DICT['clipNet_lin'][0], linestyle='dashed', linewidth=0.8)
-        axn.scatter(zero_shot[::-1], ind+1, marker='D', s = 2, color=MODEL_STYLE_DICT['clipNet_lin'][0])
-        patches.append(Line2D([0], [0], label = 'Instructions', color= MODEL_STYLE_DICT['clipNet_lin'][0], marker = 's', linestyle = 'None', markersize=4))
+        if plot_multi_only:
+            mode_list = [('multi_', 'solid', 'o')]
+        else: 
+            mode_list = [('holdout_', 'dashed', 'D'), ('multi_', 'solid', 'o')]
 
+        for mode in mode_list:
+            for i, test_type in enumerate(['all', 'other', 'context']): 
+                perf_data = np.load('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/sm_multidecoder_multi_decoder_'+mode[0]+'partner_'+test_type+'_perf.npy')
+                perf = np.nanmean(perf_data, axis=(0,1))
+                print(perf.shape)
+                axn.scatter(perf[::-1], ind+1, marker=mode[2], s = 2, color=to_plot_colors[i][1])
+                axn.vlines(np.nanmean(perf), 0, len(TASK_LIST)+1, color=to_plot_colors[i][1], linestyle=mode[1], linewidth=0.8)
 
-    for style in to_plot_colors:
-        patches.append(Line2D([0], [0], label = style[0], color= style[1], marker = 's', linestyle='None', markersize=4))
-
-
-    patches.append(Line2D([0], [0], label = 'Multitask Partners', color= 'grey', marker = 'o', linestyle = 'None', markersize=4))
-    patches.append(Line2D([0], [0], label = 'Multitask Partner', color= 'grey', linestyle='solid', markersize=4))
-
-    patches.append(Line2D([0], [0], label = 'Holdout Partners', color= 'grey', marker = 'D', linestyle = 'None', markersize=2))
-    patches.append(Line2D([0], [0], label = 'Holdout Partners', color= 'grey', linestyle='dashed', markersize=2))
-
-    axn.legend(handles = patches, fontsize='x-small')
-    
-    axn.set_xticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5)
-    axn.set_ylim(-0.2, len(TASK_LIST)+1)
-    axn.set_xlim(0, 1.01)
-
-    plt.show()
+        axn.tick_params('y', bottom=False, top=False)
+        axn.set_yticks(range(len(TASK_LIST)+3))
+        axn.set_yticklabels(['']+TASK_LIST[::-1] + ['', ''], fontsize=4) 
+        axn.set_xticks(np.linspace(0, 1, 11))
+        
+        patches = []
+        if plot_holdouts: 
+            data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', mode='combined')
+            zero_shot, std = data.avg_seeds(k_shot=0)
+            axn.vlines(np.nanmean(zero_shot), 0, len(TASK_LIST)+1, color=MODEL_STYLE_DICT['clipNet_lin'][0], linestyle='dashed', linewidth=0.8)
+            axn.scatter(zero_shot[::-1], ind+1, marker='D', s = 2, color=MODEL_STYLE_DICT['clipNet_lin'][0])
+            patches.append(Line2D([0], [0], label = 'Instructions', color= MODEL_STYLE_DICT['clipNet_lin'][0], marker = 's', linestyle = 'None', markersize=4))
 
 
+        for style in to_plot_colors:
+            patches.append(Line2D([0], [0], label = style[0], color= style[1], marker = 's', linestyle='None', markersize=4))
 
 
-def plot_partner_perf_bar(foldername, decoder_type):
+        patches.append(Line2D([0], [0], label = 'Multitask Partners', color= 'grey', marker = 'o', linestyle = 'None', markersize=4))
+        patches.append(Line2D([0], [0], label = 'Multitask Partner', color= 'grey', linestyle='solid', markersize=4))
+
+        patches.append(Line2D([0], [0], label = 'Holdout Partners', color= 'grey', marker = 'D', linestyle = 'None', markersize=2))
+        patches.append(Line2D([0], [0], label = 'Holdout Partners', color= 'grey', linestyle='dashed', markersize=2))
+
+        axn.legend(handles = patches, fontsize='x-small')
+        
+        axn.set_xticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5)
+        axn.set_ylim(-0.2, len(TASK_LIST)+1)
+        axn.set_xlim(0, 1.01)
+
+        plt.show()
+
+
+def _plot_partner_perf(axn, sm_holdout, decoder_holdout, model_name ='clipNet_lin'):
     mode_dict = {'All Instructions': ('all_perf', '#0392cf'), 'Novel Instructions': ('other_perf', '#7bc043'), 'Embeddings': ('context_perf','#edc951')}
     multi_holdout_formatting = {'multi': {}, 'holdout': {'alpha':0.7, 'edgecolor':'white', 'hatch':'///'}}
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(16, 8))
 
+    if sm_holdout: 
+        sm_str = 'holdout'
+        folder = '7.20models/swap_holdouts'
+    else: 
+        sm_str = 'multi'
+        folder = '7.20models/multitask_holdouts'
+
+    if decoder_holdout: 
+        decoder_str = 'holdout'
+    else: 
+        decoder_str = 'multi'
     axn.set_ylabel('Perforamance', size=8, fontweight='bold')
-
     width = 1/4
-
 
     axn.set_axisbelow(True)
     axn.grid(visible=True, color='grey', axis='y', linewidth=0.5)
 
-
     axn.spines['top'].set_visible(False)
     axn.spines['right'].set_visible(False)
-
 
     for i, mode_value in enumerate(mode_dict.values()):
         for j, values in enumerate(multi_holdout_formatting.items()):
             holdouts, formatting = values
-            perf_data = np.nanmean(np.load(foldername+'/multi_decoder_'+holdouts+'_partner_'+mode_value[0]+'.npy'))
+            perf_data = np.nanmean(np.load(folder+'/decoder_perf/'+model_name+'/sm_'+sm_str+'decoder_'+decoder_str+'_decoder_'+holdouts+'_partner_'+mode_value[0]+'.npy'))
             x_mark = ((i)+width)+((j*1.05*width))
             axn.bar(x_mark, perf_data, width, align='edge', color=mode_value[1], **formatting)
                         
@@ -697,18 +663,23 @@ def plot_partner_perf_bar(foldername, decoder_type):
     axn.set_xticklabels('') 
     axn.xaxis.set_ticks_position('none') 
     patches = []
-
     for label, mode in mode_dict.items():
         patches.append(mpatches.Patch(label = label, facecolor= mode[1]))
     patches.append(mpatches.Patch(facecolor='gray', edgecolor='white', label='Multitask Partner'))
     patches.append(mpatches.Patch(facecolor='gray', edgecolor='white', hatch='///', label='Holdout Partner'))
-        
-        
-        
-
-    axn.legend(handles = patches, fontsize='x-small')
-    
     axn.set_ylim(0.0, 1.0)
     axn.set_xlim(0, 3)
 
+    return patches
+    
+def plot_partner_perf():
+    fig, axn = plt.subplots(2, 2, sharex=True, figsize =(4, 4))
+    print(axn[0])
+    _ = _plot_partner_perf(axn.flatten()[0], False, False)
+    axn.flatten()[1].axis('off')
+    _ = _plot_partner_perf(axn.flatten()[2], True, False)
+    patches = _plot_partner_perf(axn.flatten()[3], True, True)
+
+
+    axn[0,0].legend(handles = patches, fontsize='x-small')
     plt.show()

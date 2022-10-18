@@ -5,9 +5,11 @@ from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
 
 to_plot_models = ['simpleNet', 'bowNet_lin', 'gptNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin']
+tuned_to_plot = ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'simpleNetPlus', 'gptNet_lin_tuned'],
+
 
 ##VALIDATION
-plot_all_task_bar('7.20models', 'swap', to_plot_models[1:][::-1], seeds =range(0, 5), mode='validation')
+plot_all_task_bar('7.20models', 'swap', to_plot_models[1:][::-1], seeds =range(1), mode='validation')
 
 
 ###HOLDOUTS
@@ -15,11 +17,7 @@ plot_avg_holdout_curve('7.20models', 'swap', to_plot_models, seeds =range(0, 5),
 
 plot_0_shot_task_hist('7.20models', 'swap', to_plot_models, seeds =range(0,5), mode='combined')
 
-plot_all_task_bar('7.20models', 'swap', 
-                                ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'],
-                                seeds =range(0, 5),
-                                mode='combined',
-                                )
+plot_all_task_bar('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='combined')
 
 
 ##TUNED HOLDOUTS
@@ -222,3 +220,10 @@ plot_neural_resp(clipNet, 'DM','diff_strength', unit, num_trials=25, smoothing=1
 plot_neural_resp(clipNet, 'AntiDM','diff_strength', unit, num_trials=25, smoothing=1)
 
 plot_tuning_curve(clipNet, ['DM', 'AntiDM'], 4, [120]*6, smoothing=1)
+
+
+
+###decoder figs
+confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/sm_multidecoder_multi_confuse_mat.npy')
+plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), fmt='.0%', annot_kws={'size':3}, linewidths=0.2)
+

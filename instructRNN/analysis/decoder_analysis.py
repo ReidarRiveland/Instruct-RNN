@@ -190,3 +190,19 @@ def decoder_pipeline(foldername, model_name, decoder_holdout=False, sm_holdout=F
     test_multi_partner_perf(foldername, model_name, partner_seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
     test_holdout_partner_perf(foldername, model_name, partner_seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
 
+
+def get_novel_instruct_ratio(sm_holdout=False, decoder_holdout=False):
+    if sm_holdout: 
+        sm_str = 'holdout'
+        folder = '7.20models/swap_holdouts'
+    else: 
+        sm_str = 'multi'
+        folder = '7.20models/multitask_holdouts'
+
+
+    if decoder_holdout: decoder_str = 'holdout'
+    else: decoder_str = 'multi'
+
+    confuse_mat = np.load(folder+'/decoder_perf/clipNet_lin/sm_'+sm_str+'decoder_'+decoder_str+'_confuse_mat.npy')
+    return np.sum(confuse_mat[:, :, -1:])/np.sum(confuse_mat)
+

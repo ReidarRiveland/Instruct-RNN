@@ -11,7 +11,7 @@ import torch.optim as optim
 
 from instructRNN.models.full_models import make_default_model
 from instructRNN.trainers.base_trainer import BaseTrainer
-from instructRNN.instructions.instruct_utils import get_instructions
+from instructRNN.instructions.instruct_utils import get_input_rule, get_instructions
 from instructRNN.data_loaders.dataset import TaskDataSet
 from instructRNN.decoding_models.decoder_models import DecoderRNN
 
@@ -166,9 +166,13 @@ class DecoderTrainer(BaseTrainer):
 
                 use_teacher_forcing = True if np.random.random() < self.teacher_forcing_ratio else False
                 target_instruct = get_instructions(self.batch_len, task_type, None)
-
                 target_tensor = decoder.tokenizer(target_instruct).to(device)
-                _, sm_hidden = sm_model.forward(ins.to(device), target_instruct)
+
+                if hasattr(sm_model, 'langModel'):
+                    _, sm_hidden = sm_model.forward(ins.to(device), target_instruct)
+                else: 
+                    rule = get_input_rule(self.batch_len, task_type)
+                    _, sm_hidden = sm_model.forward(ins.to(device), rule)
 
                 self.optimizer.zero_grad()
 

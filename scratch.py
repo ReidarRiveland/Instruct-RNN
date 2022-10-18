@@ -1,3 +1,4 @@
+from tkinter import font
 import numpy as np
 import scipy
 import sklearn
@@ -12,6 +13,14 @@ from instructRNN.models.full_models import *
 from instructRNN.instructions.instruct_utils import get_instructions
 from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
+
+confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/sm_multidecoder_multi_confuse_mat.npy')
+plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), fmt='.0%', annot_kws={'size':3}, linewidths=0.2)
+
+np.sum(confuse_mat[:, :, -1:])/np.sum(confuse_mat)
+
+
+get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)
 
 
 
@@ -81,6 +90,7 @@ clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap9'
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
 
+hasattr(clipNet, 'langModel')
 
 hid_mean = get_task_reps(clipNet, epoch=None, num_trials=50, tasks=['AntiDMMod2'], num_repeats=20, main_var=True)[0,...]
 

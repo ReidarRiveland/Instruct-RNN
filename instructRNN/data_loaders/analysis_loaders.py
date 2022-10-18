@@ -95,8 +95,8 @@ def load_val_perf(model_list, seeds=range(5), verbose=False):
         for j, model_name in enumerate(model_list):
             try:
                 load_str = '7.20models/multitask_holdouts/val_perf/'+model_name+'/'+model_name+'_val_perf_seed'+str(seed)
-                clusters = np.load(open(load_str+'.npy', 'rb'))
-                val_perf_arr[i, j, ...] = clusters
+                val_perf = np.load(open(load_str+'.npy', 'rb'))
+                val_perf_arr[i, j, ...] = val_perf
             except FileNotFoundError:
                 if verbose: 
                     print('no data for model {} seed {}'.format( model_name, seed))

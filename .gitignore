@@ -1,5 +1,7 @@
 /__pycache__/*
 /figs/*
+/rev_figs/*
+
 /*models/_pretrained_state_dicts/*
 /*.sbatch*
 
