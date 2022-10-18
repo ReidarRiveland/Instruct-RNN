@@ -56,7 +56,7 @@ def get_model_performance(model, num_repeats = 1, batch_len=128, instruct_mode=N
             perf_array[i] = np.mean(mean_list)
     return perf_array
 
-def get_val_perf(foldername, model_name, seed, num_repeats = 5, batch_len=256, save=False): 
+def get_val_perf(foldername, model_name, seed, num_repeats = 5, batch_len=100, save=False): 
     model = make_default_model(model_name)
     model.load_model(foldername+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
     perf_array = get_model_performance(model, num_repeats=num_repeats, batch_len=batch_len, instruct_mode='validation')
