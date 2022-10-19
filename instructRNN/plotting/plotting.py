@@ -174,8 +174,8 @@ def plot_all_training_curves(foldername, exp_type, holdout_file, model_list, per
     plt.show()
 
 
-def plot_all_task_lolli(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_title=''):
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(14, 4))
+def plot_all_task_lolli_v(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_title=''):
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
 
     width = 1/(len(model_list)+1)
     ind = np.arange(len(TASK_LIST))
@@ -211,6 +211,51 @@ def plot_all_task_lolli(foldername, exp_type, model_list, perf_type='correct', m
     axn.set_yticks(np.linspace(0, 1, 11))
     axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=8)
     axn.set_ylim(0.0, 1.01)
+
+    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
+
+    plt.tight_layout()
+    plt.show()
+
+
+
+def plot_all_task_lolli_h(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_title=''):
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(8, 11))
+    model_list = model_list[::-1]
+    width = 1/(len(model_list)+1)
+    ind = np.arange(len(TASK_LIST))
+
+    axn.spines['top'].set_visible(False)
+    axn.spines['right'].set_visible(False)
+    axn.set_axisbelow(True)
+    axn.grid(visible=True, color='grey', axis='x', linewidth=0.5, alpha=0.5)
+
+    fig.suptitle(plot_title)
+    axn.set_xlabel('Percent Correct', size=8, fontweight='bold')
+
+    for i, model_name in enumerate(model_list): 
+        if mode is not 'validation':
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
+            zero_shot, std = data.avg_seeds(k_shot=0)
+        else: 
+            data = load_val_perf([model_name])
+            zero_shot = np.squeeze(np.mean(data, axis=0))
+        
+        axn.axvline(np.mean(zero_shot), color=MODEL_STYLE_DICT[model_name][0], linewidth=1.0, alpha=0.8, zorder=0)
+        y_mark = (ind+(width/2))+(i*width)
+        axn.scatter(zero_shot[::-1], y_mark, color=MODEL_STYLE_DICT[model_name][0], s=3)
+        axn.hlines(y_mark[::-1], xmin=0, xmax=zero_shot, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.5)
+
+    axn.set_yticks(ind)
+    axn.set_yticklabels('')
+    axn.tick_params(axis='y', which='minor', bottom=False)
+    axn.set_yticks(ind+0.5, minor=True)
+    axn.set_yticklabels(TASK_LIST[::-1], fontsize=6, minor=True,  ha='right') 
+    axn.set_ylim(-0.15, len(ind))
+
+    axn.set_xticks(np.linspace(0, 1, 11))
+    axn.set_xticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=8)
+    axn.set_xlim(0.0, 1.01)
 
     fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
 
