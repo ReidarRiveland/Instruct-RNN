@@ -210,8 +210,8 @@ def plot_all_task_lolli(foldername, exp_type, model_list, perf_type='correct', m
 
     axn.set_yticks(np.linspace(0, 1, 11))
     axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=8)
-    axn.set_ylim(0.0, 1)
-    
+    axn.set_ylim(0.0, 1.01)
+
     fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
 
     plt.tight_layout()
