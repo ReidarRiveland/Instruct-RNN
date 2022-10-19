@@ -377,8 +377,10 @@ def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False
         
     if is_trained: 
         for instruct_mode in [None, 'swap', 'combined', 'swap_combined']:
+            print('TESTING '+ instruct_mode + '\n')
             test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, overwrite=ot)
         if model_name == 'simpleNet' or model_name == 'simpleNetPlus': 
+            print('TESTING comp' + '\n')
             test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = 'comp', overwrite=ot)
 
         
