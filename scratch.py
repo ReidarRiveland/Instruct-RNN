@@ -14,43 +14,98 @@ from instructRNN.instructions.instruct_utils import get_instructions
 from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
-confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/sm_multidecoder_multi_confuse_mat.npy')
-plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), fmt='.0%', annot_kws={'size':3}, linewidths=0.2)
-
-np.sum(confuse_mat[:, :, -1:])/np.sum(confuse_mat)
-
-
-get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)
+# EXP_FILE = '7.20models/swap_holdouts'
+# clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+# holdouts_file = 'swap9'
+# clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
 
 
+def get_cluster_corr(foldername, model_name, seed, save=False): 
+    if 'swap' in foldername: 
+        exp_dict = SWAPS_DICT
+    else:
+        exp_dict = {'Multitask': TASK_LIST}
 
-decoder_pipline('7.20models/multitask_holdouts', 'clipNet_lin')
+    holdout_corr_mat = np.full((len(TASK_LIST), len(TASK_LIST)), np.nan)
 
+    for label, holdouts in exp_dict.items():
+        print('Processing '+label)
+        task_var, _, _, _ = get_cluster_info(foldername+'/'+label, model_name, seed)
+        corr_mat = np.corrcoef(task_var.T)
+        task_indices = [TASK_LIST.index(task) for task in holdouts]
+        holdout_corr_mat[task_indices, :] = corr_mat[task_indices, :]
 
-#decoded_set = get_decoded_set('7.20models/multitask_holdouts', 'clipNet_lin', seeds=range(5), from_contexts=True, save=True)
+    if save: 
+        file_path = foldername+'/cluster_measures/'+model_name
+        if os.path.exists(file_path):
+            pass
+        else: os.makedirs(file_path)
+        np.save(file_path+'/corr_mat_'+str(seed), holdout_corr_mat)
 
-#decoded_set[0].keys()
-
-holdout_perf_array = test_holdout_partner_perf('7.20models/multitask_holdouts', 'clipNet_lin', partner_seeds=range(5), save=True)
-
-
-
-
-
-len(holdout_perf_array)
-
-np.save('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/multi_decoder_multi_partner_other_perf.npy', holdout_perf_array[1])
-
-
-# multi_perf_array = test_multi_partner_perf('clipNet_lin', decoded_set[0], decoded_set[-1])
-
-
-
-# plot_partner_perf_lolli(load_str='holdout', plot_holdouts=True, plot_multi_only=False)
-
+    return holdout_corr_mat
 
 
-# from sklearn.metrics.pairwise import cosine_similarity
+def check_symmetric(a, rtol=1e-05, atol=1e-08):
+    return np.allclose(a, a.T, rtol=rtol, atol=atol)
+
+def test_cluster_corr(model_list, seed): 
+    corr_list = []
+    for model_name in model_list:
+        get_cluster_corr('7.20models/swap_holdouts', model_name, seed, save=True)
+        get_cluster_corr('7.20models/multitask_holdouts', model_name, seed, save=True)
+
+        holdout_corr = np.load('7.20models/swap_holdouts/cluster_measures/'+model_name+'/corr_mat_'+str(seed)+'.npy')
+        multi_corr = np.load('7.20models/multitask_holdouts/cluster_measures/'+model_name+'/corr_mat_'+str(seed)+'.npy')
+        corr_list.append(scipy.stats.pearsonr(holdout_corr.flatten(), multi_corr.flatten()))
+
+    return corr_list
+
+
+def get_cluster_count(foldername, model_name, seed, save=False): 
+    if 'swap' in foldername: 
+        exp_dict = SWAPS_DICT
+    else:
+        exp_dict = {'Multitask': TASK_LIST}
+
+    holdout_count_mat = np.full((len(TASK_LIST), len(TASK_LIST)), np.nan)
+
+    for label, holdouts in exp_dict.items():
+        print('Processing '+label)
+        task_var, cluters_dict, cluster_labels, sorted_indices = get_cluster_info(foldername+'/'+label, model_name, seed)
+        cluster_arr = np.empty((len(TASK_LIST), len(cluters_dict)))
+        for i in range(len(cluters_dict)): 
+            cluster_arr[ :, i ] = np.mean(task_var[cluters_dict[i], :], axis=0)>0.5
+
+        sym_mat = np.matmul(cluster_arr, cluster_arr.T)
+
+        task_indices = [TASK_LIST.index(task) for task in holdouts]
+        holdout_count_mat[task_indices, :] = sym_mat[task_indices, :]
+
+    if save: 
+        file_path = foldername+'/cluster_measures/'+model_name
+        if os.path.exists(file_path):
+            pass
+        else: os.makedirs(file_path)
+        np.save(file_path+'/count_mat_'+str(seed), holdout_count_mat)
+
+    return holdout_count_mat
+
+
+
+holdout_indices = [TASK_LIST.index(task) for task in SWAP_LIST[-1]]
+
+holdout_indices
+
+task_var, clusters_dict, cluster_labels, sorted_indices = get_cluster_info('7.20models/swap_holdouts/swap9', model_name, seed)
+multi_task_var, multi_clusters_dict, cluster_labels, sorted_indices = get_cluster_info('7.20models/multitask_holdouts/Multitask', model_name, seed)
+
+
+
+
+res = sns.heatmap(np.corrcoef(task_var.T)[34, :], yticklabels=TASK_LIST, vmin=0)
+res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 5)
+res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 4, rotation=90)
+plt.show()
 
 
 
@@ -61,9 +116,24 @@ np.save('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/multi_decoder_mu
 
 
 
+model_name = 'clipNet_lin'
+seed=0
+
+holdout_corr = get_cluster_corr('7.20models/swap_holdouts', model_name, seed, save=True)
+multi_corr = get_cluster_corr('7.20models/multitask_holdouts', model_name, seed, save=True)
 
 
+def normalize(mat, axis=0):
+    return (mat-np.min(mat, axis=axis))/(np.max(mat, axis=axis)-np.min(mat, axis=axis))
 
+normalize(holdout_corr)
+
+res = sns.heatmap(normalize(multi_corr), xticklabels = TASK_LIST, yticklabels=TASK_LIST, vmin=0)
+res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 5)
+res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 4, rotation=90)
+plt.show()
+
+scipy.stats.pearsonr(normalize(holdout_corr, axis=0).flatten(), normalize(multi_corr, axis=0).flatten())
 
 
 
@@ -182,4 +252,6 @@ get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', 2, from_conte
 
 
 
-# rsync -a  -P --exclude '*_attrs*' --exclude '*.npy*' --exclude '*_opt*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/multitask_holdouts/Multitask/clipNet_lin/ /home/riveland/Instruct-RNN/7.20models/multitask_holdouts/Multitask/clipNet_lin
+# rsync -a  -P --exclude '*_attrs*' --exclude '*.npy*' --exclude '*_opt*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/multitask_holdouts/Multitask/simpleNet/ /home/riveland/Instruct-RNN/7.20models/multitask_holdouts/Multitask/simpleNet
+
+

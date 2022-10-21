@@ -443,7 +443,7 @@ def get_layer_dim(exp_folder, model_name, seed, layer='task', threshold = 0.9, k
     return var_exp_arr, thresholded
 
 def get_norm_task_var(hid_reps): 
-    task_var = np.mean(np.var(hid_reps[:, 30:, :,:], axis=1), axis=1)
+    task_var = np.mean(np.var(hid_reps[:, :, :,:], axis=1), axis=1)
     task_var = np.delete(task_var, np.where(np.sum(task_var, axis=0)<0.001)[0], axis=1)
     normalized = np.divide(np.subtract(task_var, np.min(task_var, axis=0)[None, :]), (np.max(task_var, axis=0)-np.min(task_var, axis=0)[None, :])).T
     return normalized
@@ -474,11 +474,10 @@ def sort_units(norm_task_var):
 def get_cluster_info(load_folder, model_name, seed):
     model = make_default_model(model_name)
     model.load_model(load_folder+'/'+model.model_name, suffix='_seed'+str(seed))
-    task_hid_reps = get_task_reps(model, num_trials = 100, epoch=None, tasks= TASK_LIST, max_var=True)
+    task_hid_reps = get_task_reps(model, num_trials = 50, epoch=None, tasks= TASK_LIST, max_var=True)
     norm_task_var = get_norm_task_var(task_hid_reps)
-    cluster_labels = cluster_units(norm_task_var)
-    return norm_task_var, cluster_labels
-    
+    cluster_dict, cluster_labels, sorted_indices = sort_units(norm_task_var)
+    return norm_task_var, cluster_dict, cluster_labels, sorted_indices
 
 def get_model_clusters(foldername, model_name, seed, num_repeats=10, save=False):
     if 'swap' in foldername: 
@@ -491,7 +490,7 @@ def get_model_clusters(foldername, model_name, seed, num_repeats=10, save=False)
         for j in range(num_repeats):
             print('processing '+ holdout_file)
             model.load_model(foldername+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
-            task_hid_reps = get_task_reps(model, num_trials = 100, epoch=None, tasks= [task for task in TASK_LIST if 'Con' not in task], max_var=True)
+            task_hid_reps = get_task_reps(model, num_trials = 100, epoch=None, max_var=True)
             task_var = get_norm_task_var(task_hid_reps)
             optim_clusters = get_optim_clusters(task_var)
             num_cluster_array[i, j] = optim_clusters

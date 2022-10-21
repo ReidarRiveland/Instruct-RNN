@@ -3,32 +3,37 @@ from instructRNN.models.full_models import *
 
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
+from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio
 
-to_plot_models = ['simpleNet', 'bowNet_lin', 'gptNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'sbertNet_lin', 'clipNet_lin']
-tuned_to_plot = ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'simpleNetPlus', 'gptNet_lin_tuned']
+to_plot_models = ['simpleNet', 'bowNet_lin',  'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'sbertNet_lin', 'clipNet_lin']
+tuned_to_plot = ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin_tuned']
+
+plot_all_training_curves('7.20models', 'multitask', 'Multitask', to_plot_models)
 
 ##VALIDATION
-plot_all_task_lolli('7.20models', 'swap', to_plot_models[1:][::-1], seeds =range(1), mode='validation')
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[1:][::-1], seeds =range(1), mode='validation')
+plot_0_shot_task_hist('7.20models', 'swap', to_plot_models[1:], seeds =range(0,5), mode='validation')
+
 
 ###HOLDOUTS
 plot_avg_holdout_curve('7.20models', 'swap', to_plot_models, seeds =range(0, 5), mode='combined')
 plot_0_shot_task_hist('7.20models', 'swap', to_plot_models, seeds =range(0,5), mode='combined')
-plot_all_task_lolli('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='combined')
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='combined')
 
 ##TUNED HOLDOUTS
 plot_avg_holdout_curve('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined')
 plot_0_shot_task_hist('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined')
-plot_all_task_lolli('7.20models', 'swap', tuned_to_plot[::-1], seeds =range(0, 5), mode='combined')
+plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot[::-1], seeds =range(0, 5), mode='combined')
 
 ###SWAP HOLDOUTS
 plot_avg_holdout_curve('7.20models', 'swap', to_plot_models, seeds =range(0, 5), mode='swap_combined')
 plot_0_shot_task_hist('7.20models', 'swap', to_plot_models, seeds =range(0,5), mode='swap_combined')
-plot_all_task_lolli('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='swap_combined')
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='swap_combined')
 
 ###FAMILY
 plot_avg_holdout_curve('7.20models', 'family', to_plot_models, seeds =range(0, 5), mode='combined')
 plot_0_shot_task_hist('7.20models', 'family', to_plot_models, seeds =range(0,5), mode='combined')
-plot_all_task_lolli('7.20models', 'family', to_plot_models[::-1], seeds =range(0, 5), mode='combined')
+plot_all_task_lolli_v('7.20models', 'family', to_plot_models[::-1], seeds =range(0, 5), mode='combined')
 
 
 ####PC PLOTS
@@ -68,7 +73,7 @@ simpleNet.load_model('7.20models/multitask_holdouts/Multitask/'+simpleNet.model_
 plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
 
 
-plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'], seeds=range(5), plot_multis=True)
+plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'][::-1], seeds=range(5), plot_multis=True)
 
 plot_ccgp_corr('7.20models', 'swap', ['clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'sbertNet_lin', 'gptNet_lin', 'gptNetXL_lin', 'simpleNet'])
 
@@ -184,3 +189,4 @@ plot_partner_perf()
 confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/sm_multidecoder_multi_confuse_mat.npy')
 plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), fmt='.0%', annot_kws={'size':3}, linewidths=0.2)
 
+get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)

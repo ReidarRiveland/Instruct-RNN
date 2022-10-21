@@ -167,9 +167,13 @@ class RuleNet(BaseNet):
         ortho = m[:self.num_tasks,:]
         return torch.tensor(ortho)
 
-    def forward(self, x, task_rule):
-        rule_transformed = torch.matmul(task_rule.to(self.__device__), self.rule_transform.float())
-        task_rule = self.rule_encoder(rule_transformed)
+    def forward(self, x, task_rule=None, context = None):
+
+        if task_rule is not None:
+            rule_transformed = torch.matmul(task_rule.to(self.__device__), self.rule_transform.float())
+            task_rule = self.rule_encoder(rule_transformed)
+        else: 
+            task_rule = context
         outs, rnn_hid = super().forward(x, task_rule)
         return outs, rnn_hid
 

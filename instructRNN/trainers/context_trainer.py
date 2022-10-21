@@ -183,7 +183,9 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer,
             
     model = make_default_model(model_name)
 
-    if layer=='emb': 
+    if not hasattr(model, 'langModel'):
+        context_dim = 64
+    elif layer=='emb': 
         context_dim = model.langModel.LM_out_dim
     elif layer=='last': 
         context_dim = model.langModel.LM_intermediate_lang_dim 
