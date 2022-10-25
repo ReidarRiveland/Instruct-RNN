@@ -12,7 +12,7 @@ class HoldoutDataFrame():
     model_name: str
     perf_type: str = 'correct'
     mode: str = ''
-    seeds: range = range(5)
+    seeds: range = range(10)
 
     verbose: bool = True
 
@@ -45,7 +45,7 @@ class HoldoutDataFrame():
             std = np.nanstd(data, axis=0)
             return mean, std
 
-    def avg_tasks(self, seeds=range(5), k_shot=slice(0, 100)): 
+    def avg_tasks(self, seeds=range(10), k_shot=slice(0, 100)): 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
             data = self.data[seeds, :, k_shot]
@@ -63,7 +63,7 @@ class HoldoutDataFrame():
         elif self.exp_type == 'family': 
             training_sets = FAMILY_DICT
 
-        data = np.full((5, len(TASK_LIST), 100), np.nan) #seeds, task, num_batches        
+        data = np.full((10, len(TASK_LIST), 100), np.nan) #seeds, task, num_batches        
         for i in self.seeds:
             seed_name = 'seed' + str(i)
             for label, tasks in training_sets.items():

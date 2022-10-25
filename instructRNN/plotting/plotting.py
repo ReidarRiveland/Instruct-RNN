@@ -30,7 +30,7 @@ Yellow = '#FFEE58'
 Purple = '#800080'
 
 
-MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Blue, '+', 'simpleNetPlus'), 
+MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (lightBlue, None, 'simpleNetPlus'), 
                     'comNet': (lightBlue, 'None', 'comNet'), 'comNetPlus': (lightBlue, '+', 'comNetPlus'), 
                     'clipNet_lin': (Yellow, 'None', 'clipNet'), 'clipNet_lin_tuned': (Yellow, 'v', 'clipNet (tuned)'), 
                     'bowNet_lin': (Orange, None, 'bowNet'), 
@@ -91,21 +91,18 @@ def _make_model_legend(model_list):
                     markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=4))
     plt.legend(handles=Patches)
 
-def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct', mode = '', plot_swaps = False, seeds=range(5), split=False):
-    if split: 
-        fig, axn, ax2 = split_axes()
-    else: 
+def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct', mode = '', plot_swaps = False, seeds=range(5), axn=None, **curve_kwargs):
+    if axn is None: 
         fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
-        fig.suptitle('Performance on Novel Tasks')
-        axn.set_ylim(0.0, 1.0)
-        axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
-        axn.set_xlabel('Exposures to Novel Task', size=8, fontweight='bold')
+    axn.set_ylim(0.0, 1.0)
+    axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+    axn.set_xlabel('Exposures to Novel Task', size=8, fontweight='bold')
 
-        axn.xaxis.set_tick_params(labelsize=8)
+    axn.xaxis.set_tick_params(labelsize=8)
 
-        axn.yaxis.set_tick_params(labelsize=8)
-        axn.yaxis.set_major_locator(MaxNLocator(10)) 
-        axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
+    axn.yaxis.set_tick_params(labelsize=8)
+    axn.yaxis.set_major_locator(MaxNLocator(10)) 
+    axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
 
 
     axn.spines['top'].set_visible(False)
@@ -116,22 +113,29 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
     for model_name in model_list:
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
         mean, std = data.avg_tasks()
-        axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=3)
-        _plot_performance_curve(mean, std, axn, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
+        if MODEL_STYLE_DICT[model_name][1] is None: 
+            axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2)
+        _plot_performance_curve(mean, std, axn, model_name, linewidth=0.8, markevery=10, markersize=2, **curve_kwargs)
 
         if plot_swaps: 
             data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
             mean, std = data.avg_tasks()
             _plot_performance_curve(mean, std, axn, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
 
-        if split:
-            _plot_performance_curve(mean, std, ax2, model_name, linestyle='-', linewidth=0.8, markevery=10, markersize=1.5)
-            if plot_swaps: 
-                data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
-                mean, std = data.avg_tasks()
-                _plot_performance_curve(mean, std, ax2, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
+    try:
+        fig.suptitle('Performance on Novel Tasks')
+        fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')   
+        plt.show()
+    except: 
+        pass
 
-    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
+
+def plot_simpleNet_comps(foldername, exp_type, model_list, perf_type='correct'):
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+    plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type=perf_type, mode = '', plot_swaps = False, seeds=range(5), axn=axn, alpha=0.8)
+    plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type=perf_type, mode = 'comp', plot_swaps = False, seeds=range(5), axn=axn, linestyle='--', alpha=0.8)
+    fig.suptitle('Performance on Novel Tasks')
+    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')   
     plt.show()
 
 
@@ -337,33 +341,35 @@ def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwar
     return Patches
 
 def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_trials =50, epoch= 'stim_start', instruct_mode = 'combined', **scatter_kwargs): 
-    if pcs is None: 
-        pcs = range(dims)
+    with plt.style.context('ggplot'):
 
-    if rep_depth == 'task': 
-        reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=False, instruct_mode=instruct_mode)
-    elif rep_depth != 'task': 
-        reps = get_instruct_reps(model.langModel, depth=rep_depth, instruct_mode=instruct_mode)
-    reduced, _ = reduce_rep(reps, pcs=pcs)
+        if pcs is None: 
+            pcs = range(dims)
 
-    fig = plt.figure(figsize=(14, 14))
-    if dims==2:
-        ax = fig.add_subplot()
-    else:
-        ax = fig.add_subplot(projection='3d')
+        if rep_depth == 'task': 
+            reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=False, instruct_mode=instruct_mode)
+        elif rep_depth != 'task': 
+            reps = get_instruct_reps(model.langModel, depth=rep_depth, instruct_mode=instruct_mode)
+        reduced, _ = reduce_rep(reps, pcs=pcs)
 
-    Patches = _group_rep_scatter(reduced, tasks_to_plot, ax, dims, pcs, **scatter_kwargs)
-    Patches.append((Line2D([0], [0], linestyle='None', marker='X', color='grey', label='Contexts', 
-                    markerfacecolor='white', markersize=8)))
-    ax.set_xlabel('PC '+str(pcs[0]))
-    ax.set_xticklabels([])
-    ax.set_ylabel('PC '+str(pcs[1]))
-    ax.set_yticklabels([])
-    if dims==3: 
-        ax.set_zlabel('PC '+str(pcs[2]))
-        ax.set_zticklabels([])
-    plt.legend(handles=Patches, fontsize='small')
-    plt.show()
+        fig = plt.figure(figsize=(14, 14))
+        if dims==2:
+            ax = fig.add_subplot()
+        else:
+            ax = fig.add_subplot(projection='3d')
+
+        Patches = _group_rep_scatter(reduced, tasks_to_plot, ax, dims, pcs, **scatter_kwargs)
+        Patches.append((Line2D([0], [0], linestyle='None', marker='X', color='grey', label='Contexts', 
+                        markerfacecolor='white', markersize=8)))
+        ax.set_xlabel('PC '+str(pcs[0]))
+        ax.set_xticklabels([])
+        ax.set_ylabel('PC '+str(pcs[1]))
+        ax.set_yticklabels([])
+        if dims==3: 
+            ax.set_zlabel('PC '+str(pcs[2]))
+            ax.set_zticklabels([])
+        plt.legend(handles=Patches, fontsize='small')
+        plt.show()
 
 def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', save_file=None):
     number_reps=sim_scores.shape[1]/len(TASK_LIST)
@@ -482,14 +488,13 @@ def plot_ccgp_corr(folder, exp_type, model_list):
     axn.plot(x, a*x+b, linewidth=0.8, linestyle='dotted', color='black')
     plt.show()
 
-def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False): 
+def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False, mode=''): 
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
     
     axn.spines['top'].set_visible(False)
     axn.spines['right'].set_visible(False)
     axn.set_axisbelow(True)
     axn.grid(visible=True, color='grey', linewidth=0.5)
-
 
     fig.suptitle('CCGP Across Model Hierarchy')
     axn.set_ylim(0.475, 1)
@@ -502,7 +507,7 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False):
         else: 
             layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
 
-        all_holdout_ccgp = load_holdout_ccgp(foldername, model_name, layer_list, seeds)
+        all_holdout_ccgp = load_holdout_ccgp(foldername, model_name, layer_list, seeds, mode=mode)
         axn.plot(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=(0,2)), marker='.', c=MODEL_STYLE_DICT[model_name][0], linewidth=0.8)
         if plot_multis:
             try: 

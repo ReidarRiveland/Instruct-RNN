@@ -5,6 +5,12 @@ from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
 from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio
 
+
+data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL_lin', mode = 'combined')
+zero_shot, std = data.avg_seeds('AntiDMMod1', k_shot=0)
+
+zero_shot
+
 to_plot_models = ['simpleNet', 'bowNet_lin',  'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'sbertNet_lin', 'clipNet_lin']
 tuned_to_plot = ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin_tuned']
 
@@ -31,9 +37,18 @@ plot_0_shot_task_hist('7.20models', 'swap', to_plot_models, seeds =range(0,5), m
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='swap_combined')
 
 ###FAMILY
+plot_avg_holdout_curve('7.20models', 'family', ['clipNet_lin'], seeds =range(5, 8), mode='combined')
+
 plot_avg_holdout_curve('7.20models', 'family', to_plot_models, seeds =range(0, 5), mode='combined')
 plot_0_shot_task_hist('7.20models', 'family', to_plot_models, seeds =range(0,5), mode='combined')
 plot_all_task_lolli_v('7.20models', 'family', to_plot_models[::-1], seeds =range(0, 5), mode='combined')
+
+
+###nonlinguitic variants
+plot_avg_holdout_curve('7.20models', 'swap', ['simpleNet', 'simpleNetPlus'], seeds =range(0, 5), mode='comp')
+plot_0_shot_task_hist('7.20models', 'swap', ['simpleNet'], seeds =range(0,5), mode='')
+plot_all_task_lolli_v('7.20models', 'swap', ['simpleNet'], seeds =range(0, 5), mode='comp')
+
 
 
 ####PC PLOTS
@@ -63,6 +78,18 @@ plot_scatter(bertNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, 
 plot_scatter(bertNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, rep_depth='full')
 
 
+gptNet = GPTNetXL_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap9'
+gptNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+gptNet.model_name, suffix='_seed2')
+
+plot_scatter(gptNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
+plot_scatter(gptNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, rep_depth='full')
+
+gptNet.load_model('7.20models/multitask_holdouts/Multitask/'+gptNet.model_name, suffix='_seed3')
+plot_scatter(gptNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, instruct_mode=None)
+plot_scatter(gptNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, rep_depth='full')
+
+
 simpleNet = SimpleNet(rnn_hidden_dim=256)
 holdouts_file = 'swap9'
 simpleNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+simpleNet.model_name, suffix='_seed0')
@@ -74,6 +101,9 @@ plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3
 
 
 plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'][::-1], seeds=range(5), plot_multis=True)
+plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'][::-1], seeds=range(5), mode='swap_combined')
+
+
 
 plot_ccgp_corr('7.20models', 'swap', ['clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'sbertNet_lin', 'gptNet_lin', 'gptNetXL_lin', 'simpleNet'])
 

@@ -15,13 +15,13 @@ def load_multi_ccgp(model_name, seeds=range(5), layer='task'):
 
     return task_holdout_array, dich_holdout_array
 
-def load_holdout_ccgp(folder_name, model_name, layer_list, seeds, verbose=False): 
+def load_holdout_ccgp(folder_name, model_name, layer_list, seeds, mode='', verbose=False): 
     task_holdout_array = np.full((len(seeds), len(layer_list), len(TASK_LIST)), np.nan)        
 
     for i, seed in enumerate(seeds):
         for j, layer in enumerate(layer_list):
             try:
-                task_load_str = folder_name+'/CCGP_scores/'+model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+'.npy'
+                task_load_str = folder_name+'/CCGP_scores/'+model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+mode+'.npy'
                 task_arr = np.load(open(task_load_str, 'rb'))
                 task_holdout_array[i, j, :] = task_arr
             except FileNotFoundError:
