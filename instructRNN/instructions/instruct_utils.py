@@ -100,23 +100,14 @@ def get_comp_rep(batch_size, task_type):
                         +one_hot_input_rule(batch_size, ref_tasks[2])
     return comp_rep
 
-def get_comp_rule(batch_size, task_type, instruct_mode=None): 
-    if instruct_mode == 'swap': 
-        swapped_task = get_swap_task(task_type)
-        task_rule = get_comp_rep(batch_size, swapped_task)
-    elif instruct_mode == 'masked': 
-        task_rule = np.zeros((batch_size, 11))
-    else: 
-        task_rule = get_comp_rep(batch_size, task_type)
-    
-    return torch.Tensor(task_rule)
-
 def get_input_rule(batch_size, task_type, instruct_mode=None): 
-    if instruct_mode == 'swap' or instruct_mode == 'swap_combined': 
+    if instruct_mode == 'masked': 
+        task_rule = np.zeros((batch_size, len(TASK_LIST)))
+    elif instruct_mode == 'swap' or instruct_mode == 'swap_combined': 
         swapped_task = get_swap_task(task_type)
         task_rule = one_hot_input_rule(batch_size, swapped_task)
-    elif instruct_mode == 'masked': 
-        task_rule = np.zeros((batch_size, len(TASK_LIST)))
+    elif instruct_mode == 'comp':
+        task_rule = get_comp_rep(batch_size, task_type)
     else: 
         task_rule = one_hot_input_rule(batch_size, task_type)
     
@@ -125,8 +116,6 @@ def get_input_rule(batch_size, task_type, instruct_mode=None):
 def get_task_info(batch_len, task_type, info_type, instruct_mode=None): 
     if info_type=='lang': 
         return get_instructions(batch_len, task_type, instruct_mode = instruct_mode)
-    elif info_type=='comp': 
-        return get_comp_rule(batch_len, task_type, instruct_mode = instruct_mode)
     else: 
         return get_input_rule(batch_len, task_type, instruct_mode = instruct_mode)
 

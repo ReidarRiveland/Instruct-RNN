@@ -21,7 +21,7 @@ from scipy.ndimage import gaussian_filter1d
 import warnings
 
 Blue = '#1C3FFD'
-lightBlue='#ADD8E6'
+lightBlue=	'#00FFFF'
 lightRed = '#FF6D6A'
 Green = '#45BF55'
 Red = '#FF3131'
@@ -199,17 +199,28 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, perf_type='correct',
     axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
 
     for i, model_name in enumerate(model_list): 
-        if mode is not 'validation':
+        if 'comp' in model_name:
             data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
             zero_shot, std = data.avg_seeds(k_shot=0)
+            linestyle = '--'
+            marker = 'D'
+        
+        elif mode is not 'validation':
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = 'comp', seeds=seeds)
+            zero_shot, std = data.avg_seeds(k_shot=0)
+            linestyle= '-'
+            marker = 'o'
+
         else: 
             data = load_val_perf([model_name])
             zero_shot = np.squeeze(np.mean(data, axis=0))
+            linestyle = '-'
+            marker = 'o'
         
-        axn.axhline(np.mean(zero_shot), color=MODEL_STYLE_DICT[model_name][0], linewidth=1.0, alpha=0.8, zorder=0)
+        axn.axhline(np.mean(zero_shot), color=MODEL_STYLE_DICT[model_name][0], linewidth=1.0, alpha=0.8, linestyle=linestyle, zorder=0)
         x_mark = (ind+(width/2))+(i*width)
-        axn.scatter(x_mark,  zero_shot, color=MODEL_STYLE_DICT[model_name][0], s=3)
-        axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.5)
+        axn.scatter(x_mark,  zero_shot, color=MODEL_STYLE_DICT[model_name][0], s=3, marker=marker)
+        axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=MODEL_STYLE_DICT[model_name][0], linestyle=linestyle, linewidth=0.5)
 
     axn.set_xticks(ind)
     axn.set_xticklabels('')
