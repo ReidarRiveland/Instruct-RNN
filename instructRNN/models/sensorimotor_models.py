@@ -174,7 +174,6 @@ class RuleNet(BaseNet):
             task_rule = self.rule_encoder(rule_transformed)
         else: 
             task_rule = context
-        print(task_rule)
         outs, rnn_hid = super().forward(x, task_rule)
         return outs, rnn_hid
 
