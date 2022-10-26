@@ -45,8 +45,8 @@ plot_all_task_lolli_v('7.20models', 'family', to_plot_models[::-1], seeds =range
 
 
 ###nonlinguitic variants
-plot_avg_holdout_curve('7.20models', 'swap', ['simpleNet', 'simpleNetPlus'], seeds =range(0, 5), mode='comp')
-plot_0_shot_task_hist('7.20models', 'swap', ['simpleNet'], seeds =range(0,5), mode='')
+plot_simpleNet_comps('7.20models', 'swap', ['simpleNet', 'simpleNetPlus'])
+plot_0_shot_task_hist('7.20models', 'swap', ['simpleNet', 'simpleNetPlus', 'simpleNet_comp', 'simpleNetPlus_comp'], seeds =range(0,5))
 plot_all_task_lolli_v('7.20models', 'swap', ['simpleNet'], seeds =range(0, 5), mode='comp')
 
 
@@ -100,10 +100,8 @@ simpleNet.load_model('7.20models/multitask_holdouts/Multitask/'+simpleNet.model_
 plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
 
 
-plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'][::-1], seeds=range(5), plot_multis=True)
+plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'][::-1], seeds=range(5))
 plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'][::-1], seeds=range(5), mode='swap_combined')
-
-
 
 plot_ccgp_corr('7.20models', 'swap', ['clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'sbertNet_lin', 'gptNet_lin', 'gptNetXL_lin', 'simpleNet'])
 
@@ -219,4 +217,5 @@ plot_partner_perf()
 confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/sm_multidecoder_multi_confuse_mat.npy')
 plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), fmt='.0%', annot_kws={'size':3}, linewidths=0.2)
 
+get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=False)
 get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)
