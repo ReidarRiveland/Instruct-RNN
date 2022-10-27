@@ -14,6 +14,10 @@ from instructRNN.instructions.instruct_utils import get_instructions
 from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
+
+plot_0_shot_task_hist('7.20models', 'swap', ['simpleNet', 'simpleNetPlus', 'simpleNet_comp', 'simpleNetPlus_comp'], seeds =range(0,5))
+
+
 # EXP_FILE = '7.20models/swap_holdouts'
 # clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 # holdouts_file = 'swap9'
@@ -243,7 +247,7 @@ get_holdout_decoded_set('7.20models/swap_holdouts', 'clipNet_lin', 2, from_conte
 # rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' --exclude '*_opt*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ /home/reidar/Projects/Instruct-RNN/7.20models
 # rsync -a  -P --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' --exclude '*_opt*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ /home/reidar/Projects/Instruct-RNN/7.20models
 
-# rsync -a  -P --include '*gptNetXL_FOR_TUNING*' --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' riveland@login1.yggdrasil.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ /home/riveland/Instruct-RNN/7.20models
+# rsync -a  -P --include '*context#' --exclude '*.pt*' --exclude '*_attrs*' --exclude '*.npy*' --exclude '*_opt*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ /home/riveland/Instruct-RNN/7.20models
 # rsync -a  -P --exclude '*.npy*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/multitask_holdouts/Multitask/gptNet_lin /home/riveland/Instruct-RNN/7.20models/multitask_holdouts/Multitask/gptNet_lin
 
 

@@ -37,19 +37,18 @@ plot_0_shot_task_hist('7.20models', 'swap', to_plot_models, seeds =range(0,5), m
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='swap_combined')
 
 ###FAMILY
-plot_avg_holdout_curve('7.20models', 'family', ['clipNet_lin'], seeds =range(5, 8), mode='combined')
+plot_avg_holdout_curve('7.20models', 'family', ['clipNet_lin'], seeds =range(5, 10), mode='combined')
 
 plot_avg_holdout_curve('7.20models', 'family', to_plot_models, seeds =range(0, 5), mode='combined')
 plot_0_shot_task_hist('7.20models', 'family', to_plot_models, seeds =range(0,5), mode='combined')
 plot_all_task_lolli_v('7.20models', 'family', to_plot_models[::-1], seeds =range(0, 5), mode='combined')
 
-
 ###nonlinguitic variants
 plot_simpleNet_comps('7.20models', 'swap', ['simpleNet', 'simpleNetPlus'])
-plot_0_shot_task_hist('7.20models', 'swap', ['simpleNet', 'simpleNetPlus', 'simpleNet_comp', 'simpleNetPlus_comp'], seeds =range(0,5))
-plot_all_task_lolli_v('7.20models', 'swap', ['simpleNet'], seeds =range(0, 5), mode='comp')
+plot_0_shot_task_hist('7.20models', 'swap', ['simpleNet', 'simpleNetPlus', 'simpleNet_comp', 'simpleNetPlus_comp'][::-1], seeds =range(0,5))
+plot_all_task_lolli_v('7.20models', 'swap', ['simpleNet', 'simpleNetPlus', 'simpleNet_comp', 'simpleNetPlus_comp'][::-1], seeds =range(0,5))
 
-
+'simpleNet_comp'.split('_')[0]
 
 ####PC PLOTS
 EXP_FILE = '7.20models/swap_holdouts'
@@ -99,9 +98,8 @@ plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3
 simpleNet.load_model('7.20models/multitask_holdouts/Multitask/'+simpleNet.model_name, suffix='_seed1')
 plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
 
-
 plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'][::-1], seeds=range(5))
-plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet'][::-1], seeds=range(5), mode='swap_combined')
+plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin'][::-1], seeds=range(5), mode='swap_combined')
 
 plot_ccgp_corr('7.20models', 'swap', ['clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'sbertNet_lin', 'gptNet_lin', 'gptNetXL_lin', 'simpleNet'])
 

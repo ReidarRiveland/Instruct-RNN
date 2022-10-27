@@ -115,6 +115,9 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
         mean, std = data.avg_tasks()
         if MODEL_STYLE_DICT[model_name][1] is None: 
             axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2)
+        if mode == 'comp':
+            axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2, marker='D')
+
         _plot_performance_curve(mean, std, axn, model_name, linewidth=0.8, markevery=10, markersize=2, **curve_kwargs)
 
         if plot_swaps: 
@@ -200,13 +203,14 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, perf_type='correct',
 
     for i, model_name in enumerate(model_list): 
         if 'comp' in model_name:
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
+            model_name = model_name.split('_')[0]            
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = 'comp', seeds=seeds)
             zero_shot, std = data.avg_seeds(k_shot=0)
             linestyle = '--'
             marker = 'D'
         
         elif mode is not 'validation':
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = 'comp', seeds=seeds)
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
             zero_shot, std = data.avg_seeds(k_shot=0)
             linestyle= '-'
             marker = 'o'
@@ -233,7 +237,7 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, perf_type='correct',
     axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=8)
     axn.set_ylim(0.0, 1.01)
 
-    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
+    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list if 'comp' not in model_name], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
 
     plt.tight_layout()
     plt.show()
@@ -259,7 +263,7 @@ def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct',
 
     width = 1/(len(model_list)+1)
     ind = np.arange(10)
-
+    axn.set_xlim(0, 27)
     axn.set_yticks(ind+0.5, minor=True)
     axn.set_yticklabels([f'{x:.0%}>{y:.0%}' for x,y in list(zip(thresholds, thresholds0))], fontsize=5, minor=True) 
     
@@ -269,19 +273,29 @@ def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct',
     axn.set_yticklabels('') 
 
     for i, model_name in enumerate(model_list):
-        if mode is not 'validation':
+        if 'comp' in model_name:
+            model_name = model_name.split('_')[0]
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = 'comp', seeds=seeds)
+            perf = data.data[:, :, 0]
+            hatch = '///'
+        
+        elif mode is not 'validation':
             data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode=mode, seeds=seeds)
             perf = data.data[:, :, 0]
+            hatch = None
+
         else: 
             perf = np.squeeze(load_val_perf([model_name]))
-            
+            hatch = None
+        
+
         bins = np.zeros((len(range(5)), 10))
         for iy, ix in np.ndindex(perf.shape):
             bins[iy, int(np.floor((perf[iy, ix]*10)-1e-5))]+=1
         mean_bins = np.mean(bins, axis=0)
         std_bins = np.std(bins, axis=0)
 
-        axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.6)
+        axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.6, hatch=hatch, edgecolor='white')
         if plot_err:
             axn.hlines((ind+(width))+(i*width), np.max((np.zeros_like(mean_bins), mean_bins-std_bins), axis=0), mean_bins+std_bins, color='black', linewidth=0.5)
     plt.show()
