@@ -1,4 +1,6 @@
 {
     "python.pythonPath": "/home/reidar/anaconda3/envs/torch/bin/python",
-    "jupyter.jupyterServerType": "local"
+    "jupyter.jupyterServerType": "local",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.linting.enabled": true
 }

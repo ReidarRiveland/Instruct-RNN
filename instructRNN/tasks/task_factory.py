@@ -75,11 +75,15 @@ def _draw_durs(num_trials, multi, tar=None):
             _durs = np.array([short_dur, long_dur])[None, ...]
     return _durs
 
-def _draw_requires_resp(num_trials): 
+def _draw_requires_resp(num_trials, main_var=False): 
     if num_trials >1: 
-        requires_response_list = list(np.random.permutation([True]*int(np.floor(num_trials/2)) + [False] * int(np.ceil(num_trials/2))))
+        requires_response_list = [True]*int(np.floor(num_trials/2)) + [False] * int(np.ceil(num_trials/2))
     else: 
         requires_response_list = [np.random.choice([True, False])]
+
+    if not main_var: 
+        requires_response_list = list(np.random.permutation(requires_response_list))
+
     return np.array(requires_response_list)
 
 def _draw_confidence_threshold(requires_resp_list, pos_thresholds, neg_thresholds): 
@@ -96,7 +100,7 @@ def _draw_confidence_threshold(requires_resp_list, pos_thresholds, neg_threshold
 
 
 def _get_default_intervals(num_trials): 
-    _intervals = np.array([(0, 30), (30, 60), (60, 90), (90, 130), (130, TRIAL_LEN)])
+    _intervals = np.array([(0, 30), (30, 70), (70, 90), (90, 130), (130, TRIAL_LEN)])
     intervals = np.repeat(_intervals[None, :,:,None].repeat(num_trials, -1), 2, axis=0)
     return intervals
 
@@ -143,7 +147,7 @@ def _max_var_dir(num_trials, num_stims, shuffle):
     return dirs
 
 ###how to handle this for task plotting?
-def max_var_coh(num_trials, max_contrast=0.5, min_contrast=0.1, main_mod = None, shuffle=False): 
+def max_var_coh(num_trials, max_contrast=0.3, min_contrast=0.05, main_mod = None, shuffle=False): 
     base_coh = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(np.ceil(num_trials/2))), 
                 np.linspace(min_contrast, max_contrast, num=int(np.floor(num_trials/2)))))
     coh0 = base_coh 
@@ -403,7 +407,7 @@ class DMFactory(TaskFactory):
                         timing= 'full', mod=None, multi=False, 
                         dir_arr = None, coh_arr = None, max_var=False,
                         main_var = False, intervals= None, cond_arr=None, 
-                        max_contrast=0.5, min_contrast=0.1):
+                        max_contrast=0.3, min_contrast=0.05):
         super().__init__(num_trials, timing, noise)
         self.cond_arr = cond_arr
         self.timing = timing
@@ -648,7 +652,7 @@ class COMPFactory(TaskFactory):
                             mod=None, multi=False, timing= 'delay', 
                             dir_arr=None, coh_arr=None, max_var = False, main_var =False,
                             intervals= None, cond_arr=None, target_dirs=None,
-                            max_contrast=0.5, min_contrast=0.1):
+                            max_contrast=0.3, min_contrast=0.05):
         super().__init__(num_trials, timing, noise)
         self.cond_arr = cond_arr
         self.str_chooser = str_chooser
@@ -688,6 +692,8 @@ class COMPFactory(TaskFactory):
             coh = coh_arr
             dirs = dir_arr
             base_strs = np.full((2, self.num_trials), 1)
+            self.req_resp = _draw_requires_resp(self.num_trials, main_var=True)
+
 
         elif self.mod is not None:        
             dirs1 = dirs0
@@ -750,7 +756,7 @@ class COMPFactory(TaskFactory):
         target_dirs = np.where(self.req_resp, stim_dirs, np.full(self.num_trials, np.NaN))
         return target_dirs
 
-    
+        
     def max_var_coh(self, main_mod):
         return max_var_coh(self.num_trials, max_contrast=self.max_contrast, min_contrast=self.min_contrast, main_mod = main_mod, shuffle=False)
 
@@ -765,9 +771,11 @@ class MatchingFactory(TaskFactory):
 
         self.matching_task = matching_task
         self.match_type = match_type
+        self.main_var = main_var 
+        self.max_var = max_var
 
         if max_var or main_var: 
-            dir0= _max_var_dir(self.num_trials, 1, True)[0,:]
+            dir0= _max_var_dir(self.num_trials, 1, False)[0,:]
             intervals = _get_default_intervals(self.num_trials)
 
         if self.cond_arr is None and self.target_dirs is None: 
@@ -795,7 +803,9 @@ class MatchingFactory(TaskFactory):
             matched = np.random.uniform(cat_ranges[range_index, 0], cat_ranges[range_index, 1])
             mismatched = np.random.uniform(cat_ranges[opp_range_index, 0]+np.pi/5, cat_ranges[opp_range_index, 1]-np.pi/5)
 
-        if self.matching_task: 
+        if self.main_var:
+            dir1 = np.array(self.num_trials*[np.pi/2])
+        elif self.matching_task: 
             dir1 = np.where(self.req_resp, matched, mismatched)
             target_dirs = np.where(self.req_resp, dir0, np.full(self.num_trials, np.NaN))
         else: 
@@ -805,9 +815,13 @@ class MatchingFactory(TaskFactory):
         dirs0 = np.array([dir0,dir1])
         nan_dirs = np.full_like(dirs0, np.NaN)
         dirs = _permute_mod(np.array([dirs0, nan_dirs]))
+        if self.main_var:
+            strs= np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), 
+                    np.ones((2, self.num_trials)))
 
-        strs= np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), 
-                    np.random.uniform(0.8, 1.2, size=(2, self.num_trials)))
+        else: 
+            strs= np.where(np.isnan(dirs), np.full_like(dirs, np.NaN), 
+                        np.random.uniform(0.8, 1.2, size=(2, self.num_trials)))
 
         conditions_arr[:, :, 0, :] = dirs
         conditions_arr[:, :, 1, :] = strs

@@ -94,11 +94,11 @@ def one_hot_input_rule(batch_size, task_type, shuffled=False):
     one_hot= np.repeat(one_hot, batch_size, axis=0)
     return one_hot
 
-def get_comp_rep(batch_size, task_type): 
-    ref_tasks = construct_trials(task_type, None).comp_ref_tasks
-    comp_rep = one_hot_input_rule(batch_size, ref_tasks[0])-one_hot_input_rule(batch_size, ref_tasks[1]) \
-                        +one_hot_input_rule(batch_size, ref_tasks[2])
-    return comp_rep
+# def get_comp_rep(batch_size, task_type): 
+#     ref_tasks = construct_trials(task_type, None).comp_ref_tasks
+#     comp_rep = (one_hot_input_rule(batch_size, ref_tasks[0])-one_hot_input_rule(batch_size, ref_tasks[1])) \
+#                         +one_hot_input_rule(batch_size, ref_tasks[2])
+#     return comp_rep
 
 def get_input_rule(batch_size, task_type, instruct_mode=None): 
     if instruct_mode == 'masked': 
@@ -106,8 +106,8 @@ def get_input_rule(batch_size, task_type, instruct_mode=None):
     elif instruct_mode == 'swap' or instruct_mode == 'swap_combined': 
         swapped_task = get_swap_task(task_type)
         task_rule = one_hot_input_rule(batch_size, swapped_task)
-    elif instruct_mode == 'comp':
-        task_rule = get_comp_rep(batch_size, task_type)
+    # elif instruct_mode == 'comp':
+    #     task_rule = get_comp_rep(batch_size, task_type)
     else: 
         task_rule = one_hot_input_rule(batch_size, task_type)
     

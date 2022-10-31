@@ -149,7 +149,7 @@ class ModelTrainer(BaseTrainer):
         model_for_tuning.save_model(self.file_path, suffix='_'+self.seed_suffix+'_FOR_TUNING')
         print('\n MODEL SAVED FOR TUNING')
 
-    def _set_training_conditions(self, model, is_tuning, is_testing, instruct_mode, weight_mode):
+    def _set_training_conditions(self, model, is_tuning, is_testing, instruct_mode, input_w_only, comp_rules):
 
         self.model_file_path = model.model_name+'_'+self.seed_suffix
         tunable = (model.info_type == 'lang' and hasattr(model.langModel, 'transformer'))
@@ -160,13 +160,17 @@ class ModelTrainer(BaseTrainer):
         if is_testing and tunable:
             model.langModel.freeze_transformer()
 
-        if is_testing and weight_mode=='input_only': 
+        if is_testing and input_w_only: 
             model.freeze_all_but_rnn_ins()
 
         if is_testing:
             if instruct_mode is None: instruct_mode = ''
-            if weight_mode is None: weight_mode = ''
-            self.test_name_str= instruct_mode + weight_mode
+            if not input_w_only: weight_mode = ''
+            else: weight_mode='inputs_only'
+            if not comp_rules: comp_mode = ''
+            else: comp_mode = 'comp'
+
+            self.test_name_str= instruct_mode + weight_mode + comp_mode
         elif not is_testing and instruct_mode is not None: 
             warnings.warn('instruct mode is not standard but doing something other than testing')
             
@@ -180,12 +184,12 @@ class ModelTrainer(BaseTrainer):
             opt_path = self.checkpoint_path + '_opt'
             self.optimizer.load_state_dict(torch.load(opt_path))  
 
-    def train(self, model, is_tuning=False, is_testing=False, instruct_mode=None, weight_mode = None): 
+    def train(self, model, is_tuning=False, is_testing=False, instruct_mode=None, input_w_only = False, comp_rules=False): 
         model.to(device)
         model.train()
         self._init_streamer()
         self.init_optimizer(model)
-        tunable = self._set_training_conditions(model, is_tuning, is_testing, instruct_mode, weight_mode)
+        tunable = self._set_training_conditions(model, is_tuning, is_testing, instruct_mode, input_w_only, comp_rules)
 
         for self.cur_epoch in tqdm(range(self.cur_epoch, self.epochs), desc='epochs'):
             if self.cur_epoch == self.save_for_tuning_epoch and tunable:
@@ -231,10 +235,14 @@ def check_already_trained(file_name, seed, mode='training'):
         print('\n ' + mode+' at ' + file_name + ' at seed '+str(seed))
         return False
 
-def check_already_tested(file_name, seed, task, instruct_mode, weight_mode):
+def check_already_tested(file_name, seed, task, instruct_mode, input_w_only, comp_rules):
     if instruct_mode is None: instruct_mode = ''
-    if weight_mode is None: weight_mode = ''
-    mode = instruct_mode+weight_mode
+    if not input_w_only: weight_mode = ''
+    else: weight_mode='inputs_only'
+    if not comp_rules: comp_mode = ''
+    else: comp_mode = 'comp'
+
+    mode = instruct_mode+weight_mode+comp_mode
     try: 
         pickle.load(open(file_name+'/holdouts/'+ mode+task+ '_seed'+str(seed)+'_correct', 'rb'))
         print('\n Model at ' + file_name + ' for seed '+str(seed)+ 'and task '+task+' aleady trained')
@@ -346,7 +354,7 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     is_tuned = trainer.train(model, is_tuning=True)
     return is_tuned
 
-def test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = None, weight_mode = None, overwrite=False, repeats=5, **train_config_kwargs): 
+def test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = None, input_w_only = False, comp_rules = False, overwrite=False, repeats=5, **train_config_kwargs): 
     torch.manual_seed(seed)
     
     label, holdouts = labeled_holdouts 
@@ -355,18 +363,18 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = N
     model = make_default_model(model_name)
 
     for task in holdouts: 
-        if check_already_tested(file_name, seed, task, instruct_mode, weight_mode) and not overwrite:
+        if check_already_tested(file_name, seed, task, instruct_mode, input_w_only, comp_rules) and not overwrite:
             continue 
         else:
             print('\n testing '+model_name+' seed'+str(seed)+' on '+task)
 
         testing_config = TrainerConfig(file_name, seed, set_single_task=task, 
-                                batch_len=256, num_batches=100, epochs=1, init_lr = 0.0008,
+                                batch_len=256, num_batches=250, epochs=1, init_lr = 0.0008,
                                 test_repeats = repeats, **train_config_kwargs)
         trainer = ModelTrainer(testing_config)
         for _ in range(repeats): 
             model.load_model(file_name, suffix='_seed'+str(seed))
-            trainer.train(model, is_testing=True, instruct_mode=instruct_mode, weight_mode=weight_mode)
+            trainer.train(model, is_testing=True, instruct_mode=instruct_mode, input_w_only=input_w_only, comp_rules=comp_rules)
         trainer._record_session(model, mode='TESTING')
 
 def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, ot=False, use_checkpoint=False, **train_config_kwargs):
@@ -376,11 +384,12 @@ def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False
         is_trained = tune_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs)
         
     if is_trained: 
-        for instruct_mode in [None, 'swap', 'combined', 'swap_combined']:
+        for instruct_mode in [None, 'combined', 'swap_combined']:
             print('TESTING '+ str(instruct_mode) + '\n')
             test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, overwrite=ot)
-        if model_name == 'simpleNet' or model_name == 'simpleNetPlus': 
-            print('TESTING comp' + '\n')
-            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = 'comp', overwrite=True)
+            print('TESTING w/ only input weights')
+            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, input_w_only=True, overwrite=ot)
+            print('TESTING w/ comp rule')
+            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, comp_rules=True, overwrite=ot)
 
         

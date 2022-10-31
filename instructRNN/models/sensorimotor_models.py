@@ -9,9 +9,10 @@ from collections import OrderedDict
 
 
 from instructRNN.models.script_gru import ScriptGRU
-from instructRNN.tasks.tasks import TASK_LIST
+from instructRNN.tasks.tasks import TASK_LIST, construct_trials
 from instructRNN.models.language_models import InstructionEmbedder, LMConfig
 from instructRNN.tasks.task_factory import INPUT_DIM, OUTPUT_DIM, TRIAL_LEN
+from instructRNN.instructions.instruct_utils import get_input_rule, get_instructions, one_hot_input_rule
 
 SENSORY_INPUT_DIM = INPUT_DIM
 MOTOR_OUTPUT_DIM = OUTPUT_DIM
@@ -167,9 +168,16 @@ class RuleNet(BaseNet):
         ortho = m[:self.num_tasks,:]
         return torch.tensor(ortho)
 
-    def forward(self, x, task_rule=None, context = None):
+    def forward(self, x, task_rule=None, context = None, comp_task =None):
 
-        if task_rule is not None:
+        if comp_task is not None: 
+            ref_tasks = construct_trials(comp_task, None).comp_ref_tasks
+            task_infos = [one_hot_input_rule(task) for task in ref_tasks]
+            comp_rule = (task_infos[0] - task_infos[1]) + task_infos[2]
+            rule_transformed = torch.matmul(comp_rule.to(self.__device__), self.rule_transform.float())
+            task_rule = self.rule_encoder(rule_transformed)
+
+        elif task_rule is not None:
             rule_transformed = torch.matmul(task_rule.to(self.__device__), self.rule_transform.float())
             task_rule = self.rule_encoder(rule_transformed)
         else: 
@@ -194,11 +202,16 @@ class InstructNet(BaseNet):
         self.langModel = self.LM_class(self.LM_config)
     
 
-    def forward(self, x, instruction = None, context = None):
+    def forward(self, x, instruction = None, context = None, comp_task=None):
         assert instruction is not None or context is not None, 'must have instruction or context input'
         
+
         if instruction is not None: 
             info_embedded = self.langModel(instruction)
+        elif comp_task is not None: 
+            ref_tasks = construct_trials(comp_task, None).comp_ref_tasks
+            task_infos = [self.langModel(get_instructions(x.shape[0], task)) for task in ref_tasks]
+            info_embedded = (task_infos[0] - task_infos[1]) + task_infos[2]
         elif context.shape[-1] == self.langModel.LM_intermediate_lang_dim:
             info_embedded = self.langModel.proj_out(context)
         elif context.shape[-1] == self.langModel.LM_out_dim:

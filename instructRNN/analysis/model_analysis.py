@@ -34,13 +34,17 @@ def get_reps_from_tasks(reps, tasks):
     indices = [TASK_LIST.index(task) for task in tasks]
     return reps[indices, ...]
 
-def task_eval(model, task, batch_size, noise=None, instruct_mode = None, instructions = None, **trial_kwargs): 
+def task_eval(model, task, batch_size, noise=None, instruct_mode = None, instructions = None, use_comp=False, **trial_kwargs): 
     ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, noise, **trial_kwargs)
     if instructions is None: 
         task_info = get_task_info(batch_size, task, model.info_type, instruct_mode=instruct_mode)
     else: 
         task_info = instructions
-    out, _ = model(torch.Tensor(ins).to(model.__device__), task_info)
+    if use_comp:
+        comp_task = task
+    else: 
+        comp_task = None
+    out, _ = model(torch.Tensor(ins).to(model.__device__), task_info, comp_task=comp_task)
     return np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
 def get_model_performance(model, num_repeats = 1, batch_len=128, instruct_mode=None): 
@@ -70,15 +74,17 @@ def get_val_perf(foldername, model_name, seed, num_repeats = 5, batch_len=100, s
     return perf_array
 
 
-def eval_model_0_shot(model, folder_name, exp_type, seed, instruct_mode=None): 
+def eval_model_0_shot(model_name, folder_name, exp_type, seed, instruct_mode=None, use_comp = False): 
     if 'swap' in exp_type: 
         exp_dict = SWAPS_DICT
     perf_array = np.full(len(TASK_LIST), np.NaN)
+    model = make_default_model(model_name)
     with torch.no_grad():
         for holdout_label, tasks in exp_dict.items(): 
-            model.load_model(folder_name+'/'+exp_type+'/'+holdout_label+'/'+model.model_name, suffix='_seed'+str(seed))
+            print(holdout_label)
+            model.load_model(folder_name+'/'+exp_type+'_holdouts/'+holdout_label+'/'+model.model_name, suffix='_seed'+str(seed))
             for task in tasks: 
-                perf_array[TASK_LIST.index(task)] = task_eval(model, task, 64, instruct_mode=instruct_mode)
+                perf_array[TASK_LIST.index(task)] = task_eval(model, task, 64, instruct_mode=instruct_mode, use_comp=use_comp)
     return perf_array
 
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
@@ -118,13 +124,13 @@ def get_rule_embedder_reps(model):
     return reps
 
 def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, tasks=TASK_LIST, instruct_mode=None, 
-                    contexts=None, default_intervals=False, num_repeats=1, **trial_kwargs):
+                    contexts=None, default_intervals=False, num_repeats=1, use_comp=False, **trial_kwargs):
     model.eval()
     model.to(device)
-    if epoch is None: 
-        task_reps = np.empty((num_repeats, len(tasks), num_trials, TRIAL_LEN, model.rnn_hidden_dim))
+    if epoch is None or epoch=='stim_after': 
+        task_reps = np.full((num_repeats, len(tasks), num_trials, TRIAL_LEN, model.rnn_hidden_dim), np.nan)
     else: 
-        task_reps = np.empty((num_repeats, len(tasks), num_trials, model.rnn_hidden_dim))
+        task_reps = np.full((num_repeats, len(tasks), num_trials, model.rnn_hidden_dim), np.nan)
 
     with torch.no_grad(): 
         for k in range(num_repeats):
@@ -139,7 +145,7 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
                     out, hid = model(torch.Tensor(ins).to(model.__device__), context=contexts[i, ...])
                 else: 
                     task_info = get_task_info(num_trials, task, model.info_type, instruct_mode=instruct_mode)
-                    out, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
+                    out, hid = model(torch.Tensor(ins).to(model.__device__), task_info, use_comp=use_comp)
 
                 hid = hid.cpu().numpy()
                 if epoch is None: 
@@ -148,12 +154,16 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
                     for j in range(num_trials): 
                         if epoch.isnumeric(): epoch_index = int(epoch)
                         if epoch == 'stim': epoch_index = np.where(targets[j, :, 0] == 0.85)[0][-1]
-                        if epoch == 'stim_start': epoch_index = np.where(ins[j, :, 1:]>0.6)[0][0]+stim_start_buffer
+                        if epoch == 'stim_start' or epoch =='stim_after': epoch_index = np.where(ins[j, :, 1:]>0.6)[0][0]+stim_start_buffer
                         if epoch == 'prep': epoch_index = np.where(ins[j, :, 1:]>0.25)[0][0]-1
-                        task_reps[k, i, j, :] = hid[j, epoch_index, :]
+                        
+                        if epoch =='stim_after':
+                            task_reps[k, i, j, epoch_index:, :] = hid[j, epoch_index:, :]
+                        else:
+                            task_reps[k, i, j, :] = hid[j, epoch_index, :]
 
 
-    return np.mean(task_reps, axis=0).astype(np.float64)
+    return np.nanmean(task_reps, axis=0).astype(np.float64)
 
 
 def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'): 
@@ -336,11 +346,12 @@ def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array, use_mean, max_iter=1
         else: 
             continue
 
-def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task', use_mean=False, instruct_mode='combined', max_iter=10_000_000): 
+def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task', use_mean=False, instruct_mode='combined', use_comp=False, max_iter=10_000_000): 
     holdout_CCGP = np.full((len(TASK_LIST), len(DICH_DICT)), np.NAN)
     if 'swap_holdouts' in exp_folder: 
         exp_dict = SWAPS_DICT
-
+    if use_comp: 
+        instruct_mode='comp'
     model = make_default_model(model_name)
 
     for holdout_file, holdouts in exp_dict.items():
@@ -348,7 +359,7 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
 
         if layer == 'task':
-            reps = get_task_reps(model, num_trials = 250, instruct_mode=instruct_mode, epoch=epoch)
+            reps = get_task_reps(model, num_trials = 250, instruct_mode=instruct_mode, epoch=epoch, use_comp=use_comp)
         else: 
             reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode=instruct_mode)
 
@@ -443,15 +454,16 @@ def get_layer_dim(exp_folder, model_name, seed, layer='task', threshold = 0.9, k
     return var_exp_arr, thresholded
 
 def get_norm_task_var(hid_reps): 
-    task_var = np.mean(np.var(hid_reps[:, :, :,:], axis=1), axis=1)
+    task_var = np.nanmean(np.nanvar(hid_reps[:, :, :,:], axis=1), axis=1)
     task_var = np.delete(task_var, np.where(np.sum(task_var, axis=0)<0.001)[0], axis=1)
     normalized = np.divide(np.subtract(task_var, np.min(task_var, axis=0)[None, :]), (np.max(task_var, axis=0)-np.min(task_var, axis=0)[None, :])).T
+
     return normalized
 
 def get_optim_clusters(task_var):
     score_list = []
     for i in range(3,25):
-        km = KMeans(n_clusters=i, random_state=12)
+        km = KMeans(n_clusters=i, random_state=42)
         labels = km.fit_predict(task_var)
         score = silhouette_score(task_var, labels)
         score_list.append(score)
@@ -474,7 +486,7 @@ def sort_units(norm_task_var):
 def get_cluster_info(load_folder, model_name, seed):
     model = make_default_model(model_name)
     model.load_model(load_folder+'/'+model.model_name, suffix='_seed'+str(seed))
-    task_hid_reps = get_task_reps(model, num_trials = 50, epoch=None, tasks= TASK_LIST, max_var=True)
+    task_hid_reps = get_task_reps(model, num_trials = 100, epoch=None, tasks= TASK_LIST, max_var=True)
     norm_task_var = get_norm_task_var(task_hid_reps)
     cluster_dict, cluster_labels, sorted_indices = sort_units(norm_task_var)
     return norm_task_var, cluster_dict, cluster_labels, sorted_indices
@@ -490,7 +502,7 @@ def get_model_clusters(foldername, model_name, seed, num_repeats=10, save=False)
         for j in range(num_repeats):
             print('processing '+ holdout_file)
             model.load_model(foldername+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
-            task_hid_reps = get_task_reps(model, num_trials = 100, epoch=None, max_var=True)
+            task_hid_reps = get_task_reps(model, num_trials = 100, epoch='stim_after', max_var=True)
             task_var = get_norm_task_var(task_hid_reps)
             optim_clusters = get_optim_clusters(task_var)
             num_cluster_array[i, j] = optim_clusters

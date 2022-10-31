@@ -41,7 +41,7 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (li
 
 def get_task_color(task): 
     index = TASK_LIST.index(task)
-    return plt.get_cmap('Paired')(index%16)
+    return plt.get_cmap('Paired')(index%5)
 
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
@@ -278,12 +278,12 @@ def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct',
             data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = 'comp', seeds=seeds)
             perf = data.data[:, :, 0]
             hatch = '///'
-        
+            edge_color = 'white'
         elif mode is not 'validation':
             data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode=mode, seeds=seeds)
             perf = data.data[:, :, 0]
             hatch = None
-
+            edge_color = None
         else: 
             perf = np.squeeze(load_val_perf([model_name]))
             hatch = None
@@ -295,7 +295,7 @@ def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct',
         mean_bins = np.mean(bins, axis=0)
         std_bins = np.std(bins, axis=0)
 
-        axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.6, hatch=hatch, edgecolor='white')
+        axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.6, hatch=hatch, edgecolor=edge_color)
         if plot_err:
             axn.hlines((ind+(width))+(i*width), np.max((np.zeros_like(mean_bins), mean_bins-std_bins), axis=0), mean_bins+std_bins, color='black', linewidth=0.5)
     plt.show()
@@ -413,38 +413,51 @@ def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot
 
     plt.show()
 
-def plot_tuning_curve(model, tasks, unit, times, num_trials=50, num_repeats=20, smoothing = 1e-7, **trial_kwargs): 
+def plot_tuning_curve(model, tasks, unit, times, num_trials=50, num_repeats=20, smoothing = 1e-7, max_coh=0.3, min_coh=0.05, **trial_kwargs): 
     fig, axn = plt.subplots(1,1, sharey = True, sharex=True, figsize =(8, 4))
 
-    if 'Go' in tasks[0] or tasks[0] in ['DMS', 'DMNS', 'DMC', 'DNMC']:
+    if 'Go' in tasks[0]:
         x_label = "direction"
         var_of_interest = np.linspace(0, np.pi*2, num_trials)
         axn.set_xlim(0.0, 2*np.pi)
         axn.set_xticks([0, 0.5*np.pi, np.pi, 1.5*np.pi, 2*np.pi])
         axn.set_xticklabels(["0", r"$\frac{\pi}{2}$", "$\pi$", r"$\frac{3\pi}{2}$", "$2\pi$"]) 
+    elif 'DMS' in tasks: 
+        x_label = "diff direction"
 
-    elif 'DM' in tasks[0] or 'COMP' in tasks[0]: 
-        x_label = "coherence"
-        max_contrast = 0.5
-        min_contrast = 0.0
-        var_of_interest = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(np.ceil(num_trials/2))), 
-                np.linspace(min_contrast, max_contrast, num=int(np.floor(num_trials/2)))))
+        var_of_interest = np.linspace(-np.pi/2, (3/2)*np.pi, num_trials) 
+        axn.set_xlim(-np.pi/2, (3/2)*np.pi)
+        axn.set_xticks([-np.pi/2, 0, 0.5*np.pi, np.pi, (3/2)*np.pi,])
+        axn.set_xticklabels([r"$-\frac{\pi}{2}$", r"$0$", r"$\frac{\pi}{2}$", r"$\pi$", r"$-\frac{\pi}{2}$"]) 
+
         # axn.set_xlim(-max_contrast, max_contrast)
         # tick_space = np.linspace(-max_contrast, max_contrast, 5)
         # axn.set_xticks(tick_space)
         # axn.set_xticklabels([str(tick_val) for tick_val in tick_space]) 
 
-    #elif 'Dur' in tasks[0]: 
 
+    elif 'DM' in tasks[0] or 'COMP' in tasks[0]: 
+        x_label = "coherence"
+
+        var_of_interest = np.concatenate((np.linspace(-max_coh, -min_coh, num=int(np.ceil(num_trials/2))), 
+                np.linspace(min_coh, max_coh, num=int(np.floor(num_trials/2)))))
+        # axn.set_xlim(-max_contrast, max_contrast)
+        # tick_space = np.linspace(-max_contrast, max_contrast, 5)
+        # axn.set_xticks(tick_space)
+        # axn.set_xticklabels([str(tick_val) for tick_val in tick_space]) 
+
+
+
+    y_max=0.0
     hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, main_var=True, **trial_kwargs)
     for i, task in enumerate(tasks): 
         time = times[i]
         neural_resp = hid_mean[i, :, time, unit]        
         axn.plot(var_of_interest, gaussian_filter1d(neural_resp, smoothing), color=get_task_color(task))
-        y_max = neural_resp.max()
+        if np.max(neural_resp)>y_max: y_max = np.max(neural_resp)
 
     plt.suptitle('Tuning curve for Unit ' + str(unit))
-    axn.set_ylim(-0.05, y_max+0.15)
+    axn.set_ylim(-0.05, y_max+0.05)
 
     axn.set_ylabel('Unit Activity', size=8, fontweight='bold')
     axn.set_xlabel(x_label, size=8, fontweight='bold')
@@ -454,7 +467,7 @@ def plot_tuning_curve(model, tasks, unit, times, num_trials=50, num_repeats=20, 
     plt.show()
 
 
-def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeats = 10, smoothing = 1e-7, cmap=sns.color_palette("inferno", as_cmap=True), **trial_kwargs):
+def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeats = 10, cmap=sns.color_palette("inferno", as_cmap=True), **trial_kwargs):
     assert task_variable in ['direction', 'strength', 'diff_direction', 'diff_strength']
     hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=[task], num_repeats=num_repeats, main_var=True, **trial_kwargs)[0,...]
 
@@ -465,7 +478,7 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeat
         labels = ["0.3", "1.8"]
         cmap = plt.get_cmap('plasma') 
     elif task_variable =='diff_strength': 
-        labels = [r"$\Delta$ -0.5", r"$\Delta$ 0.5"]
+        labels = [r"$\Delta$ -0.3", r"$\Delta$ 0.3"]
         cmap = plt.get_cmap('seismic') 
 
     mappable = cm.ScalarMappable(cmap=cmap)
@@ -480,9 +493,9 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeat
     plt.vlines(130, -1.5, ylim+0.15, colors='k', linestyles='dashed')
     plt.vlines(30, -1.5, ylim+0.15, colors='k', linestyles='dashed')
 
-    axn.set_ylim(0, ylim+0.15)
+    axn.set_ylim(0, ylim+0.025)
     cbar = plt.colorbar(mappable, orientation='vertical', label = task_variable.replace('_', ' '), ticks = [0, hid_mean.shape[0]])
-    #plt.title(task + ' response for Unit' + str(unit))
+    plt.suptitle(task + ' response for Unit' + str(unit))
     cbar.set_ticklabels(labels)
 
     plt.show()
@@ -574,11 +587,14 @@ def plot_layer_dim(model_list, layer):
 
     plt.show()
 
-def plot_task_var_heatmap(load_folder, model_name, seed, cmap = sns.color_palette("inferno", as_cmap=True)):
+def plot_task_var_heatmap(load_folder, model_name, seed, cmap = sns.color_palette("inferno", as_cmap=True), cluster_info=None):
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(12, 4))
 
-    task_var, cluters_dict, cluster_labels, sorted_indices = get_cluster_info(load_folder, model_name, seed)
-
+    if cluster_info == None:
+        task_var, cluters_dict, cluster_labels, sorted_indices = get_cluster_info(load_folder, model_name, seed)
+    else: 
+        task_var, cluters_dict, cluster_labels, sorted_indices = cluster_info
+        
     res = sns.heatmap(task_var[sorted_indices, :].T, xticklabels = cluster_labels, yticklabels=TASK_LIST, vmin=0, cmap=cmap, ax=axn)
     res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 5)
     res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 4, rotation=0)
