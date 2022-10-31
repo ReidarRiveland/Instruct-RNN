@@ -60,7 +60,7 @@ plot_scatter(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, 
 
 clipNet.load_model('7.20models/multitask_holdouts/Multitask/'+clipNet.model_name, suffix='_seed3')
 plot_scatter(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, instruct_mode=None)
-plot_scatter(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, rep_depth='full')
+plot_scatter(clipNet, TASK_LIST, dims=3, pcs=[0, 1, 2], num_trials=50, rep_depth='full')
 
 
 bertNet = BERTNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
@@ -94,7 +94,7 @@ simpleNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+simpleNet.model_name, suffix
 plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
 
 simpleNet.load_model('7.20models/multitask_holdouts/Multitask/'+simpleNet.model_name, suffix='_seed1')
-plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50)
+plot_scatter(simpleNet, TASK_LIST, dims=3, pcs=[0, 1, 2], num_trials=50)
 
 plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet', 'simpleNetPlus'][::-1], seeds=range(5), plot_multis=True)
 plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin'][::-1], seeds=range(5), mode='swap_combined')
