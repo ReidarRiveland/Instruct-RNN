@@ -135,6 +135,10 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
     with torch.no_grad(): 
         for k in range(num_repeats):
             for i, task in enumerate(tasks): 
+                if use_comp: 
+                    comp_task = task
+                else: 
+                    comp_task = None
                 if default_intervals and 'Dur' not in task:
                     intervals = _get_default_intervals(num_trials)
                     ins, targets, _, target_dirs, _ =  construct_trials(task, num_trials, intervals=intervals, **trial_kwargs)
@@ -145,7 +149,7 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
                     out, hid = model(torch.Tensor(ins).to(model.__device__), context=contexts[i, ...])
                 else: 
                     task_info = get_task_info(num_trials, task, model.info_type, instruct_mode=instruct_mode)
-                    out, hid = model(torch.Tensor(ins).to(model.__device__), task_info, use_comp=use_comp)
+                    out, hid = model(torch.Tensor(ins).to(model.__device__), task_info, comp_task=comp_task)
 
                 hid = hid.cpu().numpy()
                 if epoch is None: 
