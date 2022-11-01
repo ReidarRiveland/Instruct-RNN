@@ -103,7 +103,8 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
     axn.yaxis.set_tick_params(labelsize=8)
     axn.yaxis.set_major_locator(MaxNLocator(10)) 
     axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
-
+    if 'input' in mode: 
+        axn.set_xlim(0, 500)
 
     axn.spines['top'].set_visible(False)
     axn.spines['right'].set_visible(False)

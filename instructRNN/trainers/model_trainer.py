@@ -93,7 +93,7 @@ class ModelTrainer(BaseTrainer):
             model.save_model(self.file_path, suffix='_'+self.seed_suffix)
             os.remove(self.file_path+'/'+self.model_file_path+'_CHECKPOINT.pt')
 
-        if mode=='TESTING': 
+        if mode=='TESTING':
             self.average_testing_data()
             task= self.set_single_task
             tests_path = self.file_path+'/holdouts'
@@ -369,7 +369,7 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = N
             print('\n testing '+model_name+' seed'+str(seed)+' on '+task)
 
         testing_config = TrainerConfig(file_name, seed, set_single_task=task, 
-                                batch_len=256, num_batches=500, epochs=1, init_lr = 0.0008,
+                                batch_len=256, num_batches=1500, epochs=1, init_lr = 0.0008,
                                 test_repeats = repeats, **train_config_kwargs)
         trainer = ModelTrainer(testing_config)
         for _ in range(repeats): 
@@ -385,8 +385,8 @@ def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False
         
     if is_trained: 
         for instruct_mode in [None, 'combined', 'swap_combined']:
-            print('TESTING '+ str(instruct_mode) + '\n')
-            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, overwrite=ot)
+            # print('TESTING '+ str(instruct_mode) + '\n')
+            # test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, overwrite=ot)
             print('TESTING w/ only input weights')
             test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, input_w_only=True, overwrite=ot)
             print('TESTING w/ comp rule')

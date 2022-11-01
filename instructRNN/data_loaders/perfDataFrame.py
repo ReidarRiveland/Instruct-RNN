@@ -18,7 +18,7 @@ class HoldoutDataFrame():
 
 
     def __post_init__(self):
-        if ('simple' in self.model_name or 'com' in self.model_name) and self.mode == 'combined': 
+        if self.model_name == 'simpleNet' and self.mode == 'combined': 
             self.mode = ''
             
         self.load_data()
@@ -35,9 +35,10 @@ class HoldoutDataFrame():
     def get_task(self, task:str): 
         return self.data[:, TASK_LIST.index(task), :]
 
-    def avg_seeds(self, task=None, k_shot=slice(0, 100)): 
+    def avg_seeds(self, task=None): 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
+            k_shot=slice(0, self.num_batches)
             i = TASK_LIST.index(task) if task in TASK_LIST else slice(0, len(TASK_LIST))
 
             data = self.data[:, i, k_shot]
@@ -45,9 +46,10 @@ class HoldoutDataFrame():
             std = np.nanstd(data, axis=0)
             return mean, std
 
-    def avg_tasks(self, seeds=range(5), k_shot=slice(0, 100)): 
+    def avg_tasks(self, seeds=range(5)): 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
+            k_shot=slice(0, self.num_batches)
             data = self.data[seeds, :, k_shot]
             _mean = np.nanmean(data, axis=1)
             std = np.nanstd(_mean, axis=0)
@@ -62,8 +64,12 @@ class HoldoutDataFrame():
             training_sets = ALIGNED_DICT
         elif self.exp_type == 'family': 
             training_sets = FAMILY_DICT
+        if 'input' in self.mode or 'comp' in self.mode:
+            self.num_batches = 500
+        else: 
+            self.num_batches = 100
 
-        data = np.full((5, len(TASK_LIST), 100), np.nan) #seeds, task, num_batches        
+        data = np.full((5, len(TASK_LIST), self.num_batches), np.nan) #seeds, task, num_batches        
         for i in self.seeds:
             seed_name = 'seed' + str(i)
             for label, tasks in training_sets.items():
