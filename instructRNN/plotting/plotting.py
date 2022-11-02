@@ -21,7 +21,7 @@ from scipy.ndimage import gaussian_filter1d
 import warnings
 
 Blue = '#1C3FFD'
-lightBlue=	'#00FFFF'
+lightBlue=	'#82EEFD'
 lightRed = '#FF6D6A'
 Green = '#45BF55'
 Red = '#FF3131'
@@ -104,7 +104,7 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
     axn.yaxis.set_major_locator(MaxNLocator(10)) 
     axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
     if 'input' in mode: 
-        axn.set_xlim(0, 500)
+        axn.set_xlim(-2, 500)
 
     axn.spines['top'].set_visible(False)
     axn.spines['right'].set_visible(False)
@@ -120,11 +120,6 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
             axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2, marker='D')
 
         _plot_performance_curve(mean, std, axn, model_name, linewidth=0.8, markevery=10, markersize=2, **curve_kwargs)
-
-        if plot_swaps: 
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, seeds=seeds,  mode='swap')
-            mean, std = data.avg_tasks()
-            _plot_performance_curve(mean, std, axn, model_name, linestyle='--', linewidth=0.8, markevery=10, markersize=1.5)
 
     try:
         fig.suptitle('Performance on Novel Tasks')

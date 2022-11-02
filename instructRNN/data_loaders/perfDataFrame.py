@@ -35,11 +35,13 @@ class HoldoutDataFrame():
     def get_task(self, task:str): 
         return self.data[:, TASK_LIST.index(task), :]
 
-    def avg_seeds(self, task=None): 
+    def avg_seeds(self, task=None, k_shot=None): 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
-            k_shot=slice(0, self.num_batches)
             i = TASK_LIST.index(task) if task in TASK_LIST else slice(0, len(TASK_LIST))
+
+            if k_shot is None: 
+                k_shot=slice(0, self.num_batches)
 
             data = self.data[:, i, k_shot]
             mean = np.nanmean(data, axis=0)

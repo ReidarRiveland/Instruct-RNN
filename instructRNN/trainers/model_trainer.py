@@ -387,6 +387,7 @@ def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False
         #for instruct_mode in [None, 'combined', 'swap_combined']:
             # print('TESTING '+ str(instruct_mode) + '\n')
             # test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, overwrite=ot)
+    instruct_mode = 'combined'
     print('TESTING w/ comp rule')
     test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches = 100, instruct_mode = instruct_mode, repeats = 5, comp_rules=True, overwrite=ot)
 
