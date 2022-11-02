@@ -354,7 +354,7 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     is_tuned = trainer.train(model, is_tuning=True)
     return is_tuned
 
-def test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = None, input_w_only = False, comp_rules = False, overwrite=False, repeats=5, **train_config_kwargs): 
+def test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches =100, instruct_mode = None, input_w_only = False, comp_rules = False, overwrite=False, repeats=5, **train_config_kwargs): 
     torch.manual_seed(seed)
     
     label, holdouts = labeled_holdouts 
@@ -369,7 +369,7 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = N
             print('\n testing '+model_name+' seed'+str(seed)+' on '+task)
 
         testing_config = TrainerConfig(file_name, seed, set_single_task=task, 
-                                batch_len=256, num_batches=1500, epochs=1, init_lr = 0.0008,
+                                batch_len=256, num_batches=num_batches, epochs=1, init_lr = 0.0008,
                                 test_repeats = repeats, **train_config_kwargs)
         trainer = ModelTrainer(testing_config)
         for _ in range(repeats): 
@@ -384,12 +384,13 @@ def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False
         is_trained = tune_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs)
         
     if is_trained: 
-        for instruct_mode in [None, 'combined', 'swap_combined']:
+        #for instruct_mode in [None, 'combined', 'swap_combined']:
             # print('TESTING '+ str(instruct_mode) + '\n')
             # test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, overwrite=ot)
-            print('TESTING w/ only input weights')
-            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, repeats=1, input_w_only=True, overwrite=ot)
-            print('TESTING w/ comp rule')
-            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, repeats = 5, comp_rules=True, overwrite=ot)
+            
+        print('TESTING w/ only input weights')
+        test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches = 1500, instruct_mode = instruct_mode, repeats=1, input_w_only=True, overwrite=ot)
+        print('TESTING w/ comp rule')
+        test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches = 100, instruct_mode = instruct_mode, repeats = 5, comp_rules=True, overwrite=ot)
 
-        
+    

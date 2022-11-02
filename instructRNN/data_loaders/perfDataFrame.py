@@ -64,8 +64,9 @@ class HoldoutDataFrame():
             training_sets = ALIGNED_DICT
         elif self.exp_type == 'family': 
             training_sets = FAMILY_DICT
+
         if 'input' in self.mode or 'comp' in self.mode:
-            self.num_batches = 500
+            self.num_batches = 1500
         else: 
             self.num_batches = 100
 
@@ -77,7 +78,7 @@ class HoldoutDataFrame():
                     load_path = self.file_path+'/'+self.exp_type+'_holdouts/'+label+'/'+self.model_name+'/holdouts/'\
                                     +self.mode+task+'_'+seed_name
                     try:
-                        data[i, TASK_LIST.index(task), :] = pickle.load(open(load_path+'_' + self.perf_type, 'rb'))
+                        data[i, TASK_LIST.index(task), :self.num_batches] = pickle.load(open(load_path+'_' + self.perf_type, 'rb'))[:self.num_batches]
                     except FileNotFoundError: 
                         if self.verbose:
                             print('No holdout data for '+ load_path)
