@@ -6,23 +6,20 @@ from instructRNN.tasks.task_factory import *
 from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio
 
 
+data = HoldoutDataFrame('7.20models', 'swap', 'clipNet_lin', mode = 'combined')
 
-
-data = HoldoutDataFrame('7.20models', 'swap', 'gptNet_lin', mode = 'combined')
-
-
-to_plot_models = ['simpleNet',  'bowNet_lin',  'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'sbertNet_lin', 'clipNet_lin']
+to_plot_models = ['simpleNet', 'simpleNetPlus', 'bowNet_lin',  'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'sbertNet_lin', 'clipNet_lin']
 tuned_to_plot = ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin_tuned']
 
 
 plot_all_training_curves('7.20models', 'multitask', 'Multitask', to_plot_models)
 
 ##VALIDATION
-plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[1:][::-1], seeds =range(1), mode='validation')
-plot_0_shot_task_hist('7.20models', 'swap', to_plot_models[1:], seeds =range(0,5), mode='validation')
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[2:][::-1], seeds =range(1), mode='validation')
+plot_0_shot_task_hist('7.20models', 'swap', to_plot_models[2:], seeds =range(0,5), mode='validation')
 
 ###HOLDOUTS
-plot_avg_holdout_curve('7.20models', 'swap', to_plot_models, seeds =range(0, 5), mode='combinedcomp')
+plot_avg_holdout_curve('7.20models', 'swap', to_plot_models, seeds =range(0, 5), mode='combined')
 plot_0_shot_task_hist('7.20models', 'swap', to_plot_models, seeds =range(0,5), mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='combined')
 
@@ -101,7 +98,7 @@ plot_scatter(simpleNet, TASK_LIST, dims=3, pcs=[0, 1, 2], num_trials=50)
 plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet', 'simpleNetPlus'][::-1], seeds=range(5), plot_multis=True)
 plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin'][::-1], seeds=range(5), mode='swap_combined')
 
-plot_ccgp_corr('7.20models', 'swap', ['clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'sbertNet_lin', 'gptNet_lin', 'gptNetXL_lin', 'simpleNet'])
+plot_ccgp_corr('7.20models', 'swap', ['clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'sbertNet_lin', 'gptNet_lin', 'gptNetXL_lin', 'simpleNet', 'simpleNetPlus'])
 
 #############
 

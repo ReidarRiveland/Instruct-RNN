@@ -15,7 +15,7 @@ from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
 
-perf = eval_model_0_shot('clipNet_lin', '7.20models', 'swap', 0, use_comp=True)
+perf = eval_model_0_shot('clipNet_lin', '7.20models', 'swap', 0, instruct_mode='combined')
 
 np.mean(perf)
 

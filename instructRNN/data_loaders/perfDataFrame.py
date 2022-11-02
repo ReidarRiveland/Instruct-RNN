@@ -48,10 +48,12 @@ class HoldoutDataFrame():
             std = np.nanstd(data, axis=0)
             return mean, std
 
-    def avg_tasks(self, seeds=range(5)): 
+    def avg_tasks(self, seeds=range(5), k_shot=None): 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
-            k_shot=slice(0, self.num_batches)
+            if k_shot is None: 
+                k_shot=slice(0, self.num_batches)
+
             data = self.data[seeds, :, k_shot]
             _mean = np.nanmean(data, axis=1)
             std = np.nanstd(_mean, axis=0)
@@ -67,7 +69,7 @@ class HoldoutDataFrame():
         elif self.exp_type == 'family': 
             training_sets = FAMILY_DICT
 
-        if 'input' in self.mode or 'comp' in self.mode:
+        if 'input' in self.mode:
             self.num_batches = 1500
         else: 
             self.num_batches = 100

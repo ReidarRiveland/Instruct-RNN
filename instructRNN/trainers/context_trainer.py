@@ -52,6 +52,7 @@ class ContextTrainer(BaseTrainer):
         if os.path.exists(self.file_path):pass
         else: os.makedirs(self.file_path)
         filename = self.file_path+'/'+self.seed_suffix+'_'+task
+        pickle.dump((self.correct_data, self.loss_data), open(filename+'_training_data', 'wb'))
         pickle.dump(contexts.detach().cpu().numpy(), open(filename+'_context_vecs'+str(self.context_dim), 'wb'))
 
     def _record_chk(self, contexts, task): 
@@ -115,6 +116,7 @@ class ContextTrainer(BaseTrainer):
 
                 if self.cur_step%50 == 0:
                     self._print_training_status(task_type)
+                    self._record_session(contexts, task)
 
                 if self._check_model_training():
                     return True

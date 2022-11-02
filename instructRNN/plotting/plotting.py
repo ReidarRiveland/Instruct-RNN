@@ -32,7 +32,7 @@ Purple = '#800080'
 
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (lightBlue, None, 'simpleNetPlus'), 
                     'comNet': (lightBlue, 'None', 'comNet'), 'comNetPlus': (lightBlue, '+', 'comNetPlus'), 
-                    'clipNet_lin': (Yellow, 'None', 'clipNet'), 'clipNet_lin_tuned': (Yellow, 'v', 'clipNet (tuned)'), 
+                    'clipNet_lin': (Yellow, None, 'clipNet'), 'clipNet_lin_tuned': (Yellow, 'v', 'clipNet (tuned)'), 
                     'bowNet_lin': (Orange, None, 'bowNet'), 
                     'gptNet_lin': (lightRed, None, 'gptNet'), 'gptNet_lin_tuned': (lightRed, 'v','gptNet (tuned)'), 
                     'gptNetXL_lin': (Red, None, 'gptNetXL'), 'gptNetXL_lin_tuned': (Red, None, 'gptNetXL (tuned)'), 
@@ -116,6 +116,7 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
         mean, std = data.avg_tasks()
         if MODEL_STYLE_DICT[model_name][1] is None: 
             axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2, marker='o')
+
         if mode == 'comp':
             axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2, marker='D')
 
