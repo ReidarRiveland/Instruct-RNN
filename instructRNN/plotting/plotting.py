@@ -115,7 +115,7 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
         mean, std = data.avg_tasks()
         if MODEL_STYLE_DICT[model_name][1] is None: 
-            axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2)
+            axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2, marker='o')
         if mode == 'comp':
             axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2, marker='D')
 

@@ -388,8 +388,8 @@ def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False
             # print('TESTING '+ str(instruct_mode) + '\n')
             # test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, overwrite=ot)
             print('TESTING w/ only input weights')
-            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, input_w_only=True, overwrite=ot)
+            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, repeats=1, input_w_only=True, overwrite=ot)
             print('TESTING w/ comp rule')
-            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, comp_rules=True, overwrite=ot)
+            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, repeats = 5, comp_rules=True, overwrite=ot)
 
         

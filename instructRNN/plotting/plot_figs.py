@@ -6,12 +6,15 @@ from instructRNN.tasks.task_factory import *
 from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio
 
 
+
+
 data = HoldoutDataFrame('7.20models', 'swap', 'gptNetXL_lin', mode = 'combined')
 zero_shot, std = data.avg_seeds('AntiDMMod1', k_shot=0)
 
 
-to_plot_models = ['simpleNet', 'bowNet_lin',  'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'sbertNet_lin', 'clipNet_lin']
+to_plot_models = ['simpleNet', 'simpleNetPlus', 'bowNet_lin',  'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'sbertNet_lin', 'clipNet_lin']
 tuned_to_plot = ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin_tuned']
+
 
 plot_all_training_curves('7.20models', 'multitask', 'Multitask', to_plot_models)
 
@@ -221,3 +224,9 @@ plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), fmt='.0%
 
 get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=False)
 get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)
+
+
+
+
+
+
