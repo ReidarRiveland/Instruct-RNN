@@ -198,9 +198,14 @@ class ModelTrainer(BaseTrainer):
             self.streamer.shuffle_stream_order()
             for self.cur_step, data in enumerate(self.streamer.stream_batch()): 
                 ins, tar, mask, tar_dir, task_type = data
+                if comp_rules: 
+                    comp_task = task_type
+                else: 
+                    comp_task = None
+
                 self.optimizer.zero_grad()
                 task_info = get_task_info(self.batch_len, task_type, model.info_type, instruct_mode=instruct_mode)
-                out, _ = model(ins.to(device), task_info)
+                out, _ = model(ins.to(device), task_info, comp_task = comp_task)
                 loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
                 loss.backward()
                 torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
@@ -392,5 +397,5 @@ def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False
     test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches = 100, instruct_mode = instruct_mode, repeats = 5, comp_rules=True, overwrite=ot)
 
 
-    print('TESTING w/ only input weights')
-    test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches = 1500, instruct_mode = instruct_mode, repeats=1, input_w_only=True, overwrite=ot)
+    # print('TESTING w/ only input weights')
+    # test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches = 1500, instruct_mode = instruct_mode, repeats=1, input_w_only=True, overwrite=ot)
