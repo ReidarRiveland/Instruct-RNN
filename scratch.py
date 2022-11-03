@@ -14,11 +14,8 @@ from instructRNN.instructions.instruct_utils import get_instructions
 from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
-construct_trials('Go', 1)
 
-
-
-perf = eval_model_0_shot('clipNet_lin', '7.20models', 'swap', 0, instruct_mode='combined')
+perf = eval_model_0_shot('simpleNet', '7.20models', 'swap', 0, instruct_mode='combined', use_comp=True)
 
 np.mean(perf)
 

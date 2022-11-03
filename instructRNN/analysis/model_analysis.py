@@ -40,10 +40,12 @@ def task_eval(model, task, batch_size, noise=None, instruct_mode = None, instruc
         task_info = get_task_info(batch_size, task, model.info_type, instruct_mode=instruct_mode)
     else: 
         task_info = instructions
+
     if use_comp:
         comp_task = task
     else: 
         comp_task = None
+        
     out, _ = model(torch.Tensor(ins).to(model.__device__), task_info, comp_task=comp_task)
     return np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 

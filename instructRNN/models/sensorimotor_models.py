@@ -170,18 +170,18 @@ class RuleNet(BaseNet):
 
     def forward(self, x, task_rule=None, context = None, comp_task =None):
 
-        if task_rule is not None:
-            rule_transformed = torch.matmul(task_rule.to(self.__device__), self.rule_transform.float())
-            task_rule = self.rule_encoder(rule_transformed)
-        elif comp_task is not None: 
+        if comp_task is not None: 
             ref_tasks = construct_trials(comp_task, None).comp_ref_tasks
-            task_infos = [one_hot_input_rule(task) for task in ref_tasks]
-            comp_rule = (task_infos[0] - task_infos[1]) + task_infos[2]
+            task_infos = [one_hot_input_rule(x.shape[0], task) for task in ref_tasks]
+            comp_rule = torch.tensor((task_infos[0] - task_infos[1]) + task_infos[2]).float()
             rule_transformed = torch.matmul(comp_rule.to(self.__device__), self.rule_transform.float())
+            task_rule = self.rule_encoder(rule_transformed)
+
+        elif task_rule is not None:
+            rule_transformed = torch.matmul(task_rule.to(self.__device__), self.rule_transform.float())
             task_rule = self.rule_encoder(rule_transformed)
         else: 
             task_rule = context
-
         outs, rnn_hid = super().forward(x, task_rule)
         return outs, rnn_hid
 
@@ -205,12 +205,12 @@ class InstructNet(BaseNet):
     def forward(self, x, instruction = None, context = None, comp_task=None):
         assert instruction is not None or context is not None, 'must have instruction or context input'
         
-        if instruction is not None: 
-            info_embedded = self.langModel(instruction)
-        elif comp_task is not None: 
+        if comp_task is not None: 
             ref_tasks = construct_trials(comp_task, None).comp_ref_tasks
             task_infos = [self.langModel(get_instructions(x.shape[0], task)) for task in ref_tasks]
             info_embedded = (task_infos[0] - task_infos[1]) + task_infos[2]
+        elif instruction is not None: 
+            info_embedded = self.langModel(instruction)
         elif context.shape[-1] == self.langModel.LM_intermediate_lang_dim:
             info_embedded = self.langModel.proj_out(context)
         elif context.shape[-1] == self.langModel.LM_out_dim:

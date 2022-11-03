@@ -21,7 +21,7 @@ from scipy.ndimage import gaussian_filter1d
 import warnings
 
 Blue = '#1C3FFD'
-lightBlue=	'#82EEFD'
+lightBlue=	'#75E6DA'
 lightRed = '#FF6D6A'
 Green = '#45BF55'
 Red = '#FF3131'
@@ -42,6 +42,16 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (li
 def get_task_color(task): 
     index = TASK_LIST.index(task)
     return plt.get_cmap('Paired')(index%5)
+
+def get_all_tasks_markers(task):
+    marker_list = ['o', 'v', 'x', '+', 'D']
+    group = INV_GROUP_DICT[task]
+    group_index = list(TASK_GROUPS.keys()).index(group)
+    task_index = TASK_GROUPS[group].index(task)
+
+    marker = marker_list[group_index]
+    color = plt.get_cmap('Paired')(task_index%12)
+    return color, marker
 
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
@@ -117,10 +127,10 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
         if MODEL_STYLE_DICT[model_name][1] is None: 
             axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2, marker='o')
 
-        if mode == 'comp':
+        if 'comp' in mode:
             axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2, marker='D')
 
-        _plot_performance_curve(mean, std, axn, model_name, linewidth=0.8, markevery=10, markersize=2, **curve_kwargs)
+        _plot_performance_curve(mean, std, axn, model_name, linewidth=1, **curve_kwargs)
 
     try:
         fig.suptitle('Performance on Novel Tasks')
@@ -345,24 +355,26 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
         plt.show()
 
 def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs): 
-    #task_reps = reps_reduced[TASK_LIST.index(task), ...]
     task_reps = reps_reduced
-    task_color = get_task_color(task)
+
     if dims ==2: 
-        ax.scatter(task_reps[:, 0], task_reps[:, 1], s=10, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
+        ax.scatter(task_reps[:, 0], task_reps[:, 1], s=5, **scatter_kwargs)
     else: 
-        ax.scatter(task_reps[:, 0], task_reps[:, 1], task_reps[:,2], s=10, c = [task_color]*task_reps.shape[0], **scatter_kwargs)
-    patch = Line2D([0], [0], label = task, color= task_color, linestyle='None', markersize=8, **scatter_kwargs)
-    return patch
+        ax.scatter(task_reps[:, 0], task_reps[:, 1], task_reps[:,2], s=5, **scatter_kwargs)
 
 def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwargs): 
     Patches = []
     for task in task_to_plot: 
-        patch = _rep_scatter(reps_reduced[TASK_LIST.index(task), ...], task, ax, dims, pcs, marker='o', **scatter_kwargs)
-        Patches.append(patch)
+        if task_to_plot == TASK_LIST:
+            task_color, marker = get_all_tasks_markers(task)
+        else: 
+            task_color = get_task_color(task)
+            marker = 'o'
+        _rep_scatter(reps_reduced[TASK_LIST.index(task), ...], task, ax, dims, pcs, marker=marker, c = [task_color]*reps_reduced.shape[1], **scatter_kwargs)
+        Patches.append(Line2D([0], [0], label = task, color= task_color, marker = marker, markersize=5, linestyle='None'))
     return Patches
 
-def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_trials =50, epoch= 'stim_start', instruct_mode = 'combined', **scatter_kwargs): 
+def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_trials = 50, epoch= 'stim_start', instruct_mode = 'combined', **scatter_kwargs): 
     with plt.style.context('ggplot'):
 
         if pcs is None: 
@@ -390,7 +402,7 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, pcs=None, num_t
         if dims==3: 
             ax.set_zlabel('PC '+str(pcs[2]))
             ax.set_zticklabels([])
-        plt.legend(handles=Patches, fontsize='small')
+        plt.legend(handles=Patches, fontsize=5)
         plt.show()
 
 def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', save_file=None):
@@ -559,6 +571,9 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False, m
     axn.set_ylim(0.475, 1)
     axn.set_xticks(range(len(layer_list)))
     plt.show()
+
+
+#def plot_ccgp_lolli(foldername, model_list, seeds=range(5), plot_multis=False, mode=''): 
 
 def plot_layer_dim(model_list, layer):
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))

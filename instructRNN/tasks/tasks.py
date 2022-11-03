@@ -35,6 +35,14 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             'DMS', 'DNMS', 'DMC', 'DNMC', 
             ]
 
+TASK_GROUPS = {
+            'Go': ['Go', 'AntiGo', 'GoMod1', 'AntiGoMod1', 'GoMod2',  'AntiGoMod2', 'RTGo', 'AntiRTGo', 'RTGoMod1', 'AntiRTGoMod1',  'RTGoMod2','AntiRTGoMod2'],
+            'DM' : ['DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 'ConDM', 'ConAntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'],
+            'COMP' : ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 'COMP1Mod1', 'COMP2Mod1', 'COMP1Mod2', 'COMP2Mod2'], 
+            'Dur' : ['Dur1', 'Dur2', 'MultiDur1', 'MultiDur2', 'AntiDur1', 'AntiDur2', 'AntiMultiDur1', 'AntiMultiDur2', 'Dur1Mod1', 'Dur2Mod1', 'Dur1Mod2', 'Dur2Mod2'], 
+            'Match' : ['DMS', 'DNMS', 'DMC', 'DNMC']
+            }
+
 SWAP_LIST = [            
 
             ('AntiDMMod2', 'RTGo', 'DM', 'MultiCOMP2',  'AntiMultiDur1'), 
@@ -96,8 +104,8 @@ SWAPS_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_L
 ALIGNED_DICT = dict(zip(['aligned'+str(num) for num in range(len(ALIGNED_LIST))], ALIGNED_LIST.copy()))
 FAMILY_DICT = dict(zip(['family'+str(num) for num in range(len(FAMILY_LIST))], FAMILY_LIST.copy()))
 INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
+INV_GROUP_DICT = invert_holdout_dict(TASK_GROUPS)
 MULTITASK_DICT = {'Multitask':[]}
-
 
 
 DICH_DICT = {
