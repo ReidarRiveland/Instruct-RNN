@@ -45,11 +45,11 @@ def task_eval(model, task, batch_size, noise=None, instruct_mode = None, instruc
         comp_task = task
     else: 
         comp_task = None
-        
+
     out, _ = model(torch.Tensor(ins).to(model.__device__), task_info, comp_task=comp_task)
     return np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
-def get_model_performance(model, num_repeats = 1, batch_len=128, instruct_mode=None): 
+def get_model_performance(model, num_repeats = 1, batch_len=128, instruct_mode=None, use_comp=False): 
     model.eval()
     perf_array = np.empty(len(TASK_LIST))
     with torch.no_grad():
@@ -57,7 +57,7 @@ def get_model_performance(model, num_repeats = 1, batch_len=128, instruct_mode=N
             print(task)
             mean_list = [] 
             for _ in range(num_repeats): 
-                frac_correct = task_eval(model, task, batch_len, instruct_mode=instruct_mode)
+                frac_correct = task_eval(model, task, batch_len, instruct_mode=instruct_mode, use_comp=use_comp)
                 mean_list.append(frac_correct)
             perf_array[i] = np.mean(mean_list)
     return perf_array
@@ -75,6 +75,18 @@ def get_val_perf(foldername, model_name, seed, num_repeats = 5, batch_len=100, s
 
     return perf_array
 
+def get_multi_comp_perf(foldername, model_name, seed, num_repeats = 5, batch_len=100, save=False): 
+    model = make_default_model(model_name)
+    model.load_model(foldername+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
+    perf_array = get_model_performance(model, num_repeats=num_repeats, batch_len=batch_len, instruct_mode='combined', use_comp=True)
+    if save:
+        file_path = foldername+'/multi_comp_perf/'+model_name
+        if os.path.exists(file_path):
+            pass
+        else: os.makedirs(file_path)
+        np.save(file_path+'/'+model_name+'_multi_comp_perf_seed'+str(seed), perf_array)
+
+    return perf_array
 
 def eval_model_0_shot(model_name, folder_name, exp_type, seed, instruct_mode=None, use_comp = False): 
     if 'swap' in exp_type: 

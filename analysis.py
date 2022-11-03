@@ -73,6 +73,9 @@ if __name__ == "__main__":
                 
         elif args.mode == 'val':
             get_val_perf(EXP_FOLDER, model, _seed, save=True)
+
+        elif args.mode == 'multi_comp':
+            get_multi_comp_perf(EXP_FOLDER, model, _seed, save=True)
                 
         elif args.mode == 'clusters':
             get_model_clusters(EXP_FOLDER, model, _seed, save=True)
