@@ -18,7 +18,6 @@ def make_training_jobs(exp, models, seeds, holdouts, job_index):
     else: 
         holdout_dict = dict([list(_holdout_dict.items())[i] for i in args.holdouts])
 
-
     jobs = list(itertools.product(seeds, models, holdout_dict.items()))
 
     if job_index is None: 
@@ -38,18 +37,11 @@ if __name__ == "__main__":
     parser.add_argument('--use_checkpoint', default=False, action='store_true', help='whether or not to use checkpointed model')
     parser.add_argument('--instruct_mode', type=str, default=None, help='what kind of instructions to show when testing')
     parser.add_argument('--weight_mode', type=str, default=None, help='what kind of weight to tune when testing')
-
     parser.add_argument('--ot', default=False, action='store_true', help='retest')
     parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')
-    
     parser.add_argument('--layer', default='emb', help='the dim corresponding to the layer the contexts gets trained at, \
                                                     must be emd or last, only for use if mode is context')
-    parser.add_argument('--reverse', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
-
-
     parser.add_argument('--use_holdouts', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
-    parser.add_argument('--use_dropout', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
-
     parser.add_argument('--job_index', type=int, help='for use with slurm sbatch script, indexes the combination of seed and holdout tasks along with the model')
     args = parser.parse_args()
 
@@ -62,7 +54,6 @@ if __name__ == "__main__":
         _seed, model, holdouts = job
 
         stream_data = True
-
 
         if args.mode == 'pipeline': 
             from instructRNN.trainers.model_trainer import *
@@ -82,12 +73,11 @@ if __name__ == "__main__":
 
         if args.mode == 'context' or args.mode == 'c': 
             from instructRNN.trainers.context_trainer import *
-            if not len(holdouts[1]): 
-                tasks = TASK_LIST
-            else: 
-                tasks = list(holdouts[1])
-            print(tasks)
-            train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, tasks=tasks, reverse=args.reverse)
+            train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite)
+
+        if args.mode == 'exemplar_context': 
+            from instructRNN.trainers.context_trainer import *
+            train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, mode='exemplar')
 
         if args.mode == 'decoder' or args.mode == 'd': 
             from instructRNN.trainers.decoder_trainer import *
