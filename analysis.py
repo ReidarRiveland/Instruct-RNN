@@ -2,7 +2,7 @@ import os
 import numpy as np
 import itertools
 import instructRNN.models.full_models as full_models
-from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP, get_layer_dim, get_val_perf, get_model_clusters
+from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP, get_layer_dim, get_val_perf, get_model_clusters, get_multi_comp_perf
 from instructRNN.analysis.decoder_analysis import decoder_pipeline
 
 if __name__ == "__main__":
