@@ -383,18 +383,18 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches =100,
         trainer._record_session(model, mode='TESTING')
 
 def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, ot=False, use_checkpoint=False, **train_config_kwargs):
-    # if not '_tuned' in model_name:
-    #     is_trained = train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs) 
-    # else: 
-    #     is_trained = tune_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs)
+    if not '_tuned' in model_name:
+        is_trained = train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs) 
+    else: 
+        is_trained = tune_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs)
         
-    # if is_trained: 
-        #for instruct_mode in [None, 'combined', 'swap_combined']:
-            # print('TESTING '+ str(instruct_mode) + '\n')
-            # test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, overwrite=ot)
-    instruct_mode = 'combined'
-    print('TESTING w/ comp rule')
-    test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches = 100, instruct_mode = instruct_mode, repeats = 5, comp_rules=True, overwrite=ot)
+    if is_trained: 
+        for instruct_mode in [None, 'combined', 'swap_combined']:
+            print('TESTING '+ str(instruct_mode) + '\n')
+            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, overwrite=ot)
+    # instruct_mode = 'combined'
+    # print('TESTING w/ comp rule')
+    # test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches = 100, instruct_mode = instruct_mode, repeats = 5, comp_rules=True, overwrite=ot)
 
 
     # print('TESTING w/ only input weights')
