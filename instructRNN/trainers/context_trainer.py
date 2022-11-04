@@ -108,6 +108,20 @@ class ContextTrainer(BaseTrainer):
         tar_dir = tar_dir.repeat(self.batch_len)
         return (ins, tar, mask, tar_dir, task_type)
 
+
+    def load_chk(self, file_name, seed, task, context_dim): 
+        try: 
+            chk_contexts = pickle.load(open(file_name+'/seed'+str(seed)+'_'+task+'_chk_context_vecs'+str(context_dim), 'rb'))
+            correct_data, loss_data = pickle.load(open(file_name+'/seed'+str(seed)+'_'+task+'_chk_training_data'+str(context_dim), 'rb'))
+            chk_index_start = np.max(np.where(np.isnan(chk_contexts)[:, 0] == False))
+            self.all_correct_data = correct_data
+            self.all_loss_data = loss_data
+            self.range_start = chk_index_start
+
+            print('\n contexts at ' + file_name + ' for seed '+str(seed)+' and task '+task+' loading checkpoint')
+        except FileNotFoundError:
+            pass
+
     def _train(self, model, contexts, mode): 
         self._init_optimizer(contexts)
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
