@@ -49,7 +49,7 @@ def get_all_tasks_markers(task):
     task_index = TASK_GROUPS[group].index(task)
 
     marker = marker_list[group_index]
-    color = plt.get_cmap('Paired')(task_index%12)
+    color = plt.get_cmap('tab10')(group_index)
     return color, marker
 
 plt.rcParams['figure.dpi'] = 300
@@ -92,11 +92,10 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
         data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
         mean, std = data.avg_tasks()
         if MODEL_STYLE_DICT[model_name][1] is None: 
-            axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2, marker='o')
-
+            marker='o'
         if 'comp' in mode:
-            axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2, marker='D')
-
+            marker='D'
+        axn.scatter(0, mean[0], color=MODEL_STYLE_DICT[model_name][0], s=2, marker=marker)
         _plot_performance_curve(mean, std, axn, model_name, linewidth=1, **curve_kwargs)
 
     try:
@@ -190,7 +189,7 @@ def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct',
         mean_bins = np.mean(bins, axis=0)
         std_bins = np.std(bins, axis=0)
 
-        axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.6,  edgecolor=edge_color)
+        axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.8)
 
     plt.show()
 
@@ -252,6 +251,7 @@ def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwar
     for task in task_to_plot: 
         if task_to_plot == TASK_LIST:
             task_color, marker = get_all_tasks_markers(task)
+            marker = 'o'
         else: 
             task_color = get_task_color(task)
             marker = 'o'
@@ -445,52 +445,37 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False, m
     axn.set_xticks(range(len(layer_list)))
     plt.show()
 
+def plot_comp_bar(foldername, exp_type, model_list, mode='CCGP', **formatting):
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
 
-def plot_comp_bars(foldername, exp_type, model_list, mode='CCGP', seeds=range(5), plot_title=''):
-    assert mode in ['CCGP', 'comp']
-    fig, axn, width, ind = _bars(model_list, len(TASK_LIST))
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
+    axn.set_ylabel('Perforamance', size=8, fontweight='bold')
+    width = 1/(len(model_list)+2)
 
-    width = 1/(len(model_list)+1)
-    ind = np.arange(2)
+    axn.set_axisbelow(True)
+    axn.grid(visible=True, color='grey', axis='y', linewidth=0.5)
 
     axn.spines['top'].set_visible(False)
     axn.spines['right'].set_visible(False)
-    axn.set_axisbelow(True)
-    axn.grid(visible=True, color='grey', axis='y', linewidth=0.5, alpha=0.5)
 
-    axn.set_xticks(ind)
-    axn.set_xticklabels('')
-    axn.tick_params(axis='x', which='minor', bottom=False)
-    axn.set_xticks(ind+0.75, minor=True)
-    axn.set_xticklabels(TASK_LIST, fontsize=6, minor=True, rotation=45, ha='right', fontweight='bold') 
-    axn.set_xlim(-0.15, len(ind))
-
-    axn.set_yticks(np.linspace(0, 1, 11))
-    axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=8)
-    axn.set_ylim(0.0, 1.01)
-
-    fig.suptitle(plot_title)
-    axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
-
-    for i, model_name in enumerate(model_list):       
-        if mode is not 'validation':
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
+    for i, model_name in enumerate(model_list):
+        if mode == 'CCGP': 
+            holdout_ccgp = np.mean(load_holdout_ccgp(foldername+'/swap_holdouts', model_name, ['task'], range(5)))
+            multi_ccgp = np.mean(load_multi_ccgp(model_name)[0])
+            axn.set_ylim(0.475, 1)
+            data_list = [holdout_ccgp, multi_ccgp]
+        elif mode =='comp': 
+            data = HoldoutDataFrame(foldername, exp_type, model_name, mode = 'combinedcomp')
             zero_shot, std = data.avg_seeds(k_shot=0)
-
-        else: 
-            data = load_val_perf([model_name])
-            zero_shot = np.squeeze(np.mean(data, axis=0))
-
-        axn.axhline(np.mean(zero_shot), color=MODEL_STYLE_DICT[model_name][0], linewidth=1.0, alpha=0.8, zorder=0)
-        x_mark = (ind+(width/2))+(i*width)
-        axn.scatter(x_mark,  zero_shot, color=MODEL_STYLE_DICT[model_name][0], s=3, marker=marker)
-        axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.5)
-
-    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
-
-    plt.tight_layout()
+            multi_data = load_perf([model_name], mode='multi_comp')
+            data_list = [np.mean(zero_shot), np.mean(multi_data)]
+        for j, data in enumerate(data_list):
+            x_mark = ((j)+width)+((i*1.05*width))
+            axn.bar(x_mark, data, width, align='edge', color=MODEL_STYLE_DICT[model_name][0], **formatting)
+    axn.set_xticklabels('')
+    axn.xaxis.set_ticks_position('none') 
+    axn.set_xlim(0, 2)
     plt.show()
+    
 
 def plot_layer_dim(model_list, layer):
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))

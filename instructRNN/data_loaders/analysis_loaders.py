@@ -88,13 +88,13 @@ def load_cluster_measures(folder_name, model_list, seeds=range(5), verbose=False
     return num_cluster_array
 
 
-def load_val_perf(model_list, seeds=range(5), verbose=False): 
+def load_perf(model_list, seeds=range(5), verbose=False, mode='val'): 
     val_perf_arr= np.full((len(seeds), len(model_list), len(TASK_LIST)), np.nan)
 
     for i, seed in enumerate(seeds):
         for j, model_name in enumerate(model_list):
             try:
-                load_str = '7.20models/multitask_holdouts/val_perf/'+model_name+'/'+model_name+'_val_perf_seed'+str(seed)
+                load_str = '7.20models/multitask_holdouts/'+mode+'_perf/'+model_name+'/'+model_name+'_'+mode+'_perf_seed'+str(seed)
                 val_perf = np.load(open(load_str+'.npy', 'rb'))
                 val_perf_arr[i, j, ...] = val_perf
             except FileNotFoundError:

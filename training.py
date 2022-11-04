@@ -75,6 +75,10 @@ if __name__ == "__main__":
             from instructRNN.trainers.context_trainer import *
             train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, mode='test')
 
+        if args.mode == 'lin_comp':
+            from instructRNN.trainers.lin_com_tester import *
+            train_lin_comp(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite)
+
         if args.mode == 'exemplar_context': 
             from instructRNN.trainers.context_trainer import *
             train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, mode='exemplar')

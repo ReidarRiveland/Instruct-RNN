@@ -19,7 +19,7 @@ plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[2:][::-1], seeds =ran
 plot_0_shot_task_hist('7.20models', 'swap', to_plot_models[2:], seeds =range(0,5), mode='validation')
 
 ###HOLDOUTS
-plot_avg_holdout_curve('7.20models', 'swap', to_plot_models, seeds =range(0, 5), mode='combined')
+plot_avg_holdout_curve('7.20models', 'swap', to_plot_models, seeds =range(0, 5), mode='combinedinputs_only')
 plot_0_shot_task_hist('7.20models', 'swap', to_plot_models, seeds =range(0,5), mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='combined')
 
@@ -59,7 +59,7 @@ plot_scatter(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, 
 
 clipNet.load_model('7.20models/multitask_holdouts/Multitask/'+clipNet.model_name, suffix='_seed3')
 plot_scatter(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=50, instruct_mode=None)
-plot_scatter(clipNet, TASK_LIST, dims=3, pcs=[0, 1, 2], num_trials=5, rep_depth='full')
+plot_scatter(clipNet, TASK_LIST, dims=3, pcs=[0, 1, 2], num_trials=50)
 
 
 bertNet = BERTNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
@@ -95,10 +95,10 @@ plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3
 simpleNet.load_model('7.20models/multitask_holdouts/Multitask/'+simpleNet.model_name, suffix='_seed1')
 plot_scatter(simpleNet, TASK_LIST, dims=3, pcs=[0, 1, 2], num_trials=5)
 
-plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet', 'simpleNetPlus'][::-1], seeds=range(5), plot_multis=True)
-plot_layer_ccgp('7.20models/swap_holdouts', ['clipNet_lin', 'sbertNet_lin', 'bertNet_lin',  'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin'][::-1], seeds=range(5), mode='swap_combined')
+plot_layer_ccgp('7.20models/swap_holdouts', to_plot_models[::-1])
+plot_layer_ccgp('7.20models/swap_holdouts', to_plot_models, mode='swap_combined')
 
-plot_ccgp_corr('7.20models', 'swap', ['clipNet_lin', 'bertNet_lin', 'bowNet_lin', 'sbertNet_lin', 'gptNet_lin', 'gptNetXL_lin', 'simpleNet', 'simpleNetPlus'])
+plot_ccgp_corr('7.20models', 'swap', to_plot_models)
 
 #############
 

@@ -15,15 +15,48 @@ from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
 
+EXP_FILE = '7.20models/swap_holdouts'
+clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap9'
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
+
+
+
+reps = get_instruct_reps(clipNet.langModel)
+
+holdouts = SWAPS_DICT[holdouts_file]
+holdouts
+
+rule_basis = torch.tensor(np.mean(reps, axis=1)[[TASK_LIST.index(task) for task in TASK_LIST if task not in holdouts], :])
+
+context = torch.randn(45)
+
+torch.matmul(context, rule_basis.float())
+
+
+simpleNet = SimpleNet()
+simpleNet.rule_transform
+
+
+plot_comp_bar('7.20models', 'swap', ['simpleNet', 'clipNet_lin'])
+
+load_holdout_ccgp('7.20models/swap_holdouts', 'clipNet_lin', ['task'], range(5))
+
+multi_ccgp = load_multi_ccgp('clipNet_lin')[0]
+np.mean(multi_ccgp)
+
+data = load_perf(['clipNet_lin'], mode='multi_comp')
+np.mean(data)
+
+
+plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'clipNet_lin', 0)
+
+
 simple_perf = eval_model_exemplar('clipNet_lin', '7.20models', 'swap', 0)
 
 np.mean(simple_perf)
 np.mean(perf)
 
-EXP_FILE = '7.20models/swap_holdouts'
-clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap9'
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
 
 ##DM
 unit=119
