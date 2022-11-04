@@ -25,6 +25,7 @@ class ContextTrainerConfig():
     file_path: str
     random_seed: int
     context_dim: int    
+    mode = ''
     num_contexts: int = 24
 
     epochs: int = 10
@@ -64,7 +65,7 @@ class ContextTrainer(BaseTrainer):
         pickle.dump((self.all_correct_data, self.all_loss_data), open(filename+self.mode+chk_str+'_training_data'+str(self.context_dim), 'wb'))
         pickle.dump(self.all_contexts.detach().cpu().numpy(), open(filename+self.mode+chk_str+'_context_vecs'+str(self.context_dim), 'wb'))
 
-    def _log_step(self, task_type, frac_correct, loss, task_loss= None, sparsity_loss=None): 
+    def _log_step(self, task_type, frac_correct, loss): 
         self.correct_data[task_type].append(frac_correct)
         self.loss_data[task_type].append(loss)
     
@@ -111,8 +112,8 @@ class ContextTrainer(BaseTrainer):
 
     def load_chk(self, file_name, seed, task, context_dim): 
         try: 
-            chk_contexts = pickle.load(open(file_name+'/seed'+str(seed)+'_'+task+'_chk_context_vecs'+str(context_dim), 'rb'))
-            correct_data, loss_data = pickle.load(open(file_name+'/seed'+str(seed)+'_'+task+'_chk_training_data'+str(context_dim), 'rb'))
+            chk_contexts = pickle.load(open(file_name+'/seed'+str(seed)+'_'+task+self.mode+'_chk_context_vecs'+str(context_dim), 'rb'))
+            correct_data, loss_data = pickle.load(open(file_name+'/seed'+str(seed)+'_'+task+self.mode+'_chk_training_data'+str(context_dim), 'rb'))
             chk_index_start = np.max(np.where(np.isnan(chk_contexts)[:, 0] == False))
             self.all_correct_data = correct_data
             self.all_loss_data = loss_data
@@ -215,7 +216,7 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
                 trainer_config = ContextTrainerConfig(file_name, seed, context_dim, batch_len=64, checker_threshold=0.8, **train_config_kwargs)
             else:
                 trainer_config = ContextTrainerConfig(file_name, seed, context_dim, **train_config_kwargs)
-            trainer = ContextTrainer(trainer_config)
+            trainer = ContextTrainer(trainer_config, mode=mode)
             if not overwrite: 
-                trainer.load_chk(file_name, seed, task, context_dim, mode, overwrite)
-            trainer.train(model, task, mode=mode)
+                trainer.load_chk(file_name, seed, task, context_dim)
+            trainer.train(model, task)
