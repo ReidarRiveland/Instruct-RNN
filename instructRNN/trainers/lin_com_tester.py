@@ -36,7 +36,7 @@ class LinCompTrainerConfig():
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.01
+    lr: float = 0.005
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
     scheduler_args: dict = {'gamma': 0.99}
@@ -80,7 +80,7 @@ class LinCompTrainer(BaseTrainer):
 
     def _init_comp_vec(self): 
         context = nn.Parameter(torch.empty((1, self.comp_vec_dim), device=device))
-        nn.init.normal_(context, std=0.1)
+        nn.init.normal_(context, std=0.5)
         return context
     
     def _init_optimizer(self, context):
@@ -203,6 +203,6 @@ def train_lin_comp(exp_folder, model_name,  seed, labeled_holdouts, mode = '', t
             trainer_config = LinCompTrainerConfig(file_name, seed, mode=mode, **train_config_kwargs)
             trainer = LinCompTrainer(trainer_config)
             trainer.set_rule_basis(model, holdouts)
-            if not overwrite: 
-                trainer.load_chk(file_name, seed, task)
+            # if not overwrite: 
+            #     trainer.load_chk(file_name, seed, task)
             trainer.train(model, task)
