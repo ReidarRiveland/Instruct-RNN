@@ -27,9 +27,9 @@ class LinCompTrainerConfig():
     random_seed: int
     comp_vec_dim: int = 45 
     mode: str = ''
-    num_contexts: int = 50
+    num_contexts: int = 100
 
-    epochs: int = 10
+    epochs: int = 20
     min_run_epochs: int = 1
     batch_len: int = 64
     num_batches: int = 500
@@ -52,7 +52,7 @@ class LinCompTrainer(BaseTrainer):
         self.all_loss_data = []
         self.range_start = 0 
 
-    def _record_session(self, task, checkpoint=False):
+    def _record_session(self, task, is_trained_list, checkpoint=False):
         self.all_correct_data.append(self.correct_data.pop(task))
         self.all_loss_data.append(self.loss_data.pop(task))
 
@@ -63,6 +63,7 @@ class LinCompTrainer(BaseTrainer):
         else: chk_str = ''
 
         filename = self.file_path+'/'+self.seed_suffix+'_'+task
+        pickle.dump(is_trained_list, open(filename+self.mode+chk_str+'_is_trained', 'wb'))
         pickle.dump((self.all_correct_data, self.all_loss_data), open(filename+self.mode+chk_str+'_comp_data', 'wb'))
         pickle.dump(self.all_contexts.detach().cpu().numpy(), open(filename+self.mode+chk_str+'_comp_vecs', 'wb'))
 
@@ -132,7 +133,7 @@ class LinCompTrainer(BaseTrainer):
                 loss.backward()
                 self.optimizer.step()
 
-                if self.cur_step%10 == 0:
+                if self.cur_step%50 == 0:
                     self._print_training_status(task_type)
 
                 if self._check_model_training():
@@ -151,7 +152,7 @@ class LinCompTrainer(BaseTrainer):
         model.eval()
         self.mode = mode
         self.model_file_path = model.model_name+'_'+self.seed_suffix
-        
+        is_trained_list = []
 
         if mode == 'exemplar': 
             self._load_exemplar(task)
@@ -164,13 +165,13 @@ class LinCompTrainer(BaseTrainer):
 
         for i in range(self.range_start, self.num_contexts): 
             is_trained = False 
-            while not is_trained: 
-                print('Training '+str(i)+'th context')
-                comp_vec = self._init_comp_vec()
-                is_trained = self._train(model, comp_vec, mode)
+            print('Training '+str(i)+'th context')
+            comp_vec = self._init_comp_vec()
+            is_trained = self._train(model, comp_vec, mode)
+            is_trained_list.append(is_trained)
             self.all_contexts[i, :] = comp_vec.squeeze()
-            self._record_session(task, checkpoint=True)
-        self._record_session(task)                
+            self._record_session(task, is_trained_list, checkpoint=True)
+        self._record_session(task, is_trained_list)                
 
 def check_already_trained(file_name, seed, task, mode): 
     try: 
