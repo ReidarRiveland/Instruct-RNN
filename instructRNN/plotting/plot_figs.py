@@ -19,7 +19,7 @@ plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[2:][::-1], seeds =ran
 plot_0_shot_task_hist('7.20models', 'swap', to_plot_models[2:], seeds =range(0,5), mode='validation')
 
 ###HOLDOUTS
-plot_avg_holdout_curve('7.20models', 'swap', to_plot_models, seeds =range(0, 5), mode='combinedcomp')
+plot_avg_holdout_curve('7.20models', 'swap', to_plot_models, seeds =range(0, 5), mode='combined')
 plot_0_shot_task_hist('7.20models', 'swap', to_plot_models, seeds =range(0,5), mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='combined')
 

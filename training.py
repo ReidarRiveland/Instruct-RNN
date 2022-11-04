@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
         if args.mode == 'context' or args.mode == 'c': 
             from instructRNN.trainers.context_trainer import *
-            train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite)
+            train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, mode='test')
 
         if args.mode == 'exemplar_context': 
             from instructRNN.trainers.context_trainer import *

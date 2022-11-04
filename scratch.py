@@ -15,10 +15,10 @@ from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
 
-perf = eval_model_0_shot('simpleNet', '7.20models', 'swap', 0, instruct_mode='combined', use_comp=True)
+simple_perf = eval_model_exemplar('clipNet_lin', '7.20models', 'swap', 0)
 
+np.mean(simple_perf)
 np.mean(perf)
-
 
 EXP_FILE = '7.20models/swap_holdouts'
 clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)

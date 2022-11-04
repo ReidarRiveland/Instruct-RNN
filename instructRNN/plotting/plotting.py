@@ -59,29 +59,6 @@ plt.rcParams['savefig.dpi'] = 300
 from matplotlib import rc
 plt.rcParams["font.family"] = "serif"
 
-def split_axes():
-    inset1_lims = (-1, 10)
-    inset2_lims = (80, 99)
-    gs_kw = dict(width_ratios=[inset1_lims[1]-inset1_lims[0],inset2_lims[1]-inset2_lims[0]], height_ratios=[1])
-    fig,(axn,ax2) = plt.subplots(1,2,sharey=True, facecolor='w',  gridspec_kw=gs_kw, figsize =(6, 4))
-
-    axn.set_xlim(inset1_lims)
-    ax2.set_xlim(inset2_lims)
-
-    ax2.yaxis.set_visible(False)
-
-    # hide the spines between ax and ax2
-    axn.spines['right'].set_visible(False)
-    ax2.spines['left'].set_visible(False)
-
-    axn.set_ylim(0.0, 1.0)
-
-    axn.xaxis.set_tick_params(labelsize=8)
-    ax2.xaxis.set_tick_params(labelsize=8)
-
-    axn.yaxis.set_tick_params(labelsize=10)            
-    axn.set_yticks(np.linspace(0, 1, 11))
-    return fig, axn, ax2
 
 def _plot_performance_curve(avg_perf, std_perf, plt_ax, model_name, **plt_args):
         color = MODEL_STYLE_DICT[model_name][0] 
@@ -91,15 +68,6 @@ def _plot_performance_curve(avg_perf, std_perf, plt_ax, model_name, **plt_args):
 
         plt_ax.plot(avg_perf, color = color, marker=marker, **plt_args)
 
-def _make_model_legend(model_list): 
-    Patches = []
-    for model_name in model_list: 
-        color = MODEL_STYLE_DICT[model_name][0]
-        marker = MODEL_STYLE_DICT[model_name][1]
-        if marker is None: marker = 's'
-        Patches.append(Line2D([], [], linestyle='None', marker=marker, color=color, label=model_name, 
-                    markerfacecolor=MODEL_STYLE_DICT[model_name][0], markersize=4))
-    plt.legend(handles=Patches)
 
 def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct', mode = '', plot_swaps = False, seeds=range(5), axn=None, **curve_kwargs):
     if axn is None: 
@@ -138,16 +106,6 @@ def plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type='correct'
         plt.show()
     except: 
         pass
-
-
-def plot_simpleNet_comps(foldername, exp_type, model_list, perf_type='correct'):
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
-    plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type=perf_type, mode = '', plot_swaps = False, seeds=range(5), axn=axn, alpha=0.8)
-    plot_avg_holdout_curve(foldername, exp_type, model_list, perf_type=perf_type, mode = 'comp', plot_swaps = False, seeds=range(5), axn=axn, linestyle='--', alpha=0.8)
-    fig.suptitle('Performance on Novel Tasks')
-    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')   
-    plt.show()
-
 
 def plot_all_curves(dataframe, axn, **plt_args):
     for j, task in enumerate(TASK_LIST):
@@ -193,69 +151,11 @@ def plot_all_training_curves(foldername, exp_type, holdout_file, model_list, per
     fig.legend(labels=model_list, loc=2,  bbox_to_anchor=(0.9, 0.6), title='Models', title_fontsize = 'small', fontsize='x-small')        
     plt.show()
 
-
-def plot_all_task_lolli_v(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_title=''):
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
-
-    width = 1/(len(model_list)+1)
-    ind = np.arange(len(TASK_LIST))
-
-    axn.spines['top'].set_visible(False)
-    axn.spines['right'].set_visible(False)
-    axn.set_axisbelow(True)
-    axn.grid(visible=True, color='grey', axis='y', linewidth=0.5, alpha=0.5)
-
-    fig.suptitle(plot_title)
-    axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
-
-    for i, model_name in enumerate(model_list): 
-        if 'comp' in model_name:
-            model_name = model_name.split('_')[0]            
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = 'comp', seeds=seeds)
-            zero_shot, std = data.avg_seeds(k_shot=0)
-            linestyle = '--'
-            marker = 'D'
-        
-        elif mode is not 'validation':
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
-            zero_shot, std = data.avg_seeds(k_shot=0)
-            linestyle= '-'
-            marker = 'o'
-
-        else: 
-            data = load_val_perf([model_name])
-            zero_shot = np.squeeze(np.mean(data, axis=0))
-            linestyle = '-'
-            marker = 'o'
-        
-        axn.axhline(np.mean(zero_shot), color=MODEL_STYLE_DICT[model_name][0], linewidth=1.0, alpha=0.8, linestyle=linestyle, zorder=0)
-        x_mark = (ind+(width/2))+(i*width)
-        axn.scatter(x_mark,  zero_shot, color=MODEL_STYLE_DICT[model_name][0], s=3, marker=marker)
-        axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=MODEL_STYLE_DICT[model_name][0], linestyle=linestyle, linewidth=0.5)
-
-    axn.set_xticks(ind)
-    axn.set_xticklabels('')
-    axn.tick_params(axis='x', which='minor', bottom=False)
-    axn.set_xticks(ind+0.75, minor=True)
-    axn.set_xticklabels(TASK_LIST, fontsize=6, minor=True, rotation=45, ha='right', fontweight='bold') 
-    axn.set_xlim(-0.15, len(ind))
-
-    axn.set_yticks(np.linspace(0, 1, 11))
-    axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=8)
-    axn.set_ylim(0.0, 1.01)
-
-    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list if 'comp' not in model_name], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
-
-    plt.tight_layout()
-    plt.show()
-
-
-def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_err=False): 
+def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5)): 
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
 
     axn.set_axisbelow(True)
     axn.grid(visible=True, color='grey', axis='x', linewidth=0.5)
-
 
     axn.spines['top'].set_visible(False)
     axn.spines['right'].set_visible(False)
@@ -274,27 +174,16 @@ def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct',
     axn.set_yticks(ind+0.5, minor=True)
     axn.set_yticklabels([f'{x:.0%}>{y:.0%}' for x,y in list(zip(thresholds, thresholds0))], fontsize=5, minor=True) 
     
-
     axn.set_yticks(np.arange(11))
     axn.yaxis.set_ticks_position('none') 
     axn.set_yticklabels('') 
 
     for i, model_name in enumerate(model_list):
-        if 'comp' in model_name:
-            model_name = model_name.split('_')[0]
-            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = 'comp', seeds=seeds)
-            perf = data.data[:, :, 0]
-            hatch = '///'
-            edge_color = 'white'
-        elif mode is not 'validation':
+        if mode is not 'validation':
             data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode=mode, seeds=seeds)
             perf = data.data[:, :, 0]
-            hatch = None
-            edge_color = None
         else: 
             perf = np.squeeze(load_val_perf([model_name]))
-            hatch = None
-        
 
         bins = np.zeros((len(range(5)), 10))
         for iy, ix in np.ndindex(perf.shape):
@@ -302,61 +191,58 @@ def plot_0_shot_task_hist(foldername, exp_type, model_list, perf_type='correct',
         mean_bins = np.mean(bins, axis=0)
         std_bins = np.std(bins, axis=0)
 
-        axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.6, hatch=hatch, edgecolor=edge_color)
-        if plot_err:
-            axn.hlines((ind+(width))+(i*width), np.max((np.zeros_like(mean_bins), mean_bins-std_bins), axis=0), mean_bins+std_bins, color='black', linewidth=0.5)
+        axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.6,  edgecolor=edge_color)
+
     plt.show()
 
-def plot_model_response(model, trials, plotting_index = 0, instructions = None, save_file=None):
-    model.eval()
-    with torch.no_grad(): 
+def plot_all_task_lolli_v(foldername, exp_type, model_list, perf_type='correct', mode='', seeds=range(5), plot_title=''):
+    fig, axn, width, ind = _bars(model_list, len(TASK_LIST))
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
 
-        tar = trials.targets
-        ins = trials.inputs
+    width = 1/(len(model_list)+1)
+    ind = np.arange(len(TASK_LIST))
 
-        if instructions is not None: 
-            assert len(instructions) == trials.num_trials, 'instructions do not equally number of trials'
-            task_info = instructions
-            is_task_instruct = all([instruct in train_instruct_dict or instruct in test_instruct_dict for instruct in instructions])
-            if not is_task_instruct: warnings.warn('Not all instructions correspond to given task!')
+    axn.spines['top'].set_visible(False)
+    axn.spines['right'].set_visible(False)
+    axn.set_axisbelow(True)
+    axn.grid(visible=True, color='grey', axis='y', linewidth=0.5, alpha=0.5)
+
+    axn.set_xticks(ind)
+    axn.set_xticklabels('')
+    axn.tick_params(axis='x', which='minor', bottom=False)
+    axn.set_xticks(ind+0.75, minor=True)
+    axn.set_xticklabels(TASK_LIST, fontsize=6, minor=True, rotation=45, ha='right', fontweight='bold') 
+    axn.set_xlim(-0.15, len(ind))
+
+    axn.set_yticks(np.linspace(0, 1, 11))
+    axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=8)
+    axn.set_ylim(0.0, 1.01)
+
+    fig.suptitle(plot_title)
+    axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+
+    for i, model_name in enumerate(model_list):       
+        if mode is not 'validation':
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
+            zero_shot, std = data.avg_seeds(k_shot=0)
+
         else: 
-            task_info = get_task_info(ins.shape[0], trials.task_type, model.info_type)
-        
-        out, hid = model(torch.Tensor(ins), task_info)
+            data = load_val_perf([model_name])
+            zero_shot = np.squeeze(np.mean(data, axis=0))
 
-        correct = isCorrect(out, torch.Tensor(tar), trials.target_dirs)[plotting_index]
-        out = out.detach().cpu().numpy()[plotting_index, :, :]
-        hid = hid.detach().cpu().numpy()[plotting_index, :, :]
+        axn.axhline(np.mean(zero_shot), color=MODEL_STYLE_DICT[model_name][0], linewidth=1.0, alpha=0.8, zorder=0)
+        x_mark = (ind+(width/2))+(i*width)
+        axn.scatter(x_mark,  zero_shot, color=MODEL_STYLE_DICT[model_name][0], s=3, marker=marker)
+        axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.5)
 
-        fix = ins[plotting_index, :, 0:1]            
-        mod1 = ins[plotting_index, :, 1:1+STIM_DIM]
-        mod2 = ins[plotting_index, :, 1+STIM_DIM:1+(2*STIM_DIM)]
+    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
 
-        to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, tar[plotting_index, :, :].T, out.squeeze().T]
-        gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 5, 5])
-        ylabels = ['fix.', 'mod. 1', 'mod. 2', 'Target', 'Response']
+    plt.tight_layout()
+    plt.show()
 
-        fig, axn = plt.subplots(5,1, sharex = True, gridspec_kw=gs_kw, figsize=(4,3))
-        cbar_ax = fig.add_axes([.91, .3, .03, .4])
-        for i, ax in enumerate(axn.flat):
-            sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1.3, cbar_ax=None if i else cbar_ax)
-            ax.set_ylabel(ylabels[i], fontweight = 'bold', fontsize=6)
-            if i == 0: 
-                ax.set_title(trials.task_type +' trial info; correct: ' + str(correct))
-            if i == 5: 
-                ax.set_xlabel('time')
-                ax.xaxis.set_ticks(np.arange(0, 120, 5))
-                ax.set_xticklabels(np.arange(0, 120, 5), fontsize=16)
-
-                ax.tick_params(axis='x', labelsize= 6)
-
-        if save_file is not None: 
-            plt.savefig('figs/'+save_file)
-        plt.show()
 
 def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs): 
     task_reps = reps_reduced
-
     if dims ==2: 
         ax.scatter(task_reps[:, 0], task_reps[:, 1], s=5, **scatter_kwargs)
     else: 
@@ -439,23 +325,11 @@ def plot_tuning_curve(model, tasks, unit, times, num_trials=50, num_repeats=20, 
         axn.set_xticks([-np.pi/2, 0, 0.5*np.pi, np.pi, (3/2)*np.pi,])
         axn.set_xticklabels([r"$-\frac{\pi}{2}$", r"$0$", r"$\frac{\pi}{2}$", r"$\pi$", r"$-\frac{\pi}{2}$"]) 
 
-        # axn.set_xlim(-max_contrast, max_contrast)
-        # tick_space = np.linspace(-max_contrast, max_contrast, 5)
-        # axn.set_xticks(tick_space)
-        # axn.set_xticklabels([str(tick_val) for tick_val in tick_space]) 
-
-
     elif 'DM' in tasks[0] or 'COMP' in tasks[0]: 
         x_label = "coherence"
 
         var_of_interest = np.concatenate((np.linspace(-max_coh, -min_coh, num=int(np.ceil(num_trials/2))), 
                 np.linspace(min_coh, max_coh, num=int(np.floor(num_trials/2)))))
-        # axn.set_xlim(-max_contrast, max_contrast)
-        # tick_space = np.linspace(-max_contrast, max_contrast, 5)
-        # axn.set_xticks(tick_space)
-        # axn.set_xticklabels([str(tick_val) for tick_val in tick_space]) 
-
-
 
     y_max=0.0
     hid_mean = get_task_reps(model, epoch=None, num_trials=num_trials, tasks=tasks, num_repeats=num_repeats, main_var=True, **trial_kwargs)
@@ -573,7 +447,53 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False, m
     plt.show()
 
 
-#def plot_ccgp_lolli(foldername, model_list, seeds=range(5), plot_multis=False, mode=''): 
+def plot_comp_bars(foldername, exp_type, model_list, mode='CCGP', seeds=range(5), plot_title=''):
+    assert mode in ['CCGP', 'comp']
+    fig, axn, width, ind = _bars(model_list, len(TASK_LIST))
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
+
+    width = 1/(len(model_list)+1)
+    ind = np.arange(2)
+
+    axn.spines['top'].set_visible(False)
+    axn.spines['right'].set_visible(False)
+    axn.set_axisbelow(True)
+    axn.grid(visible=True, color='grey', axis='y', linewidth=0.5, alpha=0.5)
+
+    axn.set_xticks(ind)
+    axn.set_xticklabels('')
+    axn.tick_params(axis='x', which='minor', bottom=False)
+    axn.set_xticks(ind+0.75, minor=True)
+    axn.set_xticklabels(TASK_LIST, fontsize=6, minor=True, rotation=45, ha='right', fontweight='bold') 
+    axn.set_xlim(-0.15, len(ind))
+
+    axn.set_yticks(np.linspace(0, 1, 11))
+    axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=8)
+    axn.set_ylim(0.0, 1.01)
+
+    fig.suptitle(plot_title)
+    axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+
+    for i, model_name in enumerate(model_list):       
+        if mode is not 'validation':
+            data = HoldoutDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
+            zero_shot, std = data.avg_seeds(k_shot=0)
+
+        else: 
+            data = load_val_perf([model_name])
+            zero_shot = np.squeeze(np.mean(data, axis=0))
+
+        axn.axhline(np.mean(zero_shot), color=MODEL_STYLE_DICT[model_name][0], linewidth=1.0, alpha=0.8, zorder=0)
+        x_mark = (ind+(width/2))+(i*width)
+        axn.scatter(x_mark,  zero_shot, color=MODEL_STYLE_DICT[model_name][0], s=3, marker=marker)
+        axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=MODEL_STYLE_DICT[model_name][0], linewidth=0.5)
+
+    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
+
+    plt.tight_layout()
+    plt.show()
+
+
 
 def plot_layer_dim(model_list, layer):
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
@@ -745,3 +665,49 @@ def plot_partner_perf():
 
     axn[0,0].legend(handles = patches, fontsize='x-small')
     plt.show()
+def plot_model_response(model, trials, plotting_index = 0, instructions = None, save_file=None):
+    model.eval()
+    with torch.no_grad(): 
+
+        tar = trials.targets
+        ins = trials.inputs
+
+        if instructions is not None: 
+            assert len(instructions) == trials.num_trials, 'instructions do not equally number of trials'
+            task_info = instructions
+            is_task_instruct = all([instruct in train_instruct_dict or instruct in test_instruct_dict for instruct in instructions])
+            if not is_task_instruct: warnings.warn('Not all instructions correspond to given task!')
+        else: 
+            task_info = get_task_info(ins.shape[0], trials.task_type, model.info_type)
+        
+        out, hid = model(torch.Tensor(ins), task_info)
+
+        correct = isCorrect(out, torch.Tensor(tar), trials.target_dirs)[plotting_index]
+        out = out.detach().cpu().numpy()[plotting_index, :, :]
+        hid = hid.detach().cpu().numpy()[plotting_index, :, :]
+
+        fix = ins[plotting_index, :, 0:1]            
+        mod1 = ins[plotting_index, :, 1:1+STIM_DIM]
+        mod2 = ins[plotting_index, :, 1+STIM_DIM:1+(2*STIM_DIM)]
+
+        to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, tar[plotting_index, :, :].T, out.squeeze().T]
+        gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 5, 5])
+        ylabels = ['fix.', 'mod. 1', 'mod. 2', 'Target', 'Response']
+
+        fig, axn = plt.subplots(5,1, sharex = True, gridspec_kw=gs_kw, figsize=(4,3))
+        cbar_ax = fig.add_axes([.91, .3, .03, .4])
+        for i, ax in enumerate(axn.flat):
+            sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1.3, cbar_ax=None if i else cbar_ax)
+            ax.set_ylabel(ylabels[i], fontweight = 'bold', fontsize=6)
+            if i == 0: 
+                ax.set_title(trials.task_type +' trial info; correct: ' + str(correct))
+            if i == 5: 
+                ax.set_xlabel('time')
+                ax.xaxis.set_ticks(np.arange(0, 120, 5))
+                ax.set_xticklabels(np.arange(0, 120, 5), fontsize=16)
+
+                ax.tick_params(axis='x', labelsize= 6)
+
+        if save_file is not None: 
+            plt.savefig('figs/'+save_file)
+        plt.show()

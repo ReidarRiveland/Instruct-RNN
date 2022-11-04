@@ -34,7 +34,7 @@ def get_reps_from_tasks(reps, tasks):
     indices = [TASK_LIST.index(task) for task in tasks]
     return reps[indices, ...]
 
-def task_eval(model, task, batch_size, noise=None, instruct_mode = None, instructions = None, use_comp=False, **trial_kwargs): 
+def task_eval(model, task, batch_size, noise=None, instruct_mode = None, instructions = None, use_comp=False, context = None, **trial_kwargs): 
     ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, noise, **trial_kwargs)
     if instructions is None: 
         task_info = get_task_info(batch_size, task, model.info_type, instruct_mode=instruct_mode)
@@ -46,7 +46,7 @@ def task_eval(model, task, batch_size, noise=None, instruct_mode = None, instruc
     else: 
         comp_task = None
 
-    out, _ = model(torch.Tensor(ins).to(model.__device__), task_info, comp_task=comp_task)
+    out, _ = model(torch.Tensor(ins).to(model.__device__), task_info, context = context, comp_task=comp_task)
     return np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
 def get_model_performance(model, num_repeats = 1, batch_len=128, instruct_mode=None, use_comp=False): 
@@ -99,6 +99,31 @@ def eval_model_0_shot(model_name, folder_name, exp_type, seed, instruct_mode=Non
             model.load_model(folder_name+'/'+exp_type+'_holdouts/'+holdout_label+'/'+model.model_name, suffix='_seed'+str(seed))
             for task in tasks: 
                 perf_array[TASK_LIST.index(task)] = task_eval(model, task, 64, instruct_mode=instruct_mode, use_comp=use_comp)
+    return perf_array
+
+def eval_model_exemplar(model_name, foldername, exp_type, seed, **trial_kwargs):
+    if 'swap' in exp_type: 
+        exp_dict = SWAPS_DICT
+
+    perf_array = np.full(len(TASK_LIST), np.NaN)
+    model = make_default_model(model_name)
+
+    if 'simpleNet' in model_name:
+        context_dim = 64
+    else: 
+        context_dim = model.langModel.LM_intermediate_lang_dim 
+
+    with torch.no_grad():
+        for holdout_label, tasks in exp_dict.items(): 
+            model_folder = foldername+'/'+exp_type+'_holdouts/'+holdout_label+'/'+model.model_name
+            print(holdout_label)
+            model.load_model(model_folder, suffix='_seed'+str(seed))
+            for task in tasks: 
+                contexts = pickle.load(open(model_folder+'/contexts/seed'+str(seed)+'_'+task+'exemplar_context_vecs'+str(context_dim), 'rb'))
+                ins, targets, _, target_dirs, _ = construct_trials(task, contexts.shape[0], **trial_kwargs)
+                out, _ = model(torch.Tensor(ins).to(model.__device__), context = torch.Tensor(contexts))
+                perf_array[TASK_LIST.index(task)] = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
+
     return perf_array
 
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
