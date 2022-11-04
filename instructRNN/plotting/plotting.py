@@ -29,7 +29,6 @@ Orange = '#FFA500'
 Yellow = '#FFEE58'
 Purple = '#800080'
 
-
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (lightBlue, None, 'simpleNetPlus'), 
                     'comNet': (lightBlue, 'None', 'comNet'), 'comNetPlus': (lightBlue, '+', 'comNetPlus'), 
                     'clipNet_lin': (Yellow, None, 'clipNet'), 'clipNet_lin_tuned': (Yellow, 'v', 'clipNet (tuned)'), 
@@ -492,8 +491,6 @@ def plot_comp_bars(foldername, exp_type, model_list, mode='CCGP', seeds=range(5)
 
     plt.tight_layout()
     plt.show()
-
-
 
 def plot_layer_dim(model_list, layer):
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
