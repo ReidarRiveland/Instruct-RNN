@@ -25,7 +25,7 @@ class ContextTrainerConfig():
     file_path: str
     random_seed: int
     context_dim: int    
-    mode = ''
+    mode: str = ''
     num_contexts: int = 24
 
     epochs: int = 10
@@ -128,7 +128,7 @@ class ContextTrainer(BaseTrainer):
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
             for self.cur_step in range(self.num_batches): 
                 if mode == 'exemplar': data = self._expand_exemplar(self.exemplar_data)
-                else: data = self.streamer.next()
+                else: data = next(self.streamer.stream_batch())
                 
                 ins, tar, mask, tar_dir, task_type = data
 
@@ -211,12 +211,12 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
         if not overwrite and check_already_trained(file_name, seed, task, context_dim, mode):
             continue 
         else:        
-            print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ '\n')
+            print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ ' for mode ' + mode+ '\n')
             if (task == 'DMC' or task =='DNMC') and 'swap' in labels:
-                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, batch_len=64, checker_threshold=0.8, **train_config_kwargs)
+                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, batch_len=64, checker_threshold=0.8, mode=mode, **train_config_kwargs)
             else:
-                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, **train_config_kwargs)
-            trainer = ContextTrainer(trainer_config, mode=mode)
+                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, mode=mode, **train_config_kwargs)
+            trainer = ContextTrainer(trainer_config)
             if not overwrite: 
                 trainer.load_chk(file_name, seed, task, context_dim)
             trainer.train(model, task)
