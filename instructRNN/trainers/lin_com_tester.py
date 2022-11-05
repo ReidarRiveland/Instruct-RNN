@@ -36,7 +36,7 @@ class LinCompTrainerConfig():
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.001
+    lr: float = 0.01
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
     scheduler_args: dict = {'gamma': 0.99}
@@ -80,11 +80,11 @@ class LinCompTrainer(BaseTrainer):
 
     def _init_comp_vec(self): 
         context = nn.Parameter(torch.empty((1, self.comp_vec_dim), device=device))
-        nn.init.sparse_(context, sparsity=0.1)
+        #nn.init.sparse_(context, sparsity=0.1)
         return context
     
     def _init_optimizer(self, context):
-        self.optimizer = self.optim_alg([context], lr=self.lr, weight_decay = 0.05)
+        self.optimizer = self.optim_alg([context], lr=self.lr, weight_decay = 0.001)
         if self.scheduler_class is not None:
             self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
         else:
