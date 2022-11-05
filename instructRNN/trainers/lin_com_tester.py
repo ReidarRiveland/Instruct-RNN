@@ -80,11 +80,11 @@ class LinCompTrainer(BaseTrainer):
 
     def _init_comp_vec(self): 
         context = nn.Parameter(torch.empty((1, self.comp_vec_dim), device=device))
-        nn.init.normal_(context, std=0.5)
+        nn.init.sparse_(context, sparsity=0.1)
         return context
     
     def _init_optimizer(self, context):
-        self.optimizer = self.optim_alg([context], lr=self.lr)
+        self.optimizer = self.optim_alg([context], lr=self.lr, weight_decay = 0.01)
         if self.scheduler_class is not None:
             self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
         else:
@@ -116,7 +116,7 @@ class LinCompTrainer(BaseTrainer):
         self._init_optimizer(comp_vec)
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
             for self.cur_step in range(self.num_batches): 
-                if mode == 'exemplar': data = self._expand_exemplar(self.exemplar_data)
+                if self.mode == 'exemplar': data = self._expand_exemplar(self.exemplar_data)
                 else: data = next(self.streamer.stream_batch())
                 
                 ins, tar, mask, tar_dir, task_type = data
@@ -145,12 +145,11 @@ class LinCompTrainer(BaseTrainer):
         warnings.warn('Model has not reach specified performance threshold during training')
         return False
 
-    def train(self, model, task, mode=''):
+    def train(self, model, task):
         model.load_model(self.file_path.replace('lin_comp', '')[:-1], suffix='_'+self.seed_suffix)
         model.to(device)
         model.freeze_weights()
         model.eval()
-        self.mode = mode
         self.model_file_path = model.model_name+'_'+self.seed_suffix
         is_trained_list = []
 
