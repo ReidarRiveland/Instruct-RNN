@@ -27,7 +27,7 @@ class LinCompTrainerConfig():
     random_seed: int
     comp_vec_dim: int = 45 
     mode: str = ''
-    num_contexts: int = 100
+    num_contexts: int = 25
 
     epochs: int = 20
     min_run_epochs: int = 1
@@ -36,7 +36,7 @@ class LinCompTrainerConfig():
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.005
+    lr: float = 0.01
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
     scheduler_args: dict = {'gamma': 0.99}
