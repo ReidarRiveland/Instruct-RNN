@@ -104,6 +104,27 @@ class LinCompTrainer(BaseTrainer):
         except FileNotFoundError:
             pass
 
+    def _load_exemplar(self, task): 
+        exemplar_data_path = self.file_path.partition('/')[0]+'/training_data/exemplars'
+        if os.path.exists(exemplar_data_path):pass
+        else: os.makedirs(exemplar_data_path)
+
+        try:
+            exemplar_data = pickle.load(open(exemplar_data_path+'/'+task, 'rb'))
+        except FileNotFoundError:
+            exemplar_data = construct_trials(task, num_trials=1, return_tensor=True)
+            pickle.dump(exemplar_data, open(exemplar_data_path+'/'+task, 'wb'))
+
+        self.exemplar_data = exemplar_data
+
+    def _expand_exemplar(self, data): 
+        ins, tar, mask, tar_dir, task_type = data
+        ins = ins.repeat(self.batch_len, 1, 1)
+        tar = tar.repeat(self.batch_len, 1, 1)
+        mark = mask.repeat(self.batch_len, 1, 1)
+        tar_dir = tar_dir.repeat(self.batch_len)
+        return (ins, tar, mask, tar_dir, task_type)
+
     def set_rule_basis(self, model, holdouts):
         task_indices = [TASK_LIST.index(task) for task in TASK_LIST if task not in holdouts]
         if hasattr(model, 'langModel'):
@@ -181,7 +202,7 @@ def check_already_trained(file_name, seed, task, mode):
     except FileNotFoundError:
         return False
 
-def train_lin_comp(exp_folder, model_name,  seed, labeled_holdouts, mode = '', tasks = None, overwrite=False, **train_config_kwargs): 
+def train_lin_comp(exp_folder, model_name,  seed, labeled_holdouts, mode = 'exemplar', tasks = None, overwrite=False, **train_config_kwargs): 
     torch.manual_seed(seed)
     labels, holdouts = labeled_holdouts
             
