@@ -112,7 +112,7 @@ class LinCompTrainer(BaseTrainer):
             self.task_info_basis = model.rule_transform[task_indices, :]
         self.task_info_basis.to(device)
 
-    def _train(self, model, comp_vec, mode): 
+    def _train(self, model, comp_vec): 
         self._init_optimizer(comp_vec)
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
             for self.cur_step in range(self.num_batches): 
@@ -153,7 +153,7 @@ class LinCompTrainer(BaseTrainer):
         self.model_file_path = model.model_name+'_'+self.seed_suffix
         is_trained_list = []
 
-        if mode == 'exemplar': 
+        if self.mode == 'exemplar': 
             self._load_exemplar(task)
         else:
             self.streamer = TaskDataSet(self.file_path.partition('/')[0], 
@@ -166,7 +166,7 @@ class LinCompTrainer(BaseTrainer):
             is_trained = False 
             print('Training '+str(i)+'th context')
             comp_vec = self._init_comp_vec()
-            is_trained = self._train(model, comp_vec, mode)
+            is_trained = self._train(model, comp_vec)
             is_trained_list.append(is_trained)
             self.all_contexts[i, :] = comp_vec.squeeze()
             self._record_session(task, is_trained_list, checkpoint=True)
