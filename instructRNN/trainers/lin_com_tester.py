@@ -84,7 +84,7 @@ class LinCompTrainer(BaseTrainer):
         return context
     
     def _init_optimizer(self, context):
-        self.optimizer = self.optim_alg([context], lr=self.lr, weight_decay = 0.001)
+        self.optimizer = self.optim_alg([context], lr=self.lr, weight_decay = 1e-4)
         if self.scheduler_class is not None:
             self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
         else:
