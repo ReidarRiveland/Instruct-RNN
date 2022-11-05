@@ -155,7 +155,7 @@ class LinCompTrainer(BaseTrainer):
                 loss.backward()
                 self.optimizer.step()
 
-                if self.cur_step%50 == 0:
+                if self.cur_step%20 == 0:
                     self._print_training_status(task_type)
 
                 if self._check_model_training():
