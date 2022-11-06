@@ -27,7 +27,7 @@ class LinCompTrainerConfig():
     random_seed: int
     comp_vec_dim: int = 45 
     mode: str = ''
-    num_contexts: int = 25
+    num_contexts: int = 50
 
     epochs: int = 20
     min_run_epochs: int = 1
@@ -47,7 +47,8 @@ class LinCompTrainerConfig():
 class LinCompTrainer(BaseTrainer): 
     def __init__(self, context_training_config: LinCompTrainerConfig = None): 
         super().__init__(context_training_config)
-        self.all_contexts = torch.full((self.num_contexts, self.comp_vec_dim), np.nan)
+        #self.all_contexts = torch.full((self.num_contexts, self.comp_vec_dim), np.nan)
+        self.all_contexts = []
         self.all_correct_data = []
         self.all_loss_data = []
         self.range_start = 0 
@@ -65,7 +66,8 @@ class LinCompTrainer(BaseTrainer):
         filename = self.file_path+'/'+self.seed_suffix+'_'+task
         pickle.dump(is_trained_list, open(filename+self.mode+chk_str+'_is_trained', 'wb'))
         pickle.dump((self.all_correct_data, self.all_loss_data), open(filename+self.mode+chk_str+'_comp_data', 'wb'))
-        pickle.dump(self.all_contexts.detach().cpu().numpy(), open(filename+self.mode+chk_str+'_comp_vecs', 'wb'))
+        #pickle.dump(self.all_contexts.detach().cpu().numpy(), open(filename+self.mode+chk_str+'_comp_vecs', 'wb'))
+        pickle.dump(self.all_contexts, open(filename+self.mode+chk_str+'_comp_vecs', 'wb'))
 
     def _log_step(self, task_type, frac_correct, loss): 
         self.correct_data[task_type].append(frac_correct)
@@ -85,7 +87,9 @@ class LinCompTrainer(BaseTrainer):
         return context
     
     def _init_optimizer(self, context):
-        self.optimizer = self.optim_alg([context], lr=self.lr, weight_decay = 0.001)
+        #self.optimizer = self.optim_alg([context], lr=self.lr, weight_decay = 0.001)
+        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 0.001)
+
         if self.scheduler_class is not None:
             self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
         else:
@@ -129,12 +133,14 @@ class LinCompTrainer(BaseTrainer):
         task_indices = [TASK_LIST.index(task) for task in TASK_LIST if task not in holdouts]
         if hasattr(model, 'langModel'):
             reps = get_instruct_reps(model.langModel)
-            self.task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :])
+            self.task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :]) + torch.randn(45, 64)*0.1
         else: 
-            self.task_info_basis = model.rule_transform[task_indices, :]
+            self.task_info_basis = model.rule_transform[task_indices, :] + torch.randn(45, 64).to(device)*0.1
         self.task_info_basis.to(device)
 
-    def _train(self, model, comp_vec): 
+    def _train(self, model, comp_vec, holdouts): 
+        self.lin = nn.Linear(45, 1).to(device)
+        self.set_rule_basis(model, holdouts)
         self._init_optimizer(comp_vec)
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
             for self.cur_step in range(self.num_batches): 
@@ -144,8 +150,10 @@ class LinCompTrainer(BaseTrainer):
                 ins, tar, mask, tar_dir, task_type = data
 
                 self.optimizer.zero_grad()
-                contexts = torch.matmul(comp_vec, self.task_info_basis.float().to(device))
-                in_contexts = contexts.repeat(self.batch_len, 1)
+                #contexts = torch.matmul(comp_vec, self.task_info_basis.float().to(device))
+                contexts = self.lin(self.task_info_basis.float().T .to(device))
+                #print(contexts.shape)
+                in_contexts = contexts.T.repeat(self.batch_len, 1)
 
                 out, _ = model(ins.to(device), context=in_contexts)
                 loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
@@ -154,6 +162,7 @@ class LinCompTrainer(BaseTrainer):
 
                 loss.backward()
                 self.optimizer.step()
+
 
                 if self.cur_step%20 == 0:
                     self._print_training_status(task_type)
@@ -167,7 +176,7 @@ class LinCompTrainer(BaseTrainer):
         warnings.warn('Model has not reach specified performance threshold during training')
         return False
 
-    def train(self, model, task):
+    def train(self, model, task, holdouts):
         model.load_model(self.file_path.replace('lin_comp', '')[:-1], suffix='_'+self.seed_suffix)
         model.to(device)
         model.freeze_weights()
@@ -188,9 +197,10 @@ class LinCompTrainer(BaseTrainer):
             is_trained = False 
             print('Training '+str(i)+'th context')
             comp_vec = self._init_comp_vec()
-            is_trained = self._train(model, comp_vec)
+            is_trained = self._train(model, comp_vec, holdouts)
             is_trained_list.append(is_trained)
-            self.all_contexts[i, :] = comp_vec.squeeze()
+            #self.all_contexts[i, :] = comp_vec.squeeze()
+            self.all_contexts.append(self.lin.state_dict())
             self._record_session(task, is_trained_list, checkpoint=True)
         self._record_session(task, is_trained_list)                
 
@@ -202,7 +212,7 @@ def check_already_trained(file_name, seed, task, mode):
     except FileNotFoundError:
         return False
 
-def train_lin_comp(exp_folder, model_name,  seed, labeled_holdouts, mode = 'exemplar', tasks = None, overwrite=False, **train_config_kwargs): 
+def train_lin_comp(exp_folder, model_name,  seed, labeled_holdouts, mode = '', tasks = None, overwrite=False, **train_config_kwargs): 
     torch.manual_seed(seed)
     labels, holdouts = labeled_holdouts
             
@@ -223,7 +233,6 @@ def train_lin_comp(exp_folder, model_name,  seed, labeled_holdouts, mode = 'exem
             # else:
             trainer_config = LinCompTrainerConfig(file_name, seed, mode=mode, **train_config_kwargs)
             trainer = LinCompTrainer(trainer_config)
-            trainer.set_rule_basis(model, holdouts)
             # if not overwrite: 
             #     trainer.load_chk(file_name, seed, task)
-            trainer.train(model, task)
+            trainer.train(model, task, holdouts)

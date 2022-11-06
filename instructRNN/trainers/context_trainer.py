@@ -51,7 +51,7 @@ class ContextTrainer(BaseTrainer):
         self.all_loss_data = []
         self.range_start = 0 
 
-    def _record_session(self, task, checkpoint=False):
+    def _record_session(self, task, is_trained_list, checkpoint=False):
         self.all_correct_data.append(self.correct_data.pop(task))
         self.all_loss_data.append(self.loss_data.pop(task))
 
@@ -62,6 +62,7 @@ class ContextTrainer(BaseTrainer):
         else: chk_str = ''
 
         filename = self.file_path+'/'+self.seed_suffix+'_'+task
+        pickle.dump(is_trained_list, open(filename+self.mode+chk_str+'_is_trained', 'wb'))
         pickle.dump((self.all_correct_data, self.all_loss_data), open(filename+self.mode+chk_str+'_training_data'+str(self.context_dim), 'wb'))
         pickle.dump(self.all_contexts.detach().cpu().numpy(), open(filename+self.mode+chk_str+'_context_vecs'+str(self.context_dim), 'wb'))
 
@@ -162,6 +163,7 @@ class ContextTrainer(BaseTrainer):
         model.eval()
         self.mode = mode
         self.model_file_path = model.model_name+'_'+self.seed_suffix
+        is_trained_list = []
 
         if mode == 'exemplar': 
             self._load_exemplar(task)
@@ -174,13 +176,13 @@ class ContextTrainer(BaseTrainer):
 
         for i in range(self.range_start, self.num_contexts): 
             is_trained = False 
-            while not is_trained: 
-                print('Training '+str(i)+'th context')
-                context = self._init_contexts(1)
-                is_trained = self._train(model, context, mode)
+            print('Training '+str(i)+'th context')
+            context = self._init_contexts(1)
+            is_trained = self._train(model, context, mode)
+            is_trained_list.append(is_trained)
             self.all_contexts[i, :] = context.squeeze()
-            self._record_session(task, checkpoint=True)
-        self._record_session(task)                
+            self._record_session(task, is_trained_list, checkpoint=True)
+        self._record_session(task, is_trained_list)                
 
 def check_already_trained(file_name, seed, task, context_dim, mode): 
     try: 
@@ -212,11 +214,11 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
             continue 
         else:        
             print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ ' for mode ' + mode+ '\n')
-            if (task == 'DMC' or task =='DNMC') and 'swap' in labels:
-                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, batch_len=64, checker_threshold=0.8, mode=mode, **train_config_kwargs)
-            else:
-                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, mode=mode, **train_config_kwargs)
+            # if (task == 'DMC' or task =='DNMC') and 'swap' in labels:
+            #     trainer_config = ContextTrainerConfig(file_name, seed, context_dim, modbatch_len=64, checker_threshold=0.8, mode=mode, **train_config_kwargs)
+            # else:
+            trainer_config = ContextTrainerConfig(file_name, seed, context_dim, mode=mode, **train_config_kwargs)
             trainer = ContextTrainer(trainer_config)
             if not overwrite: 
                 trainer.load_chk(file_name, seed, task, context_dim)
-            trainer.train(model, task)
+            trainer.train(model, task, mode = mode)

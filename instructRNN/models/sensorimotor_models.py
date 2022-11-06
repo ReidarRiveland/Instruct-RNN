@@ -215,6 +215,8 @@ class InstructNet(BaseNet):
             info_embedded = self.langModel.proj_out(context)
         elif context.shape[-1] == self.langModel.LM_out_dim:
             info_embedded = context
+        else:
+            info_embedded = context
 
         outs, rnn_hid = super().forward(x, info_embedded)
         return outs, rnn_hid
