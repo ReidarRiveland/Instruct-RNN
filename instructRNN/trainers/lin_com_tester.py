@@ -39,7 +39,7 @@ class LinCompTrainerConfig():
     lr: float = 0.01
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.99}
+    scheduler_args: dict = {'gamma': 0.5}
 
     checker_threshold: float = 0.95
     step_last_lr: bool = False
@@ -54,8 +54,9 @@ class LinCompTrainer(BaseTrainer):
         self.range_start = 0 
 
     def _record_session(self, task, is_trained_list, checkpoint=False):
-        self.all_correct_data.append(self.correct_data.pop(task))
-        self.all_loss_data.append(self.loss_data.pop(task))
+        if checkpoint:
+            self.all_correct_data.append(self.correct_data[task])
+            self.all_loss_data.append(self.loss_data[task])
 
         if os.path.exists(self.file_path):pass
         else: os.makedirs(self.file_path)
@@ -140,6 +141,8 @@ class LinCompTrainer(BaseTrainer):
 
     def _train(self, model, comp_vec, holdouts): 
         self.lin = nn.Linear(45, 1).to(device)
+        nn.init.sparse_(self.lin.weight, sparsity=0.1, std=5.0)
+
         self.set_rule_basis(model, holdouts)
         self._init_optimizer(comp_vec)
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):

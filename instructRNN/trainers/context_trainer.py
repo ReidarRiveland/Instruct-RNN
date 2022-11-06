@@ -52,8 +52,9 @@ class ContextTrainer(BaseTrainer):
         self.range_start = 0 
 
     def _record_session(self, task, is_trained_list, checkpoint=False):
-        self.all_correct_data.append(self.correct_data.pop(task))
-        self.all_loss_data.append(self.loss_data.pop(task))
+        if checkpoint:
+            self.all_correct_data.append(self.correct_data[task])
+            self.all_loss_data.append(self.loss_data[task])
 
         if os.path.exists(self.file_path):pass
         else: os.makedirs(self.file_path)
