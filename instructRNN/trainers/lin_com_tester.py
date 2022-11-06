@@ -27,9 +27,9 @@ class LinCompTrainerConfig():
     random_seed: int
     comp_vec_dim: int = 45 
     mode: str = ''
-    num_contexts: int = 80
+    num_contexts: int = 1
 
-    epochs: int = 10
+    epochs: int = 1
     min_run_epochs: int = 1
     batch_len: int = 64
     num_batches: int = 500
@@ -39,7 +39,7 @@ class LinCompTrainerConfig():
     lr: float = 0.01
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.5}
+    scheduler_args: dict = {'gamma': 0.9}
 
     checker_threshold: float = 0.95
     step_last_lr: bool = False
@@ -87,9 +87,9 @@ class LinCompTrainer(BaseTrainer):
         nn.init.normal_(context, std=0.1)
         return context
     
-    def _init_optimizer(self, context):
+    def _init_optimizer(self):
         #self.optimizer = self.optim_alg([context], lr=self.lr, weight_decay = 0.001)
-        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 0.001)
+        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 5e-4)
 
         if self.scheduler_class is not None:
             self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
@@ -147,10 +147,11 @@ class LinCompTrainer(BaseTrainer):
         # init_w[indices, :] = 0
         # self.lin.weights = init_w
 
-        nn.init.sparse_(self.lin.weight, sparsity=0.9, std=20.0)
+        nn.init.sparse_(self.lin.weight, sparsity=0.9, std=100.0)
+        #nn.init.normal_(self.lin.weight, std=24.0)
 
         self.set_rule_basis(model, holdouts)
-        self._init_optimizer(comp_vec)
+        self._init_optimizer()
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
             for self.cur_step in range(self.num_batches): 
                 if self.mode == 'exemplar': data = self._expand_exemplar(self.exemplar_data)
@@ -173,7 +174,7 @@ class LinCompTrainer(BaseTrainer):
                 self.optimizer.step()
 
 
-                if self.cur_step%20 == 0:
+                if self.cur_step%20 == 0 or self.cur_step==10:
                     self._print_training_status(task_type)
 
                 if self._check_model_training():
@@ -232,7 +233,7 @@ def train_lin_comp(exp_folder, model_name,  seed, labeled_holdouts, mode = '', t
     if tasks is None: 
         tasks = holdouts
 
-    for task in tasks: 
+    for task in ['COMP2Mod2']: 
         if not overwrite and check_already_trained(file_name, seed, task, mode):
             continue 
         else:        
