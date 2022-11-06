@@ -29,7 +29,7 @@ class LinCompTrainerConfig():
     mode: str = ''
     num_contexts: int = 80
 
-    epochs: int = 20
+    epochs: int = 10
     min_run_epochs: int = 1
     batch_len: int = 64
     num_batches: int = 500
@@ -141,7 +141,13 @@ class LinCompTrainer(BaseTrainer):
 
     def _train(self, model, comp_vec, holdouts): 
         self.lin = nn.Linear(45, 1).to(device)
-        nn.init.sparse_(self.lin.weight, sparsity=0.1, std=5.0)
+        # init_w = torch.FloatTensor(45, 1).uniform_(-5, 5)
+        # indices = np.random.choice(np.arange(45), replace=False,
+        #                    size=int(45 * 0.9))
+        # init_w[indices, :] = 0
+        # self.lin.weights = init_w
+
+        nn.init.sparse_(self.lin.weight, sparsity=0.9, std=20.0)
 
         self.set_rule_basis(model, holdouts)
         self._init_optimizer(comp_vec)
@@ -154,7 +160,7 @@ class LinCompTrainer(BaseTrainer):
 
                 self.optimizer.zero_grad()
                 #contexts = torch.matmul(comp_vec, self.task_info_basis.float().to(device))
-                contexts = self.lin(self.task_info_basis.float().T .to(device))
+                contexts = self.lin(self.task_info_basis.float().T.to(device))
                 #print(contexts.shape)
                 in_contexts = contexts.T.repeat(self.batch_len, 1)
 
@@ -226,7 +232,7 @@ def train_lin_comp(exp_folder, model_name,  seed, labeled_holdouts, mode = '', t
     if tasks is None: 
         tasks = holdouts
 
-    for task in tasks: 
+    for task in ['COMP2Mod2']: 
         if not overwrite and check_already_trained(file_name, seed, task, mode):
             continue 
         else:        
