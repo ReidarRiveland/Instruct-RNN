@@ -27,9 +27,9 @@ class LinCompTrainerConfig():
     random_seed: int
     comp_vec_dim: int = 45 
     mode: str = ''
-    num_contexts: int = 1
+    num_contexts: int = 50
 
-    epochs: int = 1
+    epochs: int = 10
     min_run_epochs: int = 1
     batch_len: int = 64
     num_batches: int = 500
