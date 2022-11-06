@@ -17,8 +17,34 @@ from instructRNN.analysis.decoder_analysis import *
 
 EXP_FILE = '7.20models/swap_holdouts'
 clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap9'
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
+holdouts_file = 'swap1'
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed0')
+
+holdouts = SWAPS_DICT[holdouts_file]
+task_indices = [TASK_LIST.index(task) for task in TASK_LIST if task not in holdouts]
+reps = get_instruct_reps(clipNet.langModel)
+
+torch.std(task_info_basis)
+
+task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :])+torch.randn(45, 64)*0.8
+
+comp_vec = pickle.load(open('7.20models/swap_holdouts/swap1/clipNet_lin/lin_comp/seed0_COMP1Mod1_chk_comp_vecs', 'rb'))
+
+lin = nn.Linear(45, 1)
+lin.load_state_dict(comp_vec[0])
+
+
+contexts = lin(task_info_basis.float().T)
+contexts.shape
+
+task = 'COMP1Mod1'
+batch_size=50
+
+ins, targets, _, target_dirs, _ = construct_trials(task, batch_size)
+
+
+out, _ = clipNet(torch.Tensor(ins), context = contexts.T.repeat(50, 1))
+np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
 
 
