@@ -183,7 +183,7 @@ class LinCompTrainer(BaseTrainer):
             if self.scheduler is not None: self.scheduler.step()  
             if self.step_last_lr: self.step_scheduler.step()
 
-        warnings.warn('Model has not reach specified performance threshold during training')
+        print('!!!Model has not reach specified performance threshold during training!!!')
         return False
 
     def train(self, model, task, holdouts):
