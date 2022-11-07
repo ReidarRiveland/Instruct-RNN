@@ -21,8 +21,6 @@ from instructRNN.instructions.instruct_utils import get_task_info, get_instructi
 from instructRNN.models.full_models import make_default_model
 from instructRNN.tasks.tasks import DICH_DICT, TASK_LIST, SWAPS_DICT
 from instructRNN.data_loaders.perfDataFrame import *
-from instructRNN.data_loaders.analysis_loaders import *
-
 import os
 
 if torch.cuda.is_available:
@@ -34,30 +32,28 @@ def get_reps_from_tasks(reps, tasks):
     indices = [TASK_LIST.index(task) for task in tasks]
     return reps[indices, ...]
 
-def task_eval(model, task, batch_size, noise=None, instruct_mode = None, instructions = None, use_comp=False, context = None, **trial_kwargs): 
-    ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, noise, **trial_kwargs)
-    if instructions is None: 
-        task_info = get_task_info(batch_size, task, model.info_type, instruct_mode=instruct_mode)
-    else: 
-        task_info = instructions
+def task_eval(model, task, batch_size, instruct_mode = None, instructions = None, comp_task=None, context = None, **trial_kwargs): 
+    ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, **trial_kwargs)
+    if instruct_mode is not None: 
+        instructions = get_task_info(batch_size, task, model.info_type, instruct_mode=instruct_mode)
 
-    if use_comp:
-        comp_task = task
-    else: 
-        comp_task = None
-
-    out, _ = model(torch.Tensor(ins).to(model.__device__), task_info, context = context, comp_task=comp_task)
+    out, _ = model(torch.Tensor(ins).to(model.__device__), instructions, context = context, comp_task=comp_task)
     return np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
-def get_model_performance(model, num_repeats = 1, batch_len=128, instruct_mode=None, use_comp=False): 
+def get_model_performance(model, num_repeats = 1, batch_len=128, instruct_mode=None, context = None, use_comp=False, **trial_kwargs): 
     model.eval()
     perf_array = np.empty(len(TASK_LIST))
     with torch.no_grad():
         for i, task in enumerate(TASK_LIST):
             print(task)
+            if use_comp:
+                comp_task = task
+            else: 
+                comp_task = None 
+
             mean_list = [] 
             for _ in range(num_repeats): 
-                frac_correct = task_eval(model, task, batch_len, instruct_mode=instruct_mode, use_comp=use_comp)
+                frac_correct = task_eval(model, task, batch_len,  instruct_mode = instruct_mode, comp_task=comp_task, context = context, **trial_kwargs)
                 mean_list.append(frac_correct)
             perf_array[i] = np.mean(mean_list)
     return perf_array
@@ -120,9 +116,8 @@ def eval_model_exemplar(model_name, foldername, exp_type, seed, **trial_kwargs):
             model.load_model(model_folder, suffix='_seed'+str(seed))
             for task in tasks: 
                 contexts = pickle.load(open(model_folder+'/contexts/seed'+str(seed)+'_'+task+'exemplar_context_vecs'+str(context_dim), 'rb'))
-                ins, targets, _, target_dirs, _ = construct_trials(task, contexts.shape[0], **trial_kwargs)
-                out, _ = model(torch.Tensor(ins).to(model.__device__), context = torch.Tensor(contexts))
-                perf_array[TASK_LIST.index(task)] = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
+                
+                perf_array[TASK_LIST.index(task)] = task_eval(model, task, 24, context=torch.tensor(contexts))
 
     return perf_array
 
@@ -429,10 +424,10 @@ def get_perf_ccgp_corr(folder, exp_type, model_list):
     ccgp_scores = np.empty((len(model_list), len(TASK_LIST)))
     perf_scores = np.empty((len(model_list), len(TASK_LIST)))
     for i, model_name in enumerate(model_list): 
-        task_ccgp = np.mean(load_holdout_ccgp(folder+'/'+exp_type+'_holdouts', model_name, ['task'], range(5)), axis=(0,1))
-        data = HoldoutDataFrame(folder, exp_type, model_name, seeds=range(5), mode='combined')
+        task_ccgp = PerfDataFrame(folder, exp_type, model_name, seeds=range(5), mode='CCGP')
+        data = PerfDataFrame(folder, exp_type, model_name, seeds=range(5), mode='combined')
         perf_mean, _ = data.avg_seeds(k_shot=0)
-        ccgp_scores[i, :] = task_ccgp
+        ccgp_scores[i, :] = task_ccgp.data
         perf_scores[i, :] = perf_mean
     corr, p_val = pearsonr(ccgp_scores.flatten(), perf_scores.flatten())
 

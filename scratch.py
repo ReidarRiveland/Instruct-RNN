@@ -1,24 +1,47 @@
-from tkinter import font
-import numpy as np
-import scipy
-import sklearn
-from instructRNN.instructions.instruct_utils import get_task_info
-from instructRNN.tasks.task_criteria import isCorrect
-from instructRNN.models.full_models import *
-from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
+# from tkinter import font
+# import numpy as np
+# import scipy
+# import sklearn
+# from instructRNN.instructions.instruct_utils import get_task_info
+# from instructRNN.tasks.task_criteria import isCorrect
+# from instructRNN.models.full_models import *
+# from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 
-from instructRNN.tasks.tasks import *
-import torch
-from instructRNN.models.full_models import *
-from instructRNN.instructions.instruct_utils import get_instructions
+# from instructRNN.tasks.tasks import *
+# import torch
+# from instructRNN.models.full_models import *
+# from instructRNN.instructions.instruct_utils import get_instructions
+# from instructRNN.plotting.plotting import *
+# from instructRNN.analysis.decoder_analysis import *
+
+
+# EXP_FILE = '7.20models/swap_holdouts'
+# clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+# holdouts_file = 'swap1'
+# clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed0')
+
 from instructRNN.plotting.plotting import *
-from instructRNN.analysis.decoder_analysis import *
+clipNet_lin = eval_model_exemplar('clipNet_lin', '7.20models', 'swap', 0)
 
 
-EXP_FILE = '7.20models/swap_holdouts'
-clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap1'
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed0')
+
+
+pickle.load(open('7.20models/swap_holdouts/swap0/clipNet_lin/contexts/seed0_AntiDMMod2exemplar_context_vecs512', 'rb')).shape
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 holdouts = SWAPS_DICT[holdouts_file]
 task_indices = [TASK_LIST.index(task) for task in TASK_LIST if task not in holdouts]

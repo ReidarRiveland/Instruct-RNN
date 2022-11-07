@@ -80,7 +80,7 @@ class LinCompTrainer(BaseTrainer):
         print(status_str, flush=True)
     
     def _init_optimizer(self):
-        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 1e-4)
+        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 5e-4)
 
         if self.scheduler_class is not None:
             self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
@@ -134,15 +134,8 @@ class LinCompTrainer(BaseTrainer):
 
     def _train(self, model, holdouts): 
         self.lin = nn.Linear(45, 1).to(device)
-        # init_w = torch.FloatTensor(45, 1).uniform_(-5, 5)
-        # indices = np.random.choice(np.arange(45), replace=False,
-        #                    size=int(45 * 0.9))
-        # init_w[indices, :] = 0
-        # self.lin.weights = init_w
-
-        #nn.init.sparse_(self.lin.weight, sparsity=0.9, std=100.0)
         #nn.init.normal_(self.lin.weight, std=1.0)
-        #nn.init.uniform_(self.lin.weight, -0.1, 0.1)
+        nn.init.uniform_(self.lin.weight, -0.2, 0.2)
 
         self.set_rule_basis(model, holdouts)
         self._init_optimizer()
