@@ -31,15 +31,15 @@ class LinCompTrainerConfig():
 
     epochs: int = 10
     min_run_epochs: int = 1
-    batch_len: int = 64
-    num_batches: int = 500
+    batch_len: int = 128
+    num_batches: int = 250
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
     lr: float = 0.01
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.9}
+    scheduler_args: dict = {'gamma': 0.8}
 
     checker_threshold: float = 0.95
     step_last_lr: bool = False
@@ -47,7 +47,6 @@ class LinCompTrainerConfig():
 class LinCompTrainer(BaseTrainer): 
     def __init__(self, context_training_config: LinCompTrainerConfig = None): 
         super().__init__(context_training_config)
-        #self.all_contexts = torch.full((self.num_contexts, self.comp_vec_dim), np.nan)
         self.all_contexts = []
         self.all_correct_data = []
         self.all_loss_data = []
@@ -67,7 +66,6 @@ class LinCompTrainer(BaseTrainer):
         filename = self.file_path+'/'+self.seed_suffix+'_'+task
         pickle.dump(is_trained_list, open(filename+self.mode+chk_str+'_is_trained', 'wb'))
         pickle.dump((self.all_correct_data, self.all_loss_data), open(filename+self.mode+chk_str+'_comp_data', 'wb'))
-        #pickle.dump(self.all_contexts.detach().cpu().numpy(), open(filename+self.mode+chk_str+'_comp_vecs', 'wb'))
         pickle.dump(self.all_contexts, open(filename+self.mode+chk_str+'_comp_vecs', 'wb'))
 
     def _log_step(self, task_type, frac_correct, loss): 
@@ -80,16 +78,9 @@ class LinCompTrainer(BaseTrainer):
                 ' ----- Performance: ' + str(self.correct_data[task_type][-1])+\
                 ' ----- Loss: ' + "{:.3e}".format(self.loss_data[task_type][-1])
         print(status_str, flush=True)
-
-    def _init_comp_vec(self): 
-        context = nn.Parameter(torch.empty((1, self.comp_vec_dim), device=device))
-        #nn.init.sparse_(context, sparsity=0.1)
-        nn.init.normal_(context, std=0.1)
-        return context
     
     def _init_optimizer(self):
-        #self.optimizer = self.optim_alg([context], lr=self.lr, weight_decay = 0.001)
-        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 1e-3)
+        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 1e-4)
 
         if self.scheduler_class is not None:
             self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
@@ -134,12 +125,14 @@ class LinCompTrainer(BaseTrainer):
         task_indices = [TASK_LIST.index(task) for task in TASK_LIST if task not in holdouts]
         if hasattr(model, 'langModel'):
             reps = get_instruct_reps(model.langModel)
-            self.task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :]) + torch.randn(45, 64)*0.1
+            #self.task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :]) + torch.randn(45, 64)*0.1
+            self.task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :])
         else: 
-            self.task_info_basis = model.rule_transform[task_indices, :] + torch.randn(45, 64).to(device)*0.1
+            #self.task_info_basis = model.rule_transform[task_indices, :] + torch.randn(45, 64).to(device)*0.1
+            self.task_info_basis = model.rule_transform[task_indices, :]
         self.task_info_basis.to(device)
 
-    def _train(self, model, comp_vec, holdouts): 
+    def _train(self, model, holdouts): 
         self.lin = nn.Linear(45, 1).to(device)
         # init_w = torch.FloatTensor(45, 1).uniform_(-5, 5)
         # indices = np.random.choice(np.arange(45), replace=False,
@@ -147,8 +140,9 @@ class LinCompTrainer(BaseTrainer):
         # init_w[indices, :] = 0
         # self.lin.weights = init_w
 
-        nn.init.sparse_(self.lin.weight, sparsity=0.9, std=100.0)
-        #nn.init.normal_(self.lin.weight, std=24.0)
+        #nn.init.sparse_(self.lin.weight, sparsity=0.9, std=100.0)
+        #nn.init.normal_(self.lin.weight, std=1.0)
+        #nn.init.uniform_(self.lin.weight, -0.1, 0.1)
 
         self.set_rule_basis(model, holdouts)
         self._init_optimizer()
@@ -160,9 +154,7 @@ class LinCompTrainer(BaseTrainer):
                 ins, tar, mask, tar_dir, task_type = data
 
                 self.optimizer.zero_grad()
-                #contexts = torch.matmul(comp_vec, self.task_info_basis.float().to(device))
                 contexts = self.lin(self.task_info_basis.float().T.to(device))
-                #print(contexts.shape)
                 in_contexts = contexts.T.repeat(self.batch_len, 1)
 
                 out, _ = model(ins.to(device), context=in_contexts)
@@ -173,8 +165,13 @@ class LinCompTrainer(BaseTrainer):
                 loss.backward()
                 self.optimizer.step()
 
+                # if self.cur_step == 50:
+                #     self.plat_scheduler.step(loss.item())
 
-                if self.cur_step%20 == 0 or self.cur_step==10:
+
+                if self.cur_step%50 == 0 or self.cur_step==10:
+                    #print(self.lin.weight)
+                    print(self.scheduler.get_last_lr())
                     self._print_training_status(task_type)
 
                 if self._check_model_training():
@@ -206,10 +203,8 @@ class LinCompTrainer(BaseTrainer):
         for i in range(self.range_start, self.num_contexts): 
             is_trained = False 
             print('Training '+str(i)+'th context')
-            comp_vec = self._init_comp_vec()
-            is_trained = self._train(model, comp_vec, holdouts)
+            is_trained = self._train(model, holdouts)
             is_trained_list.append(is_trained)
-            #self.all_contexts[i, :] = comp_vec.squeeze()
             self.all_contexts.append(self.lin.state_dict())
             self._record_session(task, is_trained_list, checkpoint=True)
         self._record_session(task, is_trained_list)                
@@ -233,7 +228,7 @@ def train_lin_comp(exp_folder, model_name,  seed, labeled_holdouts, mode = '', t
     if tasks is None: 
         tasks = holdouts
 
-    for task in tasks: 
+    for task in tasks:
         if not overwrite and check_already_trained(file_name, seed, task, mode):
             continue 
         else:        
