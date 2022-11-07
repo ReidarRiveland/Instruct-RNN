@@ -29,7 +29,7 @@ class LinCompTrainerConfig():
     mode: str = ''
     num_contexts: int = 50
 
-    epochs: int = 10
+    epochs: int = 20
     min_run_epochs: int = 1
     batch_len: int = 128
     num_batches: int = 250

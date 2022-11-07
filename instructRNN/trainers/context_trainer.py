@@ -28,7 +28,7 @@ class ContextTrainerConfig():
     mode: str = ''
     num_contexts: int = 80
 
-    epochs: int = 10
+    epochs: int = 20
     min_run_epochs: int = 1
     batch_len: int = 128
     num_batches: int = 250
@@ -80,7 +80,7 @@ class ContextTrainer(BaseTrainer):
 
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        nn.init.normal_(context, std=1.0)
+        nn.init.uniform_(context, -0.2, 0.2)
         return context
     
     def _init_optimizer(self, context):
