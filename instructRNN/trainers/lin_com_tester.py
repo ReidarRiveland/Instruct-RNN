@@ -27,7 +27,7 @@ class LinCompTrainerConfig():
     random_seed: int
     comp_vec_dim: int = 45 
     mode: str = ''
-    num_contexts: int = 1
+    num_contexts: int = 25
 
     epochs: int = 10
     min_run_epochs: int = 1
@@ -135,7 +135,7 @@ class LinCompTrainer(BaseTrainer):
         self.lin = nn.Linear(45, 1).to(device)
         self.set_rule_basis(model, holdouts)
         #nn.init.uniform_(self.lin.weight, -1, 1)
-        if self.mode != 'relu':
+        if self.mode == '':
             nn.init.uniform_(self.lin.weight, -0.2, 0.2)
 
         self._init_optimizer()
@@ -147,7 +147,7 @@ class LinCompTrainer(BaseTrainer):
                 ins, tar, mask, tar_dir, task_type = data
 
                 self.optimizer.zero_grad()
-                if self.mode == 'relu':
+                if self.mode == 'tanh':
                     contexts = torch.tanh(self.lin(self.task_info_basis.float().T.to(device)))
                 else:
                     contexts = self.lin(self.task_info_basis.float().T.to(device))
