@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
         if args.mode == 'lin_comp':
             from instructRNN.trainers.lin_com_tester import *
-            train_lin_comp(EXP_FOLDER, model, _seed, holdouts, mode = '', overwrite=args.overwrite)
+            train_lin_comp(EXP_FOLDER, model, _seed, holdouts, mode = 'relu', overwrite=args.overwrite)
 
         if args.mode == 'exemplar_context': 
             from instructRNN.trainers.context_trainer import *
