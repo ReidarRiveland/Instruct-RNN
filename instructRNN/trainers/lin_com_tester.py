@@ -125,17 +125,13 @@ class LinCompTrainer(BaseTrainer):
         task_indices = [TASK_LIST.index(task) for task in TASK_LIST if task not in holdouts]
         if hasattr(model, 'langModel'):
             reps = get_instruct_reps(model.langModel)
-            #self.task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :]) + torch.randn(45, 64)*0.1
             self.task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :])
         else: 
-            #self.task_info_basis = model.rule_transform[task_indices, :] + torch.randn(45, 64).to(device)*0.1
             self.task_info_basis = model.rule_transform[task_indices, :]
         self.task_info_basis.to(device)
 
     def _train(self, model, holdouts): 
         self.lin = nn.Linear(45, 1).to(device)
-        #nn.init.normal_(self.lin.weight, std=1.0)
-
         if self.mode != 'relu':
             nn.init.uniform_(self.lin.weight, -0.2, 0.2)
 
@@ -164,12 +160,7 @@ class LinCompTrainer(BaseTrainer):
                 loss.backward()
                 self.optimizer.step()
 
-                # if self.cur_step == 50:
-                #     self.plat_scheduler.step(loss.item())
-
-
                 if self.cur_step%50 == 0 or self.cur_step==10:
-                    #print(self.lin.weight)
                     print(self.scheduler.get_last_lr())
                     self._print_training_status(task_type)
 
