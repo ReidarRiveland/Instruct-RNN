@@ -39,7 +39,7 @@ class LinCompTrainerConfig():
     lr: float = 0.05
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.1}
+    scheduler_args: dict = {'gamma': 0.5}
 
     checker_threshold: float = 0.95
     step_last_lr: bool = False
