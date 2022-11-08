@@ -32,7 +32,7 @@ class LinCompTrainerConfig():
     epochs: int = 10
     min_run_epochs: int = 1
     batch_len: int = 256
-    num_batches: int = 250
+    num_batches: int = 500
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
