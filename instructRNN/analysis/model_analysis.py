@@ -94,7 +94,11 @@ def eval_model_0_shot(model_name, folder_name, exp_type, seed, instruct_mode=Non
             print(holdout_label)
             model.load_model(folder_name+'/'+exp_type+'_holdouts/'+holdout_label+'/'+model.model_name, suffix='_seed'+str(seed))
             for task in tasks: 
-                perf_array[TASK_LIST.index(task)] = task_eval(model, task, 64, instruct_mode=instruct_mode, use_comp=use_comp)
+                if use_comp: 
+                    comp_task = task 
+                else: 
+                    comp_task = None
+                perf_array[TASK_LIST.index(task)] = task_eval(model, task, 64, instruct_mode=instruct_mode, comp_task=comp_task)
     return perf_array
 
 def eval_model_exemplar(model_name, foldername, exp_type, seed, **trial_kwargs):

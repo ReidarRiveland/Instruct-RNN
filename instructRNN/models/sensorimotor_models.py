@@ -203,12 +203,13 @@ class InstructNet(BaseNet):
     
 
     def forward(self, x, instruction = None, context = None, comp_task=None):
-        assert instruction is not None or context is not None, 'must have instruction or context input'
+        assert instruction is not None or context is not None or comp_task is not None, 'must have instruction or context input'
         
         if comp_task is not None: 
             ref_tasks = construct_trials(comp_task, None).comp_ref_tasks
             task_infos = [self.langModel(get_instructions(x.shape[0], task)) for task in ref_tasks]
             info_embedded = (task_infos[0] - task_infos[1]) + task_infos[2]
+
         elif instruction is not None: 
             info_embedded = self.langModel(instruction)
         elif context.shape[-1] == self.langModel.LM_intermediate_lang_dim:

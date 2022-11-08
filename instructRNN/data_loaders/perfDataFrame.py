@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import warnings
 
-from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT
+from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT, MULTITASK_DICT
 
 # @dataclass
 # class HoldoutDataFrame(): 
@@ -97,7 +97,7 @@ class PerfDataFrame():
     model_name: str
     perf_type: str = 'correct'
     mode: str = ''
-    holdout_file: str = ''
+    training_file: str = ''
 
     seeds: range = range(5)
     layer_list: tuple = ()
@@ -108,6 +108,8 @@ class PerfDataFrame():
             self.exp_dict = SWAPS_DICT
         elif self.exp_type == 'family': 
             self.exp_dict = FAMILY_DICT
+        elif self.exp_type == 'multitask': 
+            self.exp_dict = MULTITASK_DICT
 
         ###load modes
         if self.mode == 'multi_CCGP':
@@ -119,7 +121,7 @@ class PerfDataFrame():
         elif self.mode == 'multi_comp': 
             load_str = self.file_path+'/multitask_holdouts/multi_comp_perf/'+self.model_name+'/'+self.model_name+'_multi_comp_perf_seed{}.npy'
             self.load_multi_measure(load_str)
-        elif self.mode == 'training': 
+        elif len(self.training_file)>1: 
             self.load_training_data()
         else: 
             self.load_holdout_data()
@@ -152,7 +154,6 @@ class PerfDataFrame():
             if k_shot is None: 
                 k_shot=slice(0, self.num_batches)
 
-
             data = self.data[seeds, :, k_shot]
             _mean = np.nanmean(data, axis=1)
             std = np.nanstd(_mean, axis=0)
@@ -182,11 +183,11 @@ class PerfDataFrame():
         super().__setattr__('data', data)
 
     def load_training_data(self): 
-        assert len(self.holdout_file)>1
-        data = np.full((len(self.seeds), len(TASK_LIST), 100_000), np.NaN)
+        self.num_batches = 5000
+        data = np.full((len(self.seeds), len(TASK_LIST), self.num_batches), np.NaN)
         for i in self.seeds:
             seed_name = 'seed' + str(i)
-            load_path = self.file_path+'/'+self.exp_type+'_holdouts/'+self.holdout_file+'/'+self.model_name+'/'+seed_name
+            load_path = self.file_path+'/'+self.exp_type+'_holdouts/'+self.training_file+'/'+self.model_name+'/'+seed_name
 
             try:
                 data_dict = pickle.load(open(load_path+'_training_'+self.perf_type, 'rb'))
@@ -194,7 +195,7 @@ class PerfDataFrame():
                 if self.verbose:print('No folder for '+ load_path)
                 
             for k, task in enumerate(TASK_LIST): 
-                if task in self.exp_dict[self.holdout_file]:
+                if task in self.exp_dict[self.training_file]:
                     continue
                 num_examples = len(data_dict[task])
                 data[i, k,:num_examples] = data_dict[task]

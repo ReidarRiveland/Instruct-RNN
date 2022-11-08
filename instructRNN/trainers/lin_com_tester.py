@@ -27,19 +27,19 @@ class LinCompTrainerConfig():
     random_seed: int
     comp_vec_dim: int = 45 
     mode: str = ''
-    num_contexts: int = 50
+    num_contexts: int = 1
 
     epochs: int = 10
     min_run_epochs: int = 1
-    batch_len: int = 128
+    batch_len: int = 256
     num_batches: int = 250
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.01
+    lr: float = 0.05
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.8}
+    scheduler_args: dict = {'gamma': 0.1}
 
     checker_threshold: float = 0.95
     step_last_lr: bool = False
@@ -125,17 +125,19 @@ class LinCompTrainer(BaseTrainer):
         task_indices = [TASK_LIST.index(task) for task in TASK_LIST if task not in holdouts]
         if hasattr(model, 'langModel'):
             reps = get_instruct_reps(model.langModel)
-            self.task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :])
+            instruct_indices = np.random.choice(range(15), size=50)
+            self.task_info_basis = torch.tensor(reps[range(50), instruct_indices, :][task_indices, :])+(torch.randn(45, 64)*0.1)
         else: 
             self.task_info_basis = model.rule_transform[task_indices, :]
         self.task_info_basis.to(device)
 
     def _train(self, model, holdouts): 
         self.lin = nn.Linear(45, 1).to(device)
+        self.set_rule_basis(model, holdouts)
+        #nn.init.uniform_(self.lin.weight, -1, 1)
         if self.mode != 'relu':
             nn.init.uniform_(self.lin.weight, -0.2, 0.2)
 
-        self.set_rule_basis(model, holdouts)
         self._init_optimizer()
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
             for self.cur_step in range(self.num_batches): 
@@ -146,7 +148,7 @@ class LinCompTrainer(BaseTrainer):
 
                 self.optimizer.zero_grad()
                 if self.mode == 'relu':
-                    contexts = torch.relu(self.lin(self.task_info_basis.float().T.to(device)))
+                    contexts = torch.tanh(self.lin(self.task_info_basis.float().T.to(device)))
                 else:
                     contexts = self.lin(self.task_info_basis.float().T.to(device))
 
