@@ -114,17 +114,15 @@ class PerfDataFrame():
             load_str = self.file_path+'/multitask_holdouts/CCGP_scores/'+self.model_name+'/layertask_task_multi_seed{}.npy'
             self.load_multi_measure(load_str)
         elif self.mode == 'val': 
-            load_str = self.file_path+'/multitask_holdouts/val_perf/'+self.model_name+'/'+self.model_name+'_val_perf_seed{}'
+            load_str = self.file_path+'/multitask_holdouts/val_perf/'+self.model_name+'/'+self.model_name+'_val_perf_seed{}.npy'
             self.load_multi_measure(load_str)
-
         elif self.mode == 'multi_comp': 
-            load_str = self.file_path+'/multitask_holdouts/multi_comp_perf/'+self.model_name+'/'+self.model_name+'_multi_comp_perf_seed{}'
+            load_str = self.file_path+'/multitask_holdouts/multi_comp_perf/'+self.model_name+'/'+self.model_name+'_multi_comp_perf_seed{}.npy'
             self.load_multi_measure(load_str)
-
         elif self.mode == 'training': 
             self.load_training_data()
         else: 
-            load_holdout_data()
+            self.load_holdout_data()
 
     def get_k_shot(self, k, task=None): 
         if task is None: 
@@ -168,11 +166,11 @@ class PerfDataFrame():
         else: 
             self.num_batches = 100
 
-        data = np.full((len(seeds), len(TASK_LIST), self.num_batches), np.nan) #seeds, task, num_batches        
+        data = np.full((len(self.seeds), len(TASK_LIST), self.num_batches), np.nan) #seeds, task, num_batches        
         for i in self.seeds:
             seed_name = 'seed' + str(i)
 
-            for label, tasks in training_sets.items():
+            for label, tasks in self.exp_dict.items():
                 for task in tasks: 
                     load_path = self.file_path+'/'+self.exp_type+'_holdouts/'+label+'/'+self.model_name+'/holdouts/'\
                                     +self.mode+task+'_'+seed_name
@@ -185,7 +183,7 @@ class PerfDataFrame():
 
     def load_training_data(self): 
         assert len(self.holdout_file)>1
-        data = np.full((5, len(TASK_LIST), 100_000), np.NaN)
+        data = np.full((len(self.seeds), len(TASK_LIST), 100_000), np.NaN)
         for i in self.seeds:
             seed_name = 'seed' + str(i)
             load_path = self.file_path+'/'+self.exp_type+'_holdouts/'+self.holdout_file+'/'+self.model_name+'/'+seed_name
@@ -207,9 +205,9 @@ class PerfDataFrame():
         data = np.full((len(self.seeds), len(TASK_LIST), 1), np.nan)
         for i, seed in enumerate(self.seeds):
             try:
-                load_str = load_str.format(str(seed))
-                print(load_str)
-                seed_data_arr = np.load(open(load_str, 'rb'))
+                tmp_load_str = load_str.format(str(seed))
+                print(tmp_load_str)
+                seed_data_arr = np.load(open(tmp_load_str, 'rb'))
                 data[i, :] = seed_data_arr[:, None]
             except FileNotFoundError:
                 if self.verbose: 

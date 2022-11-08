@@ -6,24 +6,24 @@ from instructRNN.tasks.task_factory import *
 from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio
 
 from instructRNN.data_loaders.perfDataFrame import *
-data = PerfDataFrame('7.20models', 'swap', 'clipNet_lin', mode = 'multi_comp')
 
-np.mean(data.data)
+data = PerfDataFrame('7.20models', 'swap', 'gptNet_lin', mode = 'val')
+
+zero_shot, std = data.avg_seeds(k_shot=0)
 
 to_plot_models = ['simpleNet', 'simpleNetPlus', 'bowNet_lin',  'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'sbertNet_lin', 'clipNet_lin']
 tuned_to_plot = ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin_tuned']
 
-
 plot_all_training_curves('7.20models', 'multitask', 'Multitask', to_plot_models)
 
 ##VALIDATION
-plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[2:][::-1], seeds =range(1), mode='validation')
-plot_0_shot_task_hist('7.20models', 'swap', to_plot_models[2:], seeds =range(0,5), mode='validation')
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[2:][::-1], mode='val')
 
 ###HOLDOUTS
-plot_avg_holdout_curve('7.20models', 'swap', to_plot_models, seeds =range(0, 5), mode='combined')
+plot_avg_curve('7.20models', 'swap', to_plot_models, mode='combined')
 plot_0_shot_task_hist('7.20models', 'swap', to_plot_models, seeds =range(0,5), mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='combined')
+
 
 ##TUNED HOLDOUTS
 plot_avg_holdout_curve('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined')
@@ -46,8 +46,6 @@ plot_all_task_lolli_v('7.20models', 'family', to_plot_models[::-1], seeds =range
 plot_simpleNet_comps('7.20models', 'swap', ['simpleNet', 'simpleNetPlus'])
 plot_0_shot_task_hist('7.20models', 'swap', ['simpleNet', 'simpleNetPlus', 'simpleNet_comp', 'simpleNetPlus_comp'][::-1], seeds =range(0,5))
 plot_all_task_lolli_v('7.20models', 'swap', ['simpleNet', 'simpleNetPlus', 'simpleNet_comp', 'simpleNetPlus_comp'][::-1], seeds =range(0,5))
-
-'simpleNet_comp'.split('_')[0]
 
 ####PC PLOTS
 EXP_FILE = '7.20models/swap_holdouts'

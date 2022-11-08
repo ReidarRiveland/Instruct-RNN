@@ -80,7 +80,7 @@ class LinCompTrainer(BaseTrainer):
         print(status_str, flush=True)
     
     def _init_optimizer(self):
-        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 5e-4)
+        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 1e-4)
 
         if self.scheduler_class is not None:
             self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
@@ -135,7 +135,9 @@ class LinCompTrainer(BaseTrainer):
     def _train(self, model, holdouts): 
         self.lin = nn.Linear(45, 1).to(device)
         #nn.init.normal_(self.lin.weight, std=1.0)
-        nn.init.uniform_(self.lin.weight, -0.2, 0.2)
+
+        if self.mode != 'relu':
+            nn.init.uniform_(self.lin.weight, -0.2, 0.2)
 
         self.set_rule_basis(model, holdouts)
         self._init_optimizer()
@@ -147,7 +149,11 @@ class LinCompTrainer(BaseTrainer):
                 ins, tar, mask, tar_dir, task_type = data
 
                 self.optimizer.zero_grad()
-                contexts = self.lin(self.task_info_basis.float().T.to(device))
+                if self.mode == 'relu':
+                    contexts = torch.relu(self.lin(self.task_info_basis.float().T.to(device)))
+                else:
+                    contexts = self.lin(self.task_info_basis.float().T.to(device))
+
                 in_contexts = contexts.T.repeat(self.batch_len, 1)
 
                 out, _ = model(ins.to(device), context=in_contexts)
