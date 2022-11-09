@@ -36,7 +36,7 @@ class LinCompTrainerConfig():
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.001
+    lr: float = 0.005
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
     scheduler_args: dict = {'gamma': 0.9}
@@ -80,7 +80,7 @@ class LinCompTrainer(BaseTrainer):
         print(status_str, flush=True)
     
     def _init_optimizer(self):
-        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 1e-3)
+        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 1e-4)
 
         if self.scheduler_class is not None:
             #self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=5, eta_min = 1e-5)
