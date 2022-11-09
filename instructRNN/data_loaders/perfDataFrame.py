@@ -13,6 +13,7 @@ class PerfDataFrame():
     perf_type: str = 'correct'
     mode: str = ''
     training_file: str = ''
+    submode: str = None
 
     seeds: range = range(5)
     layer_list: tuple = ()
@@ -36,6 +37,10 @@ class PerfDataFrame():
         elif self.mode == 'multi_comp': 
             load_str = self.file_path+'/multitask_holdouts/multi_comp_perf/'+self.model_name+'/'+self.model_name+'_multi_comp_perf_seed{}.npy'
             self.load_multi_measure(load_str)
+        elif self.mode == 'lin_comp':
+            self.load_context_data()
+        elif self.mode == 'context': 
+            self.load_context_data(submode='context')
         elif len(self.training_file)>1: 
             self.load_training_data()
         else: 
@@ -132,7 +137,7 @@ class PerfDataFrame():
 
         super().__setattr__('data', data)
 
-    def load_holdout_CCGP(self, mode=''): 
+    def load_holdout_CCGP(self, submode=''): 
         data = np.full((len(self.seeds), len(TASK_LIST), len(layer_list)), np.nan)        
 
         for i, seed in enumerate(self.seeds):
@@ -144,5 +149,26 @@ class PerfDataFrame():
                 except FileNotFoundError:
                     if self.verbose: 
                         print('no data for layer {} for model {} seed {}'.format(layer, model_name, seed))
+
+        super().__setattr__('data', data)
+
+    def load_context_data(self, submode='lin_comp'): 
+        data = np.full((len(self.seeds), 50, len(TASK_LIST),  2500), np.nan)
+
+        for i, seed in enumerate(self.seeds):
+            seed_name = 'seed' + str(seed)
+
+            for label, tasks in self.exp_dict.items():
+                for task in tasks: 
+                    print(task)
+                    try:
+                        load_str = self.file_path+'/'+self.exp_type+'_holdouts/'+label+'/'+self.model_name+'/lin_comp/'+seed_name+'_'+task+'_'+'comp_data'
+                        tmp_data_list = pickle.load(open(load_str, 'rb'))[0]
+                        for k in range(len(tmp_data_list)):
+                            trial_data_list = tmp_data_list[k]
+                            data[i, k, TASK_LIST.index(task), :len(trial_data_list)] = trial_data_list
+                    except FileNotFoundError:
+                        if self.verbose: 
+                            print('no data for task {} for model {} seed {}'.format(task, self.model_name, seed))
 
         super().__setattr__('data', data)

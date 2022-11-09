@@ -61,7 +61,7 @@ def get_all_tasks_markers(task):
     color = plt.get_cmap('tab10')(group_index)
     return color, marker
 
-def make_all_axes():
+def make_all_axes(xlim=None):
     fig, axn = plt.subplots(5,10, sharey = True, sharex=True, figsize =(8, 8))
     for j, task in enumerate(TASK_LIST):
         ax = axn.flat[j]
@@ -71,6 +71,8 @@ def make_all_axes():
         ax.yaxis.set_tick_params(labelsize=5)
         ax.set_yticks([0,1])
         ax.set_yticklabels(['{:,.0%}'.format(x) for x in [0, 1]])
+        if xlim is not None: 
+            ax.set_xlim(xlim)
     return fig, axn
 
 def make_avg_axes():
@@ -84,10 +86,6 @@ def make_avg_axes():
     axn.yaxis.set_tick_params(labelsize=8)
     axn.yaxis.set_major_locator(MaxNLocator(10)) 
     axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
-
-    #fig.suptitle('Performance on Novel Tasks')
-    #fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')   
-    #fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')   
     return fig, axn
 
 def _plot_performance_curve(avg_perf, std_perf, plt_ax, color, zero_marker, **plt_args):
@@ -96,38 +94,36 @@ def _plot_performance_curve(avg_perf, std_perf, plt_ax, color, zero_marker, **pl
         plt_ax.plot(avg_perf, color=color, **plt_args)
         plt_ax.scatter(0, avg_perf[0], color=color, s=2, marker=zero_marker)
 
-def _plot_all_performance_curves(data, plt_axn, color, zero_marker, **plt_args):
-    mean, std = data.avg_seeds()
+def plot_all_performance_curves(avg_perf, std_perf, plt_axn, color, zero_marker, **plt_args):
     for j, ax in enumerate(plt_axn.flat):
-        _plot_performance_curve(mean[j, :], std[j, :], ax, color, zero_marker, **plt_args)
+        _plot_performance_curve(avg_perf[j, :], std_perf[j, :], ax, color, zero_marker, **plt_args)
 
-def plot_avg_curve(foldername, exp_type, model_list, mode = '', 
-                    perf_type='correct', seeds=range(5), axn=None, zero_marker = 'o', **curve_kwargs):
-    if axn is None: 
-        _, axn = make_avg_axes()
-
-    for model_name in model_list:
-        color = MODEL_STYLE_DICT[model_name][0] 
-        marker = MODEL_STYLE_DICT[model_name][1]
-        data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
-        mean, std = data.avg_tasks()
-        _plot_performance_curve(mean, std, axn, color, zero_marker=zero_marker, linewidth=1.0, **curve_kwargs)
-        
-    return axn
-
-def plot_all_curves(foldername, exp_type, model_list, training_file = '', mode = '', 
+def plot_curves(foldername, exp_type, model_list, mode = '', training_file = '', avg=False, 
                     perf_type='correct', seeds=range(5), axn=None, zero_marker = None, **curve_kwargs):
-    with plt.rc_context({'axes.grid': False}):
+    if avg: 
+        plt_func = _plot_performance_curve
+        axes_func = make_avg_axes
+        context_kwargs = {}
+    else:
+        plt_func = _plot_all_performance_curves
+        axes_func = make_all_axes
+        context_kwargs = {'axes.grid': False}
 
+    with plt.rc_context(context_kwargs):
         if axn is None: 
-            fig, axn = make_all_axes()
+            fig, axn = axes_func()
 
         for model_name in model_list:
             color = MODEL_STYLE_DICT[model_name][0] 
             data = PerfDataFrame(foldername, exp_type, model_name, training_file = training_file, perf_type=perf_type, mode = mode, seeds=seeds)
-            _plot_all_performance_curves(data, axn, color, zero_marker, linewidth = 0.6, **curve_kwargs)
+            if avg: mean, std = data.avg_tasks()
+            else: mean, std = data.avg_seeds()
 
-        return axn
+            plt_func(mean, std, axn, color, zero_marker, **curve_kwargs)
+
+        fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')   
+        return fig, axn
+    
 
 def plot_k_shot_task_hist(foldername, exp_type, model_list, k= 0, perf_type='correct', mode='', seeds=range(5)): 
     with plt.rc_context({'axes.grid.axis': 'x'}):

@@ -1,18 +1,18 @@
-# from tkinter import font
-# import numpy as np
-# import scipy
-# import sklearn
-# from instructRNN.instructions.instruct_utils import get_task_info
-# from instructRNN.tasks.task_criteria import isCorrect
-# from instructRNN.models.full_models import *
-# from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
+from tkinter import font
+import numpy as np
+import scipy
+import sklearn
+from instructRNN.instructions.instruct_utils import get_task_info
+from instructRNN.tasks.task_criteria import isCorrect
+from instructRNN.models.full_models import *
+from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 
-# from instructRNN.tasks.tasks import *
-# import torch
-# from instructRNN.models.full_models import *
-# from instructRNN.instructions.instruct_utils import get_instructions
-# from instructRNN.plotting.plotting import *
-# from instructRNN.analysis.decoder_analysis import *
+from instructRNN.tasks.tasks import *
+import torch
+from instructRNN.models.full_models import *
+from instructRNN.instructions.instruct_utils import get_instructions
+from instructRNN.plotting.plotting import *
+from instructRNN.analysis.decoder_analysis import *
 
 
 # EXP_FILE = '7.20models/swap_holdouts'
@@ -20,13 +20,37 @@
 # holdouts_file = 'swap1'
 # clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed0')
 
-from instructRNN.plotting.plotting import *
-clipNet_lin = eval_model_exemplar('clipNet_lin', '7.20models', 'swap', 0)
+# from instructRNN.plotting.plotting import *
+# clipNet_lin = eval_model_exemplar('clipNet_lin', '7.20models', 'swap', 0)
+
+
+plot_all_performance_curves
+
+def plot_context_curves(foldername, exp_type, model_list, mode = 'lin_comp', avg=False, 
+                    perf_type='correct', seeds=range(5), axn=None, zero_marker = None, **curve_kwargs):
+    if axn is None: 
+        fig, axn = make_all_axes((-1, 100))
+
+    for model_name in model_list:
+        color = MODEL_STYLE_DICT[model_name][0] 
+        data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
+        reshaped_data = data.data[0, ...]
+        # mean = np.nanmean(reshaped_data, axis=0)
+        # std = np.nanstd(reshaped_data, axis=0)
+        for i in range(10):
+            print(i)
+            mean = reshaped_data[i, ...]
+            std = np.zeros_like(mean)
+            plot_all_performance_curves(mean, std, axn, color, zero_marker, **curve_kwargs)
+
+
+plot_context_curves('7.20models', 'swap', ['simpleNet', 'clipNet_lin'], linewidth=0.5, alpha=0.5)
+plt.show()
 
 
 
 
-pickle.load(open('7.20models/swap_holdouts/swap0/clipNet_lin/contexts/seed0_AntiDMMod2exemplar_context_vecs512', 'rb')).shape
+
 
 
 

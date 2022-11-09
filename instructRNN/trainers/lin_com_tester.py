@@ -27,19 +27,19 @@ class LinCompTrainerConfig():
     random_seed: int
     comp_vec_dim: int = 45 
     mode: str = ''
-    num_contexts: int = 50
+    num_contexts: int = 10
 
-    epochs: int = 10
+    epochs: int = 5
     min_run_epochs: int = 1
-    batch_len: int = 128
+    batch_len: int = 64
     num_batches: int = 250
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.01
+    lr: float = 0.001
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.8}
+    scheduler_args: dict = {'gamma': 0.99}
 
     checker_threshold: float = 0.95
     step_last_lr: bool = False
@@ -136,8 +136,7 @@ class LinCompTrainer(BaseTrainer):
         self.lin = nn.Linear(45, 1).to(device)
         self.set_rule_basis(model, holdouts)
         #nn.init.uniform_(self.lin.weight, -1, 1)
-        if self.mode == '':
-            nn.init.uniform_(self.lin.weight, -0.2, 0.2)
+        nn.init.uniform_(self.lin.weight, -0.2, 0.2)
 
         self._init_optimizer()
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
