@@ -26,7 +26,8 @@ plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0
 
 
 ##TUNED HOLDOUTS
-plot_avg_holdout_curve('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined')
+plot_avg_curve('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined')
+plt.show()
 plot_0_shot_task_hist('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot[::-1], seeds =range(0, 5), mode='combined')
 

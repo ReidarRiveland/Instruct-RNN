@@ -5,91 +5,6 @@ import warnings
 
 from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT, MULTITASK_DICT
 
-# @dataclass
-# class HoldoutDataFrame(): 
-#     file_path: str
-#     exp_type: str 
-#     model_name: str
-#     perf_type: str = 'correct'
-#     mode: str = ''
-#     seeds: range = range(5)
-#     layer_list: list = []
-#     verbose: bool = True
-
-
-#     def __post_init__(self):
-#         if self.model_name == 'simpleNet' and self.mode == 'combined': 
-#             self.mode = ''
-            
-#         self.load_data()
-
-#     def get_k_shot(self, k, task=None): 
-#         if task is None: 
-#             return self.data[:, :, k]
-#         else: 
-#             return self.data[:,TASK_LIST.index(task),k]
-
-#     def get_seed(self, seed: int): 
-#         return self.data[seed, ...]
-
-#     def get_task(self, task:str): 
-#         return self.data[:, TASK_LIST.index(task), :]
-
-#     def avg_seeds(self, task=None, k_shot=None): 
-#         with warnings.catch_warnings():
-#             warnings.simplefilter("ignore", category=RuntimeWarning)
-#             i = TASK_LIST.index(task) if task in TASK_LIST else slice(0, len(TASK_LIST))
-
-#             if k_shot is None: 
-#                 k_shot=slice(0, self.num_batches)
-
-#             data = self.data[:, i, k_shot]
-#             mean = np.nanmean(data, axis=0)
-#             std = np.nanstd(data, axis=0)
-#             return mean, std
-
-#     def avg_tasks(self, seeds=range(5), k_shot=None): 
-#         with warnings.catch_warnings():
-#             warnings.simplefilter("ignore", category=RuntimeWarning)
-#             if k_shot is None: 
-#                 k_shot=slice(0, self.num_batches)
-
-
-#             data = self.data[seeds, :, k_shot]
-#             _mean = np.nanmean(data, axis=1)
-#             std = np.nanstd(_mean, axis=0)
-#             mean = np.nanmean(_mean, axis=0)
-
-#             return mean, std
-
-#     def load_data(self): 
-#         if self.exp_type == 'swap': 
-#             training_sets = SWAPS_DICT
-#         elif self.exp_type == 'aligned': 
-#             training_sets = ALIGNED_DICT
-#         elif self.exp_type == 'family': 
-#             training_sets = FAMILY_DICT
-
-#         if 'input' in self.mode or 'comp' in self.mode:
-#             self.num_batches = 1500
-#         else: 
-#             self.num_batches = 100
-
-#         data = np.full((5, len(TASK_LIST), self.num_batches), np.nan) #seeds, task, num_batches        
-#         for i in self.seeds:
-#             seed_name = 'seed' + str(i)
-#             for label, tasks in training_sets.items():
-#                 for task in tasks: 
-#                     load_path = self.file_path+'/'+self.exp_type+'_holdouts/'+label+'/'+self.model_name+'/holdouts/'\
-#                                     +self.mode+task+'_'+seed_name
-#                     try:
-#                         data[i, TASK_LIST.index(task), :] = pickle.load(open(load_path+'_' + self.perf_type, 'rb'))
-#                     except FileNotFoundError: 
-#                         if self.verbose:
-#                             print('No holdout data for '+ load_path)
-#         super().__setattr__('data', data)
-
-
 @dataclass
 class PerfDataFrame(): 
     file_path: str
@@ -101,7 +16,7 @@ class PerfDataFrame():
 
     seeds: range = range(5)
     layer_list: tuple = ()
-    verbose: bool = False
+    verbose: bool = True
 
     def __post_init__(self):
         if self.exp_type == 'swap': 

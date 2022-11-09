@@ -20,7 +20,7 @@ import warnings
 
 from matplotlib import rc
 plt.rcParams["font.family"] = "serif"
-plt.rcParams['figure.dpi'] = 120
+plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
 plt.rcParams['axes.spines.top'] = False
 plt.rcParams['axes.spines.right'] = False
@@ -111,7 +111,7 @@ def plot_avg_curve(foldername, exp_type, model_list, mode = '',
         marker = MODEL_STYLE_DICT[model_name][1]
         data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
         mean, std = data.avg_tasks()
-        _plot_performance_curve(mean, std, axn, color=color, linewidth=1.0, **curve_kwargs)
+        _plot_performance_curve(mean, std, axn, color, zero_marker=zero_marker, linewidth=1.0, **curve_kwargs)
         
     return axn
 

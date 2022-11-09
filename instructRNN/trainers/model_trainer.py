@@ -273,8 +273,12 @@ def load_checkpoint(model, file_name, seed):
 
 def load_tuning_checkpoint(model, trainer, file_name, seed):
     untuned_model_name = model.model_name.replace('_tuned', '')
+    # for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
+    #         untuned_model_name+'_seed'+str(seed)+'_FOR_TUNING.pt'
+
     for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
-            untuned_model_name+'_seed'+str(seed)+'_FOR_TUNING.pt'
+             untuned_model_name+'_seed'+str(seed)+'.pt'
+
 
     print('\n Attempting to load model FOR_TUNING')
     if not exists(for_tuning_model_path): 
@@ -331,13 +335,13 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
 
     if 'gptNetXL' in model_name:
         tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
-                                            epochs=120, min_run_epochs=5, init_lr=1e-5, init_lang_lr=1e-5, scheduler_gamma=0.99,
+                                            epochs=120, min_run_epochs=5, init_lr=5e-5, init_lang_lr=1e-5, scheduler_gamma=0.99,
                                             save_for_tuning_epoch=np.nan, 
                                             **train_config_kwargs)
 
     elif 'gptNet_lin' in model_name:
         tuning_config = TrainerConfig(file_name+'/'+model_name, seed, holdouts=holdouts, batch_len=64,
-                                            epochs=120, min_run_epochs=5, init_lr=1e-4, init_lang_lr=5e-5, scheduler_gamma=0.99,
+                                            epochs=120, min_run_epochs=5, init_lr=5e-5, init_lang_lr=1e-5, scheduler_gamma=0.99,
                                             save_for_tuning_epoch=np.nan, checker_threshold=0.85,
                                             **train_config_kwargs)
     else: 
