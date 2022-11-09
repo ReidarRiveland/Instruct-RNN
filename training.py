@@ -43,6 +43,7 @@ if __name__ == "__main__":
                                                     must be emd or last, only for use if mode is context')
     parser.add_argument('--use_holdouts', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
     parser.add_argument('--job_index', type=int, help='for use with slurm sbatch script, indexes the combination of seed and holdout tasks along with the model')
+    parser.add_argument('--comp_mode', type=str)
     args = parser.parse_args()
 
     MODEL_FOLDER = args.folder
@@ -77,7 +78,7 @@ if __name__ == "__main__":
 
         if args.mode == 'lin_comp':
             from instructRNN.trainers.lin_com_tester import *
-            train_lin_comp(EXP_FOLDER, model, _seed, holdouts, mode = '', overwrite=args.overwrite)
+            train_lin_comp(EXP_FOLDER, model, _seed, holdouts, mode = args.comp_mode, overwrite=args.overwrite)
 
         if args.mode == 'exemplar_context': 
             from instructRNN.trainers.context_trainer import *
