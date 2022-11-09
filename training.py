@@ -43,7 +43,7 @@ if __name__ == "__main__":
                                                     must be emd or last, only for use if mode is context')
     parser.add_argument('--use_holdouts', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
     parser.add_argument('--job_index', type=int, help='for use with slurm sbatch script, indexes the combination of seed and holdout tasks along with the model')
-    parser.add_argument('--comp_mode', type=str)
+    parser.add_argument('--comp_mode', type=str, default='')
     args = parser.parse_args()
 
     MODEL_FOLDER = args.folder
