@@ -27,7 +27,7 @@ class LinCompTrainerConfig():
     random_seed: int
     comp_vec_dim: int = 45 
     mode: str = ''
-    num_contexts: int = 50
+    num_contexts: int = 3
 
     epochs: int = 10
     min_run_epochs: int = 1
@@ -54,8 +54,8 @@ class LinCompTrainer(BaseTrainer):
 
     def _record_session(self, task, is_trained_list, checkpoint=False):
         if checkpoint:
-            self.all_correct_data.append(self.correct_data[task])
-            self.all_loss_data.append(self.loss_data[task])
+            self.all_correct_data.append(self.correct_data.pop(task))
+            self.all_loss_data.append(self.loss_data.pop(task))
 
         if os.path.exists(self.file_path):pass
         else: os.makedirs(self.file_path)
@@ -194,12 +194,12 @@ class LinCompTrainer(BaseTrainer):
                 set_single_task=task)
 
         for i in range(self.range_start, self.num_contexts): 
-            is_trained = False 
             print('Training '+str(i)+'th context')
             is_trained = self._train(model, holdouts)
             is_trained_list.append(is_trained)
             self.all_contexts.append(self.lin.state_dict())
             self._record_session(task, is_trained_list, checkpoint=True)
+
         self._record_session(task, is_trained_list)                
 
 def check_already_trained(file_name, seed, task, mode): 
