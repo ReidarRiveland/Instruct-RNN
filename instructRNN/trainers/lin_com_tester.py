@@ -134,7 +134,7 @@ class LinCompTrainer(BaseTrainer):
         self.task_info_basis.to(device)
 
     def _train(self, model, holdouts): 
-        self.lin = nn.Linear(45, 1).to(device)
+        self.lin = nn.Sequential(nn.Linear(45, 1), nn.Linear(1, 128), nn.Linear(128, 1)).to(device)
         self.set_rule_basis(model, holdouts)
 
         self._init_optimizer()
