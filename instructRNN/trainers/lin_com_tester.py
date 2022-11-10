@@ -222,7 +222,7 @@ def train_lin_comp(exp_folder, model_name,  seed, labeled_holdouts, mode = '', t
     if tasks is None: 
         tasks = holdouts
 
-    for task in ['AntiMultiCOMP1']:
+    for task in tasks:
         if not overwrite and check_already_trained(file_name, seed, task, mode):
             continue 
         else:        
