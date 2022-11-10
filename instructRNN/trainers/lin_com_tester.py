@@ -80,10 +80,10 @@ class LinCompTrainer(BaseTrainer):
         print(status_str, flush=True)
     
     def _init_optimizer(self):
-        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 1e-5)
+        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 1e-4)
 
         if self.scheduler_class is not None:
-            self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=5, eta_min = 1e-4)
+            self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=10, eta_min = 1e-4)
             #self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
         else:
             self.scheduler = None
