@@ -23,25 +23,23 @@ from instructRNN.analysis.decoder_analysis import *
 # from instructRNN.plotting.plotting import *
 # clipNet_lin = eval_model_exemplar('clipNet_lin', '7.20models', 'swap', 0)
 
-
-plot_all_performance_curves
-
 def plot_context_curves(foldername, exp_type, model_list, mode = 'lin_comp', avg=False, 
                     perf_type='correct', seeds=range(5), axn=None, zero_marker = None, **curve_kwargs):
     if axn is None: 
-        fig, axn = make_all_axes((-1, 100))
+        fig, axn = make_all_axes((-1, 50))
 
     for model_name in model_list:
         color = MODEL_STYLE_DICT[model_name][0] 
         data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
-        reshaped_data = data.data[0, ...]
-        # mean = np.nanmean(reshaped_data, axis=0)
-        # std = np.nanstd(reshaped_data, axis=0)
-        for i in range(10):
-            print(i)
-            mean = reshaped_data[i, ...]
-            std = np.zeros_like(mean)
-            plot_all_performance_curves(mean, std, axn, color, zero_marker, **curve_kwargs)
+        #reshaped_data = data.data[0, ...]
+        reshaped_data = data.data
+        mean = np.nanmean(reshaped_data, axis=(0, 1))
+        std = np.nanstd(reshaped_data, axis=(0, 1))
+        # for i in range(10):
+        #     print(i)
+        #     mean = reshaped_data[i, ...]
+        #     std = np.zeros_like(mean)
+        plot_all_performance_curves(mean, std, axn, color, zero_marker, **curve_kwargs)
 
 
 plot_context_curves('7.20models', 'swap', ['simpleNet', 'clipNet_lin'], linewidth=0.5, alpha=0.5)

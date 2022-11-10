@@ -27,19 +27,19 @@ class LinCompTrainerConfig():
     random_seed: int
     comp_vec_dim: int = 45 
     mode: str = ''
-    num_contexts: int = 10
+    num_contexts: int = 1
 
     epochs: int = 10
     min_run_epochs: int = 1
-    batch_len: int = 64
-    num_batches: int = 250
+    batch_len: int = 128
+    num_batches: int = 500
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.005
+    lr: float = 0.05
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.9}
+    scheduler_args: dict = {'gamma': 0.8}
 
     checker_threshold: float = 0.95
     step_last_lr: bool = False
@@ -80,11 +80,11 @@ class LinCompTrainer(BaseTrainer):
         print(status_str, flush=True)
     
     def _init_optimizer(self):
-        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 1e-4)
+        self.optimizer = self.optim_alg(self.lin.parameters(), lr=self.lr, weight_decay = 1e-5)
 
         if self.scheduler_class is not None:
-            #self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=5, eta_min = 1e-5)
-            self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
+            self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=5, eta_min = 1e-4)
+            #self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
         else:
             self.scheduler = None
     
@@ -126,18 +126,16 @@ class LinCompTrainer(BaseTrainer):
         task_indices = [TASK_LIST.index(task) for task in TASK_LIST if task not in holdouts]
         if hasattr(model, 'langModel'):
             reps = get_instruct_reps(model.langModel)
-            instruct_indices = np.random.choice(range(15), size=50)
-            self.task_info_basis = torch.tensor(reps[range(50), instruct_indices, :][task_indices, :])+(torch.randn(45, 64)*0.1)
-            #self.task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :])
+            # instruct_indices = np.random.choice(range(15), size=50)
+            # self.task_info_basis = torch.tensor(reps[range(50), instruct_indices, :][task_indices, :])+(torch.randn(45, 64)*0.1)
+            self.task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :])
         else: 
             self.task_info_basis = model.rule_transform[task_indices, :]
         self.task_info_basis.to(device)
 
     def _train(self, model, holdouts): 
-        self.lin = nn.Sequential(nn.Linear(45, 1), nn.Linear(1, 128), nn.Linear(128, 1)).to(device)
+        self.lin = nn.Linear(45, 1).to(device)
         self.set_rule_basis(model, holdouts)
-        #nn.init.uniform_(self.lin.weight, -1, 1)
-        #nn.init.normal_(self.lin.weight, 1.0)
 
         self._init_optimizer()
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
@@ -167,13 +165,13 @@ class LinCompTrainer(BaseTrainer):
                     print(self.scheduler.get_last_lr())
                     self._print_training_status(task_type)
 
-                # if self.cur_step%50 == 0 and self.cur_step != 0:
-                #     self.scheduler.step()
+                if self.cur_step%50 == 0 and not self.cur_step == 0 and self.cur_epoch ==0:
+                    self.scheduler.step()
 
                 if self._check_model_training():
                     return True
 
-            if self.scheduler is not None: self.scheduler.step()  
+            #if self.scheduler is not None: self.scheduler.step()  
             
 
         print('!!!Model has not reach specified performance threshold during training!!!')
@@ -224,7 +222,7 @@ def train_lin_comp(exp_folder, model_name,  seed, labeled_holdouts, mode = '', t
     if tasks is None: 
         tasks = holdouts
 
-    for task in tasks:
+    for task in ['AntiMultiCOMP1']:
         if not overwrite and check_already_trained(file_name, seed, task, mode):
             continue 
         else:        
