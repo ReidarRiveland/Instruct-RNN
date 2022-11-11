@@ -85,7 +85,6 @@ FAMILY_LIST = [
 
 
 SWAPS_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST.copy()))
-ALIGNED_DICT = dict(zip(['aligned'+str(num) for num in range(len(ALIGNED_LIST))], ALIGNED_LIST.copy()))
 FAMILY_DICT = dict(zip(['family'+str(num) for num in range(len(FAMILY_LIST))], FAMILY_LIST.copy()))
 INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
 INV_GROUP_DICT = invert_holdout_dict(TASK_GROUPS)

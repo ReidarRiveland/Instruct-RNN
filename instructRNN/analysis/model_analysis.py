@@ -428,10 +428,11 @@ def get_perf_ccgp_corr(folder, exp_type, model_list):
     ccgp_scores = np.empty((len(model_list), len(TASK_LIST)))
     perf_scores = np.empty((len(model_list), len(TASK_LIST)))
     for i, model_name in enumerate(model_list): 
-        task_ccgp = PerfDataFrame(folder, exp_type, model_name, seeds=range(5), mode='CCGP')
-        data = PerfDataFrame(folder, exp_type, model_name, seeds=range(5), mode='combined')
+        task_ccgp = PerfDataFrame(folder, exp_type, model_name, mode='ccgp')
+        data = PerfDataFrame(folder, exp_type, model_name, mode='combined')
         perf_mean, _ = data.avg_seeds(k_shot=0)
-        ccgp_scores[i, :] = task_ccgp.data
+        ccgp_mean, _ = task_ccgp.avg_seeds(k_shot=0)
+        ccgp_scores[i, :] = ccgp_mean
         perf_scores[i, :] = perf_mean
     corr, p_val = pearsonr(ccgp_scores.flatten(), perf_scores.flatten())
 

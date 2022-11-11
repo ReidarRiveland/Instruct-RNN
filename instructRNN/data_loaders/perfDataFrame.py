@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import warnings
 
-from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT, MULTITASK_DICT
+from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT,  FAMILY_DICT, MULTITASK_DICT
 from instructRNN.models.full_models import shallow_models, big_models
 
 @dataclass
@@ -45,7 +45,7 @@ class PerfDataFrame():
         elif self.mode == 'ccgp':
             self.load_holdout_CCGP()
         elif self.mode == 'layer_ccgp':
-            self.load_holdout_CCGP(use_layer_list=True)
+            self.load_holdout_CCGP(get_layer_list=True)
         elif len(self.training_file)>1: 
             self.load_training_data()
         else: 
@@ -143,21 +143,21 @@ class PerfDataFrame():
 
     def load_holdout_CCGP(self, get_layer_list=False): 
         if get_layer_list: 
-            if self.model_name in full_models.shallow_models: 
-                layer_list = ['task']
-            elif self.model_name in full_models.big_models: 
-                layer_list = [str(layer) for layer in range(12, 25)] + ['full', 'task']
+            if self.model_name in shallow_models: 
+                self.layer_list = ['task']
+            elif self.model_name in big_models: 
+                self.layer_list = [str(layer) for layer in range(13, 25)] + ['full', 'task']
             elif 'bow' in self.model_name: 
-                layer_list = ['bow', 'full', 'task']
+                self.layer_list = ['bow', 'full', 'task']
             else: 
-                layer_list = [str(layer) for layer in range(1, 13)] + ['full', 'task']
+                self.layer_list = [str(layer) for layer in range(1, 13)] + ['full', 'task']
         else: 
-            layer_list = ['task']
+            self.layer_list = ['task']
 
-        data = np.full((len(self.seeds), len(TASK_LIST), len(layer_list)), np.nan)        
+        data = np.full((len(self.seeds), len(TASK_LIST), len(self.layer_list)), np.nan)        
 
         for i, seed in enumerate(self.seeds):
-            for j, layer in enumerate(layer_list):
+            for j, layer in enumerate(self.layer_list):
                 try:
                     load_str = self.file_path+'/'+self.exp_type+'_holdouts/CCGP_scores/'+self.model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+self.submode+'.npy'
                     tmp_data_arr = np.load(open(load_str, 'rb'))

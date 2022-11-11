@@ -405,41 +405,24 @@ def plot_ccgp_corr(folder, exp_type, model_list):
     axn.plot(x, a*x+b, linewidth=0.8, linestyle='dotted', color='black')
     plt.show()
 
-def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False, mode=''): 
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
-    
-    axn.spines['top'].set_visible(False)
-    axn.spines['right'].set_visible(False)
-    axn.set_axisbelow(True)
-    axn.grid(visible=True, color='grey', linewidth=0.5)
-
+def plot_layer_ccgp(foldername, model_list, seeds=range(5)): 
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
     fig.suptitle('CCGP Across Model Hierarchy')
     axn.set_ylim(0.475, 1)
     axn.set_ylabel('Holdout Task CCGP', size=8, fontweight='bold')
     axn.set_xlabel('Model Layer', size=8, fontweight='bold')
+
     patches = []
     for model_name in model_list:
-        if model_name == 'gptNetXL_lin': 
-            layer_list = [str(x) for x in range(12, 24)] + ['full', 'task']
-        else: 
-            layer_list = [str(x) for x in range(1, 13)] + ['full', 'task']
+        color = MODEL_STYLE_DICT[model_name][0]
+        holdout_ccgp = PerfDataFrame('7.20models', 'swap', model_name, mode='layer_ccgp')
+        axn.plot(range(14-len(holdout_ccgp.layer_list), 14), np.mean(holdout_ccgp.data, axis=(0,1)), marker='.', c=color, linewidth=0.8)
+        patches.append(Line2D([0], [0], label = MODEL_STYLE_DICT[model_name][2], color= color, marker = 'o', linestyle = 'None', markersize=4))
 
-        all_holdout_ccgp = load_holdout_ccgp(foldername, model_name, layer_list, seeds, mode=mode)
-        axn.plot(range(len(layer_list)), np.mean(all_holdout_ccgp, axis=(0,2)), marker='.', c=MODEL_STYLE_DICT[model_name][0], linewidth=0.8)
-        if plot_multis:
-            try: 
-                multi = load_multi_ccgp(model_name)
-                axn.scatter(len(layer_list)-1, np.mean(multi[0]), marker='*', c=MODEL_STYLE_DICT[model_name][0], s=10)
-            except FileNotFoundError: 
-                pass
-        patches.append(Line2D([0], [0], label = MODEL_STYLE_DICT[model_name][2], color= MODEL_STYLE_DICT[model_name][0], marker = 'o', linestyle = 'None', markersize=4))
-
-
-    patches.append(Line2D([0], [0], label = 'Multitask', color= 'grey', marker = '*', linestyle = 'None', markersize=4))
     axn.legend(handles = patches, fontsize='x-small')
     axn.set_xticklabels([str(x) for x in range(1, 13)] + ['embed', 'task']) 
     axn.set_ylim(0.475, 1)
-    axn.set_xticks(range(len(layer_list)))
+    axn.set_xticks(range(14))
     plt.show()
     
 
