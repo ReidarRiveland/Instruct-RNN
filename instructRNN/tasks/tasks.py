@@ -67,22 +67,6 @@ SWAP_LIST = [
 
             ]
 
-ALIGNED_LIST = [
-            ('DM', 'AntiDM', 'MultiCOMP1', 'MultiCOMP2'), 
-            ('Go', 'AntiGo', 'DMMod2', 'AntiDMMod2'), 
-            ('DMMod1', 'AntiDMMod1', 'RTGo', 'AntiRTGo'), 
-            ('GoMod1', 'GoMod2', 'AntiMultiDur1', 'AntiMultiDur2'), 
-            ('AntiGoMod1', 'AntiGoMod2', 'MultiDur1', 'MultiDur2'), 
-            ('Dur1', 'Dur2', 'RTGoMod1', 'AntiRTGoMod1'), 
-            ('MultiDM', 'AntiMultiDM', 'COMP1Mod2', 'COMP2Mod2'), 
-            ('RTGoMod2', 'AntiRTGoMod2', 'COMP1Mod1', 'COMP2Mod1'), 
-            ('Dur1Mod1', 'Dur2Mod1', 'DMC', 'DNMC'),
-            ('AntiDur1', 'AntiDur2', 'COMP1', 'COMP2'), 
-            ('Dur1Mod2', 'Dur2Mod2', 'ConDM', 'ConAntiDM'),
-            ('AntiCOMP1', 'AntiCOMP2', 'DMS', 'DNMS'),
-            ('AntiMultiCOMP1', 'AntiMultiCOMP2')
-            ]
-
 FAMILY_LIST = [
             ('Go', 'AntiGo', 'RTGo', 'AntiRTGo'), 
             ('GoMod1',  'GoMod2', 'AntiGoMod1', 'AntiGoMod2'), 
