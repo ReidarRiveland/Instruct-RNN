@@ -26,11 +26,11 @@ class ContextTrainerConfig():
     random_seed: int
     context_dim: int    
     mode: str = ''
-    num_contexts: int = 50
+    num_contexts: int = 10
 
     epochs: int = 10
     min_run_epochs: int = 1
-    batch_len: int = 128
+    batch_len: int = 64
     num_batches: int = 250
     stream_data: bool = True
 
@@ -105,12 +105,11 @@ class ContextTrainer(BaseTrainer):
 
     def _expand_exemplar(self, data): 
         ins, tar, mask, tar_dir, task_type = data
-        ins = ins.repeat(self.batch_len, 1, 1)
-        tar = tar.repeat(self.batch_len, 1, 1)
-        mark = mask.repeat(self.batch_len, 1, 1)
-        tar_dir = tar_dir.repeat(self.batch_len)
+        ins = ins.repeat(self.batch_repeat, 1, 1)
+        tar = tar.repeat(self.batch_repeat, 1, 1)
+        mask = mask.repeat(self.batch_repeat, 1, 1)
+        tar_dir = tar_dir.repeat(self.batch_repeat)
         return (ins, tar, mask, tar_dir, task_type)
-
 
     def load_chk(self, file_name, seed, task, context_dim): 
         try: 
@@ -125,18 +124,20 @@ class ContextTrainer(BaseTrainer):
         except FileNotFoundError:
             pass
 
-    def _train(self, model, contexts, mode): 
+    def _train(self, model, contexts): 
         self._init_optimizer(contexts)
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
             for self.cur_step in range(self.num_batches): 
-                if mode == 'exemplar': data = self._expand_exemplar(self.exemplar_data)
-                else: data = next(self.streamer.stream_batch())
-                
+                if 'exemplar' in self.mode: 
+                    data = self.exemplar_data
+                    in_contexts = torch.mean(contexts.repeat(self.batch_repeat*self.num_exemplars, 1, 1), axis=1)
+                else: 
+                    data = next(self.streamer.stream_batch())
+                    in_contexts = torch.mean(contexts.repeat(self.batch_len, 1, 1), axis=1)
+
                 ins, tar, mask, tar_dir, task_type = data
 
                 self.optimizer.zero_grad()
-                in_contexts = torch.mean(contexts.repeat(self.batch_len, 1, 1), axis=1)
-
                 out, _ = model(ins.to(device), context=in_contexts)
                 loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
                 frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
@@ -157,17 +158,22 @@ class ContextTrainer(BaseTrainer):
         warnings.warn('Model has not reach specified performance threshold during training')
         return False
     
-    def train(self, model, task, mode=''):
+    def train(self, model, task):
+        if 'exemplar' in self.mode: 
+            self.num_exemplars = int(''.join([n for n in self.mode if n.isdigit()]))
+
         model.load_model(self.file_path.replace('contexts', '')[:-1], suffix='_'+self.seed_suffix)
         model.to(device)
         model.freeze_weights()
         model.eval()
-        self.mode = mode
+
         self.model_file_path = model.model_name+'_'+self.seed_suffix
         is_trained_list = []
 
-        if mode == 'exemplar': 
-            self._load_exemplar(task)
+        if 'exemplar' in self.mode: 
+            data = construct_trials(task, self.num_exemplars, return_tensor=True, max_var=True)
+            self.batch_repeat = int(np.ceil(self.batch_len/self.num_exemplars))
+            self.exemplar_data = self._expand_exemplar(data)
         else:
             self.streamer = TaskDataSet(self.file_path.partition('/')[0], 
                 self.stream_data, 
@@ -179,7 +185,7 @@ class ContextTrainer(BaseTrainer):
             is_trained = False 
             print('Training '+str(i)+'th context')
             context = self._init_contexts(1)
-            is_trained = self._train(model, context, mode)
+            is_trained = self._train(model, context)
             is_trained_list.append(is_trained)
             self.all_contexts[i, :] = context.squeeze()
             self._record_session(task, is_trained_list, checkpoint=True)
@@ -222,4 +228,4 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
             trainer = ContextTrainer(trainer_config)
             if not overwrite: 
                 trainer.load_chk(file_name, seed, task, context_dim)
-            trainer.train(model, task, mode = mode)
+            trainer.train(model, task)

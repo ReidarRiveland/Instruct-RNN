@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
         if args.mode == 'context' or args.mode == 'c': 
             from instructRNN.trainers.context_trainer import *
-            train_contexts(EXP_FOLDER, model, _seed, holdouts, 'emb', overwrite=args.overwrite, mode='test')
+            train_contexts(EXP_FOLDER, model, _seed, holdouts, 'emb', overwrite=args.overwrite, mode='exemplar6')
 
         if args.mode == 'lin_comp':
             from instructRNN.trainers.lin_com_tester import *
@@ -82,7 +82,8 @@ if __name__ == "__main__":
 
         if args.mode == 'exemplar_context': 
             from instructRNN.trainers.context_trainer import *
-            train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, mode='exemplar')
+            for i in range(1, 20):
+                train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, mode='exemplar'+str(i))
 
         if args.mode == 'decoder' or args.mode == 'd': 
             from instructRNN.trainers.decoder_trainer import *

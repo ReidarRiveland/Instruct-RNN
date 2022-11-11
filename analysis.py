@@ -34,7 +34,6 @@ if __name__ == "__main__":
         decoder_pipeline('7.20models/swap_holdouts', 'clipNet_lin', sm_holdout=True, decoder_holdout=True)
 
 
-
     jobs = make_analysis_jobs(args.models, args.seeds, args.job_index)
     for job in jobs: 
         _seed, model = job

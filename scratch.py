@@ -23,27 +23,29 @@ from instructRNN.analysis.decoder_analysis import *
 # from instructRNN.plotting.plotting import *
 # clipNet_lin = eval_model_exemplar('clipNet_lin', '7.20models', 'swap', 0)
 
-def plot_context_curves(foldername, exp_type, model_list, mode = 'lin_comp', avg=False, 
-                    perf_type='correct', seeds=range(5), axn=None, zero_marker = None, **curve_kwargs):
-    if axn is None: 
-        fig, axn = make_all_axes((-1, 50))
-
-    for model_name in model_list:
-        color = MODEL_STYLE_DICT[model_name][0] 
-        data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
-        #reshaped_data = data.data[0, ...]
-        reshaped_data = data.data
-        mean = np.nanmean(reshaped_data, axis=(0, 1))
-        std = np.nanstd(reshaped_data, axis=(0, 1))
-        # for i in range(10):
-        #     print(i)
-        #     mean = reshaped_data[i, ...]
-        #     std = np.zeros_like(mean)
-        plot_all_performance_curves(mean, std, axn, color, zero_marker, **curve_kwargs)
 
 
-plot_context_curves('7.20models', 'swap', ['simpleNet', 'clipNet_lin'], linewidth=0.5, alpha=0.5)
+to_plot_models = ['simpleNet', 'simpleNetPlus', 'bowNet_lin',  'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'sbertNet_lin', 'clipNet_lin']
+
+###STRUCTURE FIG
+fig_axn = plot_comp_bar('7.20models', 'swap', to_plot_models, ['multi_comp'])
+plot_comp_bar('7.20models', 'swap', to_plot_models, ['combinedcomp'], y_lim=(0.5, 1.0), fig_axn = fig_axn, hatch='///', alpha=0.8, edgecolor='white')
 plt.show()
+
+
+fig_ax = plot_curves('7.20models', 'swap', to_plot_models, mode = 'combined', avg=True, linewidth=0.5)
+plot_curves('7.20models', 'swap', to_plot_models, mode = 'combinedcomp', fig_axn=fig_ax, avg=True, linewidth=0.5, linestyle='--')
+plt.show()
+plot_curves('7.20models', 'swap', to_plot_models, mode = 'combinedinputs_only', avg=True)
+plt.show()
+
+data = PerfDataFrame('7.20models', 'swap', 'clipNet_lin', mode='combinedcomp')
+mean, std = data.avg_seeds()
+
+list(zip(TASK_LIST, mean[:, 0]))
+
+
+
 
 
 

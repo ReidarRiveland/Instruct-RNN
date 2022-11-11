@@ -128,14 +128,17 @@ class LinCompTrainer(BaseTrainer):
             reps = get_instruct_reps(model.langModel)
             # instruct_indices = np.random.choice(range(15), size=50)
             # self.task_info_basis = torch.tensor(reps[range(50), instruct_indices, :][task_indices, :])+(torch.randn(45, 64)*0.1)
-            self.task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :])
+            self.task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :]).to(device)
         else: 
             self.task_info_basis = model.rule_transform[task_indices, :]
         self.task_info_basis.to(device)
 
     def _train(self, model, holdouts): 
-        self.lin = nn.Sequential(nn.Linear(45, 1), nn.Linear(1, 128), nn.Linear(128, 1)).to(device)
+        self.lin = nn.Linear(45, 1).to(device)
         self.set_rule_basis(model, holdouts)
+        dum = torch.zeros(1, 45)
+        dum[:, np.random.choice(range(45))]=1
+        self.lin.weight.data = dum.to(device)
 
         self._init_optimizer()
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):

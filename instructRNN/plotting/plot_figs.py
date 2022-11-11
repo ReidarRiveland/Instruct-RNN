@@ -11,7 +11,7 @@ from instructRNN.data_loaders.perfDataFrame import *
 to_plot_models = ['simpleNet', 'simpleNetPlus', 'bowNet_lin',  'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'sbertNet_lin', 'clipNet_lin']
 tuned_to_plot = ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin_tuned']
 
-plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask')
+plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask', linewidth=0.5)
 plt.show()
 
 ##VALIDATION
@@ -24,7 +24,7 @@ plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0
 
 
 ##TUNED HOLDOUTS
-plot_avg_curve('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined')
+plot_curves('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined', avg=True)
 plt.show()
 plot_0_shot_task_hist('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot[::-1], seeds =range(0, 5), mode='combined')
@@ -99,9 +99,7 @@ plot_layer_ccgp('7.20models/swap_holdouts', to_plot_models, mode='swap_combined'
 
 plot_ccgp_corr('7.20models', 'swap', to_plot_models)
 
-#############
-
-
+#############SINGLE UNIT TUING
 
 plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'clipNet_lin', 2, cluster_info=cluster_info)
 
@@ -112,25 +110,11 @@ clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap9'
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
 
-SWAP_LIST[-1]
 task_var, cluters_dict, cluster_labels, sorted_indices = plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'clipNet_lin', 2)
-
-
-for key, value in cluters_dict.items():
-    if np.mean(task_var[value, TASK_LIST.index('AntiDMMod1')]) > 0.4:
-        print(key)
-
-cluters_dict
-
-cluters_dict[4][np.argmax(task_var[cluters_dict[4], TASK_LIST.index('AntiDMMod1')])]
-
 
 unit=96
 plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothing=1, min_contrast=0)
 plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1, min_contrast=0)
-
-
-
 
 unit=41
 plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothing=1, min_contrast=0)
@@ -138,39 +122,10 @@ plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smo
 plot_tuning_curve(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], unit, [140]*4)
 
 
-
-
 unit=51
 plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothing=1, min_contrast=0)
 plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1, min_contrast=0)
 plot_tuning_curve(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], unit, [129]*4)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
 
@@ -196,13 +151,10 @@ plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothi
 plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1)
 
 
-
 EXP_FILE = '7.20models/swap_holdouts'
 clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap5'
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
-
-
 
 unit=4
 plot_neural_resp(clipNet, 'DM','diff_strength', unit, num_trials=25, smoothing=1)
@@ -210,6 +162,58 @@ plot_neural_resp(clipNet, 'AntiDM','diff_strength', unit, num_trials=25, smoothi
 
 plot_tuning_curve(clipNet, ['DM', 'AntiDM'], 4, [120]*6, smoothing=1)
 
+##DM
+unit=119
+plot_neural_resp(clipNet, 'DMMod1', 'diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=50, smoothing=1)
+plot_neural_resp(clipNet, 'DMMod2','diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'AntiDMMod2','diff_strength', unit, num_trials=50, smoothing=1)
+
+plot_tuning_curve(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], unit, [140]*4, num_trials=25, smoothing=1, min_coh=0.01, max_coh=0.3)
+
+unit=175
+plot_neural_resp(clipNet, 'DMMod1', 'diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'DMMod2','diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'AntiDMMod2','diff_strength', unit, num_trials=25, smoothing=1)
+
+unit=41
+plot_neural_resp(clipNet, 'DMMod1', 'diff_strength', unit, num_trials=25, smoothing=1)
+plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1)
+
+plot_tuning_curve(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], unit, [149]*4, num_trials=25, smoothing=1, min_coh=0.01, max_coh=0.3)
+
+##ANTI GO
+
+unit=39
+plot_tuning_curve(clipNet, ['Go', 'AntiGo', 'RTGo', 'AntiRTGo'], unit, [145]*4, num_trials=80, smoothing=1, min_coh=0.01, max_coh=0.5)
+
+
+###COMP
+EXP_FILE = '7.20models/swap_holdouts'
+clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap6'
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
+
+unit=82
+plot_neural_resp(clipNet, 'COMP2', 'diff_strength', unit, num_trials=25)
+plot_neural_resp(clipNet, 'AntiCOMP2','diff_strength', unit, num_trials=25)
+plot_neural_resp(clipNet, 'COMP1','diff_strength', unit, num_trials=25)
+plot_neural_resp(clipNet, 'AntiCOMP1','diff_strength', unit, num_trials=25)
+
+
+##matching
+EXP_FILE = '7.20models/swap_holdouts'
+clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap1'
+clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
+
+##2
+unit=147
+plot_tuning_curve(clipNet, ['DMS', 'DNMS', 'DMC', 'DNMC'], unit, [149]*4, num_trials=50, smoothing=1.0)
+
+trials = DMS(100, main_var=True)
+trials.plot_trial(5)
 
 
 ###decoder figs
@@ -225,3 +229,5 @@ get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)
 
 
 
+###STRUCTURE FIG
+plot_comp_bar('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp'], y_lim=(0.5, 1.0))

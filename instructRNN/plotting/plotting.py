@@ -94,12 +94,12 @@ def _plot_performance_curve(avg_perf, std_perf, plt_ax, color, zero_marker, **pl
         plt_ax.plot(avg_perf, color=color, **plt_args)
         plt_ax.scatter(0, avg_perf[0], color=color, s=2, marker=zero_marker)
 
-def plot_all_performance_curves(avg_perf, std_perf, plt_axn, color, zero_marker, **plt_args):
+def _plot_all_performance_curves(avg_perf, std_perf, plt_axn, color, zero_marker, **plt_args):
     for j, ax in enumerate(plt_axn.flat):
         _plot_performance_curve(avg_perf[j, :], std_perf[j, :], ax, color, zero_marker, **plt_args)
 
 def plot_curves(foldername, exp_type, model_list, mode = '', training_file = '', avg=False, 
-                    perf_type='correct', seeds=range(5), axn=None, zero_marker = None, **curve_kwargs):
+                    perf_type='correct', seeds=range(5), fig_axn=None, zero_marker = None, **curve_kwargs):
     if avg: 
         plt_func = _plot_performance_curve
         axes_func = make_avg_axes
@@ -110,8 +110,11 @@ def plot_curves(foldername, exp_type, model_list, mode = '', training_file = '',
         context_kwargs = {'axes.grid': False}
 
     with plt.rc_context(context_kwargs):
-        if axn is None: 
+        if fig_axn is None: 
             fig, axn = axes_func()
+        else: 
+            fig, axn = fig_axn
+
 
         for model_name in model_list:
             color = MODEL_STYLE_DICT[model_name][0] 
@@ -123,7 +126,49 @@ def plot_curves(foldername, exp_type, model_list, mode = '', training_file = '',
 
         fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')   
         return fig, axn
-    
+
+def plot_context_curves(foldername, exp_type, model_list, mode = 'lin_comp', avg=False, 
+                    perf_type='correct', seeds=range(5), axn=None, zero_marker = None, **curve_kwargs):
+    if axn is None: 
+        fig, axn = make_all_axes((-1, 250))
+
+    for model_name in model_list:
+        color = MODEL_STYLE_DICT[model_name][0] 
+        data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
+        #reshaped_data = data.data[0, ...]
+        reshaped_data = data.data
+        # mean = np.nanmean(reshaped_data, axis=(0, 1))
+        # std = np.nanstd(reshaped_data, axis=(0, 1))
+        for i in range(10):
+            print(i)
+            mean = reshaped_data[1, i, ...]
+            std = np.zeros_like(mean)
+            _plot_all_performance_curves(mean, std, axn, color, zero_marker, **curve_kwargs)
+
+def plot_comp_bar(foldername, exp_type, model_list, mode_list, fig_axn=None, y_lim =(0.0, 1.0), **formatting):
+    with plt.rc_context({'axes.grid.axis': 'y'}):
+        if fig_axn is None: 
+            fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+        else: 
+            fig, axn = fig_axn
+
+        axn.set_ylabel('Perforamance', size=8, fontweight='bold')
+        axn.set_ylim(y_lim)
+        width = 1/(len(model_list)+2)
+
+        for j, mode in enumerate(mode_list):
+            for i, model_name in enumerate(model_list):
+                color=MODEL_STYLE_DICT[model_name][0]
+                data  = PerfDataFrame(foldername, exp_type, model_name, mode=mode)
+                mean, std = data.avg_tasks(k_shot=0)
+
+                x_mark = ((j)+width)+((i*1.05*width))
+                axn.bar(x_mark, mean, width, align='edge', color=color, **formatting)
+
+        axn.set_xticklabels('')
+        axn.xaxis.set_ticks_position('none') 
+        axn.set_xlim(0, len(mode_list))
+    return fig, axn
 
 def plot_k_shot_task_hist(foldername, exp_type, model_list, k= 0, perf_type='correct', mode='', seeds=range(5)): 
     with plt.rc_context({'axes.grid.axis': 'x'}):
@@ -395,37 +440,6 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5), plot_multis=False, m
     axn.set_xticklabels([str(x) for x in range(1, 13)] + ['embed', 'task']) 
     axn.set_ylim(0.475, 1)
     axn.set_xticks(range(len(layer_list)))
-    plt.show()
-
-def plot_comp_bar(foldername, exp_type, model_list, mode='CCGP', **formatting):
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
-
-    axn.set_ylabel('Perforamance', size=8, fontweight='bold')
-    width = 1/(len(model_list)+2)
-
-    axn.set_axisbelow(True)
-    axn.grid(visible=True, color='grey', axis='y', linewidth=0.5)
-
-    axn.spines['top'].set_visible(False)
-    axn.spines['right'].set_visible(False)
-
-    for i, model_name in enumerate(model_list):
-        if mode == 'CCGP': 
-            holdout_ccgp = np.mean(load_holdout_ccgp(foldername+'/swap_holdouts', model_name, ['task'], range(5)))
-            multi_ccgp = np.mean(load_multi_ccgp(model_name)[0])
-            axn.set_ylim(0.475, 1)
-            data_list = [holdout_ccgp, multi_ccgp]
-        elif mode =='comp': 
-            data = HoldoutDataFrame(foldername, exp_type, model_name, mode = 'combinedcomp')
-            zero_shot, std = data.avg_seeds(k_shot=0)
-            multi_data = load_perf([model_name], mode='multi_comp')
-            data_list = [np.mean(zero_shot), np.mean(multi_data)]
-        for j, data in enumerate(data_list):
-            x_mark = ((j)+width)+((i*1.05*width))
-            axn.bar(x_mark, data, width, align='edge', color=MODEL_STYLE_DICT[model_name][0], **formatting)
-    axn.set_xticklabels('')
-    axn.xaxis.set_ticks_position('none') 
-    axn.set_xlim(0, 2)
     plt.show()
     
 

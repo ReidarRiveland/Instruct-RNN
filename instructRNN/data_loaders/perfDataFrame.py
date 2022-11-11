@@ -4,6 +4,7 @@ import numpy as np
 import warnings
 
 from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT, MULTITASK_DICT
+from instructRNN.models.full_models import shallow_models, big_models
 
 @dataclass
 class PerfDataFrame(): 
@@ -13,7 +14,7 @@ class PerfDataFrame():
     perf_type: str = 'correct'
     mode: str = ''
     training_file: str = ''
-    submode: str = None
+    submode: str = ''
 
     seeds: range = range(5)
     layer_list: tuple = ()
@@ -28,7 +29,7 @@ class PerfDataFrame():
             self.exp_dict = MULTITASK_DICT
 
         ###load modes
-        if self.mode == 'multi_CCGP':
+        if self.mode == 'multi_ccgp':
             load_str = self.file_path+'/multitask_holdouts/CCGP_scores/'+self.model_name+'/layertask_task_multi_seed{}.npy'
             self.load_multi_measure(load_str)
         elif self.mode == 'val': 
@@ -40,7 +41,11 @@ class PerfDataFrame():
         elif self.mode == 'lin_comp':
             self.load_context_data()
         elif self.mode == 'context': 
-            self.load_context_data(submode='context')
+            self.load_context_data()
+        elif self.mode == 'ccgp':
+            self.load_holdout_CCGP()
+        elif self.mode == 'layer_ccgp':
+            self.load_holdout_CCGP(use_layer_list=True)
         elif len(self.training_file)>1: 
             self.load_training_data()
         else: 
@@ -127,25 +132,36 @@ class PerfDataFrame():
         for i, seed in enumerate(self.seeds):
             try:
                 tmp_load_str = load_str.format(str(seed))
-                print(tmp_load_str)
                 seed_data_arr = np.load(open(tmp_load_str, 'rb'))
                 data[i, :] = seed_data_arr[:, None]
             except FileNotFoundError:
                 if self.verbose: 
-                    print('no data for layer {} for model {} seed {}'.format(layer, self.model_name, self.seed))
+                    print('no data for mode {} for model {} seed {}'.format(self.mode, self.model_name, seed))
                     print(load_str)
 
         super().__setattr__('data', data)
 
-    def load_holdout_CCGP(self, submode=''): 
+    def load_holdout_CCGP(self, get_layer_list=False): 
+        if get_layer_list: 
+            if self.model_name in full_models.shallow_models: 
+                layer_list = ['task']
+            elif self.model_name in full_models.big_models: 
+                layer_list = [str(layer) for layer in range(12, 25)] + ['full', 'task']
+            elif 'bow' in self.model_name: 
+                layer_list = ['bow', 'full', 'task']
+            else: 
+                layer_list = [str(layer) for layer in range(1, 13)] + ['full', 'task']
+        else: 
+            layer_list = ['task']
+
         data = np.full((len(self.seeds), len(TASK_LIST), len(layer_list)), np.nan)        
 
         for i, seed in enumerate(self.seeds):
-            for j, layer in enumerate(self.layer_list):
+            for j, layer in enumerate(layer_list):
                 try:
-                    load_str = self.file_path+'/'+self.exp_type+'_holdouts/CCGP_scores/'+self.model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+mode+'.npy'
-                    tmp_data_arr = np.load(open(task_load_str, 'rb'))
-                    data[i, j, :] = tmp_data_arr
+                    load_str = self.file_path+'/'+self.exp_type+'_holdouts/CCGP_scores/'+self.model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+self.submode+'.npy'
+                    tmp_data_arr = np.load(open(load_str, 'rb'))
+                    data[i, :, j] = tmp_data_arr
                 except FileNotFoundError:
                     if self.verbose: 
                         print('no data for layer {} for model {} seed {}'.format(layer, model_name, seed))
@@ -160,7 +176,6 @@ class PerfDataFrame():
 
             for label, tasks in self.exp_dict.items():
                 for task in tasks: 
-                    print(task)
                     try:
                         load_str = self.file_path+'/'+self.exp_type+'_holdouts/'+label+'/'+self.model_name+'/lin_comp/'+seed_name+'_'+task+'_'+'comp_data'
                         tmp_data_list = pickle.load(open(load_str, 'rb'))[0]
