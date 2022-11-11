@@ -177,7 +177,11 @@ class PerfDataFrame():
             for label, tasks in self.exp_dict.items():
                 for task in tasks: 
                     try:
-                        load_str = self.file_path+'/'+self.exp_type+'_holdouts/'+label+'/'+self.model_name+'/lin_comp/'+seed_name+'_'+task+'_'+'comp_data'
+                        if submode == 'lin_comp':
+                            load_str = self.file_path+'/'+self.exp_type+'_holdouts/'+label+'/'+self.model_name+'/lin_comp/'+seed_name+'_'+task+'_'+'comp_data'
+                        elif submode == 'context':
+                            load_str = self.file_path+'/'+self.exp_type+'_holdouts/'+label+'/'+self.model_name+'/contexts/'+seed_name+'_'+task+'test_training_data'
+
                         tmp_data_list = pickle.load(open(load_str, 'rb'))[0]
                         for k in range(len(tmp_data_list)):
                             trial_data_list = tmp_data_list[k]

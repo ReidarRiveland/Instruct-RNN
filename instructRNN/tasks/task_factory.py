@@ -441,7 +441,7 @@ class DMFactory(TaskFactory):
         if coh_arr is not None: 
             coh = coh_arr
             dirs = dir_arr
-            base_strs = np.array([1.0]*self.num_trials)
+            base_strs = np.full((2, self.num_trials), 1)
             #base_strs = np.random.uniform(1.0, 1.2, size=(2, self.num_trials))
 
         elif self.mod is not None: 

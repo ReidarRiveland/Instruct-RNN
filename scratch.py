@@ -5,7 +5,7 @@ import sklearn
 from instructRNN.instructions.instruct_utils import get_task_info
 from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.models.full_models import *
-from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
+#from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
 
 from instructRNN.tasks.tasks import *
 import torch
@@ -22,6 +22,10 @@ from instructRNN.analysis.decoder_analysis import *
 
 # from instructRNN.plotting.plotting import *
 # clipNet_lin = eval_model_exemplar('clipNet_lin', '7.20models', 'swap', 0)
+
+for task in TASK_LIST:
+    construct_trials(task, num_trials=1, max_var=True)
+
 
 
 
