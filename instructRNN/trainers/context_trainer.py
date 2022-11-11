@@ -26,19 +26,19 @@ class ContextTrainerConfig():
     random_seed: int
     context_dim: int    
     mode: str = ''
-    num_contexts: int = 10
+    num_contexts: int = 5
 
     epochs: int = 10
     min_run_epochs: int = 1
     batch_len: int = 64
-    num_batches: int = 250
+    num_batches: int = 500
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
     lr: float = 0.05
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.9}
+    scheduler_args: dict = {'gamma': 0.99}
 
     checker_threshold: float = 0.95
     step_last_lr: bool = False
@@ -216,7 +216,7 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
     if tasks is None: 
         tasks = holdouts
 
-    for task in tasks: 
+    for task in ['AntiGoMod2']: 
         if not overwrite and check_already_trained(file_name, seed, task, context_dim, mode):
             continue 
         else:        

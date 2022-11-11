@@ -91,7 +91,7 @@ def make_avg_axes():
 def _plot_performance_curve(avg_perf, std_perf, plt_ax, color, zero_marker, **plt_args):
         plt_ax.fill_between(np.linspace(0, avg_perf.shape[-1], avg_perf.shape[-1]), np.min(np.array([np.ones(avg_perf.shape[-1]), avg_perf+std_perf]), axis=0), 
                                         avg_perf-std_perf, color = color, alpha= 0.1)
-        plt_ax.plot(avg_perf, color=color, **plt_args)
+        plt_ax.plot(avg_perf, color=color, **plt_args, zorder=0)
         plt_ax.scatter(0, avg_perf[0], color=color, s=2, marker=zero_marker)
 
 def _plot_all_performance_curves(avg_perf, std_perf, plt_axn, color, zero_marker, **plt_args):
