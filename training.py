@@ -1,6 +1,6 @@
 import os
 import itertools
-from instructRNN.tasks.tasks import MULTITASK_DICT, SWAPS_DICT, ALIGNED_DICT, FAMILY_DICT
+from instructRNN.tasks.tasks import MULTITASK_DICT, SWAPS_DICT, FAMILY_DICT
 from instructRNN.models.full_models import small_models
 
 def make_training_jobs(exp, models, seeds, holdouts, job_index):
