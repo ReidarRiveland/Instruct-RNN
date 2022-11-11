@@ -7,7 +7,6 @@ from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio
 
 from instructRNN.data_loaders.perfDataFrame import *
 
-
 to_plot_models = ['simpleNet', 'simpleNetPlus', 'bowNet_lin',  'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'sbertNet_lin', 'clipNet_lin']
 tuned_to_plot = ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin_tuned']
 
@@ -24,7 +23,7 @@ plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0
 
 
 ##TUNED HOLDOUTS
-plot_curves('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined', avg=True)
+plot_curves('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined', avg=True, linewidth=0.5)
 plt.show()
 plot_0_shot_task_hist('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot[::-1], seeds =range(0, 5), mode='combined')
@@ -35,10 +34,9 @@ plot_0_shot_task_hist('7.20models', 'swap', to_plot_models, seeds =range(0,5), m
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='swap_combined')
 
 ###FAMILY
-plot_avg_holdout_curve('7.20models', 'family', ['clipNet_lin'], seeds =range(5, 10), mode='combined')
-
-plot_avg_holdout_curve('7.20models', 'family', to_plot_models, seeds =range(0, 5), mode='combined')
-plot_0_shot_task_hist('7.20models', 'family', to_plot_models, seeds =range(0,5), mode='combined')
+plot_curves('7.20models', 'family', to_plot_models, mode='combined', avg=True, linewidth=0.8)
+plt.show()
+plot_k_shot_task_hist('7.20models', 'family', to_plot_models, mode='combined')
 plot_all_task_lolli_v('7.20models', 'family', to_plot_models[::-1], seeds =range(0, 5), mode='combined')
 
 ###nonlinguitic variants
