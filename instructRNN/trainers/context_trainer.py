@@ -26,11 +26,11 @@ class ContextTrainerConfig():
     random_seed: int
     context_dim: int    
     mode: str = ''
-    num_contexts: int = 5
+    num_contexts: int = 50
 
     epochs: int = 10
     min_run_epochs: int = 1
-    batch_len: int = 64
+    batch_len: int = 128
     num_batches: int = 500
     stream_data: bool = True
 
@@ -41,7 +41,7 @@ class ContextTrainerConfig():
     scheduler_args: dict = {'gamma': 0.99}
 
     checker_threshold: float = 0.95
-    step_last_lr: bool = False
+    step_last_lr: bool = True
 
 class ContextTrainer(BaseTrainer): 
     def __init__(self, context_training_config: ContextTrainerConfig = None): 
@@ -87,6 +87,7 @@ class ContextTrainer(BaseTrainer):
         self.optimizer = self.optim_alg([context], lr=self.lr)
         if self.scheduler_class is not None:
             self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
+            self.step_scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=[-2], gamma=0.1)
         else:
             self.scheduler = None
     
@@ -221,11 +222,12 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
             continue 
         else:        
             print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ ' for mode ' + mode+ '\n')
-            # if (task == 'DMC' or task =='DNMC') and 'swap' in labels:
-            #     trainer_config = ContextTrainerConfig(file_name, seed, context_dim, modbatch_len=64, checker_threshold=0.8, mode=mode, **train_config_kwargs)
-            # else:
-            trainer_config = ContextTrainerConfig(file_name, seed, context_dim, mode=mode, **train_config_kwargs)
-            trainer = ContextTrainer(trainer_config)
+            if (task == 'DMC' or task =='DNMC') and 'swap' in labels:
+                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, checker_threshold=0.8, mode=mode, **train_config_kwargs)
+            else:
+                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, mode=mode, **train_config_kwargs)
+                trainer = ContextTrainer(trainer_config)
+
             if not overwrite: 
                 trainer.load_chk(file_name, seed, task, context_dim)
             trainer.train(model, task)
