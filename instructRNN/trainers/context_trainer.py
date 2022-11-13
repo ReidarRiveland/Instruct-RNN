@@ -26,7 +26,7 @@ class ContextTrainerConfig():
     random_seed: int
     context_dim: int    
     mode: str = ''
-    num_contexts: int = 50
+    num_contexts: int = 10
 
     epochs: int = 10
     min_run_epochs: int = 1
@@ -35,10 +35,10 @@ class ContextTrainerConfig():
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.05
+    lr: float = 0.02
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.99}
+    scheduler_args: dict = {'gamma': 0.8}
 
     checker_threshold: float = 0.95
     step_last_lr: bool = True
