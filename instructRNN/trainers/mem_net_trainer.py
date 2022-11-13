@@ -45,7 +45,7 @@ class MemNetTrainerConfig():
     holdouts: list
     mode: str = ''
 
-    epochs: int = 2
+    epochs: int = 50
     batch_len: int = 64
     num_batches: int = 500
     stream_data: bool = True
