@@ -15,16 +15,44 @@ from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
 
-# EXP_FILE = '7.20models/swap_holdouts'
-# clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-# holdouts_file = 'swap1'
-# clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed0')
+EXP_FILE = '7.20models/swap_holdouts'
+model = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+holdouts_file = 'swap1'
+model.load_model(EXP_FILE+'/'+holdouts_file+'/'+model.model_name, suffix='_seed0')
 
 # from instructRNN.plotting.plotting import *
 # clipNet_lin = eval_model_exemplar('clipNet_lin', '7.20models', 'swap', 0)
 
-for task in TASK_LIST:
-    construct_trials(task, num_trials=1, max_var=True)
+ins, tar, mask, tar_dir, task_type = construct_trials('DM', num_trials=128, return_tensor=True, max_var=True)
+
+torch.cat((ins, tar), dim=2).shape
+
+class MemNet(nn.Module): 
+    def __init__(self, out_dim, drop_p):
+        super(MemNet, self).__init__()
+        self.dropper = nn.Dropout(p=drop_p)
+        self.fc1 = nn.Linear((OUTPUT_DIM+SENSORY_INPUT_DIM)*2, out_dim)
+        self.id = nn.Identity()
+        
+    def forward(self, ins, outs): 
+        trials_ins_outs = torch.cat((ins, tar), dim=-1)
+        out_mean = self.id(torch.mean(trials_ins_outs, dim=1))
+        out_max = self.id(torch.max(trials_ins_outs, dim=1).values)
+        out = torch.cat((out_max, out_mean), dim=-1)
+        out = torch.relu(self.fc1(out.float()))
+        return out
+
+task_info = get_task_info(128, task_type, model.info_type, instruct_mode=None)
+
+memNet = MemNet(64, 0.0)
+
+loss = torch.nn.MSELoss()
+
+info_embedded = model.langModel(task_info)
+info_embedded
+out = memNet(ins, tar)
+
+loss(info_embedded, out)
 
 
 
