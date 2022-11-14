@@ -30,15 +30,15 @@ class ContextTrainerConfig():
 
     epochs: int = 5
     min_run_epochs: int = 1
-    batch_len: int = 128
-    num_batches: int = 500
+    batch_len: int = 64
+    num_batches: int = 1200
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.005
+    lr: float = 0.05
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.99}
+    scheduler_args: dict = {'gamma': 0.9}
 
     checker_threshold: float = 0.9
     step_last_lr: bool = True
@@ -80,8 +80,8 @@ class ContextTrainer(BaseTrainer):
 
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        nn.init.uniform_(context, -0.2, 0.2)
-        #nn.init.normal_(context, std=1.0)
+        nn.init.uniform_(context, -0.4, 0.4)
+        #nn.init.normal_(context, std=0.1)
         return context
     
     def _init_optimizer(self, context):
@@ -218,7 +218,7 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
     if tasks is None: 
         tasks = holdouts
 
-    for task in tasks: 
+    for task in ['COMP2Mod2']: 
         if not overwrite and check_already_trained(file_name, seed, task, context_dim, mode):
             continue 
         else:        
