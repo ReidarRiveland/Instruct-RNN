@@ -2,7 +2,7 @@ import os
 import numpy as np
 import itertools
 import instructRNN.models.full_models as full_models
-from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP, get_layer_dim, get_val_perf, get_model_clusters, get_multi_comp_perf
+from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP, get_val_perf, get_model_clusters, get_multi_comp_perf
 from instructRNN.analysis.decoder_analysis import decoder_pipeline
 
 if __name__ == "__main__":
@@ -50,7 +50,6 @@ if __name__ == "__main__":
         print(model)
         print(_seed)
 
-
         if args.mode == 'holdout_ccgp':
             for layer in layer_list[::-1]:
                 try:
@@ -58,7 +57,7 @@ if __name__ == "__main__":
                     print('Already trained: '+EXP_FOLDER+'/'+'layer'+layer+'_task_holdout_seed'+str(_seed))
                     continue
                 except FileNotFoundError:
-                    get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
+                    get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True, instruct_mode='')
 
         if args.mode == 'swap_ccgp':
             get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= 'task', instruct_mode='swap_combined', save=True)
@@ -66,10 +65,6 @@ if __name__ == "__main__":
         elif args.mode == 'multi_ccgp': 
             get_multitask_CCGP(EXP_FOLDER, model, _seed, layer= 'task', save=True)
 
-        elif 'dim' in args.mode:    
-            for layer in layer_list:
-                get_layer_dim(EXP_FOLDER, model, _seed, layer= layer, save=True)
-                
         elif args.mode == 'val':
             get_val_perf(EXP_FOLDER, model, _seed, save=True)
 

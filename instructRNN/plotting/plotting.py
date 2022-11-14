@@ -32,7 +32,7 @@ plt.rcParams['axes.axisbelow'] = True
 Blue = '#1C3FFD'
 lightBlue=	'#75E6DA'
 lightRed = '#FF6D6A'
-Green = '#45BF55'
+Green = "#5A5C53"
 Red = '#FF3131'
 Orange = '#FFA500'
 Yellow = '#FFEE58'
@@ -40,12 +40,12 @@ Purple = '#800080'
 
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (lightBlue, None, 'simpleNetPlus'), 
                     'comNet': (lightBlue, 'None', 'comNet'), 'comNetPlus': (lightBlue, '+', 'comNetPlus'), 
-                    'clipNet_lin': (Yellow, None, 'clipNet'), 'clipNet_lin_tuned': (Yellow, 'v', 'clipNet (tuned)'), 
-                    'bowNet_lin': (Orange, None, 'bowNet'), 
+                    'clipNet_lin': (Purple, None, 'clipNet'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 
+                    'bowNet_lin': (Yellow, None, 'bowNet'), 
                     'gptNet_lin': (lightRed, None, 'gptNet'), 'gptNet_lin_tuned': (lightRed, 'v','gptNet (tuned)'), 
                     'gptNetXL_lin': (Red, None, 'gptNetXL'), 'gptNetXL_lin_tuned': (Red, None, 'gptNetXL (tuned)'), 
-                    'bertNet_lin': (Green, None, 'bertNet'), 'bertNet_lin_tuned': (Green, 'v', 'bertNet (tuned)'),  
-                    'sbertNet_lin': (Purple, None, 'sbertNet'), 'sbertNet_lin_tuned': (Purple, 'v', 'sbertNet (tuned)')}
+                    'bertNet_lin': (Orange, None, 'bertNet'), 'bertNet_lin_tuned': (Orange, 'v', 'bertNet (tuned)'),  
+                    'sbertNet_lin': (Green, None, 'sbertNet'), 'sbertNet_lin_tuned': (Green, 'v', 'sbertNet (tuned)')}
 
 def get_task_color(task): 
     index = TASK_LIST.index(task)
@@ -67,16 +67,17 @@ def make_all_axes(xlim=None):
         ax = axn.flat[j]
         ax.set_ylim(-0.05, 1.05)
         ax.set_title(task, size=6, pad=1)
-        ax.xaxis.set_tick_params(labelsize=5)
+        ax.xaxis.set_tick_params(labelsize=4)
         ax.yaxis.set_tick_params(labelsize=5)
         ax.set_yticks([0,1])
+        ax.set_xticks(np.linspace(0, 3000, 4))
         ax.set_yticklabels(['{:,.0%}'.format(x) for x in [0, 1]])
         if xlim is not None: 
             ax.set_xlim(xlim)
     return fig, axn
 
 def make_avg_axes():
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(5, 4))
     axn.set_ylim(0.0, 1.0)
     axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
     axn.set_xlabel('Exposures to Novel Task', size=8, fontweight='bold')
@@ -92,7 +93,6 @@ def _plot_performance_curve(avg_perf, std_perf, plt_ax, color, zero_marker, **pl
         plt_ax.fill_between(np.linspace(0, avg_perf.shape[-1], avg_perf.shape[-1]), np.min(np.array([np.ones(avg_perf.shape[-1]), avg_perf+std_perf]), axis=0), 
                                         avg_perf-std_perf, color = color, alpha= 0.1)
         plt_ax.plot(avg_perf, color=color, **plt_args, zorder=0)
-        plt_ax.scatter(0, avg_perf[0], color=color, s=3, marker=zero_marker)
 
 def _plot_all_performance_curves(avg_perf, std_perf, plt_axn, color, zero_marker, **plt_args):
     for j, ax in enumerate(plt_axn.flat):
@@ -119,8 +119,11 @@ def plot_curves(foldername, exp_type, model_list, mode = '', training_file = '',
         for model_name in model_list:
             color = MODEL_STYLE_DICT[model_name][0] 
             data = PerfDataFrame(foldername, exp_type, model_name, training_file = training_file, perf_type=perf_type, mode = mode, seeds=seeds)
-            if avg: mean, std = data.avg_tasks()
-            else: mean, std = data.avg_seeds()
+            if avg: 
+                mean, std = data.avg_tasks()
+                axn.scatter(0, mean[0], color=color, s=3, marker=zero_marker)
+            else: 
+                mean, std = data.avg_seeds()
 
             plt_func(mean, std, axn, color, zero_marker, **curve_kwargs)
 
@@ -201,7 +204,7 @@ def plot_k_shot_task_hist(foldername, exp_type, model_list, k= 0, perf_type='cor
 
             axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.8)
 
-        plt.show()
+        return fig, axn
 
 def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='', perf_type='correct',  seeds=range(5)):
     with plt.rc_context({'axes.grid.axis': 'y'}):
@@ -236,7 +239,7 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='
         fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
 
         plt.tight_layout()
-        plt.show()
+        return fig, axn
 
 
 def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs): 

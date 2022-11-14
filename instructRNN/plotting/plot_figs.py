@@ -5,38 +5,42 @@ from instructRNN.tasks.task_factory import *
 from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio
 from instructRNN.data_loaders.perfDataFrame import *
 
-to_plot_models = ['simpleNet', 'simpleNetPlus', 'bowNet_lin',  'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'sbertNet_lin', 'clipNet_lin']
+to_plot_models = ['clipNet_lin', 'sbertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNetPlus', 'simpleNet']
 tuned_to_plot = ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin_tuned']
 
 
 ##ALL MODEL LEARNING CURVES
-plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask', linewidth=0.5)
+fig, axn = plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask', linewidth=0.5)
+fig.tight_layout()
 plt.show()
 
 ##VALIDATION
-plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[2:][::-1], mode='val')
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[:-2], mode='val')
+plt.show()
 
 ###HOLDOUTS
-plot_curves('7.20models', 'swap', to_plot_models, mode='combined', avg=True)
-plot_0_shot_task_hist('7.20models', 'swap', to_plot_models, seeds =range(0,5), mode='combined')
-plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='combined')
+plot_curves('7.20models', 'swap', to_plot_models, mode='combined', avg=True, linewidth=0.8)
+plot_k_shot_task_hist('7.20models', 'swap', to_plot_models[::-1], mode='combined')
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='combined')
+plt.show()
 
 ##TUNED HOLDOUTS
-plot_curves('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined', avg=True, linewidth=0.5)
+plot_curves('7.20models', 'swap', tuned_to_plot, mode='combined', avg=True, linewidth=0.8)
+plot_0_shot_task_hist('7.20models', 'swap', tuned_to_plot, mode='combined')
+plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot[::-1], mode='combined')
 plt.show()
-plot_0_shot_task_hist('7.20models', 'swap', tuned_to_plot, seeds =range(0, 5), mode='combined')
-plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot[::-1], seeds =range(0, 5), mode='combined')
 
 ###SWAP HOLDOUTS
-plot_avg_holdout_curve('7.20models', 'swap', to_plot_models, seeds =range(0, 5), mode='swap_combined')
-plot_0_shot_task_hist('7.20models', 'swap', to_plot_models, seeds =range(0,5), mode='swap_combined')
-plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[::-1], seeds =range(0, 5), mode='swap_combined')
+plot_curves('7.20models', 'swap', to_plot_models, mode='swap_combined', avg=True, linewidth=0.8)
+plot_k_shot_task_hist('7.20models', 'swap', to_plot_models[::-1], mode='swap_combined')
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='swap_combined')
+plt.show()
 
 ###FAMILY
 plot_curves('7.20models', 'family', to_plot_models, mode='combined', avg=True, linewidth=0.8)
+plot_k_shot_task_hist('7.20models', 'family', to_plot_models[::-1], mode='combined')
+plot_all_task_lolli_v('7.20models', 'family', to_plot_models, mode='combined')
 plt.show()
-plot_k_shot_task_hist('7.20models', 'family', to_plot_models, mode='combined')
-plot_all_task_lolli_v('7.20models', 'family', to_plot_models[::-1], mode='combined')
 
 ####PC PLOTS
 EXP_FILE = '7.20models/swap_holdouts'
@@ -76,8 +80,7 @@ simpleNet.load_model('7.20models/multitask_holdouts/Multitask/'+simpleNet.model_
 plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, pcs=[0, 1, 2], num_trials=5)
 
 #CCGP PLOTS
-plot_layer_ccgp('7.20models/swap_holdouts', to_plot_models[::-1])
-plot_layer_ccgp('7.20models/swap_holdouts', to_plot_models, mode='swap_combined')
+plot_layer_ccgp('7.20models/swap_holdouts', to_plot_models)
 plot_ccgp_corr('7.20models', 'swap', to_plot_models)
 
 #############SINGLE UNIT TUING
@@ -207,8 +210,12 @@ get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)
 
 
 
-
+###Unit Var
 
 
 ###STRUCTURE FIG
-plot_comp_bar('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp'], y_lim=(0.5, 1.0))
+plot_comp_bar('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp', 'swap_ccgp'], y_lim=(0.5, 1.0))
+plt.show()
+
+plot_comp_bar('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp', 'swap_ccgp'], y_lim=(0.5, 1.0))
+plt.show()

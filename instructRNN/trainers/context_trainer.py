@@ -31,7 +31,7 @@ class ContextTrainerConfig():
     epochs: int = 5
     min_run_epochs: int = 1
     batch_len: int = 128
-    num_batches: int = 800
+    num_batches: int = 500
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
@@ -155,7 +155,7 @@ class ContextTrainer(BaseTrainer):
                     return True
 
             if self.scheduler is not None: self.scheduler.step()  
-            if self.step_last_lr: self.step_scheduler.step()
+            #if self.step_last_lr: self.step_scheduler.step()
 
         warnings.warn('Model has not reach specified performance threshold during training')
         return False

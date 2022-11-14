@@ -143,8 +143,10 @@ class PerfDataFrame():
 
     def load_holdout_CCGP(self, get_layer_list=False): 
         if get_layer_list: 
-            if self.model_name in shallow_models: 
+            if self.model_name == 'simpleNet': 
                 self.layer_list = ['task']
+            elif self.model_name == 'simpleNetPlus': 
+                self.layer_list = ['full', 'task']
             elif self.model_name in big_models: 
                 self.layer_list = [str(layer) for layer in range(13, 25)] + ['full', 'task']
             elif 'bow' in self.model_name: 
@@ -164,7 +166,7 @@ class PerfDataFrame():
                     data[i, :, j] = tmp_data_arr
                 except FileNotFoundError:
                     if self.verbose: 
-                        print('no data for layer {} for model {} seed {}'.format(layer, model_name, seed))
+                        print('no data for layer {} for model {} seed {}'.format(layer, self.model_name, seed))
 
         super().__setattr__('data', data)
 

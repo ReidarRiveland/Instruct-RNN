@@ -13,7 +13,6 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from collections import defaultdict
 
-
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import DMFactory, TRIAL_LEN, _get_default_intervals, max_var_dir
 from instructRNN.tasks.task_criteria import isCorrect
@@ -157,7 +156,9 @@ def get_rule_embedder_reps(model):
     reps = np.empty((len(TASK_LIST), model.rule_dim))
     with torch.no_grad():
         for i, task in enumerate(TASK_LIST): 
-            info = get_task_info(1, task, False)
+            task_rule = get_task_info(1, task, False)
+            rule_transformed = torch.matmul(task_rule.to(model.__device__), model.rule_transform.float())
+            info= model.rule_encoder(rule_transformed)
             reps[i, :] = model.rule_encoder(info).cpu().numpy()
     return reps
 
@@ -353,6 +354,8 @@ def get_multitask_CCGP(exp_folder, model_name, seed, save=False, layer='task', m
 
     if layer == 'task':
         reps = get_task_reps(model, num_trials = 100)
+    elif layer =='full' and model_name =='simpleNetPlus':
+        reps = get_rule_embedder_reps(model)[:, None, :]
     else: 
         reps = get_instruct_reps(model.langModel, depth=layer)
     
@@ -402,6 +405,8 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
 
         if layer == 'task':
             reps = get_task_reps(model, num_trials = 250, instruct_mode=instruct_mode, epoch=epoch, use_comp=use_comp)
+        elif layer =='full' and model_name =='simpleNetPlus':
+            reps = get_rule_embedder_reps(model)[:, None, :]
         else: 
             reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode=instruct_mode)
 
@@ -438,63 +443,6 @@ def get_perf_ccgp_corr(folder, exp_type, model_list):
 
     return corr, p_val, ccgp_scores, perf_scores
 
-
-def get_model_spectrum(model, layer='full'):
-    if layer == 'task':
-        reps = get_task_reps(model, num_trials=20, instruct_mode='combined', noise=0.0)
-    else: 
-        reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
-
-    spectrum = LA.eigvals(np.cov(reps.reshape(-1, reps.shape[-1])))
-    return spectrum
-
-
-def get_model_sv(model, layer='task'):
-    if layer == 'task':
-        reps = get_task_reps(model, num_trials=50, instruct_mode='combined', noise=0.0)
-    else: 
-        print('here')
-        reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
-
-    _, sv, _ = LA.svd(reps.reshape(-1, reps.shape[-1]))
-    return sv
-
-
-def get_layer_dim(exp_folder, model_name, seed, layer='task', threshold = 0.9, keep_dims=25, save=False): 
-    if 'swap' in exp_folder: 
-        exp_dict = SWAPS_DICT
-    
-    var_exp_arr = np.empty((len(exp_dict), keep_dims))
-    thresholded = np.empty((len(exp_dict)))
-
-    model = make_default_model(model_name)
-    
-    for i, holdout_file in enumerate(exp_dict.keys()):
-        print('processing '+ holdout_file)
-        model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
-
-        if layer == 'task':
-            reps = get_task_reps(model, num_trials = 250, instruct_mode='combined',noise=0.0)
-        else: 
-            reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
-
-        _, var_exp = reduce_rep(reps, pcs=range(keep_dims))
-        for k in range(keep_dims):
-            if np.sum(var_exp[:k])>threshold:
-                break
-        
-        var_exp_arr[i, :] = var_exp
-        thresholded[i] = k
-
-    if save:
-        file_path = exp_folder+'/dim_measures/'+model_name
-        if os.path.exists(file_path):
-            pass
-        else: os.makedirs(file_path)
-        np.save(file_path+'/'+'layer'+layer+'_var_exp_arr_seed'+str(seed), var_exp_arr)
-        np.save(file_path+'/'+'layer'+layer+'_thresholds_seed'+str(seed), thresholded)
-
-    return var_exp_arr, thresholded
 
 def get_norm_task_var(hid_reps): 
     task_var = np.nanmean(np.nanvar(hid_reps[:, :, :,:], axis=1), axis=1)

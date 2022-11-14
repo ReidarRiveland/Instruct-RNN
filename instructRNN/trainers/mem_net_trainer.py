@@ -24,7 +24,6 @@ from instructRNN.models.script_gru import ScriptGRU
 
 device = torch.device(0)
 
-
 class MemNet(nn.Module): 
     def __init__(self, out_dim, rnn_hidden_dim):
         super(MemNet, self).__init__()
@@ -43,7 +42,7 @@ class MemNet(nn.Module):
         h0 = self.__initHidden__(ins.shape[0])
         rnn_ins = torch.cat((ins, tar), axis=-1)
         rnn_hid, _ = self.rnn(rnn_ins, h0)
-        out = torch.tanh(self.lin_out(rnn_hid))
+        out = self.lin_out(rnn_hid)
         return out, rnn_hid
 
     def to(self, cuda_device): 
@@ -64,7 +63,7 @@ class MemNetTrainerConfig():
     stream_data: bool = True
 
     optim_alg: str = 'adam'
-    init_lr: float = 0.001
+    init_lr: float = 0.005
 
     scheduler_type: str = 'exp'
     scheduler_gamma: float = 0.99
@@ -162,11 +161,10 @@ class MemNetTrainer(BaseTrainer):
                 else: 
                     rule_transformed = torch.matmul(task_info.to(model.__device__), model.rule_transform.float())
                     info_embedded = model.rule_encoder(rule_transformed)
-                info_for_loss = info_embedded[:, None, :]
 
                 self.optimizer.zero_grad()
                 mem_out, hid = self.memNet(ins.float().to(device), tar.float().to(device))
-                loss = self.mse(mem_out[:, -1, :], info_for_loss.to(device))
+                loss = self.mse(mem_out[:, -1, :], info_embedded)
                 loss.backward()
                 self.optimizer.step()
 
