@@ -28,7 +28,7 @@ class ContextTrainerConfig():
     mode: str = ''
     num_contexts: int = 20
 
-    epochs: int = 5
+    epochs: int = 8
     min_run_epochs: int = 1
     batch_len: int = 64
     num_batches: int = 1200
