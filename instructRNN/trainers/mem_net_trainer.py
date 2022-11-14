@@ -58,9 +58,9 @@ class MemNetTrainerConfig():
     holdouts: list
     mode: str = ''
 
-    epochs: int = 50
-    batch_len: int = 64
-    num_batches: int = 500
+    epochs: int = 80
+    batch_len: int = 128
+    num_batches: int = 800
     stream_data: bool = True
 
     optim_alg: str = 'adam'
@@ -143,7 +143,7 @@ class MemNetTrainer(BaseTrainer):
         model.to(device)
         model.eval()
         self.model_file_path = model.model_name+'_'+self.seed_suffix
-        self.memNet = MemNet(64, 128)
+        self.memNet = MemNet(64, 256)
         self.memNet.to(device)
 
         self._init_streamer()
@@ -157,12 +157,16 @@ class MemNetTrainer(BaseTrainer):
                 ins, tar, mask, tar_dir, task_type = data
 
                 task_info = get_task_info(self.batch_len, task_type, model.info_type, instruct_mode=None)
-                info_embedded = model.langModel(task_info)
-                info_for_loss = info_embedded[:, None, :].repeat(1, 5, 1)
+                if hasattr(model, 'langModel'):
+                    info_embedded = model.langModel(task_info)
+                else: 
+                    rule_transformed = torch.matmul(task_info.to(model.__device__), model.rule_transform.float())
+                    info_embedded = model.rule_encoder(rule_transformed)
+                info_for_loss = info_embedded[:, None, :]
 
                 self.optimizer.zero_grad()
                 mem_out, hid = self.memNet(ins.float().to(device), tar.float().to(device))
-                loss = self.mse(mem_out[:, -5:, :], info_for_loss.to(device))
+                loss = self.mse(mem_out[:, -1, :], info_for_loss.to(device))
                 loss.backward()
                 self.optimizer.step()
 
@@ -177,8 +181,8 @@ class MemNetTrainer(BaseTrainer):
                     self._log_step(task_type, loss.item())
 
             self._record_session(model, mode='CHECKPOINT')
-            if self.scheduler is not None: self.scheduler.step()  
-            if self.step_last_lr: self.step_scheduler.step()
+            # if self.scheduler is not None: self.scheduler.step()  
+            # if self.step_last_lr: self.step_scheduler.step()
         
         self._record_session(model, mode='FINAL')
 
