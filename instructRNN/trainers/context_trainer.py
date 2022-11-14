@@ -29,7 +29,7 @@ class ContextTrainerConfig():
     num_contexts: int = 10
 
     epochs: int = 5
-    min_run_epochs: int = 0
+    min_run_epochs: int = 1
     batch_len: int = 128
     num_batches: int = 500
     stream_data: bool = True
