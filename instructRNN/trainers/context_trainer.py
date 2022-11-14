@@ -26,7 +26,7 @@ class ContextTrainerConfig():
     random_seed: int
     context_dim: int    
     mode: str = ''
-    num_contexts: int = 10
+    num_contexts: int = 20
 
     epochs: int = 5
     min_run_epochs: int = 1
