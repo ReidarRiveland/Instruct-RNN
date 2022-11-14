@@ -20,23 +20,36 @@ from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.tasks.task_factory import OUTPUT_DIM, INPUT_DIM
 from instructRNN.analysis.model_analysis import get_instruct_reps
 from instructRNN.instructions.instruct_utils import get_task_info
+from instructRNN.models.script_gru import ScriptGRU
 
 device = torch.device(0)
 
+
 class MemNet(nn.Module): 
-    def __init__(self, out_dim, drop_p=0.0):
+    def __init__(self, out_dim, rnn_hidden_dim):
         super(MemNet, self).__init__()
-        self.dropper = nn.Dropout(p=drop_p)
-        self.fc1 = nn.Linear((OUTPUT_DIM+INPUT_DIM)*2, out_dim)
-        self.id = nn.Identity()
+        self.rnn_hidden_dim = rnn_hidden_dim
+        self.out_dim = out_dim
+        self.rnn_hiddenInitValue = 0.1
+        self.__device__ = 'cpu'
+        self.rnn = ScriptGRU(OUTPUT_DIM+INPUT_DIM, self.rnn_hidden_dim, 1, torch.relu, batch_first=True)
+        self.lin_out= nn.Linear(self.rnn_hidden_dim, self.out_dim)
         
+    def __initHidden__(self, batch_size):
+        return torch.full((1, batch_size, self.rnn_hidden_dim), 
+                self.rnn_hiddenInitValue, device=torch.device(self.__device__))
+
     def forward(self, ins, tar): 
-        trials_ins_outs = torch.cat((ins, tar), dim=-1)
-        out_mean = self.id(torch.mean(trials_ins_outs, dim=1))
-        out_max = self.id(torch.max(trials_ins_outs, dim=1).values)
-        out = torch.cat((out_max, out_mean), dim=-1)
-        out = torch.relu(self.fc1(out.float()))
-        return out
+        h0 = self.__initHidden__(ins.shape[0])
+        rnn_ins = torch.cat((ins, tar), axis=-1)
+        rnn_hid, _ = self.rnn(rnn_ins, h0)
+        out = torch.tanh(self.lin_out(rnn_hid))
+        return out, rnn_hid
+
+    def to(self, cuda_device): 
+        super().to(cuda_device)
+        self.__device__ = cuda_device
+        
 
 @define 
 class MemNetTrainerConfig(): 
@@ -129,10 +142,9 @@ class MemNetTrainer(BaseTrainer):
     def train(self, model): 
         model.to(device)
         model.eval()
-        model.to(device)
         self.model_file_path = model.model_name+'_'+self.seed_suffix
-
-        self.memNet = MemNet(64).to(device)
+        self.memNet = MemNet(64, 128)
+        self.memNet.to(device)
 
         self._init_streamer()
         self.init_optimizer()
@@ -144,20 +156,20 @@ class MemNetTrainer(BaseTrainer):
             for self.cur_step, data in enumerate(self.streamer.stream_batch()): 
                 ins, tar, mask, tar_dir, task_type = data
 
-                self.optimizer.zero_grad()
                 task_info = get_task_info(self.batch_len, task_type, model.info_type, instruct_mode=None)
                 info_embedded = model.langModel(task_info)
-                mem_out = self.memNet(ins.to(device), tar.to(device))
+                info_for_loss = info_embedded[:, None, :].repeat(1, 5, 1)
 
-
-                loss = self.mse(mem_out, info_embedded)
+                self.optimizer.zero_grad()
+                mem_out, hid = self.memNet(ins.float().to(device), tar.float().to(device))
+                loss = self.mse(mem_out[:, -5:, :], info_for_loss.to(device))
                 loss.backward()
                 self.optimizer.step()
 
                 self._log_step(task_type, loss.item())
 
                 if self.cur_step%50 == 0:
-                    out, _ = model(ins.to(device), None, context=mem_out)
+                    out, _ = model(ins.to(device), None, context=mem_out[:,-1,:])
                     frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
                     self._log_step(task_type, loss.item(), frac_correct=frac_correct)
                     self._print_training_status(task_type)

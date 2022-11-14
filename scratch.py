@@ -27,32 +27,51 @@ ins, tar, mask, tar_dir, task_type = construct_trials('DM', num_trials=128, retu
 
 torch.cat((ins, tar), dim=2).shape
 
+
 class MemNet(nn.Module): 
-    def __init__(self, out_dim, drop_p):
+    def __init__(self, out_dim, rnn_hidden_dim):
         super(MemNet, self).__init__()
-        self.dropper = nn.Dropout(p=drop_p)
-        self.fc1 = nn.Linear((OUTPUT_DIM+SENSORY_INPUT_DIM)*2, out_dim)
-        self.id = nn.Identity()
+        self.rnn_hidden_dim = rnn_hidden_dim
+        self.out_dim = out_dim
+        self.rnn_hiddenInitValue = 0.1
+        self.__device__ = 'cpu'
+        self.rnn = ScriptGRU(OUTPUT_DIM+INPUT_DIM, self.rnn_hidden_dim, 1, torch.relu, batch_first=True)
+        self.lin_out= nn.Linear(self.rnn_hidden_dim, self.out_dim)
         
-    def forward(self, ins, outs): 
-        trials_ins_outs = torch.cat((ins, tar), dim=-1)
-        out_mean = self.id(torch.mean(trials_ins_outs, dim=1))
-        out_max = self.id(torch.max(trials_ins_outs, dim=1).values)
-        out = torch.cat((out_max, out_mean), dim=-1)
-        out = torch.relu(self.fc1(out.float()))
-        return out
+    def __initHidden__(self, batch_size):
+        return torch.full((1, batch_size, self.rnn_hidden_dim), 
+                self.rnn_hiddenInitValue, device=torch.device(self.__device__))
+
+    def forward(self, ins, tar): 
+        h0 = self.__initHidden__(ins.shape[0])
+        rnn_ins = torch.cat((ins, tar), axis=-1)
+        rnn_hid, _ = self.rnn(rnn_ins, h0)
+        out = self.lin_out(rnn_hid)
+        return out, rnn_hid
+
+    def to(self, cuda_device): 
+        super().to(cuda_device)
+        self.__device__ = cuda_device
+        
+
 
 task_info = get_task_info(128, task_type, model.info_type, instruct_mode=None)
 
-memNet = MemNet(64, 0.0)
+memNet = MemNet(64, 128)
+memNet.to(0)
+
+memNet.__device__
+
+list(memNet.parameters())
 
 loss = torch.nn.MSELoss()
 
 info_embedded = model.langModel(task_info)
-info_embedded
-out = memNet(ins, tar)
+info_for_loss = info_embedded[:, None, :].repeat(1, 5, 1)
 
-loss(info_embedded, out)
+out, hid = memNet(ins.float().to(0), tar.float().to(0))
+
+loss(info_for_loss, out[:, -5:, :])
 
 
 
