@@ -31,14 +31,14 @@ class ContextTrainerConfig():
     epochs: int = 5
     min_run_epochs: int = 0
     batch_len: int = 128
-    num_batches: int = 1000
+    num_batches: int = 800
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
     lr: float = 0.05
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.2}
+    scheduler_args: dict = {'gamma': 0.8}
 
     checker_threshold: float = 0.95
     step_last_lr: bool = True
@@ -80,8 +80,8 @@ class ContextTrainer(BaseTrainer):
 
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
-        #nn.init.uniform_(context, -1, 0.2)
-        nn.init.normal_(context, std=1.0)
+        nn.init.uniform_(context, -1, 1)
+        #nn.init.normal_(context, std=1.0)
         return context
     
     def _init_optimizer(self, context):
