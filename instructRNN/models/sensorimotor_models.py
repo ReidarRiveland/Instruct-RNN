@@ -1,4 +1,6 @@
 from inspect import Parameter
+
+import numpy as np
 import torch
 import torch.nn as nn
 from attrs import asdict, define, field
@@ -13,6 +15,7 @@ from instructRNN.tasks.tasks import TASK_LIST, construct_trials
 from instructRNN.models.language_models import InstructionEmbedder, LMConfig
 from instructRNN.tasks.task_factory import INPUT_DIM, OUTPUT_DIM, TRIAL_LEN
 from instructRNN.instructions.instruct_utils import get_input_rule, get_instructions, one_hot_input_rule
+import instructRNN.analysis.model_analysis as analysis
 
 SENSORY_INPUT_DIM = INPUT_DIM
 MOTOR_OUTPUT_DIM = OUTPUT_DIM
@@ -215,14 +218,19 @@ class InstructNet(BaseNet):
                                 self.LM_proj_out_layers)
 
         self.langModel = self.LM_class(self.LM_config)
-    
+        self.instruct_rep_basis = None
+
+    def get_instruct_rep_basis(self):
+        if self.instruct_rep_basis is None: 
+            self.instruct_rep_basis=analysis.get_instruct_reps(self.langModel)
 
     def forward(self, x, instruction = None, context = None, comp_task=None):
         assert instruction is not None or context is not None or comp_task is not None, 'must have instruction or context input'
         
         if comp_task is not None: 
+            self.get_instruct_rep_basis()
             ref_tasks = construct_trials(comp_task, None).comp_ref_tasks
-            task_infos = [self.langModel(get_instructions(x.shape[0], task)) for task in ref_tasks]
+            task_infos = [torch.tensor(self.instruct_rep_basis[TASK_LIST.index(task), np.random.choice(range(15), x.shape[0]), :]) for task in ref_tasks]
             info_embedded = (task_infos[0] - task_infos[1]) + task_infos[2]
 
         elif instruction is not None: 

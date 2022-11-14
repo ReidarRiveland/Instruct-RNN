@@ -4,12 +4,10 @@ import scipy
 import sklearn
 from instructRNN.instructions.instruct_utils import get_task_info
 from instructRNN.tasks.task_criteria import isCorrect
-from instructRNN.models.full_models import *
-#from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval
+from instructRNN.analysis.model_analysis import get_model_performance, get_task_reps, reduce_rep, task_eval, get_multi_comp_perf
 
 from instructRNN.tasks.tasks import *
 import torch
-from instructRNN.models.full_models import *
 from instructRNN.instructions.instruct_utils import get_instructions
 from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
@@ -20,88 +18,20 @@ model = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap1'
 model.load_model(EXP_FILE+'/'+holdouts_file+'/'+model.model_name, suffix='_seed0')
 
-# from instructRNN.plotting.plotting import *
-# clipNet_lin = eval_model_exemplar('clipNet_lin', '7.20models', 'swap', 0)
-
-ins, tar, mask, tar_dir, task_type = construct_trials('DM', num_trials=128, return_tensor=True, max_var=True)
-
-torch.cat((ins, tar), dim=2).shape
+from instructRNN.plotting.plotting import *
+clipNet_lin = eval_model_exemplar('clipNet_lin', '7.20models', 'swap', 0)
 
 
-class MemNet(nn.Module): 
-    def __init__(self, out_dim, rnn_hidden_dim):
-        super(MemNet, self).__init__()
-        self.rnn_hidden_dim = rnn_hidden_dim
-        self.out_dim = out_dim
-        self.rnn_hiddenInitValue = 0.1
-        self.__device__ = 'cpu'
-        self.rnn = ScriptGRU(OUTPUT_DIM+INPUT_DIM, self.rnn_hidden_dim, 1, torch.relu, batch_first=True)
-        self.lin_out= nn.Linear(self.rnn_hidden_dim, self.out_dim)
-        
-    def __initHidden__(self, batch_size):
-        return torch.full((1, batch_size, self.rnn_hidden_dim), 
-                self.rnn_hiddenInitValue, device=torch.device(self.__device__))
+perf = get_multi_comp_perf('7.20models/multitask_holdouts', 'gptNetXL_lin', 0, batch_len=100)
 
-    def forward(self, ins, tar): 
-        h0 = self.__initHidden__(ins.shape[0])
-        rnn_ins = torch.cat((ins, tar), axis=-1)
-        rnn_hid, _ = self.rnn(rnn_ins, h0)
-        out = self.lin_out(rnn_hid)
-        return out, rnn_hid
+np.mean(perf)
 
-    def to(self, cuda_device): 
-        super().to(cuda_device)
-        self.__device__ = cuda_device
-        
-
-
-task_info = get_task_info(128, task_type, model.info_type, instruct_mode=None)
-
-memNet = MemNet(64, 128)
-memNet.to(0)
-
-memNet.__device__
-
-list(memNet.parameters())
-
-loss = torch.nn.MSELoss()
-
-info_embedded = model.langModel(task_info)
-info_for_loss = info_embedded[:, None, :].repeat(1, 5, 1)
-
-out, hid = memNet(ins.float().to(0), tar.float().to(0))
-
-loss(info_for_loss, out[:, -5:, :])
+reps = get_instruct_reps(model.langModel)
 
 
 
-
-to_plot_models = ['simpleNet', 'simpleNetPlus', 'bowNet_lin',  'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'sbertNet_lin', 'clipNet_lin']
-
-###STRUCTURE FIG
-fig_axn = plot_comp_bar('7.20models', 'swap', to_plot_models, ['multi_comp'])
-plot_comp_bar('7.20models', 'swap', to_plot_models, ['combinedcomp'], y_lim=(0.5, 1.0), fig_axn = fig_axn, hatch='///', alpha=0.8, edgecolor='white')
-plt.show()
-
-
-fig_ax = plot_curves('7.20models', 'swap', to_plot_models, mode = 'combined', avg=True, linewidth=0.5)
-plot_curves('7.20models', 'swap', to_plot_models, mode = 'combinedcomp', fig_axn=fig_ax, avg=True, linewidth=0.5, linestyle='--')
-plt.show()
-plot_curves('7.20models', 'swap', to_plot_models, mode = 'combinedinputs_only', avg=True)
-plt.show()
-
-data = PerfDataFrame('7.20models', 'swap', 'clipNet_lin', mode='combinedcomp')
-mean, std = data.avg_seeds()
-
-list(zip(TASK_LIST, mean[:, 0]))
-
-
-
-
-
-
-
-
+choices = np.random.choice(range(15), 36)
+reps[0, choices, :].shape
 
 
 

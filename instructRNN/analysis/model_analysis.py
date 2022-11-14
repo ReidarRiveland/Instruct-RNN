@@ -17,7 +17,7 @@ from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import DMFactory, TRIAL_LEN, _get_default_intervals, max_var_dir
 from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.instructions.instruct_utils import get_task_info, get_instruction_dict, sort_vocab
-from instructRNN.models.full_models import make_default_model
+import instructRNN.models.full_models as full_models
 from instructRNN.tasks.tasks import DICH_DICT, TASK_LIST, SWAPS_DICT
 from instructRNN.data_loaders.perfDataFrame import *
 import os
@@ -58,7 +58,7 @@ def get_model_performance(model, num_repeats = 1, batch_len=128, instruct_mode=N
     return perf_array
 
 def get_val_perf(foldername, model_name, seed, num_repeats = 5, batch_len=100, save=False): 
-    model = make_default_model(model_name)
+    model = full_models.make_default_model(model_name)
     model.load_model(foldername+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
     perf_array = get_model_performance(model, num_repeats=num_repeats, batch_len=batch_len, instruct_mode='validation')
     if save:
@@ -71,7 +71,7 @@ def get_val_perf(foldername, model_name, seed, num_repeats = 5, batch_len=100, s
     return perf_array
 
 def get_multi_comp_perf(foldername, model_name, seed, num_repeats = 5, batch_len=100, save=False): 
-    model = make_default_model(model_name)
+    model = full_models.make_default_model(model_name)
     model.load_model(foldername+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
     perf_array = get_model_performance(model, num_repeats=num_repeats, batch_len=batch_len, instruct_mode='combined', use_comp=True)
     if save:
@@ -87,7 +87,7 @@ def eval_model_0_shot(model_name, folder_name, exp_type, seed, instruct_mode=Non
     if 'swap' in exp_type: 
         exp_dict = SWAPS_DICT
     perf_array = np.full(len(TASK_LIST), np.NaN)
-    model = make_default_model(model_name)
+    model = full_models.make_default_model(model_name)
     with torch.no_grad():
         for holdout_label, tasks in exp_dict.items(): 
             print(holdout_label)
@@ -105,7 +105,7 @@ def eval_model_exemplar(model_name, foldername, exp_type, seed, **trial_kwargs):
         exp_dict = SWAPS_DICT
 
     perf_array = np.full(len(TASK_LIST), np.NaN)
-    model = make_default_model(model_name)
+    model = full_models.make_default_model(model_name)
 
     if 'simpleNet' in model_name:
         context_dim = 64
@@ -349,7 +349,7 @@ def get_dich_CCGP(reps, dich, holdouts_involved=[], use_mean = False, max_iter=1
 
 def get_multitask_CCGP(exp_folder, model_name, seed, save=False, layer='task', max_iter=1_000_000):
     multi_CCGP = np.full((len(TASK_LIST), len(DICH_DICT)), np.NAN)
-    model = make_default_model(model_name)
+    model = full_models.make_default_model(model_name)
     model.load_model(exp_folder+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
 
     if layer == 'task':
@@ -397,7 +397,7 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         exp_dict = SWAPS_DICT
     if use_comp: 
         instruct_mode='comp'
-    model = make_default_model(model_name)
+    model = full_models.make_default_model(model_name)
 
     for holdout_file, holdouts in exp_dict.items():
         print('processing '+ holdout_file)
@@ -475,7 +475,7 @@ def sort_units(norm_task_var):
     return cluster_dict, cluster_labels, sorted_indices
 
 def get_cluster_info(load_folder, model_name, seed):
-    model = make_default_model(model_name)
+    model = full_models.make_default_model(model_name)
     model.load_model(load_folder+'/'+model.model_name, suffix='_seed'+str(seed))
     task_hid_reps = get_task_reps(model, num_trials = 100, epoch=None, tasks= TASK_LIST, max_var=True)
     norm_task_var = get_norm_task_var(task_hid_reps)
@@ -487,7 +487,7 @@ def get_model_clusters(foldername, model_name, seed, num_repeats=10, save=False)
         exp_dict = SWAPS_DICT
 
     num_cluster_array = np.full((len(exp_dict), num_repeats), np.nan)
-    model = make_default_model(model_name)
+    model = full_models.make_default_model(model_name)
 
     for i, holdout_file in enumerate(exp_dict.keys()):
         for j in range(num_repeats):

@@ -4,7 +4,6 @@ import numpy as np
 import warnings
 
 from instructRNN.tasks.tasks import TASK_LIST, SWAPS_DICT,  FAMILY_DICT, MULTITASK_DICT
-from instructRNN.models.full_models import shallow_models, big_models
 
 @dataclass
 class PerfDataFrame(): 
@@ -44,6 +43,8 @@ class PerfDataFrame():
             self.load_context_data()
         elif self.mode == 'ccgp':
             self.load_holdout_CCGP()
+        elif self.mode == 'swap_ccgp':
+            self.load_holdout_CCGP(submode='swap_combined')
         elif self.mode == 'layer_ccgp':
             self.load_holdout_CCGP(get_layer_list=True)
         elif len(self.training_file)>1: 
@@ -141,13 +142,13 @@ class PerfDataFrame():
 
         super().__setattr__('data', data)
 
-    def load_holdout_CCGP(self, get_layer_list=False): 
+    def load_holdout_CCGP(self, get_layer_list=False, submode=''): 
         if get_layer_list: 
             if self.model_name == 'simpleNet': 
                 self.layer_list = ['task']
             elif self.model_name == 'simpleNetPlus': 
                 self.layer_list = ['full', 'task']
-            elif self.model_name in big_models: 
+            elif 'XL' in self.model_name: 
                 self.layer_list = [str(layer) for layer in range(13, 25)] + ['full', 'task']
             elif 'bow' in self.model_name: 
                 self.layer_list = ['bow', 'full', 'task']
@@ -161,7 +162,7 @@ class PerfDataFrame():
         for i, seed in enumerate(self.seeds):
             for j, layer in enumerate(self.layer_list):
                 try:
-                    load_str = self.file_path+'/'+self.exp_type+'_holdouts/CCGP_scores/'+self.model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+self.submode+'.npy'
+                    load_str = self.file_path+'/'+self.exp_type+'_holdouts/CCGP_scores/'+self.model_name+'/layer'+layer+'_task_holdout_seed'+str(seed)+submode+'.npy'
                     tmp_data_arr = np.load(open(load_str, 'rb'))
                     data[i, :, j] = tmp_data_arr
                 except FileNotFoundError:
