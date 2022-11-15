@@ -150,21 +150,24 @@ class MemNetTrainer(BaseTrainer):
 
         self.mse = nn.MSELoss()
 
+        self.rule_basis = np.mean(get_instruct_reps(model.langModel), axis=1)
+
         for self.cur_epoch in tqdm(range(self.cur_epoch, self.epochs), desc='epochs'):
             self.streamer.shuffle_stream_order()
             for self.cur_step, data in enumerate(self.streamer.stream_batch()): 
                 ins, tar, mask, tar_dir, task_type = data
 
                 task_info = get_task_info(self.batch_len, task_type, model.info_type, instruct_mode=None)
-                if hasattr(model, 'langModel'):
-                    info_embedded = model.langModel(task_info)
-                else: 
-                    rule_transformed = torch.matmul(task_info.to(model.__device__), model.rule_transform.float())
-                    info_embedded = model.rule_encoder(rule_transformed)
+                # if hasattr(model, 'langModel'):
+                #     info_embedded = model.langModel(task_info)
+                # else: 
+                #     rule_transformed = torch.matmul(task_info.to(model.__device__), model.rule_transform.float())
+                #     info_embedded = model.rule_encoder(rule_transformed)
 
                 self.optimizer.zero_grad()
                 mem_out, hid = self.memNet(ins.float().to(device), tar.float().to(device))
-                loss = self.mse(mem_out[:, -1, :], info_embedded)
+                target_embed = torch.tensor(self.rule_basis[TASK_LIST.index(task_type),:])[None, None, :].repeat(self.batch_len, 5, 1).float()
+                loss = self.mse(mem_out[:, -5:, :], target_embed.to(device))
                 loss.backward()
                 self.optimizer.step()
 

@@ -216,3 +216,16 @@ plt.show()
 
 plot_comp_bar('7.20models', 'swap', to_plot_models, ['combinedcomp', 'multi_comp'], y_lim=(0.0, 1.0))
 plt.show()
+
+###HOLDOUTS
+plot_curves('7.20models', 'swap', to_plot_models, mode='combinedinputs_only', avg=True, linewidth=0.8)
+plt.show()
+
+
+
+# perf = pickle.load(open('exemplar_perf', 'rb'))
+# plt.plot(np.mean(perf, axis=1))
+# plt.xticks(range(1, 20))
+# plt.xlim(0, 19)
+# plt.ylim(0, 1)
+# plt.show()

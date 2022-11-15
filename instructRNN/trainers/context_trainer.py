@@ -26,9 +26,9 @@ class ContextTrainerConfig():
     random_seed: int
     context_dim: int    
     mode: str = ''
-    num_contexts: int = 20
+    num_contexts: int = 25
 
-    epochs: int = 8
+    epochs: int = 10
     min_run_epochs: int = 1
     batch_len: int = 64
     num_batches: int = 1200
@@ -81,7 +81,6 @@ class ContextTrainer(BaseTrainer):
     def _init_contexts(self, batch_len): 
         context = nn.Parameter(torch.empty((batch_len, self.context_dim), device=device))
         nn.init.uniform_(context, -0.4, 0.4)
-        #nn.init.normal_(context, std=0.1)
         return context
     
     def _init_optimizer(self, context):
@@ -182,14 +181,15 @@ class ContextTrainer(BaseTrainer):
                 self.batch_len, 
                 self.num_batches,
                 set_single_task=task)
-
-        for i in range(self.range_start, self.num_contexts): 
-            is_trained = False 
+        i =0 
+        while sum(is_trained_list)<self.num_contexts: 
             print('Training '+str(i)+'th context')
             context = self._init_contexts(1)
             is_trained = self._train(model, context)
             is_trained_list.append(is_trained)
-            self.all_contexts[i, :] = context.squeeze()
+            if is_trained:
+                self.all_contexts[i, :] = context.squeeze()
+                i+=1
             self._record_session(task, is_trained_list, checkpoint=True)
         self._record_session(task, is_trained_list)                
 

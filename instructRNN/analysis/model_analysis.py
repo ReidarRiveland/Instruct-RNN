@@ -100,7 +100,7 @@ def eval_model_0_shot(model_name, folder_name, exp_type, seed, instruct_mode=Non
                 perf_array[TASK_LIST.index(task)] = task_eval(model, task, 64, instruct_mode=instruct_mode, comp_task=comp_task)
     return perf_array
 
-def eval_model_exemplar(model_name, foldername, exp_type, seed, **trial_kwargs):
+def eval_model_exemplar(model_name, foldername, exp_type, seed, exemplar_num, **trial_kwargs):
     if 'swap' in exp_type: 
         exp_dict = SWAPS_DICT
 
@@ -110,7 +110,8 @@ def eval_model_exemplar(model_name, foldername, exp_type, seed, **trial_kwargs):
     if 'simpleNet' in model_name:
         context_dim = 64
     else: 
-        context_dim = model.langModel.LM_intermediate_lang_dim 
+        #context_dim = model.langModel.LM_intermediate_lang_dim 
+        context_dim = 64
 
     with torch.no_grad():
         for holdout_label, tasks in exp_dict.items(): 
@@ -118,9 +119,8 @@ def eval_model_exemplar(model_name, foldername, exp_type, seed, **trial_kwargs):
             print(holdout_label)
             model.load_model(model_folder, suffix='_seed'+str(seed))
             for task in tasks: 
-                contexts = pickle.load(open(model_folder+'/contexts/seed'+str(seed)+'_'+task+'exemplar_context_vecs'+str(context_dim), 'rb'))
-                
-                perf_array[TASK_LIST.index(task)] = task_eval(model, task, 24, context=torch.tensor(contexts))
+                contexts = pickle.load(open(model_folder+'/contexts/seed'+str(seed)+'_'+task+'exemplar'+str(exemplar_num)+'_context_vecs'+str(context_dim), 'rb'))
+                perf_array[TASK_LIST.index(task)] = task_eval(model, task, 50, context=torch.tensor(contexts).repeat(5, 1))
 
     return perf_array
 
