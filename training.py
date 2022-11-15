@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
         if args.mode == 'context' or args.mode == 'c': 
             from instructRNN.trainers.context_trainer import *
-            train_contexts(EXP_FOLDER, model, _seed, holdouts, 'emb', overwrite=args.overwrite, mode='test')
+            train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, mode='test')
 
         if args.mode == 'memNet':
             from instructRNN.trainers.mem_net_trainer import *

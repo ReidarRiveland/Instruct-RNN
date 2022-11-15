@@ -405,48 +405,6 @@ class AntiDMMod2(Task):
                         )
         self.task_type = 'AntiDMMod2'
 
-class Dur(Task): 
-    comp_ref_tasks = ('MultiDur', 'AntiMultiDur', 'AntiDur')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
-        super().__init__(num_trials, noise,
-                        task_factory.DMDurFactory, 
-                        dur_chooser = np.greater,
-                        **factory_kwargs
-                        )
-        self.task_type = 'Dur'
-
-class AntiDur(Task): 
-    comp_ref_tasks = ('AntiMultiDur', 'MultiDur', 'Dur')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
-        super().__init__(num_trials, noise,
-                        task_factory.DMDurFactory, 
-                        dur_chooser = np.less,
-                        **factory_kwargs
-                        )
-        self.task_type = 'AntiDur'
-
-class MultiDur(Task): 
-    comp_ref_tasks = ('Dur', 'AntiDur', 'AntiMultiDur')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
-        super().__init__(num_trials, noise,
-                        task_factory.DMDurFactory, 
-                        dur_chooser = np.greater,
-                        multi=True,
-                        **factory_kwargs
-                        )
-        self.task_type = 'MultiDur'
-
-class AntiMultiDur(Task): 
-    comp_ref_tasks = ('AntiDur', 'Dur', 'MultiDur')
-    def __init__(self, num_trials, noise=None, **factory_kwargs): 
-        super().__init__(num_trials, noise,
-                        task_factory.DMDurFactory, 
-                        dur_chooser = np.less,
-                        multi=True,
-                        **factory_kwargs
-                        )
-        self.task_type = 'AntiMultiDur'
-
 class Dur1(Task): 
     comp_ref_tasks = ('MultiDur1', 'MultiDur2', 'Dur2')
     def __init__(self, num_trials, noise=None, **factory_kwargs): 

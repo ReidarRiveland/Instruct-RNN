@@ -32,7 +32,7 @@ class MemNet(nn.Module):
         self.rnn_hiddenInitValue = 0.1
         self.__device__ = 'cpu'
         self.rnn = ScriptGRU(OUTPUT_DIM+INPUT_DIM, self.rnn_hidden_dim, 1, torch.relu, batch_first=True)
-        self.lin_out= nn.Linear(self.rnn_hidden_dim, self.out_dim)
+        self.lin_out= nn.Sequential(nn.Linear(self.rnn_hidden_dim, self.rnn_hidden_dim), nn.ReLU(), nn.Linear(self.rnn_hidden_dim, self.out_dim))
         
     def __initHidden__(self, batch_size):
         return torch.full((1, batch_size, self.rnn_hidden_dim), 
@@ -42,7 +42,7 @@ class MemNet(nn.Module):
         h0 = self.__initHidden__(ins.shape[0])
         rnn_ins = torch.cat((ins, tar), axis=-1)
         rnn_hid, _ = self.rnn(rnn_ins, h0)
-        out = torch.tanh(self.lin_out(rnn_hid))*8
+        out = torch.tanh(self.lin_out(rnn_hid))*5
         return out, rnn_hid
 
     def to(self, cuda_device): 
@@ -58,7 +58,7 @@ class MemNetTrainerConfig():
     mode: str = ''
 
     epochs: int = 80
-    batch_len: int = 128
+    batch_len: int = 64
     num_batches: int = 800
     stream_data: bool = True
 
@@ -142,7 +142,7 @@ class MemNetTrainer(BaseTrainer):
         model.to(device)
         model.eval()
         self.model_file_path = model.model_name+'_'+self.seed_suffix
-        self.memNet = MemNet(64, 256)
+        self.memNet = MemNet(64, 516)
         self.memNet.to(device)
 
         self._init_streamer()
@@ -166,8 +166,8 @@ class MemNetTrainer(BaseTrainer):
 
                 self.optimizer.zero_grad()
                 mem_out, hid = self.memNet(ins.float().to(device), tar.float().to(device))
-                target_embed = torch.tensor(self.rule_basis[TASK_LIST.index(task_type),:])[None, None, :].repeat(self.batch_len, 5, 1).float()
-                loss = self.mse(mem_out[:, -5:, :], target_embed.to(device))
+                target_embed = torch.tensor(self.rule_basis[TASK_LIST.index(task_type),:])[None,  :].repeat(self.batch_len, 1, 1).float()
+                loss = self.mse(mem_out[:, -1, :], target_embed.to(device))
                 loss.backward()
                 self.optimizer.step()
 

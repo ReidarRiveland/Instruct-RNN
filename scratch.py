@@ -13,6 +13,10 @@ from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
 
+# vec = pickle.load(open('7.20models/swap_holdouts/swap1/clipNet_lin/contexts/seed0_AntiGoMod2test_context_vecs64', 'rb'))
+# vec = pickle.load(open('7.20models/swap_holdouts/swap1/clipNet_lin/contexts/seed0_AntiGoMod2test_is_trained', 'rb'))
+
+# len(vec)
 # EXP_FILE = '7.20models/swap_holdouts'
 # model = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 # holdouts_file = 'swap1'
@@ -55,7 +59,7 @@ def eval_memNet_multi_perf(model_name, foldername, exp_type, seed, holdout_label
     model = full_models.make_default_model(model_name)
     model.load_model(model_folder, suffix='_seed'+str(seed))
 
-    memNet = MemNet(64, 256)
+    memNet = MemNet(64, 516)
     memNet.load_state_dict(torch.load(model_folder+'/mem_net/'+model_name+'_'+'seed'+str(seed)+'_memNet_CHECKPOINT.pt'))
 
     memNet.to(device)
@@ -71,7 +75,7 @@ def eval_memNet_multi_perf(model_name, foldername, exp_type, seed, holdout_label
 
     return perf_array
 
-perf_array = eval_memNet_multi_perf('clipNet_lin', '7.20models', 'swap', 0, 'swap0')
+perf_array = eval_memNet_multi_perf('clipNet_lin', '7.20models', 'swap', 0, 'swap1')
 
 SWAPS_DICT['swap0']
 
