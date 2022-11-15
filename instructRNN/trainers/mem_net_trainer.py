@@ -63,10 +63,10 @@ class MemNetTrainerConfig():
     stream_data: bool = True
 
     optim_alg: str = 'adam'
-    init_lr: float = 0.005
+    init_lr: float = 0.001
 
     scheduler_type: str = 'exp'
-    scheduler_gamma: float = 0.99
+    scheduler_gamma: float = 0.95
     scheduler_args: dict = {}
 
     checker_threshold: float = 0.95
