@@ -234,6 +234,6 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
             
             trainer = ContextTrainer(trainer_config)
 
-            if not overwrite: 
-                trainer.load_chk(file_name, seed, task, context_dim)
+            # if not overwrite: 
+            #     trainer.load_chk(file_name, seed, task, context_dim)
             trainer.train(model, task)
