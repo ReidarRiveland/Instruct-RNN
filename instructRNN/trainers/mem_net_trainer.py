@@ -55,7 +55,9 @@ class MemNetTrainerConfig():
     file_path: str
     random_seed: int
     holdouts: list
+    task:str = None
     mode: str = ''
+    min_run_epochs:int = 1
 
     epochs: int = 80
     batch_len: int = 64
@@ -92,15 +94,17 @@ class MemNetTrainer(BaseTrainer):
 
         if os.path.exists(self.file_path):pass
         else: os.makedirs(self.file_path)
+        if self.task is None: 
+            task_str = ''
         
 
         if mode == 'CHECKPOINT':
-            chk_attr_path = self.file_path+'/'+self.model_file_path+'_memNet_CHECKPOINT'
+            chk_attr_path = self.file_path+'/'+self.model_file_path+task_str+'_memNet_CHECKPOINT'
             pickle.dump(checkpoint_attrs, open(chk_attr_path+'_attrs', 'wb'))
             torch.save(self.memNet.state_dict(), chk_attr_path+'.pt')
 
         if mode=='FINAL': 
-            data_path = self.file_path+'/'+self.model_file_path+'_memNet'
+            data_path = self.file_path+'/'+self.model_file_path+task_str+'_memNet'
             pickle.dump(checkpoint_attrs.pop('loss_data'), open(data_path+'_loss', 'wb'))
             pickle.dump(checkpoint_attrs.pop('correct_data'), open(data_path+'_correct', 'wb'))
 
@@ -109,7 +113,7 @@ class MemNetTrainer(BaseTrainer):
             os.remove(data_path+'_CHECKPOINT_attrs')
 
             torch.save(self.memNet.state_dict(), data_path+'.pt')
-            os.remove(self.file_path+'/'+self.model_file_path+'_memNet_CHECKPOINT.pt')
+            os.remove(self.file_path+'/'+self.model_file_path+task_str+'_memNet_CHECKPOINT.pt')
 
     def _log_step(self, task_type, loss, frac_correct=None): 
         if frac_correct is not None: 
@@ -121,13 +125,14 @@ class MemNetTrainer(BaseTrainer):
                         self.stream_data, 
                         self.batch_len, 
                         self.num_batches, 
-                        self.holdouts)
+                        self.holdouts,
+                        set_single_task=self.task)
 
-    def init_optimizer(self):
+    def init_optimizer(self, parameters):
         if self.optim_alg == 'adam': 
             optim_alg = optim.Adam
 
-        self.optimizer = optim_alg(self.memNet.parameters(), lr=self.init_lr)
+        self.optimizer = optim_alg(parameters, lr=self.init_lr)
         self._init_scheduler()
 
     def _init_scheduler(self):
@@ -138,18 +143,16 @@ class MemNetTrainer(BaseTrainer):
         self.step_scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, 
                             milestones=[self.epochs-5, self.epochs-2, self.epochs-1], gamma=0.25)
 
-    def train(self, model): 
+    def train(self, model, memNet): 
+        self.memNet = memNet
         model.to(device)
         model.eval()
         self.model_file_path = model.model_name+'_'+self.seed_suffix
-        self.memNet = MemNet(64, 516)
         self.memNet.to(device)
-
+        self.memNet = memNet
         self._init_streamer()
-        self.init_optimizer()
-
+        self.init_optimizer(self.memNet.parameters())
         self.mse = nn.MSELoss()
-
         self.rule_basis = np.mean(get_instruct_reps(model.langModel), axis=1)
 
         for self.cur_epoch in tqdm(range(self.cur_epoch, self.epochs), desc='epochs'):
@@ -157,7 +160,7 @@ class MemNetTrainer(BaseTrainer):
             for self.cur_step, data in enumerate(self.streamer.stream_batch()): 
                 ins, tar, mask, tar_dir, task_type = data
 
-                task_info = get_task_info(self.batch_len, task_type, model.info_type, instruct_mode=None)
+                # task_info = get_task_info(self.batch_len, task_type, model.info_type, instruct_mode=None)
                 # if hasattr(model, 'langModel'):
                 #     info_embedded = model.langModel(task_info)
                 # else: 
@@ -166,8 +169,9 @@ class MemNetTrainer(BaseTrainer):
 
                 self.optimizer.zero_grad()
                 mem_out, hid = self.memNet(ins.float().to(device), tar.float().to(device))
-                target_embed = torch.tensor(self.rule_basis[TASK_LIST.index(task_type),:])[None,  :].repeat(self.batch_len, 1, 1).float()
-                loss = self.mse(mem_out[:, -1, :], target_embed.to(device))
+                target_embed = torch.tensor(self.rule_basis[TASK_LIST.index(task_type),:])[None, None, :].repeat(self.batch_len, 150, 1).float()
+                #loss = self.mse(mem_out, info_embedded[:,None,:].repeat(1, 150, 1))
+                loss = self.mse(mem_out, target_embed.to(device))
                 loss.backward()
                 self.optimizer.step()
 
@@ -188,6 +192,42 @@ class MemNetTrainer(BaseTrainer):
         self._record_session(model, mode='FINAL')
 
 
+    def tune(self, model, memNet): 
+        self.memNet = memNet
+        self.init_optimizer(memNet.lin_out.parameters())
+        self._init_streamer()
+        model.to(device)
+        self.memNet.to(device)
+
+        for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
+            for self.cur_step in range(self.num_batches): 
+                data = next(self.streamer.stream_batch())
+                ins, tar, mask, tar_dir, task_type = data
+
+                self.optimizer.zero_grad()
+                mem_out, hid = memNet(ins.float().to(device), tar.float().to(device))
+                in_contexts = contexts = mem_out[:, -1, :]
+                
+                out, _ = model(ins.to(device), context=in_contexts)
+                loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
+                frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
+                self._log_step(task_type, frac_correct, loss.item())
+
+                loss.backward()
+                self.optimizer.step()
+
+                if self.cur_step%50 == 0 or self.cur_step == 5 or self.cur_step == 10:
+                    self._print_training_status(task_type)
+
+                if self._check_model_training():
+                    return True
+
+            if self.scheduler is not None: self.scheduler.step()  
+            #if self.step_last_lr: self.step_scheduler.step()
+
+        warnings.warn('Model has not reach specified performance threshold during training')
+        return False
+
 # def check_already_trained(file_name, seed, mode): 
 #     try: 
 #         pickle.load(open(file_name+'/seed'+str(seed)+'_'+task+mode+'_mem_net', 'rb'))
@@ -202,6 +242,7 @@ def train_memNet(exp_folder, model_name,  seed, labeled_holdouts, mode = '', tas
     model = make_default_model(model_name)
     model.load_model(exp_folder+'/'+labels+'/'+model_name, suffix='_seed'+str(seed))
     file_name = exp_folder+'/'+labels+'/'+model_name+'/mem_net'
+    memNet = MemNet(64, 256)
 
     # if not overwrite and check_already_trained(file_name, seed, mode):
     #     print('ALREADY TRAININED')
@@ -212,4 +253,24 @@ def train_memNet(exp_folder, model_name,  seed, labeled_holdouts, mode = '', tas
     trainer_config = MemNetTrainerConfig(file_name, seed, holdouts=holdouts, mode=mode, **train_config_kwargs)
     trainer = MemNetTrainer(trainer_config)
 
-    trainer.train(model)
+    trainer.train(model, memNet)
+
+def tune_memNet(exp_folder, model_name,  seed, labeled_holdouts, mode = '', overwrite=False, **train_config_kwargs): 
+    torch.manual_seed(seed)
+    labels, holdouts = labeled_holdouts
+    model = make_default_model(model_name)
+    model.load_model(exp_folder+'/'+labels+'/'+model_name, suffix='_seed'+str(seed))
+    file_name = exp_folder+'/'+labels+'/'+model_name+'/mem_net/'+model_name+'_seed'+str(seed)+'_memNet.pt'
+    memNet = MemNet(64, 516)
+    memNet.load_state_dict(torch.load(file_name))
+
+    # if not overwrite and check_already_trained(file_name, seed, mode):
+    #     print('ALREADY TRAININED')
+    # else:        
+    for task in holdouts: 
+        print('\n TRAINING MEMNET at ' + file_name + ' for holdouts '+labels+ ' for mode ' + mode+ '\n')
+
+        trainer_config = MemNetTrainerConfig(file_name, seed, init_lr=0.05, task=task, holdouts=[], mode=mode, **train_config_kwargs)
+        trainer = MemNetTrainer(trainer_config)
+
+        trainer.tune(model, memNet)

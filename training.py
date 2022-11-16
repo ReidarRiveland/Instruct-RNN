@@ -80,6 +80,10 @@ if __name__ == "__main__":
             from instructRNN.trainers.mem_net_trainer import *
             train_memNet(EXP_FOLDER, model, _seed, holdouts, mode = args.comp_mode, overwrite=args.overwrite)
 
+        if args.mode == 'tune_memNet':
+            from instructRNN.trainers.mem_net_trainer import *
+            tune_memNet(EXP_FOLDER, model, _seed, holdouts, mode = args.comp_mode, overwrite=args.overwrite)
+
         if args.mode == 'exemplar_context': 
             from instructRNN.trainers.context_trainer import *
             for i in range(1, 20):

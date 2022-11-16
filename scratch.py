@@ -13,42 +13,19 @@ from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
 
-# vec = pickle.load(open('7.20models/swap_holdouts/swap1/clipNet_lin/contexts/seed0_AntiGoMod2test_context_vecs64', 'rb'))
-# vec = pickle.load(open('7.20models/swap_holdouts/swap1/clipNet_lin/contexts/seed0_AntiGoMod2test_is_trained', 'rb'))
-
 # len(vec)
 # EXP_FILE = '7.20models/swap_holdouts'
 # model = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 # holdouts_file = 'swap1'
 # model.load_model(EXP_FILE+'/'+holdouts_file+'/'+model.model_name, suffix='_seed1')
 
-# from instructRNN.plotting.plotting import *
-# clipNet_lin = eval_model_exemplar('clipNet_lin', '7.20models', 'swap', 0)
-
-
-# perf = get_multi_comp_perf('7.20models/multitask_holdouts', 'gptNetXL_lin', 0, batch_len=100)
-
-# np.mean(perf)
-
-# reps = get_instruct_reps(model.langModel)
-# np.max(reps)
-
-#ins, tar, mask, tar_dir, task_type = construct_trials('Go', 50, return_tensor=True)
 
 
 perf = PerfDataFrame('7.20models', 'multitask', 'clipNet_lin', mode='multi_comp')
-
 perf.data
-
 np.mean(perf.data)
 
 from instructRNN.trainers.mem_net_trainer import MemNet
-# memNet = MemNet(64, 256)
-
-# state_dict = torch.load('7.20models/swap_holdouts/swap0/clipNet_lin/mem_net/clipNet_lin_seed0_memNet_CHECKPOINT.pt')
-# memNet.load_state_dict(state_dict)
-
-
 def eval_memNet_multi_perf(model_name, foldername, exp_type, seed, holdout_label, **trial_kwargs):
     if 'swap' in exp_type: 
         exp_dict = SWAPS_DICT
@@ -60,7 +37,7 @@ def eval_memNet_multi_perf(model_name, foldername, exp_type, seed, holdout_label
     model.load_model(model_folder, suffix='_seed'+str(seed))
 
     memNet = MemNet(64, 516)
-    memNet.load_state_dict(torch.load(model_folder+'/mem_net/'+model_name+'_'+'seed'+str(seed)+'_memNet_CHECKPOINT.pt'))
+    memNet.load_state_dict(torch.load(model_folder+'/mem_net/'+model_name+'_'+'seed'+str(seed)+'_memNet.pt'))
 
     memNet.to(device)
     model.to(device)
@@ -75,54 +52,34 @@ def eval_memNet_multi_perf(model_name, foldername, exp_type, seed, holdout_label
 
     return perf_array
 
-perf_array = eval_memNet_multi_perf('clipNet_lin', '7.20models', 'swap', 0, 'swap1')
-
-SWAPS_DICT['swap0']
-
-np.mean(perf_array)
-
-perf_array
-
-for task in SWAPS_DICT['swap0']:
-    print(perf_array[TASK_LIST.index(task)])
-
-
-dum_list = [True, True, False, True]
-sum(dum_list)
-
-
-
-
-
-
-def eval_memNet_holdout_perf(model_name, foldername, exp_type, seed, exemplar_num, **trial_kwargs):
+def eval_memNet_holdout_perf(model_name, foldername, exp_type, seed, **trial_kwargs):
     if 'swap' in exp_type: 
         exp_dict = SWAPS_DICT
 
     perf_array = np.full(len(TASK_LIST), np.NaN)
     model = full_models.make_default_model(model_name)
-    memNet = MemNet(64, 256)
+    memNet = MemNet(64, 516)
 
-    if 'simpleNet' in model_name:
-        context_dim = 64
-    else: 
-        #context_dim = model.langModel.LM_intermediate_lang_dim 
-        context_dim = 64
+    memNet.to(device)
+    model.to(device)
 
     with torch.no_grad():
         for holdout_label, tasks in exp_dict.items(): 
             model_folder = foldername+'/'+exp_type+'_holdouts/'+holdout_label+'/'+model.model_name
             print(holdout_label)
             model.load_model(model_folder, suffix='_seed'+str(seed))
-            memNet.load_state_dict()
+            memNet.load_state_dict(torch.load(model_folder+'/mem_net/'+model_name+'_'+'seed'+str(seed)+'_memNet.pt'))
+
             for task in tasks: 
-                contexts = pickle.load(open(model_folder+'/contexts/seed'+str(seed)+'_'+task+'exemplar'+str(exemplar_num)+'_context_vecs'+str(context_dim), 'rb'))
-                perf_array[TASK_LIST.index(task)] = task_eval(model, task, 50, context=torch.tensor(contexts).repeat(5, 1))
+                print(task)
+                ins, tar, mask, tar_dir, task_type = construct_trials(task, 50, return_tensor=True)
+                mem_out, hid = memNet(ins.float().to(device), tar.float().to(device))
+                contexts = mem_out[:, -1, :]
+                perf_array[TASK_LIST.index(task)] = task_eval(model, task, 50, context=contexts)
 
     return perf_array
 
-
-
+perf_array = eval_memNet_holdout_perf('clipNet_lin', '7.20models', 'swap', 0)
 
 
 

@@ -160,6 +160,7 @@ class ContextTrainer(BaseTrainer):
         return False
     
     def train(self, model, task):
+        print(self.checker_threshold)
         if 'exemplar' in self.mode: 
             self.num_exemplars = int(''.join([n for n in self.mode if n.isdigit()]))
 
@@ -218,7 +219,7 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
     if tasks is None: 
         tasks = holdouts
 
-    for task in tasks: 
+    for task in ['DMC']: 
         if not overwrite and check_already_trained(file_name, seed, task, context_dim, mode):
             continue 
         else:        
@@ -227,7 +228,8 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
                 trainer_config = ContextTrainerConfig(file_name, seed, context_dim, checker_threshold=0.8, mode=mode, **train_config_kwargs)
             else:
                 trainer_config = ContextTrainerConfig(file_name, seed, context_dim, mode=mode, **train_config_kwargs)
-                trainer = ContextTrainer(trainer_config)
+            
+            trainer = ContextTrainer(trainer_config)
 
             if not overwrite: 
                 trainer.load_chk(file_name, seed, task, context_dim)
