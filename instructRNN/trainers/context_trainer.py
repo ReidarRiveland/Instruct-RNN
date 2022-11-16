@@ -198,7 +198,7 @@ def check_already_trained(file_name, seed, task, context_dim, mode):
     try: 
         vecs = pickle.load(open(file_name+'/seed'+str(seed)+'_'+task+mode+'_context_vecs'+str(context_dim), 'rb'))
         print('\n Model at ' + file_name + ' for seed '+str(seed)+ ' and mode ' + mode + ' and task '+task+' aleady trained')
-        if vec.shape[0]>=25:
+        if vecs.shape[0]>=25:
             return True
         else: 
             return False

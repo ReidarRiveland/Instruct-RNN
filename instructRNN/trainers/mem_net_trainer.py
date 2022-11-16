@@ -42,7 +42,7 @@ class MemNet(nn.Module):
         h0 = self.__initHidden__(ins.shape[0])
         rnn_ins = torch.cat((ins, tar), axis=-1)
         rnn_hid, _ = self.rnn(rnn_ins, h0)
-        out = torch.tanh(self.lin_out(rnn_hid))*5
+        out = self.lin_out(rnn_hid)
         return out, rnn_hid
 
     def to(self, cuda_device): 
