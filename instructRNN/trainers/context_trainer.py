@@ -222,7 +222,7 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
     if tasks is None: 
         tasks = holdouts
 
-    for task in ['DMC']: 
+    for task in tasks: 
         if not overwrite and check_already_trained(file_name, seed, task, context_dim, mode):
             continue 
         else:        
