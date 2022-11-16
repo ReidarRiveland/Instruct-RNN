@@ -13,6 +13,31 @@ from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
 
+vec = pickle.load(open('7.20models/swap_holdouts/swap1/clipNet_lin/contexts/seed0_AntiGoMod2test_context_vecs64', 'rb'))
+
+
+def get_val_perf(foldername, model_name, seed, num_repeats = 5, batch_len=100, save=False): 
+    model = full_models.make_default_model(model_name)
+    model.load_model(foldername+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
+    perf_array = get_model_performance(model, num_repeats=num_repeats, batch_len=batch_len, instruct_mode='')
+    if save:
+        file_path = foldername+'/val_perf/'+model_name
+        if os.path.exists(file_path):
+            pass
+        else: os.makedirs(file_path)
+        np.save(file_path+'/'+model_name+'_val_perf_seed'+str(seed), perf_array)
+
+    return perf_array
+
+perf_list = []
+for i in range(5): 
+    perf_list.append(np.mean(get_val_perf('7.20models/multitask_holdouts', 'simpleNet', i)))
+
+np.mean(perf_list)
+# vec = pickle.load(open('7.20models/swap_holdouts/swap1/clipNet_lin/contexts/seed0_AntiGoMod2test_is_trained', 'rb'))
+
+vec.shape[0]>=25
+
 # len(vec)
 # EXP_FILE = '7.20models/swap_holdouts'
 # model = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
@@ -22,10 +47,18 @@ from instructRNN.analysis.decoder_analysis import *
 
 
 perf = PerfDataFrame('7.20models', 'multitask', 'clipNet_lin', mode='multi_comp')
+
 perf.data
+
 np.mean(perf.data)
 
 from instructRNN.trainers.mem_net_trainer import MemNet
+# memNet = MemNet(64, 256)
+
+# state_dict = torch.load('7.20models/swap_holdouts/swap0/clipNet_lin/mem_net/clipNet_lin_seed0_memNet_CHECKPOINT.pt')
+# memNet.load_state_dict(state_dict)
+
+
 def eval_memNet_multi_perf(model_name, foldername, exp_type, seed, holdout_label, **trial_kwargs):
     if 'swap' in exp_type: 
         exp_dict = SWAPS_DICT
@@ -51,6 +84,13 @@ def eval_memNet_multi_perf(model_name, foldername, exp_type, seed, holdout_label
             perf_array[TASK_LIST.index(task)] = task_eval(model, task, 50, context=contexts)
 
     return perf_array
+
+perf_array = eval_memNet_multi_perf('clipNet_lin', '7.20models', 'swap', 0, 'swap1')
+
+
+
+
+
 
 def eval_memNet_holdout_perf(model_name, foldername, exp_type, seed, **trial_kwargs):
     if 'swap' in exp_type: 
@@ -78,6 +118,8 @@ def eval_memNet_holdout_perf(model_name, foldername, exp_type, seed, **trial_kwa
                 perf_array[TASK_LIST.index(task)] = task_eval(model, task, 50, context=contexts)
 
     return perf_array
+
+
 
 perf_array = eval_memNet_holdout_perf('clipNet_lin', '7.20models', 'swap', 0)
 

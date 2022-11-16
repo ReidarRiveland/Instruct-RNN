@@ -33,7 +33,7 @@ def get_reps_from_tasks(reps, tasks):
 
 def task_eval(model, task, batch_size, instruct_mode = None, instructions = None, comp_task=None, context = None, **trial_kwargs): 
     ins, targets, _, target_dirs, _ = construct_trials(task, batch_size, **trial_kwargs)
-    if instruct_mode is not None: 
+    if instruct_mode =='': 
         instructions = get_task_info(batch_size, task, model.info_type, instruct_mode=instruct_mode)
 
     out, _ = model(torch.Tensor(ins).to(model.__device__), instructions, context = context, comp_task=comp_task)

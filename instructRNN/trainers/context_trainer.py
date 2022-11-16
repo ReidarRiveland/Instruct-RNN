@@ -35,10 +35,10 @@ class ContextTrainerConfig():
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.01
+    lr: float = 0.05
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
-    scheduler_args: dict = {'gamma': 0.5}
+    scheduler_args: dict = {'gamma': 0.8}
 
     checker_threshold: float = 0.9
     step_last_lr: bool = True
