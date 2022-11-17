@@ -32,8 +32,9 @@ class MemNet(nn.Module):
         self.rnn_hiddenInitValue = 0.1
         self.__device__ = 'cpu'
         self.rnn = ScriptGRU(OUTPUT_DIM+INPUT_DIM, self.rnn_hidden_dim, 1, torch.relu, batch_first=True)
-        self.lin_out= nn.Sequential(nn.Linear(self.rnn_hidden_dim, self.rnn_hidden_dim), nn.LeakyReLU(), nn.Linear(self.rnn_hidden_dim, self.out_dim))
         self.act_out = nn.Hardtanh(min_value=-5, max_value=5)
+        self.lin_out= nn.Sequential(nn.Linear(self.rnn_hidden_dim, self.rnn_hidden_dim), self.act_out, nn.Linear(self.rnn_hidden_dim, self.out_dim))
+
     def __initHidden__(self, batch_size):
         return torch.full((1, batch_size, self.rnn_hidden_dim), 
                 self.rnn_hiddenInitValue, device=torch.device(self.__device__))
