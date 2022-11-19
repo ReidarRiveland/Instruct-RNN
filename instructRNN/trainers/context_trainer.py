@@ -230,10 +230,10 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
             continue 
         else:        
             print('\n TRAINING CONTEXTS at ' + file_name + ' for task '+task+ ' for mode ' + mode+ '\n')
-            if (task == 'DMC' or task =='DNMC') and 'swap' in labels:
-                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, checker_threshold=0.8, mode=mode, **train_config_kwargs)
-            else:
-                trainer_config = ContextTrainerConfig(file_name, seed, context_dim, mode=mode, **train_config_kwargs)
+            # if (task == 'DMC' or task =='DNMC') and 'swap' in labels:
+            #     trainer_config = ContextTrainerConfig(file_name, seed, context_dim, checker_threshold=0.8, mode=mode, **train_config_kwargs)
+            # else:
+            trainer_config = ContextTrainerConfig(file_name, seed, context_dim, mode=mode, **train_config_kwargs)
             
             trainer = ContextTrainer(trainer_config)
 
