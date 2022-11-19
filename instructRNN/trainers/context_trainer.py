@@ -225,7 +225,7 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
     if len(holdouts) == 0: 
         tasks = TASK_LIST
 
-    for task in ['AntiGoMod2']: 
+    for task in tasks: 
         if not overwrite and check_already_trained(file_name, seed, task, context_dim, mode):
             continue 
         else:        
