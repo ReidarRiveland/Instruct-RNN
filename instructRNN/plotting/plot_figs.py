@@ -8,6 +8,14 @@ from instructRNN.data_loaders.perfDataFrame import *
 to_plot_models = ['clipNet_lin', 'sbertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNetPlus', 'simpleNet']
 tuned_to_plot = ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin_tuned']
 
+###COSYNE PLOTS
+fig, axn = plot_curves('7.20models', 'swap', ['clipNet_lin', 'gptNetXL_lin', 'simpleNet'], mode='combined', avg=True, linewidth=1.2)
+#plt.xscale('log')
+plt.show()
+
+plot_ccgp_corr('7.20models', 'swap', ['clipNet_lin', 'gptNetXL_lin', 'simpleNet'])
+
+
 
 ##ALL MODEL LEARNING CURVES
 fig, axn = plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask', linewidth=0.5)

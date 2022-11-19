@@ -29,8 +29,13 @@ if __name__ == "__main__":
             return [jobs[job_index]]
 
     if args.mode == 'decode':
+        print('processing multitask')
         decoder_pipeline('7.20models/multitask_holdouts', 'clipNet_lin')
+
+        print('processing sm holdouts')
         decoder_pipeline('7.20models/swap_holdouts', 'clipNet_lin', sm_holdout=True)
+        
+        print('processing sm holdouts and decoder holdouts')
         decoder_pipeline('7.20models/swap_holdouts', 'clipNet_lin', sm_holdout=True, decoder_holdout=True)
 
 

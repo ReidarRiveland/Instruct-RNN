@@ -35,7 +35,7 @@ class ContextTrainerConfig():
     stream_data: bool = True
 
     optim_alg: optim = optim.Adam
-    lr: float = 0.005
+    lr: float = 0.05
 
     scheduler_class: optim.lr_scheduler = optim.lr_scheduler.ExponentialLR
     scheduler_args: dict = {'gamma': 0.9}
@@ -63,7 +63,7 @@ class ContextTrainer(BaseTrainer):
         else: chk_str = ''
 
         filename = self.file_path+'/'+self.seed_suffix+'_'+task
-        pickle.dump(is_trained_list, open(filename+self.mode+chk_str+'_is_trained', 'wb'))
+        pickle.dump(is_trained_list, open(filename+self.mode+chk_str+'_is_trained'+str(self.context_dim), 'wb'))
         pickle.dump((self.all_correct_data, self.all_loss_data), open(filename+self.mode+chk_str+'_training_data'+str(self.context_dim), 'wb'))
         pickle.dump(self.all_contexts.detach().cpu().numpy(), open(filename+self.mode+chk_str+'_context_vecs'+str(self.context_dim), 'wb'))
 
@@ -225,7 +225,7 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
     if len(holdouts) == 0: 
         tasks = TASK_LIST
 
-    for task in tasks: 
+    for task in ['AntiGoMod2']: 
         if not overwrite and check_already_trained(file_name, seed, task, context_dim, mode):
             continue 
         else:        

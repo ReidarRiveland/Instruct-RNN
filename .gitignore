@@ -1,6 +1,8 @@
 /__pycache__/*
 /figs/*
 /rev_figs/*
+/COSYNE2022figs/*
+
 
 /*models/_pretrained_state_dicts/*
 /*.sbatch*

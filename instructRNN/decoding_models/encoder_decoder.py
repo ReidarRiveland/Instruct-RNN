@@ -41,12 +41,15 @@ class EncoderDecoder(nn.Module):
         self.init_context_set(load_folder, seed, tasks)
 
     def init_context_set(self, file_name, seed, tasks, verbose=True):
-        context_dim = self.sm_model.langModel.LM_intermediate_lang_dim
-        all_contexts = np.full((len(TASK_LIST), 64, context_dim), np.nan)
+        #context_dim = self.sm_model.langModel.LM_intermediate_lang_dim
+        context_dim = 64
+        all_contexts = np.full((len(TASK_LIST), 25, context_dim), np.nan)
         for i, task in enumerate(tasks):
-            filename = file_name+'contexts/seed'+str(seed)+'_'+task+'_context_vecs'+str(context_dim)
+            filename = file_name+'contexts/seed'+str(seed)+'_'+task+'test_context_vecs'+str(context_dim)
+            is_trained_filename = file_name+'contexts/seed'+str(seed)+'_'+task+'test_context_vecs'+str(context_dim)
+
             task_contexts = pickle.load(open(filename, 'rb'))
-            all_contexts[TASK_LIST.index(task), ...]=task_contexts[:64, :]
+            all_contexts[TASK_LIST.index(task), ...]=task_contexts[:25, :]
 
         self.contexts = all_contexts
 
@@ -66,7 +69,7 @@ class EncoderDecoder(nn.Module):
                     ins, _, _, _, _ = construct_trials(task, num_trials, noise=0)
 
                     if from_contexts: 
-                        task_info = torch.Tensor(self.contexts[TASK_LIST.index(task), :num_trials, :]).to(self.sm_model.__device__)
+                        task_info = torch.Tensor(self.contexts[TASK_LIST.index(task), :25, :]).repeat(2,1).to(self.sm_model.__device__)
                         _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), context=task_info)
                     else: 
                         task_info = get_instructions(num_trials, task, None)

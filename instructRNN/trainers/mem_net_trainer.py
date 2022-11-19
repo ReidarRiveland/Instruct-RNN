@@ -31,9 +31,8 @@ class MemNet(nn.Module):
         self.out_dim = out_dim
         self.rnn_hiddenInitValue = 0.1
         self.__device__ = 'cpu'
-        self.rnn = ScriptGRU(OUTPUT_DIM+INPUT_DIM, self.rnn_hidden_dim, 1, torch.relu, batch_first=True)
-        self.act_out = nn.Hardtanh(min_value=-5, max_value=5)
-        self.lin_out= nn.Sequential(nn.Linear(self.rnn_hidden_dim, self.rnn_hidden_dim), self.act_out, nn.Linear(self.rnn_hidden_dim, self.out_dim))
+        self.rnn = ScriptGRU(OUTPUT_DIM+INPUT_DIM, self.rnn_hidden_dim, 2, torch.relu, batch_first=True)
+        self.lin_out= nn.Sequential(nn.Linear(self.rnn_hidden_dim, self.rnn_hidden_dim), nn.Linear(self.rnn_hidden_dim, self.out_dim))
 
     def __initHidden__(self, batch_size):
         return torch.full((1, batch_size, self.rnn_hidden_dim), 
@@ -43,7 +42,7 @@ class MemNet(nn.Module):
         h0 = self.__initHidden__(ins.shape[0])
         rnn_ins = torch.cat((ins, tar), axis=-1)
         rnn_hid, _ = self.rnn(rnn_ins, h0)
-        out = self.act_out(self.lin_out(rnn_hid))
+        out = self.lin_out(rnn_hid)
         return out, rnn_hid
 
     def to(self, cuda_device): 
@@ -66,10 +65,10 @@ class MemNetTrainerConfig():
     stream_data: bool = True
 
     optim_alg: str = 'adam'
-    init_lr: float = 0.001
+    init_lr: float = 0.005
 
     scheduler_type: str = 'exp'
-    scheduler_gamma: float = 0.95
+    scheduler_gamma: float = 0.99
     scheduler_args: dict = {}
 
     checker_threshold: float = 0.95
@@ -170,9 +169,9 @@ class MemNetTrainer(BaseTrainer):
 
                 self.optimizer.zero_grad()
                 mem_out, hid = self.memNet(ins.float().to(device), tar.float().to(device))
-                target_embed = torch.tensor(self.rule_basis[TASK_LIST.index(task_type),:])[None, None, :].repeat(self.batch_len, 150, 1).float()
+                target_embed = torch.tensor(self.rule_basis[TASK_LIST.index(task_type),:])[None,  :].repeat(self.batch_len,  1).float()
                 #loss = self.mse(mem_out, info_embedded[:,None,:].repeat(1, 150, 1))
-                loss = self.mse(mem_out, target_embed.to(device))
+                loss = self.mse(mem_out[:, -1, :], target_embed.to(device))
                 loss.backward()
                 self.optimizer.step()
 

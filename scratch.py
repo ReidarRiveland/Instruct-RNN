@@ -13,7 +13,8 @@ from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
 
 
-vec = pickle.load(open('7.20models/swap_holdouts/swap1/clipNet_lin/contexts/seed0_AntiGoMod2test_context_vecs64', 'rb'))
+
+
 
 
 def get_val_perf(foldername, model_name, seed, num_repeats = 5, batch_len=100, save=False): 
@@ -44,13 +45,18 @@ vec.shape[0]>=25
 # holdouts_file = 'swap1'
 # model.load_model(EXP_FILE+'/'+holdouts_file+'/'+model.model_name, suffix='_seed1')
 
+#rsync -a  -P --exclude "*.npy*" --exclude "*correct*" --exclude "*loss*" --include 'seed2training_data_FOR_TUNING.pt' --exclude "*context*" --exclude '*.pt*' --exclude '*_attrs*' --exclude '*training_data*' --exclude '*_opt*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/swap_holdouts/swap5/gptNetXL_lin/ /home/riveland/Instruct-RNN/7.20models/swap_holdouts/swap5/gptNetXL_lin
 
 
 perf = PerfDataFrame('7.20models', 'multitask', 'clipNet_lin', mode='multi_comp')
 
-perf.data
+perf.data.shape
+list(zip(TASK_LIST, np.mean(perf.data, axis=0)[:, 0]))
 
 np.mean(perf.data)
+
+trials = AntiGoMod2(50)
+trials.plot_trial(7)
 
 from instructRNN.trainers.mem_net_trainer import MemNet
 # memNet = MemNet(64, 256)

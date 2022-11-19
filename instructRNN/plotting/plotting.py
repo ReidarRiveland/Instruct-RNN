@@ -484,7 +484,7 @@ def _plot_partner_perf(axn, sm_holdout, decoder_holdout, model_name ='clipNet_li
     for i, mode_value in enumerate(mode_dict.values()):
         for j, values in enumerate(multi_holdout_formatting.items()):
             holdouts, formatting = values
-            perf_data = np.nanmean(np.load(folder+'/decoder_perf/'+model_name+'/sm_'+sm_str+'decoder_'+decoder_str+'_decoder_'+holdouts+'_partner_'+mode_value[0]+'.npy'))
+            perf_data = np.nanmean(np.load(folder+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_decoder_'+holdouts+'_partner_'+mode_value[0]+'.npy'))
             x_mark = ((i)+width)+((j*1.05*width))
             axn.bar(x_mark, perf_data, width, align='edge', color=mode_value[1], **formatting)
                         
