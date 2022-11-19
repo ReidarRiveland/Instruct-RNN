@@ -14,7 +14,9 @@ from instructRNN.analysis.decoder_analysis import *
 
 
 
+is_trained[0, 0, :]
 
+trained_list = pickle.load(open('7.20models/multitask_holdouts/Multitask/clipNet_lin/contexts/seed0_AntiDMMod1test_is_trained', 'rb'))
 
 
 def get_val_perf(foldername, model_name, seed, num_repeats = 5, batch_len=100, save=False): 
