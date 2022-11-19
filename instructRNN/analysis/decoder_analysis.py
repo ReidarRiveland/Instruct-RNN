@@ -7,7 +7,7 @@ import itertools
 from instructRNN.decoding_models.decoder_models import DecoderRNN
 from instructRNN.decoding_models.encoder_decoder import EncoderDecoder
 from instructRNN.models.full_models import make_default_model
-from instructRNN.tasks.tasks import SWAPS_DICT, TASK_LIST, construct_trials
+from instructRNN.tasks.tasks import SWAPS_DICT, TASK_LIST, MULTITASK_DICT, construct_trials
 from instructRNN.tasks.task_criteria import isCorrect
 
 def get_decoded_set(foldername, model_name, seeds=range(5), from_contexts=False, sm_holdouts=False, decoder_holdouts=False, with_dropout=False, save=False): 
@@ -222,3 +222,22 @@ def get_novel_instruct_ratio(sm_holdout=False, decoder_holdout=False):
     confuse_mat = np.load(folder+'/decoder_perf/clipNet_lin/test_sm_'+sm_str+'decoder_'+decoder_str+'_confuse_mat.npy')
     return np.sum(confuse_mat[:, :, -1:])/np.sum(confuse_mat)
 
+def get_trained_ratio(foldername, exp, model_name, seeds = range(5), sm_holdout=False, decoder_holdout=False):
+    if 'swap' in exp: 
+        exp_dict = SWAPS_DICT
+    elif 'multi' in exp: 
+        exp_dict = MULTITASK_DICT
+
+    all_is_trained = np.full((len(seeds), len(TASK_LIST), 50), np.nan)
+    for i in seeds:
+        for labels, tasks in exp_dict.items():
+            if len(tasks) == 0: tasks = TASK_LIST
+            for task in tasks: 
+                file_path = foldername+'/'+labels+'/'+model_name+'/contexts/'+'seed'+str(i)+'_'+task+'test_is_trained'
+                try:
+                    is_trained_list = pickle.load(open(file_path, 'rb'))
+                    all_is_trained[i, TASK_LIST.index(task), :len(is_trained_list)] = is_trained_list
+                except FileNotFoundError: 
+                    print('NOT FOUND '+file_path)
+
+    return all_is_trained
