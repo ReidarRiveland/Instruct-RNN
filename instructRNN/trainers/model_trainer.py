@@ -359,7 +359,7 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     is_tuned = trainer.train(model, is_tuning=True)
     return is_tuned
 
-def test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches =100, instruct_mode = 'combined', input_w_only = False, comp_rules = False, overwrite=False, repeats=5, **train_config_kwargs): 
+def test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches =100, instruct_mode = None, input_w_only = False, comp_rules = False, overwrite=False, repeats=5, **train_config_kwargs): 
     torch.manual_seed(seed)
     
     label, holdouts = labeled_holdouts 
@@ -371,7 +371,7 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches =100,
         if check_already_tested(file_name, seed, task, instruct_mode, input_w_only, comp_rules) and not overwrite:
             continue 
         else:
-            print('\n testing '+model_name+' seed'+str(seed)+' on '+task)
+            print('\n testing '+model_name+' seed'+str(seed)+' on '+task+' with mode '+ str(instruct_mode))
 
         testing_config = TrainerConfig(file_name, seed, set_single_task=task, 
                                 batch_len=256, num_batches=num_batches, epochs=1, init_lr = 0.0008,

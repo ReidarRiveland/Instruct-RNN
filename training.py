@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
         if args.mode == 'test': 
             from instructRNN.trainers.model_trainer import *
-            test_model(EXP_FOLDER, model, _seed, holdouts, instruct_mode = args.instruct_mode, overwrite=args.overwrite)   
+            test_model(EXP_FOLDER, model, _seed, holdouts, instruct_mode = 'combined', overwrite=args.overwrite)   
 
         if args.mode == 'context' or args.mode == 'c': 
             from instructRNN.trainers.context_trainer import *
