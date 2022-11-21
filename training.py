@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
         if args.mode == 'test': 
             from instructRNN.trainers.model_trainer import *
-            test_model(EXP_FOLDER, model, _seed, holdouts, instruct_mode = 'combined', overwrite=args.overwrite)   
+            test_model(EXP_FOLDER, model, _seed, holdouts, instruct_mode = args.instruct_mode, overwrite=args.overwrite)   
 
         if args.mode == 'context' or args.mode == 'c': 
             from instructRNN.trainers.context_trainer import *
@@ -91,5 +91,5 @@ if __name__ == "__main__":
 
         if args.mode == 'decoder' or args.mode == 'd': 
             from instructRNN.trainers.decoder_trainer import *
-            train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, use_checkpoint = args.use_checkpoint, use_dropout = args.use_dropout, overwrite=args.overwrite)
+            train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, use_checkpoint = args.use_checkpoint, use_dropout = False, overwrite=args.overwrite)
 
