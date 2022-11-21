@@ -359,7 +359,7 @@ def tune_model(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, 
     is_tuned = trainer.train(model, is_tuning=True)
     return is_tuned
 
-def test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches =100, instruct_mode = None, input_w_only = False, comp_rules = False, overwrite=False, repeats=5, **train_config_kwargs): 
+def test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches =100, instruct_mode = 'combined', input_w_only = False, comp_rules = False, overwrite=False, repeats=5, **train_config_kwargs): 
     torch.manual_seed(seed)
     
     label, holdouts = labeled_holdouts 
@@ -391,7 +391,7 @@ def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False
     if is_trained: 
         for instruct_mode in [None, 'combined', 'swap_combined']:
             print('TESTING '+ str(instruct_mode) + '\n')
-            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = 'combined', overwrite=ot)
+            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, overwrite=ot)
 
     instruct_mode = 'combined'
     print('TESTING w/ comp rule')
