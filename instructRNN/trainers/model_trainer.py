@@ -391,7 +391,7 @@ def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False
     if is_trained: 
         for instruct_mode in [None, 'combined', 'swap_combined']:
             print('TESTING '+ str(instruct_mode) + '\n')
-            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = instruct_mode, overwrite=ot)
+            test_model(exp_folder, model_name, seed, labeled_holdouts, instruct_mode = 'combined', overwrite=ot)
 
     instruct_mode = 'combined'
     print('TESTING w/ comp rule')
