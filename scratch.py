@@ -14,7 +14,7 @@ from instructRNN.analysis.decoder_analysis import *
 
 
 
-is_trained[0, 0, :]
+
 
 trained_list = pickle.load(open('7.20models/multitask_holdouts/Multitask/clipNet_lin/contexts/seed0_AntiDMMod1test_is_trained', 'rb'))
 
@@ -47,7 +47,7 @@ vec.shape[0]>=25
 # holdouts_file = 'swap1'
 # model.load_model(EXP_FILE+'/'+holdouts_file+'/'+model.model_name, suffix='_seed1')
 
-#rsync -a  -P --exclude "*.npy*" --exclude "*correct*" --exclude "*loss*" --include 'seed2training_data_FOR_TUNING.pt' --exclude "*context*" --exclude '*.pt*' --exclude '*_attrs*' --exclude '*training_data*' --exclude '*_opt*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/swap_holdouts/swap5/gptNetXL_lin/ /home/riveland/Instruct-RNN/7.20models/swap_holdouts/swap5/gptNetXL_lin
+#rsync -a  -P --exclude "*.npy*" --exclude "*correct*" --exclude "*loss*" --include '*decoder*' --exclude "*context*" --exclude '*.pt*' --exclude '*_attrs*' --exclude '*training_data*' --exclude '*_opt*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ /home/riveland/Instruct-RNN/7.20models/swap_holdouts
 
 
 perf = PerfDataFrame('7.20models', 'multitask', 'clipNet_lin', mode='multi_comp')
