@@ -6,7 +6,7 @@ from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio
 from instructRNN.data_loaders.perfDataFrame import *
 
 to_plot_models = ['clipNet_lin', 'sbertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNetPlus', 'simpleNet']
-tuned_to_plot = ['gptNetXL_lin_tuned', 'sbertNet_lin_tuned', 'clipNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet', 'gptNet_lin_tuned']
+tuned_to_plot = ['clipNet_lin_tuned', 'sbertNet_lin_tuned', 'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
 
 ###COSYNE PLOTS
 fig, axn = plot_curves('7.20models', 'swap', ['clipNet_lin', 'gptNetXL_lin', 'simpleNet'], mode='combined', avg=True, linewidth=1.2)
@@ -34,8 +34,8 @@ plt.show()
 
 ##TUNED HOLDOUTS
 plot_curves('7.20models', 'swap', tuned_to_plot, mode='combined', avg=True, linewidth=0.8)
-plot_0_shot_task_hist('7.20models', 'swap', tuned_to_plot, mode='combined')
-plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot[::-1], mode='combined')
+plot_k_shot_task_hist('7.20models', 'swap', tuned_to_plot[::-1], mode='combined')
+plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot, mode='combined')
 plt.show()
 
 ###SWAP HOLDOUTS
@@ -53,13 +53,14 @@ plt.show()
 ####PC PLOTS
 EXP_FILE = '7.20models/swap_holdouts'
 
+
 #CLIPNET
 clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap9'
 
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
 plot_scatter(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
-plot_scatter(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
+plot_scatter(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, rep_depth='full')
 
 clipNet.load_model('7.20models/multitask_holdouts/Multitask/'+clipNet.model_name, suffix='_seed3')
 plot_scatter(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, instruct_mode=None)

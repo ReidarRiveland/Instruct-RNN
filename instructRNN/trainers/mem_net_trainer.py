@@ -31,8 +31,8 @@ class MemNet(nn.Module):
         self.out_dim = out_dim
         self.rnn_hiddenInitValue = 0.1
         self.__device__ = 'cpu'
-        self.rnn = ScriptGRU(OUTPUT_DIM+INPUT_DIM, self.rnn_hidden_dim, 2, torch.relu, batch_first=True)
-        self.lin_out= nn.Sequential(nn.Linear(self.rnn_hidden_dim, self.rnn_hidden_dim), nn.Linear(self.rnn_hidden_dim, self.out_dim))
+        self.rnn = nn.GRU(OUTPUT_DIM+INPUT_DIM, self.rnn_hidden_dim, 1, batch_first=True)
+        self.lin_out= nn.Linear(rnn_hidden_dim, self.out_dim)
 
     def __initHidden__(self, batch_size):
         return torch.full((1, batch_size, self.rnn_hidden_dim), 
@@ -42,7 +42,7 @@ class MemNet(nn.Module):
         h0 = self.__initHidden__(ins.shape[0])
         rnn_ins = torch.cat((ins, tar), axis=-1)
         rnn_hid, _ = self.rnn(rnn_ins, h0)
-        out = self.lin_out(rnn_hid)
+        out = torch.tanh(self.lin_out(rnn_hid))*3
         return out, rnn_hid
 
     def to(self, cuda_device): 
@@ -65,7 +65,7 @@ class MemNetTrainerConfig():
     stream_data: bool = True
 
     optim_alg: str = 'adam'
-    init_lr: float = 0.005
+    init_lr: float = 0.001
 
     scheduler_type: str = 'exp'
     scheduler_gamma: float = 0.99

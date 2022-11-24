@@ -35,36 +35,17 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             'DMS', 'DNMS', 'DMC', 'DNMC', 
             ]
 
-TASK_GROUPS = {
-            'Go': ['Go', 'AntiGo', 'GoMod1', 'AntiGoMod1', 'GoMod2',  'AntiGoMod2', 'RTGo', 'AntiRTGo', 'RTGoMod1', 'AntiRTGoMod1',  'RTGoMod2','AntiRTGoMod2'],
-            'DM' : ['DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 'ConDM', 'ConAntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'],
-            'COMP' : ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 'COMP1Mod1', 'COMP2Mod1', 'COMP1Mod2', 'COMP2Mod2'], 
-            'Dur' : ['Dur1', 'Dur2', 'MultiDur1', 'MultiDur2', 'AntiDur1', 'AntiDur2', 'AntiMultiDur1', 'AntiMultiDur2', 'Dur1Mod1', 'Dur2Mod1', 'Dur1Mod2', 'Dur2Mod2'], 
-            'Match' : ['DMS', 'DNMS', 'DMC', 'DNMC']
-            }
-
 SWAP_LIST = [            
-
             ('AntiDMMod2', 'RTGo', 'DM', 'MultiCOMP2',  'AntiMultiDur1'), 
-
             ('COMP1Mod1', 'AntiGoMod2',  'DMS', 'AntiDur1', 'RTGoMod2'),
-
             ('RTGoMod1', 'AntiCOMP2', 'AntiRTGo', 'Dur2', 'MultiCOMP1'), 
-
             ('GoMod2', 'AntiMultiCOMP2', 'DMMod2', 'AntiRTGoMod1', 'AntiDur2'), 
-
             ('MultiDM', 'COMP2Mod2', 'AntiMultiCOMP1', 'AntiGoMod1', 'Dur1Mod1'),     
-
             ('AntiDM',  'AntiRTGoMod2', 'Dur2Mod2', 'AntiCOMP1', 'DNMS'), 
-
             ('MultiDur1',  'GoMod1', 'COMP2', 'DMC', 'Dur2Mod1'),
-
             ('COMP2Mod1', 'AntiMultiDM', 'DNMC', 'DMMod1', 'Dur1Mod2'),
-
             ('ConAntiDM', 'COMP1', 'MultiDur2', 'COMP1Mod2', 'Go'),
-
             ('AntiGo', 'Dur1', 'ConDM', 'AntiDMMod1', 'AntiMultiDur2'),            
-
             ]
 
 FAMILY_LIST = [
@@ -82,7 +63,13 @@ FAMILY_LIST = [
             ('DMS', 'DNMS', 'DMC', 'DNMC')
             ]
 
-
+TASK_GROUPS = {
+            'Go': ['Go', 'AntiGo', 'GoMod1', 'AntiGoMod1', 'GoMod2',  'AntiGoMod2', 'RTGo', 'AntiRTGo', 'RTGoMod1', 'AntiRTGoMod1',  'RTGoMod2','AntiRTGoMod2'],
+            'DM' : ['DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 'ConDM', 'ConAntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'],
+            'COMP' : ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 'COMP1Mod1', 'COMP2Mod1', 'COMP1Mod2', 'COMP2Mod2'], 
+            'Dur' : ['Dur1', 'Dur2', 'MultiDur1', 'MultiDur2', 'AntiDur1', 'AntiDur2', 'AntiMultiDur1', 'AntiMultiDur2', 'Dur1Mod1', 'Dur2Mod1', 'Dur1Mod2', 'Dur2Mod2'], 
+            'Match' : ['DMS', 'DNMS', 'DMC', 'DNMC']
+            }
 
 SWAPS_DICT = dict(zip(['swap'+str(num) for num in range(len(SWAP_LIST))], SWAP_LIST.copy()))
 FAMILY_DICT = dict(zip(['family'+str(num) for num in range(len(FAMILY_LIST))], FAMILY_LIST.copy()))
@@ -128,32 +115,6 @@ class Task():
         self.inputs = self.factory.make_trial_inputs()
         self.targets = self.factory.make_trial_targets()
         self.masks = self.factory.make_loss_mask()
-    
-    def plot_trial(self, index):
-        ins = self.inputs
-        tars = self.targets
-        fix = ins[index, :, 0:1]
-        mod1 = ins[index, :, 1:task_factory.STIM_DIM+1]
-        mod2 = ins[index, :, 1+task_factory.STIM_DIM:1+(2*task_factory.STIM_DIM)]
-        tars = tars[index, :, :]
-
-        to_plot = (fix.T, mod1.T, mod2.T, tars.T)
-
-        gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 5])
-
-        fig, axn = plt.subplots(4,1, sharex = True, gridspec_kw=gs_kw)
-        cbar_ax = fig.add_axes([.91, .3, .03, .4])
-        ylabels = ('fix.', 'mod. 1', 'mod. 2', 'Target')
-        for i, ax in enumerate(axn.flat):
-            sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1.5, cbar_ax=None if i else cbar_ax)
-
-            ax.set_ylabel(ylabels[i])
-            if i == 0: 
-                ax.set_title('%r Trial Info' %self.task_type)
-            if i == 3: 
-                ax.set_xlabel('time')
-        plt.show()
-
    
 class Go(Task): 
     comp_ref_tasks = ('RTGo', 'AntiRTGo', 'AntiGo')

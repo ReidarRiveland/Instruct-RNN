@@ -24,17 +24,13 @@ class EncoderDecoder(nn.Module):
         if 'clip' in sm_model.model_name :
             decoder.tokenizer.index2word[2] = '<|endoftext|>'
 
-    def load_model_componenets(self, load_folder, seed, tasks=TASK_LIST, with_holdout=False, with_dropout=False):
+    def load_model_componenets(self, load_folder, seed, tasks=TASK_LIST, with_holdout=False):
         suffix = '_seed'+str(seed)
 
         if with_holdout:
             decoder_suffix = suffix + '_wHoldout'
         else: 
             decoder_suffix = suffix
-
-        if with_dropout:
-            decoder_suffix += 'wDropout'
-
 
         self.sm_model.load_model(load_folder, suffix=suffix)
         self.decoder.load_model(load_folder, suffix=decoder_suffix)

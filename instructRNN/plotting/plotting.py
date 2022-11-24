@@ -49,7 +49,7 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (li
 
 def get_task_color(task): 
     index = TASK_LIST.index(task)
-    return plt.get_cmap('Paired')(index%5)
+    return plt.get_cmap('Paired')(index%8)
 
 def get_all_tasks_markers(task):
     marker_list = ['o', 'v', 'x', '+', 'D']
@@ -267,7 +267,7 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, num_trials = 50
         pcs = range(dims)
 
         if rep_depth == 'task': 
-            reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=False, instruct_mode=instruct_mode)
+            reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True, instruct_mode=instruct_mode)
         elif rep_depth != 'task': 
             reps = get_instruct_reps(model.langModel, depth=rep_depth, instruct_mode=instruct_mode)
         reduced, _ = reduce_rep(reps, pcs=pcs)
@@ -561,3 +561,28 @@ def plot_model_response(model, trials, plotting_index = 0, instructions = None, 
         if save_file is not None: 
             plt.savefig('figs/'+save_file)
         plt.show()
+
+def plot_trial(trials, index):
+    ins = trials.inputs
+    tars = trials.targets
+    fix = ins[index, :, 0:1]
+    mod1 = ins[index, :, 1:task_factory.STIM_DIM+1]
+    mod2 = ins[index, :, 1+task_factory.STIM_DIM:1+(2*task_factory.STIM_DIM)]
+    tars = tars[index, :, :]
+
+    to_plot = (fix.T, mod1.T, mod2.T, tars.T)
+
+    gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 5])
+
+    fig, axn = plt.subplots(4,1, sharex = True, gridspec_kw=gs_kw)
+    cbar_ax = fig.add_axes([.91, .3, .03, .4])
+    ylabels = ('fix.', 'mod. 1', 'mod. 2', 'Target')
+    for i, ax in enumerate(axn.flat):
+        sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1.8, cbar_ax=None if i else cbar_ax)
+
+        ax.set_ylabel(ylabels[i])
+        if i == 0: 
+            ax.set_title('%r Trial Info' %trials.task_type)
+        if i == 3: 
+            ax.set_xlabel('time')
+    plt.show()
