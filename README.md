@@ -1,3 +1,6 @@
 # Instruct-RNN
 
-Current PhD project on Language and Cognition
+Code for "GENERALIZATION IN SENSORIMOTOR NETWORKS CONFIGURED WITH NATURAL LANGUAGE INSTRUCTIONS."
+
+One of the most essential language skills that humans possess is the ability to correctly execute actions based on linguistic instructions. Here we use the latest advances in Natural Language Processing (NLP) to create a neural model of this cognitive ability. RNNs are trained on a set of 50 psychophysical tasks which require an array of cognitive competencies. Information about tasks demands is embedded using a transformer architecture pre-trained on an NLP task. Our best performing models exhibit strong generalization across the task set. We found that language scaffolds sensorimotor representations such that activity for interrelated tasks share a common geometry with the semantic representations of instructions, allowing language to cue the proper composition of practiced skills in unseen settings. We show that this geometry is present throughout the language processing hierarchy. Finally, we also demonstrate how a network can generate a linguistic description of a novel task it has identified using motor feedback, which can subsequently guide a partner model to perform the task. Our models offer experimentally testable predictions outlining how linguistic information must be represented in order to enable flexible cognition. 
+
