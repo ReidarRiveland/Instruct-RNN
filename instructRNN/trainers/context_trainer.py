@@ -87,7 +87,6 @@ class ContextTrainer(BaseTrainer):
         self.optimizer = self.optim_alg([context], lr=self.lr)
         if self.scheduler_class is not None:
             self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
-            #self.step_scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=[-2], gamma=0.1)
         else:
             self.scheduler = None
     
@@ -154,7 +153,6 @@ class ContextTrainer(BaseTrainer):
                     return True
 
             if self.scheduler is not None: self.scheduler.step()  
-            #if self.step_last_lr: self.step_scheduler.step()
 
         warnings.warn('Model has not reach specified performance threshold during training')
         return False
