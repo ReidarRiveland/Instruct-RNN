@@ -6,8 +6,10 @@
 
 /*models/_pretrained_state_dicts/*
 /*paper_docs/*
-/*scratch/*
-/*update_data/*
+/*scratch.py/*
+/*update_data.py/*
+/*model_checks.py/*
+
 
 /*.sbatch*
 

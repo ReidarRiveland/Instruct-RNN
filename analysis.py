@@ -30,14 +30,14 @@ if __name__ == "__main__":
 
     if args.mode == 'decode':
         model_name = args.models[0]
-        # print('processing multitask')
-        # decoder_pipeline('7.20models/multitask_holdouts', model_name)
+        print('processing multitask')
+        decoder_pipeline('7.20models/multitask_holdouts', args.models[0])
 
         print('processing sm holdouts')
-        decoder_pipeline('7.20models/swap_holdouts', model_name, sm_holdout=True)
+        decoder_pipeline('7.20models/swap_holdouts', args.models[0], sm_holdout=True)
         
         print('processing sm holdouts and decoder holdouts')
-        decoder_pipeline('7.20models/swap_holdouts', model_name, sm_holdout=True, decoder_holdout=True)
+        decoder_pipeline('7.20models/swap_holdouts', args.models[0], sm_holdout=True, decoder_holdout=True)
 
 
     jobs = make_analysis_jobs(args.models, args.seeds, args.job_index)
