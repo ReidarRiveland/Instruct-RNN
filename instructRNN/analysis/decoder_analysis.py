@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import pickle
 import itertools
+from collections import defaultdict, Counter
 from instructRNN.decoding_models.decoder_models import DecoderRNN
 from instructRNN.decoding_models.encoder_decoder import EncoderDecoder
 from instructRNN.models.full_models import make_default_model
@@ -28,7 +29,6 @@ def get_decoded_set(foldername: str, model_name: str, seeds=range(5), from_conte
 
     rnn_decoder.eval()
     encoder = EncoderDecoder(sm_model, rnn_decoder)
-    #full_all_contexts = np.full((len(seeds), len(TASK_LIST), 25, sm_model.langModel.LM_intermediate_lang_dim), np.nan)
     full_all_contexts = np.full((len(seeds), len(TASK_LIST), 25, 64), np.nan)
     encoder.to(0)
 
@@ -99,8 +99,8 @@ def _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks
 
 
 def test_partner_model(load_folder, model_name, decoded_dict, contexts = None, num_trials=50, tasks = TASK_LIST, partner_seed=3): 
-    partner_model = make_default_model(model_name)
-    partner_model.load_state_dict(torch.load('7.20models/multitask_holdouts/Multitask/'+model_name+'/'+model_name+'_seed'+str(partner_seed)+'.pt'), strict=False)
+    partner_model = make_default_model('clipNet_lin')
+    partner_model.load_state_dict(torch.load('7.20models/multitask_holdouts/Multitask/clipNet_lin/clipNet_lin_seed'+str(partner_seed)+'.pt'), strict=False)
     return _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks)
 
 def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_LIST, partner_seeds=range(5), decoder_holdouts=False, sm_holdouts= False, save=False):
@@ -156,7 +156,7 @@ def test_holdout_partner_perf(foldername, model_name, num_trials = 50, partner_s
     other_perf_array = np.full((len(partner_seeds), len(full_decoded_dict),  len(TASK_LIST)), np.nan)
     contexts_perf_array = np.full(( len(partner_seeds), len(full_decoded_dict), len(TASK_LIST)), np.nan)
     
-    partner_model = make_default_model(model_name)
+    partner_model = make_default_model('clipNet_lin')
     for i, seed in enumerate(partner_seeds):
         for holdout_file, holdouts in SWAPS_DICT.items():
             print('processing '+ holdout_file)
@@ -197,16 +197,15 @@ def decoder_pipeline(foldername, model_name, decoder_holdout=False, sm_holdout=F
         print('getting decoded set')
         get_decoded_set(foldername, model_name, seeds=seeds, from_contexts=True, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
 
-    # try:
-    #     print('Multi Partner Already Trained')
-    #     np.load(foldername+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_all_perf.npy')
-    # except FileNotFoundError:
-    print('Testing Multi Partner')
-    test_multi_partner_perf(foldername, model_name, partner_seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
+    try:
+        print('Multi Partner Already Trained')
+        np.load(foldername+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_all_perf.npy')
+    except FileNotFoundError:
+        print('Testing Multi Partner')
+        test_multi_partner_perf(foldername, model_name, partner_seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
 
     print('Testing Holdout Partner')
     test_holdout_partner_perf(foldername, model_name, partner_seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
-
 
 
 def get_novel_instruct_ratio(sm_holdout=False, decoder_holdout=False):
@@ -221,7 +220,7 @@ def get_novel_instruct_ratio(sm_holdout=False, decoder_holdout=False):
     if decoder_holdout: decoder_str = 'holdout'
     else: decoder_str = 'multi'
 
-    confuse_mat = np.load(folder+'/decoder_perf/clipNet_lin/test_sm_'+sm_str+'decoder_'+decoder_str+'_confuse_mat.npy')
+    confuse_mat = np.load(folder+'/decoder_perf/clipNet_lin/test_sm_'+sm_str+'_decoder_'+decoder_str+'_confuse_mat.npy')
     return np.sum(confuse_mat[:, :, -1:])/np.sum(confuse_mat)
 
 def get_trained_ratio(foldername, exp, model_name, seeds = range(5), sm_holdout=False, decoder_holdout=False):
@@ -243,3 +242,29 @@ def get_trained_ratio(foldername, exp, model_name, seeds = range(5), sm_holdout=
                     print('NOT FOUND '+file_path)
 
     return all_is_trained
+
+def collapse_decoded_dict(decoded_dict): 
+    col_dict = {}
+    unstruct_col_dict = defaultdict(list)
+
+    for task in TASK_LIST:
+        cur_dict = defaultdict(list)
+        for seed in range(5): 
+            for key, values in decoded_dict[seed][task].items():
+                cur_dict[key] += values
+        
+        col_dict[task] = cur_dict
+
+
+    return col_dict
+
+def print_decoded_instruct(decoded_instruct, most_common=5):
+    master_str = ''
+    collapsed = collapse_decoded_dict(decoded_instruct)
+    for task in TASK_LIST:
+        master_str += '\\textbf{'+task+':} '
+        for i in range(most_common):
+            decoded, freq = Counter(collapsed[task]['other']).most_common(most_common)[i]
+            master_str += '\''+decoded + '\', ' + str(freq)+'; '
+
+    print(master_str)

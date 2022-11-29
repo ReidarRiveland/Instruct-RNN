@@ -2,20 +2,11 @@ from instructRNN.plotting.plotting import *
 from instructRNN.models.full_models import *
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
-from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio
+from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio, print_decoded_instruct
 from instructRNN.data_loaders.perfDataFrame import *
 
 to_plot_models = ['clipNet_lin', 'sbertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNetPlus', 'simpleNet']
 tuned_to_plot = ['clipNet_lin_tuned', 'sbertNet_lin_tuned', 'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
-
-###COSYNE PLOTS
-fig, axn = plot_curves('7.20models', 'swap', ['clipNet_lin', 'gptNetXL_lin', 'simpleNet'], mode='combined', avg=True, linewidth=1.2)
-#plt.xscale('log')
-plt.show()
-
-plot_ccgp_corr('7.20models', 'swap', ['clipNet_lin', 'gptNetXL_lin', 'simpleNet'])
-
-
 
 ##ALL MODEL LEARNING CURVES
 fig, axn = plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask', linewidth=0.5)
@@ -93,89 +84,21 @@ plot_ccgp_corr('7.20models', 'swap', to_plot_models)
 #############SINGLE UNIT TUING
 
 EXP_FILE = '7.20models/swap_holdouts'
-
+##TUNING
 clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap9'
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
 
-task_var, cluters_dict, cluster_labels, sorted_indices = plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'clipNet_lin', 2)
-
-unit=96
-plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothing=1, min_contrast=0)
-plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1, min_contrast=0)
-
-unit=41
-plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothing=1, min_contrast=0)
-plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1, min_contrast=0)
-plot_tuning_curve(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], unit, [140]*4)
-
-
-unit=51
-plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothing=1, min_contrast=0)
-plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1, min_contrast=0)
-plot_tuning_curve(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], unit, [129]*4)
-
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
-
-###Go Only Neuron 
-plot_tuning_curve(clipNet, ['Go', 'AntiGo', 'GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2'], 2, [140]*6)
-
-###Direction Tuning FLip
-plot_tuning_curve(clipNet, ['Go', 'AntiGo', 'GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2'], 73, [140]*6)
-
-###sort of
-plot_tuning_curve(clipNet, ['DM', 'AntiDM', 'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], 11, [140]*6)
-plot_neural_resp(clipNet, 'AntiGo','direction', 73, num_trials=25)
-
-
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
-unit=9
-plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothing=1)
-plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1)
-
-
-unit=18
-plot_neural_resp(clipNet, 'DMMod1','diff_strength', unit, num_trials=25, smoothing=1)
-plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1)
-
-
-EXP_FILE = '7.20models/swap_holdouts'
-clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap5'
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed4')
-
-unit=4
-plot_neural_resp(clipNet, 'DM','diff_strength', unit, num_trials=25, smoothing=1)
-plot_neural_resp(clipNet, 'AntiDM','diff_strength', unit, num_trials=25, smoothing=1)
-
-plot_tuning_curve(clipNet, ['DM', 'AntiDM'], 4, [120]*6, smoothing=1)
-
-##DM
-unit=119
-plot_neural_resp(clipNet, 'DMMod1', 'diff_strength', unit, num_trials=25, smoothing=1)
-plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=50, smoothing=1)
-plot_neural_resp(clipNet, 'DMMod2','diff_strength', unit, num_trials=25, smoothing=1)
-plot_neural_resp(clipNet, 'AntiDMMod2','diff_strength', unit, num_trials=50, smoothing=1)
-
-plot_tuning_curve(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], unit, [140]*4, num_trials=25, smoothing=1, min_coh=0.01, max_coh=0.3)
-
-unit=175
-plot_neural_resp(clipNet, 'DMMod1', 'diff_strength', unit, num_trials=25, smoothing=1)
-plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1)
-plot_neural_resp(clipNet, 'DMMod2','diff_strength', unit, num_trials=25, smoothing=1)
-plot_neural_resp(clipNet, 'AntiDMMod2','diff_strength', unit, num_trials=25, smoothing=1)
-
-unit=41
-plot_neural_resp(clipNet, 'DMMod1', 'diff_strength', unit, num_trials=25, smoothing=1)
-plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25, smoothing=1)
-
-plot_tuning_curve(clipNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], unit, [149]*4, num_trials=25, smoothing=1, min_coh=0.01, max_coh=0.3)
-
 ##ANTI GO
-
 unit=39
 plot_tuning_curve(clipNet, ['Go', 'AntiGo', 'RTGo', 'AntiRTGo'], unit, [145]*4, num_trials=80, smoothing=1, min_coh=0.01, max_coh=0.5)
 
+##DM
+unit=175
+plot_neural_resp(clipNet, 'DMMod1', 'diff_strength', unit, num_trials=25)
+plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25)
+plot_neural_resp(clipNet, 'DMMod2','diff_strength', unit, num_trials=25)
+plot_neural_resp(clipNet, 'AntiDMMod2','diff_strength', unit, num_trials=25)
 
 ###COMP
 EXP_FILE = '7.20models/swap_holdouts'
@@ -196,28 +119,23 @@ clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap1'
 clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
 
-##2
 unit=147
 plot_tuning_curve(clipNet, ['DMS', 'DNMS', 'DMC', 'DNMC'], unit, [149]*4, num_trials=50, smoothing=1.0)
 
-trials = DMS(100, main_var=True)
-trials.plot_trial(5)
-
 
 ###decoder figs
-plot_partner_perf()
-confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/sm_multidecoder_multi_confuse_mat.npy')
-plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), fmt='.0%', annot_kws={'size':3}, linewidths=0.2)
+plot_partner_perf('clipNet_lin')
 
+confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/test_sm_multi_decoder_multi_confuse_mat.npy')
+plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), linewidths=0.1, linecolor='#E5E4E2')
+
+get_novel_instruct_ratio(sm_holdout=False, decoder_holdout=False)
 get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=False)
 get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)
-
-
 
 ###ADDITIONAL SUPP FIGS
 ###Unit Var
 plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'clipNet_lin', 2)
-
 
 ###STRUCTURE FIG
 plot_comp_bar('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp', 'swap_ccgp'], y_lim=(0.5, 1.0))
@@ -230,11 +148,11 @@ plt.show()
 plot_curves('7.20models', 'swap', to_plot_models, mode='combinedinputs_only', avg=True, linewidth=0.8)
 plt.show()
 
+multi_multi_instruct = pickle.load(open('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/test_sm_multi_decoder_multi_instructs_dict', 'rb'))
+holdout_multi_instruct = pickle.load(open('7.20models/swap_holdouts/decoder_perf/clipNet_lin/test_sm_holdout_decoder_multi_instructs_dict', 'rb'))
+holdout_holdout_instruct = pickle.load(open('7.20models/swap_holdouts/decoder_perf/clipNet_lin/test_sm_holdout_decoder_holdout_instructs_dict', 'rb'))
 
+print_decoded_instruct(multi_multi_instruct)
+print_decoded_instruct(holdout_multi_instruct)
+print_decoded_instruct(holdout_holdout_instruct)
 
-# perf = pickle.load(open('exemplar_perf', 'rb'))
-# plt.plot(np.mean(perf, axis=1))
-# plt.xticks(range(1, 20))
-# plt.xlim(0, 19)
-# plt.ylim(0, 1)
-# plt.show()

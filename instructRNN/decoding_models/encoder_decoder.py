@@ -21,8 +21,7 @@ class EncoderDecoder(nn.Module):
         self.sm_model.eval()
         self.decoder.eval()
 
-        if 'clip' in sm_model.model_name :
-            decoder.tokenizer.index2word[2] = '<|endoftext|>'
+        decoder.tokenizer.index2word[2] = '<|endoftext|>'
 
     def load_model_componenets(self, load_folder, seed, tasks=TASK_LIST, with_holdout=False):
         suffix = '_seed'+str(seed)
@@ -37,7 +36,6 @@ class EncoderDecoder(nn.Module):
         self.init_context_set(load_folder, seed, tasks)
 
     def init_context_set(self, file_name, seed, tasks, verbose=True):
-        #context_dim = self.sm_model.langModel.LM_intermediate_lang_dim
         context_dim = 64
         all_contexts = np.full((len(TASK_LIST), 25, context_dim), np.nan)
         for i, task in enumerate(tasks):

@@ -149,16 +149,6 @@ class CLIP(TransformerEmbedder):
         trans_out = self.transformer(**tokens, output_hidden_states=True)
         return trans_out.pooler_output, trans_out.hidden_states
 
-class GPTNeo(TransformerEmbedder): 
-    def __init__(self, config): 
-        super().__init__(config)
-        self.transformer = GPTNeoForCausalLM.from_pretrained(self.LM_load_str, output_hidden_states=True).transformer
-        self.tokenizer = GPT2Tokenizer.from_pretrained("EleutherAI/gpt-neo-1.3B")
-        self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
-        self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.set_train_layers(self.LM_train_layers)
-        self.__init_proj_out__()
-
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()
     def __init__(self, config): 
@@ -181,11 +171,3 @@ class BoW(InstructionEmbedder):
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
 
-class MP(TransformerEmbedder):
-    def __init__(self, config):
-        super().__init__(config)
-        self.transformer = AutoModel.from_pretrained('sentence-transformers/'+self.LM_load_str, output_hidden_states=True)
-        self.tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/'+self.LM_load_str,)
-        self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
-        self.set_train_layers(self.LM_train_layers)
-        self.__init_proj_out__()

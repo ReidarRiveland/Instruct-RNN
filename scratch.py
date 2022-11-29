@@ -11,12 +11,49 @@ import torch
 from instructRNN.instructions.instruct_utils import get_instructions
 from instructRNN.plotting.plotting import *
 from instructRNN.analysis.decoder_analysis import *
+from collections import Counter
+from instructRNN.models.full_models import *
+
+
+def get_n_params(model):
+    pp=0
+    for p in list(model.parameters()):
+        nn=1
+        for s in list(p.size()):
+            nn = nn*s
+        pp += nn
+    return pp
+
+model = GPTNetXL_lin()
+
+get_n_params(model.langModel.transformer)
+
+perf = np.load(open('7.20models/swap_holdouts/decoder_perf/clipNet_lin/test_sm_holdout_decoder_holdout_partner_holdout_all_perf.npy', 'rb'))
+np.nanmean(perf)
+
+
+# perf = np.load('7.20models/swap_holdouts/decoder_perf/simpleNet/test_sm_holdout_decoder_holdout_partner_multi_all_perf.npy')
+# #perf.shape
+
+model_name = 'simpleNet'
+decoder_pipeline('7.20models/swap_holdouts', model_name, sm_holdout=True)
 
 
 
 
 
-trained_list = pickle.load(open('7.20models/multitask_holdouts/Multitask/clipNet_lin/contexts/seed0_AntiDMMod1test_is_trained', 'rb'))
+
+
+perf.shape
+
+
+
+
+
+
+
+
+
 
 
 def get_val_perf(foldername, model_name, seed, num_repeats = 5, batch_len=100, save=False): 
@@ -36,36 +73,7 @@ perf_list = []
 for i in range(5): 
     perf_list.append(np.mean(get_val_perf('7.20models/multitask_holdouts', 'simpleNet', i)))
 
-np.mean(perf_list)
-# vec = pickle.load(open('7.20models/swap_holdouts/swap1/clipNet_lin/contexts/seed0_AntiGoMod2test_is_trained', 'rb'))
-
-vec.shape[0]>=25
-
-# len(vec)
-# EXP_FILE = '7.20models/swap_holdouts'
-# model = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-# holdouts_file = 'swap1'
-# model.load_model(EXP_FILE+'/'+holdouts_file+'/'+model.model_name, suffix='_seed1')
-
-#rsync -a  -P --exclude "*.npy*" --exclude "*correct*" --exclude "*loss*" --include '*decoder*' --exclude "*context*" --exclude '*.pt*' --exclude '*_attrs*' --exclude '*training_data*' --exclude '*_opt*' riveland@login2.baobab.hpc.unige.ch:/home/riveland/Instruct-RNN/7.20models/ /home/riveland/Instruct-RNN/7.20models/swap_holdouts
-
-
-perf = PerfDataFrame('7.20models', 'multitask', 'clipNet_lin', mode='multi_comp')
-
-perf.data.shape
-list(zip(TASK_LIST, np.mean(perf.data, axis=0)[:, 0]))
-
-np.mean(perf.data)
-
-trials = AntiGoMod2(50)
-trials.plot_trial(7)
-
 from instructRNN.trainers.mem_net_trainer import MemNet
-# memNet = MemNet(64, 256)
-
-# state_dict = torch.load('7.20models/swap_holdouts/swap0/clipNet_lin/mem_net/clipNet_lin_seed0_memNet_CHECKPOINT.pt')
-# memNet.load_state_dict(state_dict)
-
 
 def eval_memNet_multi_perf(model_name, foldername, exp_type, seed, holdout_label, **trial_kwargs):
     if 'swap' in exp_type: 
@@ -94,11 +102,6 @@ def eval_memNet_multi_perf(model_name, foldername, exp_type, seed, holdout_label
     return perf_array
 
 perf_array = eval_memNet_multi_perf('clipNet_lin', '7.20models', 'swap', 0, 'swap1')
-
-
-
-
-
 
 def eval_memNet_holdout_perf(model_name, foldername, exp_type, seed, **trial_kwargs):
     if 'swap' in exp_type: 
@@ -136,70 +139,6 @@ perf_array = eval_memNet_holdout_perf('clipNet_lin', '7.20models', 'swap', 0)
 
 
 
-
-
-holdouts = SWAPS_DICT[holdouts_file]
-task_indices = [TASK_LIST.index(task) for task in TASK_LIST if task not in holdouts]
-reps = get_instruct_reps(clipNet.langModel)
-
-torch.std(task_info_basis)
-
-task_info_basis = torch.tensor(np.mean(reps, axis=1)[task_indices, :])+torch.randn(45, 64)*0.8
-
-comp_vec = pickle.load(open('7.20models/swap_holdouts/swap1/clipNet_lin/lin_comp/seed0_COMP1Mod1_chk_comp_vecs', 'rb'))
-
-lin = nn.Linear(45, 1)
-lin.load_state_dict(comp_vec[0])
-
-
-contexts = lin(task_info_basis.float().T)
-contexts.shape
-
-task = 'COMP1Mod1'
-batch_size=50
-
-ins, targets, _, target_dirs, _ = construct_trials(task, batch_size)
-
-
-out, _ = clipNet(torch.Tensor(ins), context = contexts.T.repeat(50, 1))
-np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
-
-
-
-reps = get_instruct_reps(clipNet.langModel)
-
-holdouts = SWAPS_DICT[holdouts_file]
-holdouts
-
-rule_basis = torch.tensor(np.mean(reps, axis=1)[[TASK_LIST.index(task) for task in TASK_LIST if task not in holdouts], :])
-
-context = torch.randn(45)
-
-torch.matmul(context, rule_basis.float())
-
-
-simpleNet = SimpleNet()
-simpleNet.rule_transform
-
-
-plot_comp_bar('7.20models', 'swap', ['simpleNet', 'clipNet_lin'])
-
-load_holdout_ccgp('7.20models/swap_holdouts', 'clipNet_lin', ['task'], range(5))
-
-multi_ccgp = load_multi_ccgp('clipNet_lin')[0]
-np.mean(multi_ccgp)
-
-data = load_perf(['clipNet_lin'], mode='multi_comp')
-np.mean(data)
-
-
-plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'clipNet_lin', 0)
-
-
-simple_perf = eval_model_exemplar('clipNet_lin', '7.20models', 'swap', 0)
-
-np.mean(simple_perf)
-np.mean(perf)
 
 
 ##DM

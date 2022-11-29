@@ -138,10 +138,8 @@ def plot_context_curves(foldername, exp_type, model_list, mode = 'lin_comp', avg
     for model_name in model_list:
         color = MODEL_STYLE_DICT[model_name][0] 
         data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
-        #reshaped_data = data.data[0, ...]
         reshaped_data = data.data
-        # mean = np.nanmean(reshaped_data, axis=(0, 1))
-        # std = np.nanstd(reshaped_data, axis=(0, 1))
+
         for i in range(10):
             print(i)
             mean = reshaped_data[1, i, ...]
@@ -449,10 +447,10 @@ def plot_task_var_heatmap(load_folder, model_name, seed, cmap = sns.color_palett
         
 
 def plot_decoding_confuse_mat(confusion_mat, cmap='Blues', **heatmap_args): 
-    res=sns.heatmap(confusion_mat, linecolor='gray', mask=confusion_mat == 0, 
-                            xticklabels=TASK_LIST+['novel'], yticklabels=TASK_LIST, annot=True, cmap=cmap, cbar=False, **heatmap_args)
+    res=sns.heatmap(confusion_mat, mask=confusion_mat == 0, 
+                            xticklabels=TASK_LIST+['novel'], yticklabels=TASK_LIST, cmap=cmap, **heatmap_args)
              
-    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 5, rotation=45, ha='right')
+    res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 4, rotation=45, ha='right')
     res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 5)
     plt.show()
 
@@ -484,7 +482,7 @@ def _plot_partner_perf(axn, sm_holdout, decoder_holdout, model_name ='clipNet_li
     for i, mode_value in enumerate(mode_dict.values()):
         for j, values in enumerate(multi_holdout_formatting.items()):
             holdouts, formatting = values
-            perf_data = np.nanmean(np.load(folder+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_decoder_'+holdouts+'_partner_'+mode_value[0]+'.npy'))
+            perf_data = np.nanmean(np.load(folder+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_'+holdouts+'_'+mode_value[0]+'.npy'))
             x_mark = ((i)+width)+((j*1.05*width))
             axn.bar(x_mark, perf_data, width, align='edge', color=mode_value[1], **formatting)
                         
@@ -502,13 +500,13 @@ def _plot_partner_perf(axn, sm_holdout, decoder_holdout, model_name ='clipNet_li
 
     return patches
     
-def plot_partner_perf():
+def plot_partner_perf(model_name):
     fig, axn = plt.subplots(2, 2, sharex=True, figsize =(4, 4))
     print(axn[0])
-    _ = _plot_partner_perf(axn.flatten()[0], False, False)
+    _ = _plot_partner_perf(axn.flatten()[0], False, False, model_name=model_name)
     axn.flatten()[1].axis('off')
-    _ = _plot_partner_perf(axn.flatten()[2], True, False)
-    patches = _plot_partner_perf(axn.flatten()[3], True, True)
+    _ = _plot_partner_perf(axn.flatten()[2], True, False, model_name=model_name)
+    patches = _plot_partner_perf(axn.flatten()[3], True, True, model_name=model_name)
 
 
     axn[0,0].legend(handles = patches, fontsize='x-small')
@@ -574,7 +572,7 @@ def plot_trial(trials, index):
 
     gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 5])
 
-    fig, axn = plt.subplots(4,1, sharex = True, gridspec_kw=gs_kw)
+    fig, axn = plt.subplots(4,1, sharex = True, gridspec_kw=gs_kw, figsize=(5, 3))
     cbar_ax = fig.add_axes([.91, .3, .03, .4])
     ylabels = ('fix.', 'mod. 1', 'mod. 2', 'Target')
     for i, ax in enumerate(axn.flat):
@@ -585,4 +583,8 @@ def plot_trial(trials, index):
             ax.set_title('%r Trial Info' %trials.task_type)
         if i == 3: 
             ax.set_xlabel('time')
+            ax.set_xticks(np.linspace(0, 150, 16))
+            ax.set_xticklabels(np.linspace(0, 150, 16).astype(int), size=5)
+
+
     plt.show()

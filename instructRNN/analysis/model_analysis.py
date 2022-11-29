@@ -110,7 +110,6 @@ def eval_model_exemplar(model_name, foldername, exp_type, seed, exemplar_num, **
     if 'simpleNet' in model_name:
         context_dim = 64
     else: 
-        #context_dim = model.langModel.LM_intermediate_lang_dim 
         context_dim = 64
 
     with torch.no_grad():
@@ -225,7 +224,6 @@ def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'):
         explained_variance = None
     return embedded[..., pcs], explained_variance
 
-###get rid of first set of if statements
 def get_layer_sim_scores(model, rep_depth='12', dist = 'pearson'): 
     if rep_depth.isnumeric(): 
         rep_dim = model.langModel.LM_intermediate_lang_dim

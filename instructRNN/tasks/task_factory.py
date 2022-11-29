@@ -146,7 +146,6 @@ def _max_var_dir(num_trials, num_stims, shuffle):
 
     return dirs
 
-###how to handle this for task plotting?
 def max_var_coh(num_trials, max_contrast=0.3, min_contrast=0.05, main_mod = None, shuffle=False): 
     base_coh = np.concatenate((np.linspace(-max_contrast, -min_contrast, num=int(np.ceil(num_trials/2))), 
                 np.linspace(min_contrast, max_contrast, num=int(np.floor(num_trials/2)))))

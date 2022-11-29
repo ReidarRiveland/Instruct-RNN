@@ -8,13 +8,10 @@ all_models = ['simpleNet', 'simpleNetPlus',
 
             'gptNet_lin', 'gptNet_lin_tuned',
 
-            #'bertNet', 'bertNet_tuned',
             'bertNet_lin', 'bertNet_lin_tuned',
 
-            #'sbertNet', 'sbertNet_tuned', 
             'sbertNet_lin', 'sbertNet_lin_tuned',
 
-            #'clipNet', 'clipNet_tuned', 
             'clipNet_lin', 'clipNet_lin_tuned', 
 
             'bowNet_lin'
@@ -36,33 +33,6 @@ class SimpleNetPlus(RuleNet):
         config = RuleModelConfig('simpleNetPlus', add_rule_encoder=True, **kw_args)
         super().__init__(config)
 
-class ComNet(RuleNet):
-    def __init__(self, **kw_args):
-        config = RuleModelConfig('comNet', info_type='comp', **kw_args)
-        super().__init__(config)
-
-class ComNetPlus(RuleNet):
-    def __init__(self, **kw_args):
-        config = RuleModelConfig('comNetPlus', add_rule_encoder=True, info_type='comp', **kw_args)
-        super().__init__(config)
-
-class GPTNet(InstructNet):
-    def __init__(self, **kw_args):
-        config = InstructModelConfig('gptNet', 
-                                LM_class=GPT, 
-                                LM_load_str = 'gpt2',
-                                LM_train_layers=[],
-                                **kw_args)
-        super().__init__(config)
-
-class GPTNet_tuned(InstructNet):
-    def __init__(self, **kw_args):
-        config = InstructModelConfig('gptNet_tuned', 
-                                LM_class=GPT, 
-                                LM_load_str = 'gpt2',
-                                LM_train_layers=['9', '10', '11', 'ln_f'],
-                                **kw_args)
-        super().__init__(config)
 
 class GPTNet_lin(InstructNet):
     def __init__(self, **kw_args):
@@ -84,26 +54,6 @@ class GPTNet_lin_tuned(InstructNet):
                                 **kw_args)
         super().__init__(config)
 
-class GPTNetXL(InstructNet):
-    def __init__(self, **kw_args):
-        config = InstructModelConfig('gptNetXL', 
-                                    LM_class= GPT,
-                                    LM_load_str = 'gpt2-xl', 
-                                    LM_train_layers=[], 
-                                    **kw_args)
-        super().__init__(config)
-
-
-class GPTNetXL_tuned(InstructNet):
-    def __init__(self, **kw_args):
-        config = InstructModelConfig('gptNetXL_tuned', 
-                                    LM_class= GPT,
-                                    LM_load_str = 'gpt2-xl', 
-                                    LM_train_layers=['9', '10', '11', 'ln_f'], 
-                                    **kw_args)
-        super().__init__(config)
-
-
 class GPTNetXL_lin(InstructNet):
     def __init__(self, **kw_args):
         config = InstructModelConfig('gptNetXL_lin', 
@@ -124,27 +74,6 @@ class GPTNetXL_lin_tuned(InstructNet):
                                     LM_train_layers=['9', '10', '11', 'ln_f'], 
                                     **kw_args)
         super().__init__(config)
-
-
-class BERTNet(InstructNet):
-    def __init__(self, **kw_args):
-        config = InstructModelConfig('bertNet', 
-                                    LM_class= BERT,
-                                    LM_load_str = 'bert-base-uncased',
-                                    LM_train_layers=[], 
-                                    **kw_args)
-        super().__init__(config)
-
-class BERTNet_tuned(InstructNet):
-    def __init__(self, **kw_args):
-        config = InstructModelConfig('bertNet_tuned', 
-                                    LM_class= BERT,
-                                    LM_load_str = 'bert-base-uncased',
-                                    LM_output_nonlinearity='lin',
-                                    LM_train_layers=['9', '10', '11', 'pooler'],
-                                    **kw_args)
-        super().__init__(config)
-
 
 class BERTNet_lin(InstructNet):
     def __init__(self, **kw_args):
@@ -168,24 +97,6 @@ class BERTNet_lin_tuned(InstructNet):
         super().__init__(config)
 
 
-class SBERTNet(InstructNet):
-    def __init__(self, **kw_args):
-        config = InstructModelConfig('sbertNet', 
-                                    LM_class= SBERT,
-                                    LM_load_str = 'sbert-base-nli-mean-tokens.pt', 
-                                    LM_train_layers=[], 
-                                    **kw_args)
-        super().__init__(config)
-
-class SBERTNet_tuned(InstructNet):
-    def __init__(self, **kw_args):
-        config = InstructModelConfig('sbertNet_tuned', 
-                                    LM_class= SBERT,
-                                    LM_load_str = 'sbert-base-nli-mean-tokens.pt', 
-                                    LM_train_layers=['9', '10', '11', 'pooler'],
-                                    **kw_args)
-        super().__init__(config)
-
 
 class SBERTNet_lin(InstructNet):
     def __init__(self, **kw_args):
@@ -203,37 +114,6 @@ class SBERTNet_lin_tuned(InstructNet):
                                     LM_class= SBERT,
                                     LM_load_str = 'sbert-base-nli-mean-tokens.pt', 
                                     LM_output_nonlinearity='lin', 
-                                    LM_train_layers=['9', '10', '11', 'pooler'],
-                                    **kw_args)
-        super().__init__(config)
-
-
-class MPNet(InstructNet):
-    def __init__(self, **kw_args):
-        config = InstructModelConfig('MPnet', 
-                                    LM_class= MP,
-                                    LM_load_str = 'all-mpnet-base-v2', 
-                                    LM_train_layers=[], 
-                                    LM_output_nonlinearity='lin', 
-
-                                    **kw_args)
-        super().__init__(config)
-
-class CLIPNet(InstructNet):
-    def __init__(self, **kw_args):
-        config = InstructModelConfig('clipNet', 
-                                    LM_class= CLIP,
-                                    LM_load_str = 'openai/clip-vit-base-patch32',
-                                    LM_train_layers=['bias'],
-                                    **kw_args)
-        super().__init__(config)
-        
-
-class CLIPNet_tuned(InstructNet):
-    def __init__(self, **kw_args):
-        config = InstructModelConfig('clipNet_tuned', 
-                                    LM_class= CLIP,
-                                    LM_load_str = 'openai/clip-vit-base-patch32',
                                     LM_train_layers=['9', '10', '11', 'pooler'],
                                     **kw_args)
         super().__init__(config)
@@ -257,16 +137,6 @@ class CLIPNet_lin_tuned(InstructNet):
                                     LM_output_nonlinearity='lin',
 
                                     LM_train_layers=['9', '10', '11', 'pooler'],
-                                    **kw_args)
-        super().__init__(config)
-
-
-class BoWNet(InstructNet):
-    def __init__(self, **kw_args):
-        config = InstructModelConfig('bowNet', 
-                                    LM_class= BoW,
-                                    LM_load_str = '',
-                                    LM_train_layers=[],
                                     **kw_args)
         super().__init__(config)
 

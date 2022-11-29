@@ -30,8 +30,8 @@ if __name__ == "__main__":
 
     if args.mode == 'decode':
         model_name = args.models[0]
-        print('processing multitask')
-        decoder_pipeline('7.20models/multitask_holdouts', model_name)
+        # print('processing multitask')
+        # decoder_pipeline('7.20models/multitask_holdouts', model_name)
 
         print('processing sm holdouts')
         decoder_pipeline('7.20models/swap_holdouts', model_name, sm_holdout=True)

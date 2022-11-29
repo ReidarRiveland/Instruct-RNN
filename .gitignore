@@ -5,6 +5,10 @@
 
 
 /*models/_pretrained_state_dicts/*
+/*paper_docs/*
+/*scratch/*
+/*update_data/*
+
 /*.sbatch*
 
 /*models/*
