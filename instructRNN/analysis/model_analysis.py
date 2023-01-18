@@ -389,12 +389,11 @@ def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array, use_mean, max_iter=1
         else: 
             continue
 
-def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task', use_mean=False, instruct_mode='combined', use_comp=False, max_iter=10_000_000): 
+def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task', use_mean=False, instruct_mode='combined', max_iter=10_000_000): 
     holdout_CCGP = np.full((len(TASK_LIST), len(DICH_DICT)), np.NAN)
     if 'swap_holdouts' in exp_folder: 
         exp_dict = SWAPS_DICT
-    if use_comp: 
-        instruct_mode='comp'
+
     model = full_models.make_default_model(model_name)
 
     for holdout_file, holdouts in exp_dict.items():

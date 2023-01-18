@@ -42,7 +42,7 @@ class MemNet(nn.Module):
         h0 = self.__initHidden__(ins.shape[0])
         rnn_ins = torch.cat((ins, tar), axis=-1)
         rnn_hid, _ = self.rnn(rnn_ins, h0)
-        out = torch.tanh(self.lin_out(rnn_hid))*3
+        out = torch.sigmoid(self.lin_out(rnn_hid))*3
         return out, rnn_hid
 
     def to(self, cuda_device): 
@@ -65,7 +65,7 @@ class MemNetTrainerConfig():
     stream_data: bool = True
 
     optim_alg: str = 'adam'
-    init_lr: float = 0.001
+    init_lr: float = 0.01
 
     scheduler_type: str = 'exp'
     scheduler_gamma: float = 0.99
@@ -139,6 +139,7 @@ class MemNetTrainer(BaseTrainer):
         if self.scheduler_type == 'exp': 
             scheduler_class = optim.lr_scheduler.ExponentialLR
 
+        #self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, 5, eta_min=0.005, last_epoch=- 1, verbose=False)
         self.scheduler = scheduler_class(self.optimizer, gamma=self.scheduler_gamma, **self.scheduler_args)
         self.step_scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, 
                             milestones=[self.epochs-5, self.epochs-2, self.epochs-1], gamma=0.25)
@@ -182,11 +183,12 @@ class MemNetTrainer(BaseTrainer):
                     frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
                     self._log_step(task_type, loss.item(), frac_correct=frac_correct)
                     self._print_training_status(task_type)
+                    print(self.scheduler.get_last_lr())
                 else: 
                     self._log_step(task_type, loss.item())
 
             self._record_session(model, mode='CHECKPOINT')
-            # if self.scheduler is not None: self.scheduler.step()  
+            #if self.scheduler is not None: self.scheduler.step()  
             # if self.step_last_lr: self.step_scheduler.step()
         
         self._record_session(model, mode='FINAL')
@@ -205,9 +207,6 @@ class MemNetTrainer(BaseTrainer):
                 ins, tar, mask, tar_dir, task_type = data
 
                 self.optimizer.zero_grad()
-                mem_out, hid = memNet(ins.float().to(device), tar.float().to(device))
-                in_contexts = contexts = mem_out[:, -1, :]
-                
                 out, _ = model(ins.to(device), context=in_contexts)
                 loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
                 frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
@@ -222,7 +221,7 @@ class MemNetTrainer(BaseTrainer):
                 if self._check_model_training():
                     return True
 
-            if self.scheduler is not None: self.scheduler.step()  
+            #if self.scheduler is not None: self.scheduler.step()  
             #if self.step_last_lr: self.step_scheduler.step()
 
         warnings.warn('Model has not reach specified performance threshold during training')

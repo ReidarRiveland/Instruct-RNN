@@ -136,7 +136,7 @@ class CLIPNet_lin_tuned(InstructNet):
                                     LM_load_str = 'openai/clip-vit-base-patch32',
                                     LM_output_nonlinearity='lin',
 
-                                    LM_train_layers=['9', '10', '11', 'pooler'],
+                                    LM_train_layers=['bias', '9', '10', '11', 'pooler'],
                                     **kw_args)
         super().__init__(config)
 
