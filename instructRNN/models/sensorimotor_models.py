@@ -15,7 +15,7 @@ from instructRNN.tasks.tasks import TASK_LIST, construct_trials
 from instructRNN.models.language_models import InstructionEmbedder, LMConfig
 from instructRNN.tasks.task_factory import INPUT_DIM, OUTPUT_DIM, TRIAL_LEN
 from instructRNN.instructions.instruct_utils import get_input_rule, get_instructions, one_hot_input_rule
-import instructRNN.analysis.model_analysis as analysis
+#import instructRNN.analysis.model_analysis as analysis
 
 SENSORY_INPUT_DIM = INPUT_DIM
 MOTOR_OUTPUT_DIM = OUTPUT_DIM
@@ -28,7 +28,7 @@ class BaseModelConfig():
 
     rnn_hidden_dim: int = 256
     rnn_layers: int = 1
-    rnn_hiddenInitValue: int = 0.1
+    rnn_hiddenInitValue: float = 0.1
     rnn_activ_func: str = 'relu'
     use_rand_rnn: bool = False
     _rnn_in_dim: int = field(kw_only=True)
@@ -42,6 +42,7 @@ class RuleModelConfig(BaseModelConfig):
     rule_dim: int = 64
 
     _rnn_in_dim: int = field(kw_only=True)
+
     @_rnn_in_dim.default
     def _set_rnn_in_dim(self):
             return self.rule_dim + SENSORY_INPUT_DIM
@@ -220,9 +221,9 @@ class InstructNet(BaseNet):
         self.langModel = self.LM_class(self.LM_config)
         self.instruct_rep_basis = None
 
-    def get_instruct_rep_basis(self):
-        if self.instruct_rep_basis is None: 
-            self.instruct_rep_basis=analysis.get_instruct_reps(self.langModel)
+    # def get_instruct_rep_basis(self):
+    #     if self.instruct_rep_basis is None: 
+    #         self.instruct_rep_basis=analysis.get_instruct_reps(self.langModel)
 
     def forward(self, x, instruction = None, context = None, comp_task=None):
         assert instruction is not None or context is not None or comp_task is not None, 'must have instruction or context input'

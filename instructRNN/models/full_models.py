@@ -33,7 +33,6 @@ class SimpleNetPlus(RuleNet):
         config = RuleModelConfig('simpleNetPlus', add_rule_encoder=True, **kw_args)
         super().__init__(config)
 
-
 class GPTNet_lin(InstructNet):
     def __init__(self, **kw_args):
         config = InstructModelConfig('gptNet_lin', 
@@ -208,3 +207,5 @@ def make_default_model(model_str):
         return BoWNet_lin()
     else: 
         raise Exception('Model not found in make_default_model function, make sure its included there')
+
+

@@ -94,7 +94,6 @@ def one_hot_input_rule(batch_size, task_type, shuffled=False):
     one_hot= np.repeat(one_hot, batch_size, axis=0)
     return one_hot
 
-
 def get_input_rule(batch_size, task_type, instruct_mode=None): 
     if instruct_mode == 'masked': 
         task_rule = np.zeros((batch_size, len(TASK_LIST)))

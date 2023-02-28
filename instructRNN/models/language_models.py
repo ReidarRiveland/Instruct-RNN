@@ -1,17 +1,14 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from attrs import asdict
 import itertools
 from attrs import define
 import pathlib
 
-from transformers import AutoTokenizer, AutoModel
-from transformers import GPT2Model, GPT2Tokenizer, GPTNeoForCausalLM
+from transformers import GPT2Model, GPT2Tokenizer
 from transformers import CLIPTokenizer, CLIPTextModel
 from transformers import BertModel, BertTokenizer
-from transformers import GPTNeoForCausalLM
 
 from instructRNN.instructions.instruct_utils import get_all_sentences, sort_vocab
 
@@ -170,4 +167,3 @@ class BoW(InstructionEmbedder):
         freq_tensor = torch.stack(tuple(map(self._make_freq_tensor, x))).to(self.__device__)
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
-
