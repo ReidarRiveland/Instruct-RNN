@@ -409,7 +409,7 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
             reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode=None)
 
         if instruct_mode == 'swap_combined':
-            swapped_reps = get_task_reps(model, num_trials = 250, instruct_mode=None, tasks = holdouts, epoch=epoch, use_comp=False)
+            swapped_reps = get_task_reps(model, num_trials = 250, instruct_mode='swap_combined', tasks = holdouts, epoch=epoch, use_comp=False)
             for i, holdout in enumerate(holdouts): 
                 reps[TASK_LIST.index(holdout), ...] = swapped_reps[i, ...]
 
