@@ -50,7 +50,7 @@ class RuleModelConfig(BaseModelConfig):
 
 @define
 class InstructModelConfig(BaseModelConfig): 
-    LM_class: InstructionEmbedder = field(kw_only=True)
+    LM_class: object= field(kw_only=True)
     LM_load_str: str = field(kw_only=True)
     LM_train_layers: list = field(kw_only=True)
     LM_reducer: str = 'mean' 
@@ -221,9 +221,6 @@ class InstructNet(BaseNet):
         self.langModel = self.LM_class(self.LM_config)
         self.instruct_rep_basis = None
 
-    # def get_instruct_rep_basis(self):
-    #     if self.instruct_rep_basis is None: 
-    #         self.instruct_rep_basis=analysis.get_instruct_reps(self.langModel)
 
     def forward(self, x, instruction = None, context = None, comp_task=None):
         assert instruction is not None or context is not None or comp_task is not None, 'must have instruction or context input'
