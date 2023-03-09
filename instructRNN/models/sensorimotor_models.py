@@ -15,12 +15,11 @@ from instructRNN.tasks.tasks import TASK_LIST, construct_trials
 from instructRNN.models.language_models import InstructionEmbedder, LMConfig
 from instructRNN.tasks.task_factory import INPUT_DIM, OUTPUT_DIM, TRIAL_LEN
 from instructRNN.instructions.instruct_utils import get_input_rule, get_instructions, one_hot_input_rule
-#import instructRNN.analysis.model_analysis as analysis
+import instructRNN.analysis.model_analysis as analysis
 
 SENSORY_INPUT_DIM = INPUT_DIM
 MOTOR_OUTPUT_DIM = OUTPUT_DIM
 location = str(pathlib.Path(__file__).parent.absolute())
-
 
 @define
 class BaseModelConfig(): 
@@ -220,7 +219,11 @@ class InstructNet(BaseNet):
 
         self.langModel = self.LM_class(self.LM_config)
         self.instruct_rep_basis = None
+        self.instruct_rep_basis = None
 
+    def get_instruct_rep_basis(self):
+        if self.instruct_rep_basis is None: 
+            self.instruct_rep_basis=analysis.get_instruct_reps(self.langModel)
 
     def forward(self, x, instruction = None, context = None, comp_task=None):
         assert instruction is not None or context is not None or comp_task is not None, 'must have instruction or context input'
