@@ -219,7 +219,6 @@ class InstructNet(BaseNet):
 
         self.langModel = self.LM_class(self.LM_config)
         self.instruct_rep_basis = None
-        self.instruct_rep_basis = None
 
     def get_instruct_rep_basis(self):
         if self.instruct_rep_basis is None: 
@@ -255,7 +254,6 @@ class InstructNet(BaseNet):
 
             if self.model_name == 'clipNet_lin_tuned' or self.model_name == 'clipNet_tuned': 
                 load_layers += ['bias']
-
 
             for n, p in self.state_dict().items(): 
                 if 'transformer' not in n or any([layer in n for layer in load_layers]): 
