@@ -44,6 +44,8 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (li
                     'bowNet_lin': (Yellow, None, 'bowNet'), 
                     'gptNet_lin': (lightRed, None, 'gptNet'), 'gptNet_lin_tuned': (lightRed, 'v','gptNet (tuned)'), 
                     'gptNetXL_lin': (Red, None, 'gptNetXL'), 'gptNetXL_lin_tuned': (Red, None, 'gptNetXL (tuned)'), 
+                    'gptNetXL_L_lin': (Red, 'D', 'gptNetXL (last)'), 
+                    'gptNet_L_lin': (Red, 'D', 'gptNet (last)'), 
                     'bertNet_lin': (Orange, None, 'bertNet'), 'bertNet_lin_tuned': (Orange, 'v', 'bertNet (tuned)'),  
                     'sbertNet_lin': (Green, None, 'sbertNet'), 'sbertNet_lin_tuned': (Green, 'v', 'sbertNet (tuned)')}
 
