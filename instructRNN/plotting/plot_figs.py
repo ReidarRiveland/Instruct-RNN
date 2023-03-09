@@ -156,3 +156,8 @@ print_decoded_instruct(multi_multi_instruct)
 print_decoded_instruct(holdout_multi_instruct)
 print_decoded_instruct(holdout_holdout_instruct)
 
+###GPT COMPARISON
+fig_axn = plot_curves('7.20models', 'swap', ['gptNetXL_lin'], mode='combined', avg=True, linewidth=0.8)
+plot_curves('7.20models', 'swap', ['gptNetXL_L_lin'], mode='combined', fig_axn=fig_axn, avg=True, linewidth=0.8, linestyle='--')
+plt.show()
+

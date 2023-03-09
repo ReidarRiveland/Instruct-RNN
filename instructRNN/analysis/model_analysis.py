@@ -177,6 +177,7 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
                     comp_task = task
                 else: 
                     comp_task = None
+
                 if default_intervals and 'Dur' not in task:
                     intervals = _get_default_intervals(num_trials)
                     ins, targets, _, target_dirs, _ =  construct_trials(task, num_trials, intervals=intervals, **trial_kwargs)
@@ -401,11 +402,16 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
 
         if layer == 'task':
-            reps = get_task_reps(model, num_trials = 250, instruct_mode=instruct_mode, epoch=epoch, use_comp=use_comp)
+            reps = get_task_reps(model, num_trials = 250, instruct_mode=None, epoch=epoch, use_comp=False)
         elif layer =='full' and model_name =='simpleNetPlus':
             reps = get_rule_embedder_reps(model)[:, None, :]
         else: 
-            reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode=instruct_mode)
+            reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode=None)
+
+        if instruct_mode == 'swap_combined':
+            swapped_reps = get_task_reps(model, num_trials = 250, instruct_mode='swap_combined', tasks = holdouts, epoch=epoch, use_comp=False)
+            for i, holdout in enumerate(holdouts): 
+                reps[TASK_LIST.index(holdout), ...] = swapped_reps[i, ...]
 
         update_holdout_CCGP(reps, holdouts, holdout_CCGP, use_mean=use_mean, max_iter=max_iter)
 

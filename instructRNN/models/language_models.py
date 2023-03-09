@@ -1,17 +1,14 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from attrs import asdict
 import itertools
 from attrs import define
 import pathlib
 
-from transformers import AutoTokenizer, AutoModel
-from transformers import GPT2Model, GPT2Tokenizer, GPTNeoForCausalLM
+from transformers import GPT2Model, GPT2Tokenizer
 from transformers import CLIPTokenizer, CLIPTextModel
 from transformers import BertModel, BertTokenizer
-from transformers import GPTNeoForCausalLM
 
 from instructRNN.instructions.instruct_utils import get_all_sentences, sort_vocab
 
@@ -29,6 +26,12 @@ class LMConfig():
     LM_output_nonlinearity: str 
     LM_proj_out_layers: int
 
+def final_embedding(trans_last_hid):
+    return trans_last_hid[:, -1, ...]
+
+def mean_embedding(trans_last_hid): 
+    return torch.mean(trans_last_hid, dim=1)
+
 class InstructionEmbedder(nn.Module): 
     def __init__(self, config): 
         super(InstructionEmbedder, self).__init__()
@@ -41,9 +44,10 @@ class InstructionEmbedder(nn.Module):
         elif self.LM_output_nonlinearity == 'lin': 
             self._output_nonlinearity = nn.Identity()
         
-        
         if self.LM_reducer == 'mean': 
-            self._reducer = torch.mean
+            self._reducer = mean_embedding
+        elif self.LM_reducer == 'last': 
+            self._reducer = final_embedding
 
         self.__device__ = 'cpu'
 
@@ -93,7 +97,7 @@ class TransformerEmbedder(InstructionEmbedder):
     def forward_transformer(self, x): 
         tokens = self.tokens_to_tensor(x)
         trans_out = self.transformer(**tokens)
-        return self._reducer(trans_out.last_hidden_state, dim=1), trans_out[2]
+        return self._reducer(trans_out.last_hidden_state), trans_out[2]
 
     def forward(self, x): 
         return self.proj_out(self.forward_transformer(x)[0])
@@ -171,3 +175,6 @@ class BoW(InstructionEmbedder):
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
 
+config = LMConfig('gpt2', [], 'last', 128, 'lin', 1)
+
+model = GPT(config)

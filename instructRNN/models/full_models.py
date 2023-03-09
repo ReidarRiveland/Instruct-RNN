@@ -1,12 +1,15 @@
-from typing import OrderedDict
-from instructRNN.models.language_models import *
-from instructRNN.models.sensorimotor_models import *
+from instructRNN.models.language_models import GPT, BERT, SBERT, CLIP, BoW
+from instructRNN.models.sensorimotor_models import RuleModelConfig, InstructModelConfig, RuleNet, InstructNet
 
 all_models = ['simpleNet', 'simpleNetPlus',
 
             'gptNetXL_lin', 'gptNetXL_lin_tuned',
 
+            'gptNetXL_L_lin',
+
             'gptNet_lin', 'gptNet_lin_tuned',
+
+            'gptNet_L_lin',
 
             'bertNet_lin', 'bertNet_lin_tuned',
 
@@ -33,7 +36,6 @@ class SimpleNetPlus(RuleNet):
         config = RuleModelConfig('simpleNetPlus', add_rule_encoder=True, **kw_args)
         super().__init__(config)
 
-
 class GPTNet_lin(InstructNet):
     def __init__(self, **kw_args):
         config = InstructModelConfig('gptNet_lin', 
@@ -41,6 +43,17 @@ class GPTNet_lin(InstructNet):
                                 LM_load_str = 'gpt2',
                                 LM_output_nonlinearity='lin',
                                 LM_train_layers=[],
+                                **kw_args)
+        super().__init__(config)
+
+class GPTNet_L_lin(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('gptNet_L_lin', 
+                                LM_class=GPT, 
+                                LM_load_str = 'gpt2',
+                                LM_output_nonlinearity='lin',
+                                LM_train_layers=[],
+                                LM_reducer='last',
                                 **kw_args)
         super().__init__(config)
 
@@ -64,6 +77,16 @@ class GPTNetXL_lin(InstructNet):
                                     **kw_args)
         super().__init__(config)
 
+class GPTNetXL_L_lin(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig('gptNetXL_L_lin', 
+                                LM_class=GPT, 
+                                LM_load_str = 'gpt2-xl',
+                                LM_output_nonlinearity='lin',
+                                LM_train_layers=[],
+                                LM_reducer='last',
+                                **kw_args)
+        super().__init__(config)
 
 class GPTNetXL_lin_tuned(InstructNet):
     def __init__(self, **kw_args):
@@ -152,59 +175,47 @@ class BoWNet_lin(InstructNet):
             
 
 def make_default_model(model_str): 
-    if model_str == 'MPNet': 
-        return MPNet()
     if model_str == 'simpleNet':
         return SimpleNet()
     if model_str == 'simpleNetPlus':
-        return SimpleNetPlus()
-    if model_str == 'comNet':
-        return ComNet()
-    if model_str == 'comNetPlus':
-        return ComNetPlus()
-    if model_str == 'gptNet': 
-        return GPTNet()
-    if model_str == 'gptNet_tuned': 
-        return GPTNet_tuned()
+        return SimpleNetPlus()   
+    
     if model_str == 'gptNet_lin': 
         return GPTNet_lin()
     if model_str == 'gptNet_lin_tuned': 
         return GPTNet_lin_tuned()
-    if model_str == 'bertNet': 
-        return BERTNet()
-    if model_str == 'bertNet_tuned': 
-        return BERTNet_tuned()
+    
+    if model_str == 'gptNet_L_lin':
+        return GPTNet_L_lin()
+    
+    if model_str == 'gptNetXL_L_lin':
+        return GPTNetXL_L_lin()
+
+
     if model_str == 'bertNet_lin': 
         return BERTNet_lin()
     if model_str == 'bertNet_lin_tuned': 
         return BERTNet_lin_tuned()
-    if model_str == 'sbertNet': 
-        return SBERTNet()
-    if model_str == 'sbertNet_tuned': 
-        return SBERTNet_tuned()
+
     if model_str == 'sbertNet_lin': 
         return SBERTNet_lin()
     if model_str == 'sbertNet_lin_tuned': 
         return SBERTNet_lin_tuned()
-    if model_str == 'gptNetXL':
-        return GPTNetXL()
-    if model_str == 'gptNetXL_tuned':
-        return GPTNetXL_tuned()
+    
+    
     if model_str == 'gptNetXL_lin':
         return GPTNetXL_lin()
     if model_str == 'gptNetXL_lin_tuned':
         return GPTNetXL_lin_tuned()
-    if model_str == 'clipNet': 
-        return CLIPNet()
-    if model_str == 'clipNet_tuned': 
-        return CLIPNet_tuned()
+
     if model_str == 'clipNet_lin': 
         return CLIPNet_lin()
     if model_str == 'clipNet_lin_tuned': 
         return CLIPNet_lin_tuned()
-    if model_str == 'bowNet': 
-        return BoWNet()
+
     if model_str == 'bowNet_lin': 
         return BoWNet_lin()
     else: 
         raise Exception('Model not found in make_default_model function, make sure its included there')
+
+

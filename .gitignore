@@ -3,13 +3,12 @@
 /rev_figs/*
 /COSYNE2022figs/*
 
-
 /*models/_pretrained_state_dicts/*
 /*paper_docs/*
 /*scratch.py/*
 /*update_data.py/*
 /*model_checks.py/*
-
+check_download.py
 
 /*.sbatch*
 
