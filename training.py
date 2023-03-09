@@ -77,6 +77,19 @@ if __name__ == "__main__":
             from instructRNN.trainers.context_trainer import *
             train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, mode='test')
 
+        if args.mode == 'memNet':
+            from instructRNN.trainers.mem_net_trainer import *
+            train_memNet(EXP_FOLDER, model, _seed, holdouts, mode = args.comp_mode, overwrite=args.overwrite)
+
+        if args.mode == 'tune_memNet':
+            from instructRNN.trainers.mem_net_trainer import *
+            tune_memNet(EXP_FOLDER, model, _seed, holdouts, mode = args.comp_mode, overwrite=args.overwrite)
+
+        if args.mode == 'exemplar_context': 
+            from instructRNN.trainers.context_trainer import *
+            for i in range(1, 20):
+                train_contexts(EXP_FOLDER, model, _seed, holdouts, args.layer, overwrite=args.overwrite, mode='exemplar'+str(i))
+
         if args.mode == 'decoder' or args.mode == 'd': 
             from instructRNN.trainers.decoder_trainer import *
             train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, use_checkpoint = args.use_checkpoint, use_dropout = False, overwrite=args.overwrite)
