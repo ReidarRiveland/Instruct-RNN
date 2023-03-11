@@ -123,7 +123,7 @@ def eval_model_exemplar(model_name, foldername, exp_type, seed, exemplar_num, **
 
     return perf_array
 
-def get_instruct_reps(langModel, depth='full'):
+def get_instruct_reps(langModel, depth='full', instruct_mode=None):
     langModel.eval()
     langModel.to(device)
     if depth.isnumeric(): 
