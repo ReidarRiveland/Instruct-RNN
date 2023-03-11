@@ -64,7 +64,7 @@ if __name__ == "__main__":
                     print('Already trained: '+EXP_FOLDER+'/'+'layer'+layer+'_task_holdout_seed'+str(_seed))
                     continue
                 except FileNotFoundError:
-                    get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True, instruct_mode='')
+                    get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
 
         if args.mode == 'swap_ccgp':
             get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= 'task', instruct_mode='swap_combined', save=True)
