@@ -390,7 +390,7 @@ def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array, use_mean, max_iter=1
         else: 
             continue
 
-def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task', use_mean=False, instruct_mode='combined', max_iter=10_000_000): 
+def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task', use_mean=False, instruct_mode='', max_iter=10_000_000): 
     holdout_CCGP = np.full((len(TASK_LIST), len(DICH_DICT)), np.NAN)
     if 'swap_holdouts' in exp_folder: 
         exp_dict = SWAPS_DICT
@@ -402,11 +402,11 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
 
         if layer == 'task':
-            reps = get_task_reps(model, num_trials = 250, instruct_mode=instruct_mode, epoch=epoch, use_comp=False)
+            reps = get_task_reps(model, num_trials = 250, instruct_mode='combined', epoch=epoch, use_comp=False)
         elif layer =='full' and model_name =='simpleNetPlus':
             reps = get_rule_embedder_reps(model)[:, None, :]
         else: 
-            reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode=instruct_mode)
+            reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
 
         if instruct_mode == 'swap_combined':
             swapped_reps = get_task_reps(model, num_trials = 250, instruct_mode='swap_combined', tasks = holdouts, epoch=epoch, use_comp=False)
