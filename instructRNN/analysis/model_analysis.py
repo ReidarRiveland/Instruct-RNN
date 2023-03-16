@@ -147,7 +147,7 @@ def get_instruct_reps(langModel, depth='full', instruct_mode=None):
                     out_rep_list.append(langModel._make_freq_tensor(instruct))
                 out_rep = torch.stack(out_rep_list)
             elif depth.isnumeric(): 
-                out_rep = torch.mean(langModel.forward_transformer(list(instructions))[1][int(depth)], dim=1)
+                out_rep = torch._reducer(langModel.forward_transformer(list(instructions))[1][int(depth)], dim=1)
             instruct_reps[i, :, :] = out_rep
     return instruct_reps.cpu().numpy().astype(np.float64)
 

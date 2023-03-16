@@ -156,19 +156,10 @@ class RuleEncoder(nn.Module):
         super(RuleEncoder, self).__init__()
         self.rule_dim = rule_dim
         self.hidden_size = hidden_size
-        self.rule_in = nn.Sequential(
-                nn.Linear(self.rule_dim, self.hidden_size), 
-                nn.ReLU(), 
-                nn.Linear(self.hidden_size, self.hidden_size),
-                nn.ReLU()
-                )
-        self.rule_out = nn.Sequential(
-                nn.Linear(self.hidden_size, self.rule_dim),
-                nn.ReLU()
-            )
+        self.rule_layer = nn.Linear(64, self.hidden_size)
 
     def forward(self, rule):
-        return self.rule_out(self.rule_in(rule))
+        return self.rule_layer(rule)
 
 class RuleNet(BaseNet):
     _tuning_epoch=None
