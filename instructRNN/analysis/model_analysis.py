@@ -390,11 +390,7 @@ def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array, use_mean, max_iter=1
         else: 
             continue
 
-<<<<<<< HEAD
 def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task', use_mean=False, max_iter=10_000_000): 
-=======
-def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task', use_mean=False, instruct_mode='', max_iter=10_000_000): 
->>>>>>> 755fe1603623dabcce1b07d21eb48db583701546
     holdout_CCGP = np.full((len(TASK_LIST), len(DICH_DICT)), np.NAN)
     if 'swap_holdouts' in exp_folder: 
         exp_dict = SWAPS_DICT
@@ -434,47 +430,6 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
 
     return task_holdout_scores, dich_holdout_scores, holdout_CCGP
 
-
-def get_lang_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, max_iter=10_000_000): 
-    for layer in layers: 
-        holdout_CCGP = np.full((len(TASK_LIST), len(DICH_DICT)), np.NAN)
-        if 'swap_holdouts' in exp_folder: 
-            exp_dict = SWAPS_DICT
-
-        model = full_models.make_default_model(model_name)
-
-        for holdout_file, holdouts in exp_dict.items():
-            print('processing '+ holdout_file)
-            model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
-
-            if layer == 'task':
-                reps = get_task_reps(model, num_trials = 250, instruct_mode='combined', epoch=epoch, use_comp=False)
-            elif layer =='full' and model_name =='simpleNetPlus':
-                reps = get_rule_embedder_reps(model)[:, None, :]
-            else: 
-                reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
-
-            if instruct_mode == 'swap_combined':
-                swapped_reps = get_task_reps(model, num_trials = 250, instruct_mode='swap_combined', tasks = holdouts, epoch=epoch, use_comp=False)
-                for i, holdout in enumerate(holdouts): 
-                    reps[TASK_LIST.index(holdout), ...] = swapped_reps[i, ...]
-
-            update_holdout_CCGP(reps, holdouts, holdout_CCGP, use_mean=use_mean, max_iter=max_iter)
-
-        task_holdout_scores = np.nanmean(holdout_CCGP, axis=1)
-        dich_holdout_scores = np.nanmean(holdout_CCGP, axis=0)
-
-        if save:
-            file_path = exp_folder+'/CCGP_scores/'+model_name
-            if os.path.exists(file_path):
-                pass
-            else: os.makedirs(file_path)
-            np.save(file_path+'/'+'layer'+layer+'_task_holdout_seed'+str(seed)+instruct_mode, task_holdout_scores)
-            np.save(file_path+'/'+'layer'+layer+'_dich_holdout_seed'+str(seed)+instruct_mode, dich_holdout_scores)
-            np.save(file_path+'/'+'layer'+layer+'_array_holdout_seed'+str(seed)+instruct_mode, holdout_CCGP)
-
-
-    return task_holdout_scores, dich_holdout_scores, holdout_CCGP
 
 
 def get_perf_ccgp_corr(folder, exp_type, model_list):
