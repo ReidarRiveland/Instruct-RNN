@@ -14,7 +14,7 @@ if __name__ == "__main__":
     parser.add_argument('--mode', default='holdout_ccgp', help='training mode to use, must be \'train\', \'tune\', \'test\', \'decoder\' ( \'d\'),\'context\' ( \'c\')')
     parser.add_argument('--models', default=full_models.small_models, nargs='*', help='list of model names to train, default is all models')
     parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')
-    parser.add_argument('--layers', type=int, default=range(1,13), help='random seeds to use when training')
+    parser.add_argument('--layers', type=int, default=[str(layer) for layer in range(1, 13)] + ['full', 'task'], help='random seeds to use when training')
 
 
     parser.add_argument('--job_index', type=int, help='for use with slurm sbatch script, indexes the combination of seed and holdout tasks along with the model')
@@ -43,7 +43,7 @@ if __name__ == "__main__":
         decoder_pipeline('7.20models/swap_holdouts', args.models[0], sm_holdout=True, decoder_holdout=True)
 
 
-    jobs = make_analysis_jobs(args.models, args.seeds, args.job_index)
+    jobs = make_analysis_jobs(args.models, args.seeds, args.layers, args.job_index)
     for job in jobs: 
         _seed, model, layer = job
         # if model in full_models.shallow_models: 
@@ -54,21 +54,23 @@ if __name__ == "__main__":
         #     layer_list = ['bow', 'full', 'task']
         # else: 
         #     layer_list = [str(layer) for layer in range(1, 13)] + ['full', 'task']
-        if model in full_models.big_models: 
-            layer += 12
+        if model in full_models.big_models and layer.isnumeric(): 
+            num_layer = int(layer) 
+            num_layer+= 12
+            layer = str(num_layer)
         
         print(EXP_FOLDER)
         print(model)
         print(_seed)
 
         if args.mode == 'holdout_ccgp':
-            for layer in layer_list[::-1]:
-                try:
-                    np.load(EXP_FOLDER+'/CCGP_scores/'+model+'/'+'layer'+layer+'_task_holdout_seed'+str(_seed)+'.npy')
-                    print('Already trained: '+EXP_FOLDER+'/'+'layer'+layer+'_task_holdout_seed'+str(_seed))
-                    continue
-                except FileNotFoundError:
-                    get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
+            try:
+                np.load(EXP_FOLDER+'/CCGP_scores/'+model+'/'+'layer'+layer+'_task_holdout_seed'+str(_seed)+'.npy')
+                print('Already trained: '+EXP_FOLDER+'/'+'layer'+layer+'_task_holdout_seed'+str(_seed), flush=True)
+                continue
+            except FileNotFoundError:
+                print('analyzing '+layer+str(_seed)+model, flush=True)
+                get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
 
         if args.mode == 'swap_ccgp':
             get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= 'task', instruct_mode='swap_combined', save=True)
