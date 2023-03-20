@@ -419,7 +419,7 @@ def plot_layer_ccgp(foldername, model_list, seeds=range(5)):
     for model_name in model_list:
         color = MODEL_STYLE_DICT[model_name][0]
         holdout_ccgp = PerfDataFrame('7.20models', 'swap', model_name, mode='layer_ccgp')
-        axn.plot(range(14-len(holdout_ccgp.layer_list), 14), np.mean(holdout_ccgp.data, axis=(0,1)), marker='.', c=color, linewidth=0.8)
+        axn.plot(range(14-len(holdout_ccgp.layer_list), 14), np.nanmean(holdout_ccgp.data, axis=(0,1)), marker='.', c=color, linewidth=0.8)
         patches.append(Line2D([0], [0], label = MODEL_STYLE_DICT[model_name][2], color= color, marker = 'o', linestyle = 'None', markersize=4))
 
     axn.legend(handles = patches, fontsize='x-small')

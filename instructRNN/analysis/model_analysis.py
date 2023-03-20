@@ -146,8 +146,8 @@ def get_instruct_reps(langModel, depth='full', instruct_mode=None):
                 for instruct in list(instructions):
                     out_rep_list.append(langModel._make_freq_tensor(instruct))
                 out_rep = torch.stack(out_rep_list)
-            elif depth.isnumeric(): 
-                out_rep = langModel._reducer(langModel.forward_transformer(list(instructions))[1][int(depth)])
+            elif isinstance(depth, int): 
+                out_rep = langModel._reducer(langModel.forward_transformer(list(instructions))[1][depth])
             instruct_reps[i, :, :] = out_rep
     return instruct_reps.cpu().numpy().astype(np.float64)
 
@@ -372,9 +372,9 @@ def get_multitask_CCGP(exp_folder, model_name, seed, save=False, layer='task', m
         if os.path.exists(file_path):
             pass
         else: os.makedirs(file_path)
-        np.save(file_path+'/'+'layer'+layer+'_task_multi_seed'+str(seed), task_holdout_scores)
-        np.save(file_path+'/'+'layer'+layer+'_dich_multi_seed'+str(seed), dich_holdout_scores)
-        np.save(file_path+'/'+'layer'+layer+'_array_multi_seed'+str(seed), multi_CCGP)
+        np.save(file_path+'/'+'layer'+str(layer)+'_task_multi_seed'+str(seed), task_holdout_scores)
+        np.save(file_path+'/'+'layer'+str(layer)+'_dich_multi_seed'+str(seed), dich_holdout_scores)
+        np.save(file_path+'/'+'layer'+str(layer)+'_array_multi_seed'+str(seed), multi_CCGP)
 
 
 def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array, use_mean, max_iter=1_000_000): 
@@ -423,9 +423,9 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         if os.path.exists(file_path):
             pass
         else: os.makedirs(file_path)
-        np.save(file_path+'/'+'layer'+layer+'_task_holdout_seed'+str(seed)+instruct_mode, task_holdout_scores)
-        np.save(file_path+'/'+'layer'+layer+'_dich_holdout_seed'+str(seed)+instruct_mode, dich_holdout_scores)
-        np.save(file_path+'/'+'layer'+layer+'_array_holdout_seed'+str(seed)+instruct_mode, holdout_CCGP)
+        np.save(file_path+'/'+'layer'+str(layer)+'_task_holdout_seed'+str(seed)+instruct_mode, task_holdout_scores)
+        np.save(file_path+'/'+'layer'+str(layer)+'_dich_holdout_seed'+str(seed)+instruct_mode, dich_holdout_scores)
+        np.save(file_path+'/'+'layer'+str(layer)+'_array_holdout_seed'+str(seed)+instruct_mode, holdout_CCGP)
 
 
     return task_holdout_scores, dich_holdout_scores, holdout_CCGP
