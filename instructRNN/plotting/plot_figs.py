@@ -161,3 +161,4 @@ fig_axn = plot_curves('7.20models', 'swap', ['gptNetXL_lin'], mode='combined', a
 plot_curves('7.20models', 'swap', ['gptNetXL_L_lin'], mode='combined', fig_axn=fig_axn, avg=True, linewidth=0.8, linestyle='--')
 plt.show()
 
+plot_layer_ccgp('7.20models/swap_holdouts', ['gptNetXL_L_lin', 'gptNetXL_lin', 'clipNet_lin'], seeds=[0])
