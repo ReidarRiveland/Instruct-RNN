@@ -144,7 +144,7 @@ class CLIP(TransformerEmbedder):
         self.transformer = CLIPTextModel.from_pretrained(self.LM_load_str, output_hidden_states=True)
         self.tokenizer = CLIPTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
-        self._reducer = None
+        self._reducer = mean_embedding
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
