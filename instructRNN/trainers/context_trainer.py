@@ -89,27 +89,6 @@ class ContextTrainer(BaseTrainer):
             self.scheduler = self.scheduler_class(self.optimizer, **self.scheduler_args)
         else:
             self.scheduler = None
-    
-    def _load_exemplar(self, task): 
-        exemplar_data_path = self.file_path.partition('/')[0]+'/training_data/exemplars'
-        if os.path.exists(exemplar_data_path):pass
-        else: os.makedirs(exemplar_data_path)
-
-        try:
-            exemplar_data = pickle.load(open(exemplar_data_path+'/'+task, 'rb'))
-        except FileNotFoundError:
-            exemplar_data = construct_trials(task, num_trials=1, return_tensor=True)
-            pickle.dump(exemplar_data, open(exemplar_data_path+'/'+task, 'wb'))
-
-        self.exemplar_data = exemplar_data
-
-    def _expand_exemplar(self, data): 
-        ins, tar, mask, tar_dir, task_type = data
-        ins = ins.repeat(self.batch_repeat, 1, 1)
-        tar = tar.repeat(self.batch_repeat, 1, 1)
-        mask = mask.repeat(self.batch_repeat, 1, 1)
-        tar_dir = tar_dir.repeat(self.batch_repeat)
-        return (ins, tar, mask, tar_dir, task_type)
 
     def load_chk(self, file_name, seed, task, context_dim): 
         try: 
@@ -128,12 +107,8 @@ class ContextTrainer(BaseTrainer):
         self._init_optimizer(contexts)
         for self.cur_epoch in tqdm(range(self.epochs), desc='epochs'):
             for self.cur_step in range(self.num_batches): 
-                if 'exemplar' in self.mode: 
-                    data = self.exemplar_data
-                    in_contexts = torch.mean(contexts.repeat(self.batch_repeat*self.num_exemplars, 1, 1), axis=1)
-                else: 
-                    data = next(self.streamer.stream_batch())
-                    in_contexts = torch.mean(contexts.repeat(self.batch_len, 1, 1), axis=1)
+                data = next(self.streamer.stream_batch())
+                in_contexts = torch.mean(contexts.repeat(self.batch_len, 1, 1), axis=1)
 
                 ins, tar, mask, tar_dir, task_type = data
 
@@ -159,8 +134,6 @@ class ContextTrainer(BaseTrainer):
     
     def train(self, model, task):
         print(self.checker_threshold)
-        if 'exemplar' in self.mode: 
-            self.num_exemplars = int(''.join([n for n in self.mode if n.isdigit()]))
 
         model.load_model(self.file_path.replace('contexts', '')[:-1], suffix='_'+self.seed_suffix)
         model.to(device)
@@ -170,16 +143,12 @@ class ContextTrainer(BaseTrainer):
         self.model_file_path = model.model_name+'_'+self.seed_suffix
         is_trained_list = []
 
-        if 'exemplar' in self.mode: 
-            data = construct_trials(task, self.num_exemplars, return_tensor=True, max_var=True)
-            self.batch_repeat = int(np.ceil(self.batch_len/self.num_exemplars))
-            self.exemplar_data = self._expand_exemplar(data)
-        else:
-            self.streamer = TaskDataSet(self.file_path.partition('/')[0], 
-                self.stream_data, 
-                self.batch_len, 
-                self.num_batches,
-                set_single_task=task)
+        self.streamer = TaskDataSet(self.file_path.partition('/')[0], 
+            self.stream_data, 
+            self.batch_len, 
+            self.num_batches,
+            set_single_task=task)
+
         i =0 
         while sum(is_trained_list)<self.num_contexts: 
             print('Training '+str(i)+'th context')
@@ -234,7 +203,4 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
                 trainer_config = ContextTrainerConfig(file_name, seed, context_dim, mode=mode, **train_config_kwargs)
             
             trainer = ContextTrainer(trainer_config)
-
-            # if not overwrite: 
-            #     trainer.load_chk(file_name, seed, task, context_dim)
             trainer.train(model, task)

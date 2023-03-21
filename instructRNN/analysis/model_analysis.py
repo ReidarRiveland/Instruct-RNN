@@ -126,7 +126,7 @@ def eval_model_exemplar(model_name, foldername, exp_type, seed, exemplar_num, **
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
     langModel.eval()
     langModel.to(device)
-    if depth.isnumeric(): 
+    if isinstance(depth, int): 
         rep_dim = langModel.LM_intermediate_lang_dim
     elif depth == 'bow': 
         rep_dim = len(sort_vocab())
@@ -146,8 +146,8 @@ def get_instruct_reps(langModel, depth='full', instruct_mode=None):
                 for instruct in list(instructions):
                     out_rep_list.append(langModel._make_freq_tensor(instruct))
                 out_rep = torch.stack(out_rep_list)
-            elif depth.isnumeric(): 
-                out_rep = torch._reducer(langModel.forward_transformer(list(instructions))[1][int(depth)], dim=1)
+            elif isinstance(depth, int): 
+                out_rep = langModel._reducer(langModel.forward_transformer(list(instructions))[1][depth])
             instruct_reps[i, :, :] = out_rep
     return instruct_reps.cpu().numpy().astype(np.float64)
 
@@ -324,7 +324,7 @@ def get_dich_CCGP(reps, dich, holdouts_involved=[], use_mean = False, max_iter=1
         else: 
             train_reps = get_reps_from_tasks(reps,train_pair).reshape(-1, dim)
 
-        classifier = svm.LinearSVC(max_iter=max_iter, random_state = 0, tol=1e-5)
+        classifier = svm.LinearSVC(max_iter=max_iter, random_state = 0, tol=1e-5, dual=False)
         classifier.classes_=[0, 1]
         classifier.fit(train_reps, labels)
 
@@ -372,9 +372,9 @@ def get_multitask_CCGP(exp_folder, model_name, seed, save=False, layer='task', m
         if os.path.exists(file_path):
             pass
         else: os.makedirs(file_path)
-        np.save(file_path+'/'+'layer'+layer+'_task_multi_seed'+str(seed), task_holdout_scores)
-        np.save(file_path+'/'+'layer'+layer+'_dich_multi_seed'+str(seed), dich_holdout_scores)
-        np.save(file_path+'/'+'layer'+layer+'_array_multi_seed'+str(seed), multi_CCGP)
+        np.save(file_path+'/'+'layer'+str(layer)+'_task_multi_seed'+str(seed), task_holdout_scores)
+        np.save(file_path+'/'+'layer'+str(layer)+'_dich_multi_seed'+str(seed), dich_holdout_scores)
+        np.save(file_path+'/'+'layer'+str(layer)+'_array_multi_seed'+str(seed), multi_CCGP)
 
 
 def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array, use_mean, max_iter=1_000_000): 
@@ -390,7 +390,7 @@ def update_holdout_CCGP(reps, holdouts, holdout_CCGP_array, use_mean, max_iter=1
         else: 
             continue
 
-def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, layer='task', use_mean=False, instruct_mode='combined', max_iter=10_000_000): 
+def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=False, instruct_mode = '', layer='task', use_mean=False, max_iter=10_000_000): 
     holdout_CCGP = np.full((len(TASK_LIST), len(DICH_DICT)), np.NAN)
     if 'swap_holdouts' in exp_folder: 
         exp_dict = SWAPS_DICT
@@ -402,11 +402,11 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
 
         if layer == 'task':
-            reps = get_task_reps(model, num_trials = 250, instruct_mode=None, epoch=epoch, use_comp=False)
+            reps = get_task_reps(model, num_trials = 250, epoch=epoch, use_comp=False)
         elif layer =='full' and model_name =='simpleNetPlus':
             reps = get_rule_embedder_reps(model)[:, None, :]
         else: 
-            reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode=None)
+            reps = get_instruct_reps(model.langModel, depth=layer)
 
         if instruct_mode == 'swap_combined':
             swapped_reps = get_task_reps(model, num_trials = 250, instruct_mode='swap_combined', tasks = holdouts, epoch=epoch, use_comp=False)
@@ -423,9 +423,9 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         if os.path.exists(file_path):
             pass
         else: os.makedirs(file_path)
-        np.save(file_path+'/'+'layer'+layer+'_task_holdout_seed'+str(seed)+instruct_mode, task_holdout_scores)
-        np.save(file_path+'/'+'layer'+layer+'_dich_holdout_seed'+str(seed)+instruct_mode, dich_holdout_scores)
-        np.save(file_path+'/'+'layer'+layer+'_array_holdout_seed'+str(seed)+instruct_mode, holdout_CCGP)
+        np.save(file_path+'/'+'layer'+str(layer)+'_task_holdout_seed'+str(seed)+instruct_mode, task_holdout_scores)
+        np.save(file_path+'/'+'layer'+str(layer)+'_dich_holdout_seed'+str(seed)+instruct_mode, dich_holdout_scores)
+        np.save(file_path+'/'+'layer'+str(layer)+'_array_holdout_seed'+str(seed)+instruct_mode, holdout_CCGP)
 
 
     return task_holdout_scores, dich_holdout_scores, holdout_CCGP
