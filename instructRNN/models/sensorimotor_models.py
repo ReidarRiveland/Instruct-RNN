@@ -194,7 +194,7 @@ class RuleNet(BaseNet):
         else: 
             task_rule = context
 
-        task_rule = task_rule+(torch.randn_like(task_rule)*0.4)
+        #task_rule = task_rule+(torch.randn_like(task_rule)*0.4)
         
         outs, rnn_hid = super().forward(x, task_rule)
         return outs, rnn_hid
