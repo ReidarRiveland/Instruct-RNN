@@ -42,22 +42,11 @@ if __name__ == "__main__":
         print('processing sm holdouts and decoder holdouts')
         decoder_pipeline('7.20models/swap_holdouts', args.models[0], sm_holdout=True, decoder_holdout=True)
 
-
     jobs = make_analysis_jobs(args.models, args.seeds, args.layers, args.job_index)
     for job in jobs: 
         _seed, model, layer = job
-        # if model in full_models.shallow_models: 
-        #     layer_list = ['task']
-        # elif model in full_models.big_models: 
-        #     layer_list = [str(layer) for layer in range(12, 25)] + ['full', 'task']
-        # elif 'bow' in model: 
-        #     layer_list = ['bow', 'full', 'task']
-        # else: 
-        #     layer_list = [str(layer) for layer in range(1, 13)] + ['full', 'task']
-        if model in full_models.big_models and layer.isnumeric(): 
-            num_layer = int(layer) 
-            num_layer+= 12
-            layer = str(num_layer)
+        if model in full_models.big_models and isinstance(layer, int):
+            layer += 12
         
         print(EXP_FOLDER)
         print(model)
@@ -69,7 +58,7 @@ if __name__ == "__main__":
                 print('Already trained: '+EXP_FOLDER+'/'+'layer'+str(layer)+'_task_holdout_seed'+str(_seed), flush=True)
                 continue
             except FileNotFoundError:
-                print('analyzing ccgp for layer'+str(layer), flush=True)
+                print('analyzing ccgp for layer '+str(layer), flush=True)
                 get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
 
         if args.mode == 'swap_ccgp':

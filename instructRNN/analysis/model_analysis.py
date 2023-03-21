@@ -126,7 +126,7 @@ def eval_model_exemplar(model_name, foldername, exp_type, seed, exemplar_num, **
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
     langModel.eval()
     langModel.to(device)
-    if depth.isnumeric(): 
+    if isinstance(depth, int): 
         rep_dim = langModel.LM_intermediate_lang_dim
     elif depth == 'bow': 
         rep_dim = len(sort_vocab())
@@ -324,7 +324,7 @@ def get_dich_CCGP(reps, dich, holdouts_involved=[], use_mean = False, max_iter=1
         else: 
             train_reps = get_reps_from_tasks(reps,train_pair).reshape(-1, dim)
 
-        classifier = svm.LinearSVC(max_iter=max_iter, random_state = 0, tol=1e-5)
+        classifier = svm.LinearSVC(max_iter=max_iter, random_state = 0, tol=1e-5, dual=False)
         classifier.classes_=[0, 1]
         classifier.fit(train_reps, labels)
 
@@ -402,11 +402,11 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
         model.load_model(exp_folder+'/'+holdout_file+'/'+model.model_name, suffix='_seed'+str(seed))
 
         if layer == 'task':
-            reps = get_task_reps(model, num_trials = 250, instruct_mode='combined', epoch=epoch, use_comp=False)
+            reps = get_task_reps(model, num_trials = 250, epoch=epoch, use_comp=False)
         elif layer =='full' and model_name =='simpleNetPlus':
             reps = get_rule_embedder_reps(model)[:, None, :]
         else: 
-            reps = get_instruct_reps(model.langModel, depth=layer, instruct_mode='combined')
+            reps = get_instruct_reps(model.langModel, depth=layer)
 
         if instruct_mode == 'swap_combined':
             swapped_reps = get_task_reps(model, num_trials = 250, instruct_mode='swap_combined', tasks = holdouts, epoch=epoch, use_comp=False)

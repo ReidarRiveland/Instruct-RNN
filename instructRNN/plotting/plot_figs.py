@@ -157,8 +157,10 @@ print_decoded_instruct(holdout_multi_instruct)
 print_decoded_instruct(holdout_holdout_instruct)
 
 ###GPT COMPARISON
-fig_axn = plot_curves('7.20models', 'swap', ['gptNetXL_lin'], mode='combined', avg=True, linewidth=0.8)
+fig_axn = plot_curves('7.20models', 'swap', ['gptNetXL_lin', 'bowNet_lin', 'clipNet_lin'], mode='combined', avg=True, linewidth=0.8)
 plot_curves('7.20models', 'swap', ['gptNetXL_L_lin'], mode='combined', fig_axn=fig_axn, avg=True, linewidth=0.8, linestyle='--')
 plt.show()
 
-plot_layer_ccgp('7.20models/swap_holdouts', ['gptNetXL_L_lin', 'gptNetXL_lin', 'clipNet_lin'], seeds=[0])
+fig_axn = plot_layer_ccgp('7.20models', 'swap', ['gptNetXL_L_lin'], linestyle='--')
+fig_axn = plot_layer_ccgp('7.20models','swap', ['bowNet_lin', 'gptNetXL_lin', 'clipNet_lin'], fig_axn=fig_axn)
+plt.show()
