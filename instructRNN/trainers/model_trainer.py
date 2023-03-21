@@ -30,9 +30,9 @@ class TrainerConfig():
     file_path: str
     random_seed: int
     epochs: int = 200
-    min_run_epochs: int = 35
+    min_run_epochs: int = 10
     batch_len: int = 64
-    num_batches: int = 2400
+    num_batches: int = 1200
     holdouts: list = []
     set_single_task: str = None
     stream_data: bool = True
