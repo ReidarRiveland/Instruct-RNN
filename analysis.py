@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument('--models', default=full_models.small_models, nargs='*', help='list of model names to train, default is all models')
     parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')
     parser.add_argument('--layers', default=[layer for layer in range(1, 13)] + ['full', 'task'], nargs='+')
-
+    parser.add_argument('--overwrite', default=False, action='store_true', help='whether or not to overwrite existing files')
 
     parser.add_argument('--job_index', type=int, help='for use with slurm sbatch script, indexes the combination of seed and holdout tasks along with the model')
     args = parser.parse_args()
@@ -53,13 +53,12 @@ if __name__ == "__main__":
         print(_seed)
 
         if args.mode == 'holdout_ccgp':
-            try:
-                np.load(EXP_FOLDER+'/CCGP_scores/'+model+'/'+'layer'+str(layer)+'_task_holdout_seed'+str(_seed)+'.npy')
-                print('Already trained: '+EXP_FOLDER+'/'+'layer'+str(layer)+'_task_holdout_seed'+str(_seed), flush=True)
-                continue
-            except FileNotFoundError:
+            if not os.path.exists(EXP_FOLDER+'/CCGP_scores/'+model+'/'+'layer'+str(layer)+'_task_holdout_seed'+str(_seed)+'.npy') or args.overwrite:
                 print('analyzing ccgp for layer '+str(layer), flush=True)
                 get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= layer, save=True)
+            else:
+                print('Already trained: '+EXP_FOLDER+'/'+'layer'+str(layer)+'_task_holdout_seed'+str(_seed), flush=True)
+                continue
 
         if args.mode == 'swap_ccgp':
             get_holdout_CCGP(EXP_FOLDER, model, _seed, layer= 'task', instruct_mode='swap_combined', save=True)

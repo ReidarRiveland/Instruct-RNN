@@ -78,7 +78,8 @@ simpleNet.load_model('7.20models/multitask_holdouts/Multitask/'+simpleNet.model_
 plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
 
 #CCGP PLOTS
-plot_layer_ccgp('7.20models/swap_holdouts', to_plot_models)
+plot_layer_ccgp('7.20models', 'swap', to_plot_models)
+plt.show()
 plot_ccgp_corr('7.20models', 'swap', to_plot_models)
 
 #############SINGLE UNIT TUING
