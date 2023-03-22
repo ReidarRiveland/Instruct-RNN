@@ -8,7 +8,7 @@ from instructRNN.instructions.instruct_utils import one_hot_input_rule
 from instructRNN.analysis.model_analysis import get_rule_embedder_reps
 
 TASK_LIST
-SWAP_LIST
+SWAP_LIST[2]
 
 EXP_FILE = '3.16models/swap_holdouts'
 simpleNet = SimpleNetPlus()
@@ -21,10 +21,10 @@ simpleNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+simpleNet.model_name, suffix
 
 
 rule_encoding = get_rule_embedder_reps(simpleNet)
+comp_rule = rule_encoding[0,None]
 
-rule_encoding[0]
-TASK_LIST[3]
+
 
 ins, targets, _, target_dirs, _ = construct_trials('Go', 50)
-out, _ = simpleNet(torch.Tensor(ins), context=torch.Tensor(rule_encoding[1]).repeat(50, 1))
+out, _ = simpleNet(torch.Tensor(ins), context=torch.tensor(rule_encoding[0, None]).repeat(50, 1))
 np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
