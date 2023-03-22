@@ -92,6 +92,7 @@ def one_hot_input_rule(batch_size, task_type, shuffled=False):
     else: index = TASK_LIST.index(task_type)
     one_hot = make_one_hot(len(TASK_LIST), index)
     one_hot= np.repeat(one_hot, batch_size, axis=0)
+    one_hot =one_hot + np.random.randn(*one_hot.shape)*0.5
     return one_hot
 
 def get_input_rule(batch_size, task_type, instruct_mode=None): 

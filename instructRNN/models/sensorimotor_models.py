@@ -102,7 +102,7 @@ class BaseNet(nn.Module):
         task_info_block[:, onset:onset+duration, :] = task_info
         return task_info_block
 
-    def forward(self, x, task_info, info_duration=TRIAL_LEN, info_onset=0): 
+    def forward(self, x, task_info, info_duration=10, info_onset=0): 
         h0 = self.__initHidden__(x.shape[0])
         task_info_block = self.expand_info(task_info, info_duration, info_onset)
         rnn_ins = torch.cat((task_info_block.to(self.__device__), x.type(torch.float32)), 2)
@@ -193,8 +193,6 @@ class RuleNet(BaseNet):
             task_rule = self.rule_encoder(rule_transformed)
         else: 
             task_rule = context
-
-        #task_rule = task_rule+(torch.randn_like(task_rule)*0.4)
         
         outs, rnn_hid = super().forward(x, task_rule)
         return outs, rnn_hid
