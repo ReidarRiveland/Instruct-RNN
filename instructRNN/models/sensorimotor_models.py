@@ -152,13 +152,17 @@ class SMDecoder(nn.Module):
         return out.unsqueeze(0)
 
 class RuleEncoder(nn.Module):
-    def __init__(self, rule_dim, hidden_size):
+    def __init__(self, rule_dim, hidden_size, nonlinearity='relu'):
         super(RuleEncoder, self).__init__()
         self.rule_dim = rule_dim
         self.hidden_size = hidden_size
-        self.rule_layer1 = nn.Linear(64, self.hidden_size)
-        self.rule_layer2 = nn.Linear(self.hidden_size, 64)
-
+        self.nonlinearity = nonlinearity
+        if self.nonlinearity == 'relu': 
+            self.activ_func = nn.ReLU()
+        elif self.nonlinearity is None: 
+            self.activ_func = nn.Identity()
+        self.rule_layer1 = nn.Sequential(nn.Linear(64, self.hidden_size), self.activ_func)
+        self.rule_layer2 = nn.Sequential(nn.Linear(self.hidden_size, 64), self.activ_func)
 
     def forward(self, rule):
         return self.rule_layer2(self.rule_layer1(rule))

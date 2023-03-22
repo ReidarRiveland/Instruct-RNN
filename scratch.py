@@ -16,12 +16,13 @@ holdouts_file = 'swap2'
 
 simpleNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+simpleNet.model_name, suffix='_seed0')
 
-# plot_scatter(simpleNet, ['Go', 'AntiGo', 'RTGo', 'AntiRTGo'], dims=3)
-# plot_scatter(simpleNet, ['Go', 'AntiGo', 'RTGo', 'AntiRTGo'], dims=3, rep_depth='full')
+plot_scatter(simpleNet, ['GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2'], dims=3)
+plot_scatter(simpleNet, ['GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2'], dims=3, rep_depth='full')
 
 
 rule_encoding = get_rule_embedder_reps(simpleNet)
 comp_rule = rule_encoding[0,None]
+
 
 
 
