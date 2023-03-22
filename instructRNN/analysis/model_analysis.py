@@ -158,7 +158,7 @@ def get_rule_embedder_reps(model):
             task_rule = get_task_info(1, task, False)
             rule_transformed = torch.matmul(task_rule.to(model.__device__), model.rule_transform.float())
             info= model.rule_encoder(rule_transformed)
-            reps[i, :] = model.rule_encoder(info).cpu().numpy()
+            reps[i, :] = info.cpu().numpy()
     return reps
 
 def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, tasks=TASK_LIST, instruct_mode=None, 
