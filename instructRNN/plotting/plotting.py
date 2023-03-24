@@ -51,7 +51,7 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (li
 
 def get_task_color(task): 
     index = TASK_LIST.index(task)
-    return plt.get_cmap('Paired')(index%8)
+    return plt.get_cmap('tab20')(index)
 
 def get_all_tasks_markers(task):
     marker_list = ['o', 'v', 'x', '+', 'D']
@@ -249,7 +249,7 @@ def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs):
     else: 
         ax.scatter(task_reps[:, 0], task_reps[:, 1], task_reps[:,2], s=5, **scatter_kwargs)
 
-def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwargs): 
+def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, transform_task, **scatter_kwargs): 
     Patches = []
     for task in task_to_plot: 
         if task_to_plot == TASK_LIST:
@@ -260,18 +260,30 @@ def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwar
             marker = 'o'
         _rep_scatter(reps_reduced[TASK_LIST.index(task), ...], task, ax, dims, pcs, marker=marker, c = [task_color]*reps_reduced.shape[1], **scatter_kwargs)
         Patches.append(Line2D([0], [0], label = task, color= task_color, marker = marker, markersize=5, linestyle='None'))
+
+    if transform_task is not None: 
+        task_color = get_task_color(transform_task)
+        _rep_scatter(reps_reduced[-1, ...], transform_task, ax, dims, pcs, marker='x', c = [task_color]*reps_reduced.shape[1], **scatter_kwargs)
+
+
     return Patches
 
-def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, num_trials = 50, epoch= 'stim_start', instruct_mode = 'combined', **scatter_kwargs): 
+def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, num_trials = 50, 
+                        epoch= 'stim_start', instruct_mode = 'combined', transform=None, transform_task=None, **scatter_kwargs): 
     with plt.style.context('ggplot'):
         pcs = range(dims)
 
         if rep_depth == 'task': 
             reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True, instruct_mode=instruct_mode)
-        elif rep_depth == 'full' and model.model_name == 'simpleNetPlus': 
-            reps = get_rule_embedder_reps(model)[:, None, :]
+        elif model.model_name == 'simpleNetPlus': 
+            reps = get_rule_embedder_reps(model, depth=rep_depth)
+
         elif rep_depth != 'task': 
             reps = get_instruct_reps(model.langModel, depth=rep_depth, instruct_mode=instruct_mode)
+
+        if transform is not None: 
+            reps = np.concatenate((reps, transform))
+
         reduced, _ = reduce_rep(reps, pcs=pcs)
 
         fig = plt.figure(figsize=(14, 14))
@@ -280,7 +292,7 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, num_trials = 50
         else:
             ax = fig.add_subplot(projection='3d')
 
-        Patches = _group_rep_scatter(reduced, tasks_to_plot, ax, dims, pcs, **scatter_kwargs)
+        Patches = _group_rep_scatter(reduced, tasks_to_plot, ax, dims, pcs, transform_task, **scatter_kwargs)
 
         ax.set_xlabel('PC '+str(pcs[0]))
         ax.set_xticklabels([])

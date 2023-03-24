@@ -21,6 +21,7 @@ SENSORY_INPUT_DIM = INPUT_DIM
 MOTOR_OUTPUT_DIM = OUTPUT_DIM
 location = str(pathlib.Path(__file__).parent.absolute())
 
+
 @define
 class BaseModelConfig(): 
     model_name: str 
@@ -37,7 +38,7 @@ class BaseModelConfig():
 class RuleModelConfig(BaseModelConfig): 
     num_tasks: int = len(TASK_LIST)
     add_rule_encoder: bool = False
-    rule_encoder_hidden: int = 128
+    rule_encoder_hidden: int = 256
     rule_dim: int = 64
 
     _rnn_in_dim: int = field(kw_only=True)
@@ -63,6 +64,25 @@ class InstructModelConfig(BaseModelConfig):
         return self.LM_out_dim + SENSORY_INPUT_DIM
 
     info_type: str = 'lang'
+
+
+import torch
+from torch.autograd import Function
+
+class L1Penalty(Function):
+    
+    @staticmethod
+    def forward(ctx, input, l1weight):
+        ctx.save_for_backward(input)
+        ctx.l1weight = l1weight
+        return input
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        input, = ctx.saved_variables
+        grad_input = input.clone().sign().mul(ctx.l1weight)
+        grad_input += grad_output
+        return grad_input, None
 
 class BaseNet(nn.Module): 
     def __init__(self, config):
@@ -157,6 +177,7 @@ class RuleEncoder(nn.Module):
         self.rule_dim = rule_dim
         self.hidden_size = hidden_size
         self.nonlinearity = nonlinearity
+        self.l1weight= 0.05
         if self.nonlinearity == 'relu': 
             self.activ_func = nn.ReLU()
         elif self.nonlinearity is None: 
@@ -165,7 +186,10 @@ class RuleEncoder(nn.Module):
         self.rule_layer2 = nn.Sequential(nn.Linear(self.hidden_size, 64), self.activ_func)
 
     def forward(self, rule):
-        return self.rule_layer2(self.rule_layer1(rule))
+        out = self.rule_layer1(rule)
+        out = L1Penalty.apply(out, self.l1weight)
+        out = nn.functional.normalize(self.rule_layer2(out), dim=-1)
+        return out
 
 class RuleNet(BaseNet):
     _tuning_epoch=None

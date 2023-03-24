@@ -16,16 +16,35 @@ holdouts_file = 'swap2'
 
 simpleNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+simpleNet.model_name, suffix='_seed0')
 
-plot_scatter(simpleNet, ['GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2'], dims=3)
-plot_scatter(simpleNet, ['GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2'], dims=3, rep_depth='full')
+#plot_scatter(simpleNet, ['Go', 'AntiGo', 'RTGo', 'AntiRTGo'], dims=3)
+
+rule_encoding = get_rule_embedder_reps(simpleNet, depth='full')
+rule_encoding.shape
+transform1 = (rule_encoding[TASK_LIST.index('AntiGoMod1')] - rule_encoding[TASK_LIST.index('GoMod1')])
+transform2 = (rule_encoding[TASK_LIST.index('AntiGoMod2')] - rule_encoding[TASK_LIST.index('Go')])
+
+from sklearn.metrics.pairwise import cosine_similarity
+
+cosine_similarity(np.array([transform1.mean(0), transform2.mean(0)]))
+
+np.dot
 
 
-rule_encoding = get_rule_embedder_reps(simpleNet)
-comp_rule = rule_encoding[0,None]
+
+import itertools
+
+for x_task in TASK_LIST: 
+    for y_task in TASK_LIST: 
 
 
 
+rule_encoding
 
-ins, targets, _, target_dirs, _ = construct_trials('Go', 50)
-out, _ = simpleNet(torch.Tensor(ins), context=torch.tensor(rule_encoding[0, None]).repeat(50, 1))
+
+
+plot_scatter(simpleNet, ['AntiGo', 'AntiGoMod1', 'Go', 'GoMod1'], dims=3, rep_depth='full', transform = transform[None, ], transform_task='AntiGo', num_trials=100)
+
+ins, targets, _, target_dirs, _ = construct_trials('AntiGo', 100)
+simpleNet.to('cpu')
+out, _ = simpleNet(torch.Tensor(ins), context=torch.tensor(transform))
 np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))

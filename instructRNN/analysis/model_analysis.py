@@ -151,14 +151,20 @@ def get_instruct_reps(langModel, depth='full', instruct_mode=None):
             instruct_reps[i, :, :] = out_rep
     return instruct_reps.cpu().numpy().astype(np.float64)
 
-def get_rule_embedder_reps(model):
-    reps = np.empty((len(TASK_LIST), model.rule_dim))
+def get_rule_embedder_reps(model, depth='full'):
+    if depth == 'full': rule_dim = model.rule_dim
+    else: rule_dim = model.rule_encoder.hidden_size
+    reps = np.empty((len(TASK_LIST), 100, rule_dim))
     with torch.no_grad():
         for i, task in enumerate(TASK_LIST): 
-            task_rule = get_task_info(1, task, False)
-            rule_transformed = torch.matmul(task_rule.to(model.__device__), model.rule_transform.float())
-            info = model.rule_encoder(rule_transformed)
-            reps[i, :] = info.cpu().numpy()
+            for j in range(100):
+                task_rule = get_task_info(1, task, False)
+                rule_transformed = torch.matmul(task_rule.to(model.__device__), model.rule_transform.float())
+                if depth == 'full': 
+                    info = model.rule_encoder(rule_transformed)
+                else: 
+                    info = model.rule_encoder.rule_layer1(rule_transformed)
+                reps[i,j, :] = info.cpu().numpy()
     return reps
 
 def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, tasks=TASK_LIST, instruct_mode=None, 
