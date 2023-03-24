@@ -38,7 +38,7 @@ class BaseModelConfig():
 class RuleModelConfig(BaseModelConfig): 
     num_tasks: int = len(TASK_LIST)
     add_rule_encoder: bool = False
-    rule_encoder_hidden: int = 256
+    rule_encoder_hidden: int = 128
     rule_dim: int = 64
 
     _rnn_in_dim: int = field(kw_only=True)
@@ -187,8 +187,9 @@ class RuleEncoder(nn.Module):
 
     def forward(self, rule):
         out = self.rule_layer1(rule)
-        out = L1Penalty.apply(out, self.l1weight)
+        #out = L1Penalty.apply(out, self.l1weight)
         out = nn.functional.normalize(self.rule_layer2(out), dim=-1)
+        out = self.rule_layer2(out)
         return out
 
 class RuleNet(BaseNet):
@@ -223,6 +224,7 @@ class RuleNet(BaseNet):
             task_rule = context
         
         outs, rnn_hid = super().forward(x, task_rule)
+
         return outs, rnn_hid
 
     def to(self, cuda_device): 
