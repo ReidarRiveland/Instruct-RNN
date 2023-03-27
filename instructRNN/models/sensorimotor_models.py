@@ -38,6 +38,8 @@ class BaseModelConfig():
 class RuleModelConfig(BaseModelConfig): 
     num_tasks: int = len(TASK_LIST)
     add_rule_encoder: bool = False
+    sparsity_measure: str = None
+    sparsity_weight: float =0.05
     rule_encoder_hidden: int = 128
     rule_dim: int = 64
 
@@ -65,24 +67,14 @@ class InstructModelConfig(BaseModelConfig):
 
     info_type: str = 'lang'
 
-
-import torch
-from torch.autograd import Function
-
-class L1Penalty(Function):
-    
-    @staticmethod
-    def forward(ctx, input, l1weight):
-        ctx.save_for_backward(input)
-        ctx.l1weight = l1weight
-        return input
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        input, = ctx.saved_variables
-        grad_input = input.clone().sign().mul(ctx.l1weight)
-        grad_input += grad_output
-        return grad_input, None
+class KL_divergence():
+    def __init__(self, rho):
+        self.rho = rho
+    def __call__(self, hidden_rep):
+        device = hidden_rep.get_device()
+        rho_hat = torch.mean(torch.sigmoid(hidden_rep), 1) # sigmoid because we need the probability distributions
+        rho = torch.tensor([self.rho] * len(rho_hat)).to(device)
+        return torch.sum(rho * torch.log(rho/rho_hat) + (1 - rho) * torch.log((1 - rho)/(1 - rho_hat)))
 
 class BaseNet(nn.Module): 
     def __init__(self, config):
@@ -187,13 +179,10 @@ class RuleEncoder(nn.Module):
 
     def forward(self, rule):
         out = self.rule_layer1(rule)
-        #out = L1Penalty.apply(out, self.l1weight)
         out = nn.functional.normalize(self.rule_layer2(out), dim=-1)
-        out = self.rule_layer2(out)
         return out
 
 class RuleNet(BaseNet):
-    _tuning_epoch=None
     def __init__(self, config):
         super().__init__(config)
         self.rule_transform = nn.Parameter(self.gen_ortho_rules(), requires_grad=False)
@@ -202,6 +191,11 @@ class RuleNet(BaseNet):
             self.rule_encoder = RuleEncoder(self.rule_dim, self.rule_encoder_hidden)
         else: 
             self.rule_encoder = nn.Identity()
+
+        if self.sparsity_measure is None: 
+            self.sparsity_loss = None
+        elif self.sparsity_measure == 'kl':
+            self.sparsity_loss = KL_divergence(self.sparsity_weight)
 
     def gen_ortho_rules(self): 
         m = ortho_group.rvs(dim=self.rule_dim)
@@ -225,7 +219,7 @@ class RuleNet(BaseNet):
         
         outs, rnn_hid = super().forward(x, task_rule)
 
-        return outs, rnn_hid
+        return outs, rnn_hid, task_rule
 
     def to(self, cuda_device): 
         super().to(cuda_device)

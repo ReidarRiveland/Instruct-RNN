@@ -59,13 +59,13 @@ def get_reps_recalled(init_task, rule_encodings, holdout_task, beta, n_recalls):
     return candidate_array, task_recalled
 
 def get_recall_perf(task, rule_encodings, beta=1.0, n_recalls=100):
-    ins, targets, _, target_dirs, _ = construct_trials(task, 25)
+    ins, targets, _, target_dirs, _ = construct_trials(task, 1)
     simpleNet.to('cpu')
 
     recall_array, task_recalled = get_reps_recalled(task, rule_encodings, task, beta, n_recalls)
     perf_list = []
     for context in recall_array:
-        context = torch.tensor(context)[None, :].repeat(25, 1)
+        context = torch.tensor(context)[None, :]
         out, _ = simpleNet(torch.Tensor(ins), task_rule=None, context=context)
         perf_list.append(np.mean(isCorrect(out, torch.Tensor(targets), target_dirs)))
 
@@ -74,7 +74,7 @@ def get_recall_perf(task, rule_encodings, beta=1.0, n_recalls=100):
 
 tries, tasks = get_recall_perf('AntiRTGo', rule_encoding_set, beta=10.0, n_recalls=1000)
 np.max(tries)
-plt.plot(tries[:50])
+plt.plot(tries[:100])
 plt.show()
 
 prop_rep = (rule_encoding_set[TASK_LIST.index('RTGoMod2'), :]+

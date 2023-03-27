@@ -184,7 +184,7 @@ class ModelTrainer(BaseTrainer):
             opt_path = self.checkpoint_path + '_opt'
             self.optimizer.load_state_dict(torch.load(opt_path))  
 
-    def train(self, model, is_tuning=False, is_testing=False, instruct_mode=None, input_w_only = False, comp_rules=False): 
+    def train(self, model, rep_loss_weight = 0.01, is_tuning=False, is_testing=False, instruct_mode=None, input_w_only = False, comp_rules=False): 
         model.to(device)
         model.train()
         self._init_streamer()
@@ -206,8 +206,13 @@ class ModelTrainer(BaseTrainer):
 
                 self.optimizer.zero_grad()
                 task_info = get_task_info(self.batch_len, task_type, model.info_type, instruct_mode=instruct_mode)
-                out, _ = model(ins.to(device), task_info, comp_task = comp_task)
-                loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
+                out, _, info_rep = model(ins.to(device), task_info, comp_task = comp_task)
+                response_loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
+                if model.sparsity_measure is not None: 
+                    rep_sparsity_loss = rep_loss_weight*model.sparsity_loss(info_rep)
+                else:
+                    rep_sparsity_loss = 0 
+                loss = response_loss + rep_sparsity_loss
                 loss.backward()
                 torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
                 self.optimizer.step()
