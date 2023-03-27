@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 
 TASK_LIST
-SWAP_LIST[3]
+SWAP_LIST[0]
 
 EXP_FILE = '3.16models/swap_holdouts'
 simpleNet = SimpleNetPlus(rule_encoder_hidden=128)
@@ -66,24 +66,23 @@ def get_recall_perf(task, rule_encodings, beta=1.0, n_recalls=100):
     perf_list = []
     for context in recall_array:
         context = torch.tensor(context)[None, :]
-        out, _ = simpleNet(torch.Tensor(ins), task_rule=None, context=context)
+        out, _, _ = simpleNet(torch.Tensor(ins), task_rule=None, context=context)
         perf_list.append(np.mean(isCorrect(out, torch.Tensor(targets), target_dirs)))
 
     return perf_list, task_recalled
 
-
-tries, tasks = get_recall_perf('AntiRTGo', rule_encoding_set, beta=10.0, n_recalls=1000)
+SWAP_LIST[3]
+tries, tasks = get_recall_perf('AntiRTGoMod1', rule_encoding_set, beta=10.0, n_recalls=1000)
 np.max(tries)
-plt.plot(tries[:100])
+plt.plot(tries)
 plt.show()
 
 prop_rep = (rule_encoding_set[TASK_LIST.index('RTGoMod2'), :]+
             (rule_encoding_set[TASK_LIST.index('GoMod1'), :]-rule_encoding_set[TASK_LIST.index('RTGoMod1'), :]))
 
-ins, targets, _, target_dirs, _ = construct_trials('GoMod2', 100)
-context = torch.tensor(prop_rep)[None, :].repeat(100, 1)
-out, _ = simpleNet(torch.Tensor(ins), context = context)
+ins, targets, _, target_dirs, _ = construct_trials('Go', 100)
+context = torch.tensor(rule_encoding_set[0])[None, :].repeat(100, 1)
+out, _, _ = simpleNet(torch.Tensor(ins), context = context)
 np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
-plot_scatter(simpleNet, ['GoMod1', 'AntiGoMod1', 'GoMod2', 'AntiGoMod2'], dims=3, rep_depth='full', 
-        transform = context[None, ...], transform_task='GoMod1', num_trials=100)
+plot_scatter(simpleNet, ['Go', 'AntiGo', 'RTGo', 'AntiRTGo'], dims=3, rep_depth='full', num_trials=100)
