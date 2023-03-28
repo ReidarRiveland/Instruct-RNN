@@ -11,7 +11,7 @@ from attrs import define, asdict
 import os
 import warnings
 from os.path import exists
-from instructRNN.analysis.model_analysis import task_eval
+from instructRNN.analysis.model_eval import task_eval
 
 from instructRNN.trainers.base_trainer import *
 from instructRNN.data_loaders.dataset import *
@@ -200,16 +200,15 @@ class ModelTrainer(BaseTrainer):
                 ins, tar, mask, tar_dir, task_type = data
 
                 if comp_rules: 
-                    comp_task = task_type
+                    info_embedded = model.get_comp_task_rep(task_type, ins.shape[0])
+                    task_info = None
                 else: 
-                    comp_task = None
+                    info_embedded = None
 
                 self.optimizer.zero_grad()
                 task_info = get_task_info(self.batch_len, task_type, model.info_type, instruct_mode=instruct_mode)
-                out, _ = model(ins.to(device), task_info, comp_task = comp_task)
-                response_loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
-  
-                loss = response_loss + rep_sparsity_loss
+                out, _ = model(ins.to(device), task_info, info_embedded=info_embedded)
+                loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
                 loss.backward()
                 torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
                 self.optimizer.step()
