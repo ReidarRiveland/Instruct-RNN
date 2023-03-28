@@ -6,7 +6,6 @@ import torch.nn as nn
 
 from instructRNN.instructions.instruct_utils import count_vocab
 from instructRNN.models.script_gru import ScriptGRU
-from instructRNN.models.sensorimotor_models import SMDecoder
 
 device = torch.device(0)
 
@@ -60,6 +59,21 @@ class RNNtokenizer():
             self.n_words += 1
         else:
             self.word2count[word] += 1
+
+class SMDecoder(nn.Module): 
+    def __init__(self, out_dim, sm_hidden_dim, drop_p):
+        super(SMDecoder, self).__init__()
+        self.dropper = nn.Dropout(p=drop_p)
+        self.fc1 = nn.Linear(sm_hidden_dim*2, out_dim)
+        self.id = nn.Identity()
+        
+    def forward(self, sm_hidden): 
+        out_mean = self.id(torch.mean(sm_hidden, dim=1))
+        out_max = self.id(torch.max(sm_hidden, dim=1).values)
+        out = torch.cat((out_max, out_mean), dim=-1)
+        out = self.dropper(out)
+        out = torch.relu(self.fc1(out))
+        return out.unsqueeze(0)
 
 class DecoderRNN(nn.Module):
     def __init__(self, hidden_size, sm_hidden_dim=256, drop_p = 0.0):
