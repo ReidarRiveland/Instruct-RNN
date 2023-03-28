@@ -31,34 +31,31 @@ def recall_mhopf(pattern, all_encodings, beta=10.0):
     softmaxed = softmax(dotted, beta=beta)
     return np.matmul(softmaxed, all_encodings)
 
+def make_periodic_beta(max_beta, phase, num_cycles, num_points):
+    return max_beta/2*np.cos(phase*np.linspace(0, 2*num_cycles*np.pi, num_points+1))+max_beta/2
 
-SWAP_LIST[0]
+def test_beta_recall(max_beta, phase, num_cycles, num_points, init_task): 
+    perf_list = []
+    tasks_explored = []
+    periodic = make_periodic_beta(max_beta, phase, num_cycles, num_points)
+    recalled_pattern = _rule_encoding_set[TASK_LIST.index(init_task), :] + np.random.normal(scale = 0.1, size=64)
 
-holdout_task = 'RTGo'
-test_pattern = _rule_encoding_set[TASK_LIST.index(holdout_task)] #+ np.random.normal(scale = 0.1, size=64)
-recalled_pattern = recall_mhopf(test_pattern, rule_encoding_set, beta=50.0)
+    for i in periodic:
+        recalled_pattern = recall_mhopf(recalled_pattern, rule_encoding_set, beta=i)+np.random.normal(scale = 0.1, size=64)
 
-in_tasks[np.argmax(cosine_similarity(test_pattern[None, :], rule_encoding_set))]
+        if np.isclose(i, max_beta): 
+            cur_task=in_tasks[np.argmax(cosine_similarity(recalled_pattern[None, :], rule_encoding_set))]
+            ins, targets, _, target_dirs, _ = construct_trials(cur_task, 50)
+            context = torch.tensor(recalled_pattern)[None, :].repeat(50, 1)
+            out, _, _ = simpleNet(torch.Tensor(ins), context = context)
+            perf_list.append(np.mean(isCorrect(out, torch.Tensor(targets), target_dirs)))
+            tasks_explored.append(cur_task)
 
+    return perf_list, tasks_explored, periodic
 
-periodic = np.cos(np.linspace(0, 6*np.pi, 1000))+1
-
-tasks_explored = []
-for i in periodic: 
-    recalled_pattern = recall_mhopf(recalled_pattern, rule_encoding_set, beta=i)+np.random.normal(scale = 0.1, size=64)
-    tasks_explored.append(in_tasks[np.argmax(np.dot(recalled_pattern, rule_encoding_set.T))])
+perf_list, tasks_explored, periodic = test_beta_recall(100, 1.0, 40, 1000, 'Go')
 
 tasks_explored
 
-perf_list = []
-ins, targets, _, target_dirs, _ = construct_trials('Go', 50)
-for beta in np.linspace(0.1, 10.0, 100):
-    recalled_pattern = recall_mhopf(recalled_pattern, rule_encoding_set, beta=beta)
-    context = torch.tensor(recalled_pattern)[None, :].repeat(50, 1)
-    out, _, _ = simpleNet(torch.Tensor(ins), context = context)
-    perf_list.append(np.mean(isCorrect(out, torch.Tensor(targets), target_dirs)))
-
-perf_list
-
-plt.plot(perf_list)
-plt.show()
+np.sum(np.isclose(periodic, 100))
+np.mean(perf_list)

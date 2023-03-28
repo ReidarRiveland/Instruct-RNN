@@ -179,7 +179,7 @@ class RuleEncoder(nn.Module):
 
     def forward(self, rule):
         out = self.rule_layer1(rule)
-        out = nn.functional.normalize(self.rule_layer2(out), dim=-1)
+        out = self.rule_layer2(out)
         return out
 
 class RuleNet(BaseNet):
