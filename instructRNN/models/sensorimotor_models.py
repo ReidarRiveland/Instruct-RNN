@@ -146,22 +146,6 @@ class BaseNet(nn.Module):
         super().to(cuda_device)
         self.recurrent_units._mask_to(cuda_device)
         self.__device__ = cuda_device
-        
-
-class SMDecoder(nn.Module): 
-    def __init__(self, out_dim, sm_hidden_dim, drop_p):
-        super(SMDecoder, self).__init__()
-        self.dropper = nn.Dropout(p=drop_p)
-        self.fc1 = nn.Linear(sm_hidden_dim*2, out_dim)
-        self.id = nn.Identity()
-        
-    def forward(self, sm_hidden): 
-        out_mean = self.id(torch.mean(sm_hidden, dim=1))
-        out_max = self.id(torch.max(sm_hidden, dim=1).values)
-        out = torch.cat((out_max, out_mean), dim=-1)
-        out = self.dropper(out)
-        out = torch.relu(self.fc1(out))
-        return out.unsqueeze(0)
 
 class RuleEncoder(nn.Module):
     def __init__(self, rule_dim, hidden_size, nonlinearity='relu'):
@@ -202,22 +186,23 @@ class RuleNet(BaseNet):
         ortho = m[:self.num_tasks,:]
         return torch.tensor(ortho)
 
-    def forward(self, x, task_rule=None, context = None, comp_task =None):
+    def get_comp_task_rep(self, task_type, batch_size):
+        ref_tasks = construct_trials(task_type, None).comp_ref_tasks
+        task_infos = [one_hot_input_rule(batch_size, task) for task in ref_tasks]
+        comp_rule = torch.tensor((task_infos[0] - task_infos[1]) + task_infos[2]).float()
+        rule_transformed = torch.matmul(comp_rule.to(self.__device__), self.rule_transform.float())
+        info_embedded = self.rule_encoder(rule_transformed)
+        return info_embedded
 
-        if comp_task is not None: 
-            ref_tasks = construct_trials(comp_task, None).comp_ref_tasks
-            task_infos = [one_hot_input_rule(x.shape[0], task) for task in ref_tasks]
-            comp_rule = torch.tensor((task_infos[0] - task_infos[1]) + task_infos[2]).float()
-            rule_transformed = torch.matmul(comp_rule.to(self.__device__), self.rule_transform.float())
-            task_rule = self.rule_encoder(rule_transformed)
-
-        elif task_rule is not None:
+    def forward(self, x, task_rule=None, info_embedded=None):
+        assert task_rule is not None or info_embedded is not None, 'must have task_rule or info_embedded input'
+            
+        if task_rule is not None and info_embedded is None: 
             rule_transformed = torch.matmul(task_rule.to(self.__device__), self.rule_transform.float())
-            task_rule = self.rule_encoder(rule_transformed)
-        else: 
-            task_rule = context
+            info_embedded = self.rule_encoder(rule_transformed)
+
         
-        outs, rnn_hid = super().forward(x, task_rule)
+        outs, rnn_hid = super().forward(x, info_embedded)
 
         return outs, rnn_hid, task_rule
 
@@ -242,23 +227,17 @@ class InstructNet(BaseNet):
         if self.instruct_rep_basis is None: 
             self.instruct_rep_basis=analysis.get_instruct_reps(self.langModel)
 
-    def forward(self, x, instruction = None, context = None, comp_task=None):
-        assert instruction is not None or context is not None or comp_task is not None, 'must have instruction or context input'
-        
-        if comp_task is not None: 
-            self.get_instruct_rep_basis()
-            ref_tasks = construct_trials(comp_task, None).comp_ref_tasks
-            task_infos = [torch.tensor(self.instruct_rep_basis[TASK_LIST.index(task), np.random.choice(range(15), x.shape[0]), :]) for task in ref_tasks]
-            info_embedded = (task_infos[0] - task_infos[1]) + task_infos[2]
+    def get_comp_task_rep(self, task_type, batch_size):
+        self.get_instruct_rep_basis()
+        ref_tasks = construct_trials(task_type, None).comp_ref_tasks
+        task_infos = [torch.tensor(self.instruct_rep_basis[TASK_LIST.index(task), np.random.choice(range(15), batch_size), :]) for task in ref_tasks]
+        info_embedded = (task_infos[0] - task_infos[1]) + task_infos[2]
+        return info_embedded
 
-        elif instruction is not None: 
+    def forward(self, x, instruction = None, info_embedded=None):
+        assert instruction is not None or info_embedded is not None, 'must have instruction or info_embedded input'            
+        if instruction is not None and info_embedded is None: 
             info_embedded = self.langModel(instruction)
-        elif context.shape[-1] == self.langModel.LM_intermediate_lang_dim:
-            info_embedded = self.langModel.proj_out(context)
-        elif context.shape[-1] == self.langModel.LM_out_dim:
-            info_embedded = context
-        else:
-            info_embedded = context
 
         outs, rnn_hid = super().forward(x, info_embedded)
         return outs, rnn_hid
