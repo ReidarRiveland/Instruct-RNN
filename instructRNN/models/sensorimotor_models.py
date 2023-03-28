@@ -204,7 +204,7 @@ class RuleNet(BaseNet):
         
         outs, rnn_hid = super().forward(x, info_embedded)
 
-        return outs, rnn_hid, task_rule
+        return outs, rnn_hid
 
     def to(self, cuda_device): 
         super().to(cuda_device)

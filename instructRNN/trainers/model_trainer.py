@@ -206,12 +206,9 @@ class ModelTrainer(BaseTrainer):
 
                 self.optimizer.zero_grad()
                 task_info = get_task_info(self.batch_len, task_type, model.info_type, instruct_mode=instruct_mode)
-                out, _, info_rep = model(ins.to(device), task_info, comp_task = comp_task)
+                out, _ = model(ins.to(device), task_info, comp_task = comp_task)
                 response_loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
-                if model.sparsity_measure is not None: 
-                    rep_sparsity_loss = rep_loss_weight*model.sparsity_loss(info_rep)
-                else:
-                    rep_sparsity_loss = 0 
+  
                 loss = response_loss + rep_sparsity_loss
                 loss.backward()
                 torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
