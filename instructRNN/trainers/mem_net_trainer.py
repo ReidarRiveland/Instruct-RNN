@@ -18,7 +18,7 @@ from instructRNN.trainers.base_trainer import *
 from instructRNN.data_loaders.dataset import TaskDataSet
 from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.tasks.task_factory import OUTPUT_DIM, INPUT_DIM
-from instructRNN.analysis.model_analysis import get_instruct_reps
+from instructRNN.analysis.model_analysis import get_instruct_reps, get_rule_embedder_reps
 from instructRNN.instructions.instruct_utils import get_task_info
 from instructRNN.models.script_gru import ScriptGRU
 
@@ -31,18 +31,18 @@ class MemNet(nn.Module):
         self.out_dim = out_dim
         self.rnn_hiddenInitValue = 0.1
         self.__device__ = 'cpu'
-        self.rnn = nn.GRU(OUTPUT_DIM+INPUT_DIM, self.rnn_hidden_dim, 1, batch_first=True)
+        self.rnn = nn.GRU(OUTPUT_DIM+INPUT_DIM+256, self.rnn_hidden_dim, 1, batch_first=True)
         self.lin_out= nn.Linear(rnn_hidden_dim, self.out_dim)
 
     def __initHidden__(self, batch_size):
         return torch.full((1, batch_size, self.rnn_hidden_dim), 
                 self.rnn_hiddenInitValue, device=torch.device(self.__device__))
 
-    def forward(self, ins, tar): 
+    def forward(self, ins, tar, sm_hidden): 
         h0 = self.__initHidden__(ins.shape[0])
-        rnn_ins = torch.cat((ins, tar), axis=-1)
+        rnn_ins = torch.cat((ins, tar, sm_hidden), axis=-1)
         rnn_hid, _ = self.rnn(rnn_ins, h0)
-        out = torch.sigmoid(self.lin_out(rnn_hid))*3
+        out = torch.relu(self.lin_out(rnn_hid))
         return out, rnn_hid
 
     def to(self, cuda_device): 
@@ -65,7 +65,7 @@ class MemNetTrainerConfig():
     stream_data: bool = True
 
     optim_alg: str = 'adam'
-    init_lr: float = 0.01
+    init_lr: float = 0.001
 
     scheduler_type: str = 'exp'
     scheduler_gamma: float = 0.99
@@ -154,42 +154,36 @@ class MemNetTrainer(BaseTrainer):
         self._init_streamer()
         self.init_optimizer(self.memNet.parameters())
         self.mse = nn.MSELoss()
-        self.rule_basis = np.mean(get_instruct_reps(model.langModel), axis=1)
+        if hasattr(model, 'langModel'):
+            self.rule_basis = np.mean(get_instruct_reps(model.langModel), axis=1)
+        elif model.model_name == 'simpleNetPlus':
+            self.rule_basis = np.mean(get_rule_embedder_reps(model), axis=1)
 
         for self.cur_epoch in tqdm(range(self.cur_epoch, self.epochs), desc='epochs'):
             self.streamer.shuffle_stream_order()
             for self.cur_step, data in enumerate(self.streamer.stream_batch()): 
                 ins, tar, mask, tar_dir, task_type = data
-
-                # task_info = get_task_info(self.batch_len, task_type, model.info_type, instruct_mode=None)
-                # if hasattr(model, 'langModel'):
-                #     info_embedded = model.langModel(task_info)
-                # else: 
-                #     rule_transformed = torch.matmul(task_info.to(model.__device__), model.rule_transform.float())
-                #     info_embedded = model.rule_encoder(rule_transformed)
+                task_info = get_task_info(self.batch_len, task_type, model.info_type)
+                out, rnn_hid = model(ins.to(device), task_info)
 
                 self.optimizer.zero_grad()
-                mem_out, hid = self.memNet(ins.float().to(device), tar.float().to(device))
-                target_embed = torch.tensor(self.rule_basis[TASK_LIST.index(task_type),:])[None,  :].repeat(self.batch_len,  1).float()
-                #loss = self.mse(mem_out, info_embedded[:,None,:].repeat(1, 150, 1))
-                loss = self.mse(mem_out[:, -1, :], target_embed.to(device))
+                mem_out, hid = self.memNet(ins.float().to(device), tar.float().to(device), rnn_hid)
+                target_embed = torch.tensor(self.rule_basis[TASK_LIST.index(task_type),:])[None, None,  :].repeat(self.batch_len,  20, 1).float()
+                loss = self.mse(mem_out[:, -20:, :], target_embed.to(device))
                 loss.backward()
                 self.optimizer.step()
 
                 self._log_step(task_type, loss.item())
 
                 if self.cur_step%50 == 0:
-                    out, _ = model(ins.to(device), None, context=mem_out[:,-1,:])
+                    out, _ = model(ins.to(device), None, info_embedded=mem_out[:,-1,:])
                     frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
                     self._log_step(task_type, loss.item(), frac_correct=frac_correct)
                     self._print_training_status(task_type)
-                    print(self.scheduler.get_last_lr())
                 else: 
                     self._log_step(task_type, loss.item())
 
             self._record_session(model, mode='CHECKPOINT')
-            #if self.scheduler is not None: self.scheduler.step()  
-            # if self.step_last_lr: self.step_scheduler.step()
         
         self._record_session(model, mode='FINAL')
 
