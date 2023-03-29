@@ -169,9 +169,8 @@ class RuleNet(BaseNet):
         ortho = m[:self.num_tasks,:]
         return torch.tensor(ortho)
 
-    def get_comp_task_rep(self, task_type, batch_size):
-        ref_tasks = construct_trials(task_type, None).comp_ref_tasks
-        task_infos = [one_hot_input_rule(batch_size, task) for task in ref_tasks]
+    def get_comp_task_rep(self, reference_tasks, batch_size):
+        task_infos = [one_hot_input_rule(batch_size, task) for task in reference_tasks]
         comp_rule = torch.tensor((task_infos[0] - task_infos[1]) + task_infos[2]).float()
         rule_transformed = torch.matmul(comp_rule.to(self.__device__), self.rule_transform.float())
         info_embedded = self.rule_encoder(rule_transformed)
@@ -208,10 +207,9 @@ class InstructNet(BaseNet):
         if self.instruct_rep_basis is None: 
             self.instruct_rep_basis=analysis.get_instruct_reps(self.langModel)
 
-    def get_comp_task_rep(self, task_type, batch_size):
+    def get_comp_task_rep(self, reference_tasks, batch_size):
         self.get_instruct_rep_basis()
-        ref_tasks = construct_trials(task_type, None).comp_ref_tasks
-        task_infos = [torch.tensor(self.instruct_rep_basis[TASK_LIST.index(task), np.random.choice(range(15), batch_size), :]) for task in ref_tasks]
+        task_infos = [torch.tensor(self.instruct_rep_basis[TASK_LIST.index(task), np.random.choice(range(15), batch_size), :]) for task in reference_tasks]
         info_embedded = (task_infos[0] - task_infos[1]) + task_infos[2]
         return info_embedded
 
