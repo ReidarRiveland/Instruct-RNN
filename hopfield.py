@@ -23,8 +23,6 @@ in_tasks = [task for task in TASK_LIST if task not in SWAP_LIST[holdouts_file]]
 
 #plot_scatter(simpleNet, ['Go', 'AntiGo', 'RTGo', 'AntiRTGo'], dims=3, rep_depth='full', num_trials=100)
 
-np.relu
-
 def softmax(x, beta=1):
     return np.exp(beta*x)/np.sum(np.exp(beta*x))
 
@@ -37,7 +35,7 @@ def recall_mhopf_w_inhibition(pattern, last_pattern, all_encodings, beta=10.0):
     dotted = np.matmul(pattern, all_encodings.T)
     last_dotted = np.matmul(last_pattern, all_encodings.T)
 
-    softmaxed = softmax(torch.relu(torch.tensor(dotted-last_dotted)).numpy(), beta=beta)
+    softmaxed = softmax(np.maximum(dotted-last_dotted, 0), beta=beta)
     return np.matmul(softmaxed, all_encodings)
 
 def test_recall(model, task, beta = 10.0, noise = 0.1):
@@ -72,32 +70,53 @@ def get_memory_trace(max_beta, phase, num_cycles, num_points, init_task, use_inh
 
     return memory_trace, np.array(recalled), betas
 
+def plot_memory_trace(trace, betas): 
+    sims = cosine_similarity(trace.T, rule_encoding_set)
+    fig, axn = plt.subplots(2,1, sharex=True, figsize =(8, 4))
+    res = sns.heatmap(sims.T, xticklabels=[], yticklabels=in_tasks, ax=axn[0], cbar=False)
+    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 3)
+
+    axn[1].plot(betas, linewidth=0.9)
+
+    plt.show()
+
+def get_recalled_tasks(recalls): 
+    recalled_sims = cosine_similarity(recalls, rule_encoding_set)
+    recalled_tasks = [in_tasks[ind] for ind in np.argmax(recalled_sims, axis=1)]
+    return recalled_tasks
+
+def get_recalled_performance(recalls): 
+    task_perf = []
+    recalled_tasks = get_recalled_tasks(recalls)
+    for recalled_task, recalled_rep in zip(recalled_tasks, recalls): 
+        info_embedded = simpleNet.rule_encoder.rule_layer2(torch.tensor(recalled_rep).float())[None, :].repeat(50, 1)
+        task_perf.append(task_eval_info_embedded(simpleNet, recalled_task, 50, info_embedded))
+
+    return recalled_tasks, task_perf
+
+def get_compositional_mem_perf(recalls, task, num_trials=1): 
+    task_perf = []
+    for i in range(2, recalls.shape[0]): 
+        comp_rep = recalls[i-2, :]+(recalls[i-1, :]-recalls[i, :])
+        info_embedded = simpleNet.rule_encoder.rule_layer2(torch.tensor(comp_rep).float())[None, :].repeat(num_trials, 1)
+        task_perf.append(task_eval_info_embedded(simpleNet, task, num_trials, info_embedded))
+    return task_perf
 
 
+
+SWAP_LIST[0]
 
 max_beta = 100
-trace, recalls, betas = get_memory_trace(max_beta, 1.0, 25, 250, 'Go', use_inhibition=True)
-sims = cosine_similarity(trace.T, rule_encoding_set)
-
-peaked_sims = cosine_similarity(recalls, rule_encoding_set)
-recalled_tasks = [in_tasks[ind] for ind in np.argmax(peaked_sims, axis=1)]
-
+trace, recalls, betas = get_memory_trace(max_beta, 1.0, 100, 10000, 'RTGo', use_inhibition=False)
+recalls.shape
+plot_memory_trace(trace, betas)
+recalled_tasks = get_recalled_tasks(recalls)
 len(set(recalled_tasks))
 
-fig, axn = plt.subplots(2,1, sharex=True, figsize =(8, 4))
-res = sns.heatmap(sims.T, xticklabels=[], yticklabels=in_tasks, ax=axn[0], cbar=False)
-res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 3)
-
-axn[1].plot(betas)
-
+perf = get_compositional_mem_perf(recalls, 'RTGo', 50)
+plt.plot(perf)
 plt.show()
 
 
-
-
-
-perf = []
-for recalled_task, recalled_rep in zip(recalled_tasks, peaked_recalls.T): 
-    info_embedded = simpleNet.rule_encoder.rule_layer2(torch.tensor(recalled_rep).float())[None, :].repeat(50, 1)
-    perf.append(task_eval_info_embedded(simpleNet, recalled_task, 50, info_embedded))
+get_recalled_performance(recalls)
 
