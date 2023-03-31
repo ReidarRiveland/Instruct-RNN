@@ -5,6 +5,9 @@ from instructRNN.instructions.instruct_utils import get_task_info, get_instructi
 import instructRNN.models.full_models as full_models
 from instructRNN.tasks.tasks import DICH_DICT, TASK_LIST, SWAPS_DICT
 from instructRNN.data_loaders.perfDataFrame import *
+
+from tqdm import tqdm
+from itertools import permutations
 import os
 
 if torch.cuda.is_available:
@@ -23,9 +26,18 @@ def task_eval_info_embedded(model, task, batch_size, info_embedded, **trial_kwar
     out, _ = model(torch.Tensor(ins).to(model.__device__), info_embedded=info_embedded)
     return np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
-def task_eval_compositional(model, task, batch_size, **trial_kwargs): 
-    info_embedded = model.get_comp_task_rep(task, batch_size)
+def task_eval_compositional(model, task, reference_tasks, batch_size, **trial_kwargs): 
+    info_embedded = model.get_comp_task_rep(reference_tasks, batch_size)
     return task_eval_info_embedded(model, task, batch_size, info_embedded, **trial_kwargs)
+
+def task_eval_compositional_all_combos(model, task, batch_size, **trial_kwargs):
+    all_task_combos = sorted(permutations(TASK_LIST, 3))
+    perf_array = np.full(117_600, np.NaN)
+
+    for i, reference_tasks in tqdm(enumerate(all_task_combos), desc='combos tested'): 
+        perf_array[i] = task_eval_compositional(model, task, reference_tasks, batch_size)
+    
+    return perf_array
 
 def _get_model_performance(_task_eval_func, model, num_repeats, batch_len, **eval_kwargs): 
     model.eval()
@@ -62,18 +74,54 @@ def get_val_perf(foldername, model_name, seed, num_repeats = 5, batch_len=128, s
 
     return perf_array
 
-def get_multi_comp_perf(foldername, model_name, seed, num_repeats = 5, batch_len=128, save=False): 
-    model = full_models.make_default_model(model_name)
-    model.load_model(foldername+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
-    perf_array = eval_model_compositional_perf(model, num_repeats=num_repeats, batch_len=batch_len)
-    if save:
-        file_path = foldername+'/multi_comp_perf/'+model_name
-        if os.path.exists(file_path):
-            pass
-        else: os.makedirs(file_path)
-        np.save(file_path+'/'+model_name+'_multi_comp_perf_seed'+str(seed), perf_array)
+def get_holdout_comp_perf(foldername, model_name, labeled_holdouts, seed, num_repeats = 1, batch_len=50, save=False): 
+    if 'swap' in foldername: 
+        exp_dict = SWAPS_DICT
 
-    return perf_array
+    holdout_label, tasks = labeled_holdouts
+    model = full_models.make_default_model(model_name)
+    model.load_model(foldername+'/'+holdout_label+'/'+model.model_name, suffix='_seed'+str(seed))
+    model.to(device)
+    file_path = foldername+'/all_comp_scores/'+model_name
+
+    with torch.no_grad():
+        print('processing '+holdout_label)
+        for task in tasks: 
+            if os.path.exists(file_path+'/'+model_name+'_'+task+'_holdout_comp_scores_seed'+str(seed)+'.npy'):
+                print('Already processed task '+task)
+                continue
+            else:
+                print('processing task '+task)
+                task_perf = task_eval_compositional_all_combos(model, task, batch_len)
+
+                if save:
+                    if os.path.exists(file_path):
+                        pass
+                    else: os.makedirs(file_path)
+                    np.save(file_path+'/'+model_name+'_'+task+'_holdout_comp_scores_seed'+str(seed), task_perf)
+
+
+def get_multi_comp_perf(foldername, model_name, seed, num_repeats = 1, batch_len=50, save=False): 
+    perf_array = np.full((len(TASK_LIST), 117_600), np.NaN)
+    model.load_model(foldername+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
+    model = full_models.make_default_model(model_name)
+    model.to(device)
+    file_path = foldername+'/all_comp_scores/'+model_name
+
+    for task in TASK_LIST:
+        if os.path.exists(file_path+'/'+model_name+'_'+task+'_multi_comp_scores_seed'+str(seed)+'.npy'):
+            print('Already processed task '+task)
+            continue
+        else:
+            print('processing task '+task)
+            task_perf = task_eval_compositional_all_combos(model, task, batch_len)
+
+            if save:
+                if os.path.exists(file_path):
+                    pass
+                else: os.makedirs(file_path)
+                np.save(file_path+'/'+model_name+'_'+task+'_holdout_multi_scores_seed'+str(seed), task_perf)
+
 
 def _get_model_0_shot(_task_eval_func, model_name, folder_name, exp_type, seed, batch_size, **eval_kwargs): 
     if 'swap' in exp_type: 

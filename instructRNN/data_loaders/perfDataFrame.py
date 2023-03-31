@@ -194,3 +194,12 @@ class PerfDataFrame():
                             print('no data for task {} for model {} seed {}'.format(task, self.model_name, seed))
 
         super().__setattr__('data', data)
+
+def load_all_comp_perf(model_name, foldername='7.20models/swap_holdouts'):
+    all_comp_array = np.full((5, 50, 117_600), np.NaN)
+
+    for seed in range(5): 
+        for task in TASK_LIST:        
+            load_str = foldername+'/all_comp_scores/'+ model_name+'/'+model_name+'_'+task+'_holdout_comp_scores_seed'+str(seed)+'.npy'
+            all_comp_array[seed, TASK_LIST.index(task), :] = np.load(load_str)
+    return all_comp_array

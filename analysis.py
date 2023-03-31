@@ -3,7 +3,7 @@ import numpy as np
 import itertools
 import instructRNN.models.full_models as full_models
 from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP,  get_model_clusters
-from instructRNN.analysis.model_eval import get_val_perf, get_multi_comp_perf
+from instructRNN.analysis.model_eval import get_val_perf, get_multi_comp_perf, get_holdout_comp_perf
 from instructRNN.analysis.decoder_analysis import decoder_pipeline
 
 
@@ -70,9 +70,6 @@ if __name__ == "__main__":
         elif args.mode == 'val':
             get_val_perf(EXP_FOLDER, model, _seed, save=True)
 
-        elif args.mode == 'multi_comp':
-            get_multi_comp_perf(EXP_FOLDER, model, _seed, save=True)
-                
         elif args.mode == 'clusters':
             get_model_clusters(EXP_FOLDER, model, _seed, save=True)
                 
