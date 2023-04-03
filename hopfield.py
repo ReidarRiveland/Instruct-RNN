@@ -26,6 +26,9 @@ in_tasks = [task for task in TASK_LIST if task not in SWAP_LIST[holdouts_file]]
 def softmax(x, beta=1):
     return np.exp(beta*x)/np.sum(np.exp(beta*x))
 
+def sigmoid(x):
+  return 1 / (1 + np.exp(-x))
+
 def recall_mhopf(pattern, all_encodings, beta=10.0): 
     dotted = np.matmul(pattern, all_encodings.T)
     softmaxed = softmax(dotted, beta=beta)
@@ -102,20 +105,83 @@ def get_compositional_mem_perf(recalls, task, num_trials=1):
         task_perf.append(task_eval_info_embedded(simpleNet, task, num_trials, info_embedded))
     return task_perf
 
+def numpy_ewma_vectorized(data, window):
 
+    alpha = 2 /(window + 1.0)
+    alpha_rev = 1-alpha
 
-SWAP_LIST[0]
+    scale = 1/alpha_rev
+    n = data.shape[0]
+
+    r = np.arange(n)
+    scale_arr = scale**r
+    offset = data[0]*alpha_rev**(r+1)
+    pw0 = alpha*alpha_rev**(n-1)
+
+    mult = data*pw0*scale_arr
+    cumsums = mult.cumsum()
+    out = offset + cumsums*scale_arr[::-1]
+    return out
+
+def update_value_weights(W_v, embedding, reward, alpha=0.1): 
+    return W_v + alpha*(reward-np.dot(W_v, embedding))*embedding
+
+def value_sim(recalls, task, init_embedding): 
+    task_perf = []
+    W_v = np.maximum(np.random.normal(scale=0.1, size=128), 0)
+    i = 2
+    comp_rep = init_embedding
+
+    for _ in range(10000): 
+        if i == recalls.shape[0]: 
+            print('broke')
+            break
+
+        info_embedded = simpleNet.rule_encoder.rule_layer2(torch.tensor(comp_rep).float())[None, :]
+        reward = task_eval_info_embedded(simpleNet, task, 1, info_embedded)
+        task_perf.append(reward)
+        W_v = update_value_weights(W_v, comp_rep, reward)
+        value = np.dot(W_v.T, comp_rep)
+        print(value)
+        stay = np.random.binomial(1, sigmoid(value))
+
+        if not stay:
+            print('SWITCHED')
+            comp_rep = recalls[i-2, :]+(recalls[i-1, :]-recalls[i, :])
+            i+=1
+
+    return np.array(task_perf), W_v
 
 max_beta = 100
-trace, recalls, betas = get_memory_trace(max_beta, 1.0, 100, 10000, 'RTGo', use_inhibition=False)
-recalls.shape
+trace, recalls, betas = get_memory_trace(max_beta, 1.0, 1000, 100_000, 'RTGo', use_inhibition=True)
 plot_memory_trace(trace, betas)
+
+perf, W_v = value_sim(recalls, 'AntiDMMod2', _rule_encoding_set[TASK_LIST.index('AntiDMMod2')])
+
+plt.plot(perf[-100:])
+plt.show()
+plt.plot(numpy_ewma_vectorized(perf, 5))
+plt.show()
+
+sigmoid(1)
+moving_averages(np.array(perf))
+
+
+
+
+
+
+
+
+
 recalled_tasks = get_recalled_tasks(recalls)
 len(set(recalled_tasks))
 
 perf = get_compositional_mem_perf(recalls, 'RTGo', 50)
 plt.plot(perf)
 plt.show()
+
+
 
 
 get_recalled_performance(recalls)

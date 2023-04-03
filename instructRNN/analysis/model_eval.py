@@ -139,3 +139,6 @@ def eval_model_0_shot(model_name, folder_name, exp_type, seed, batch_size = 128,
 
 def eval_model_compositional_0_shot(model_name, folder_name, exp_type, seed, batch_size = 128):
     return _get_model_0_shot(task_eval_compositional, model_name, folder_name, exp_type, seed, batch_size = batch_size)
+
+
+
