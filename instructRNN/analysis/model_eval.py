@@ -103,8 +103,9 @@ def get_holdout_comp_perf(foldername, model_name, labeled_holdouts, seed, num_re
 
 def get_multi_comp_perf(foldername, model_name, seed, num_repeats = 1, batch_len=50, save=False): 
     perf_array = np.full((len(TASK_LIST), 117_600), np.NaN)
-    model.load_model(foldername+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
     model = full_models.make_default_model(model_name)
+
+    model.load_model(foldername+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
     model.to(device)
     file_path = foldername+'/all_comp_scores/'+model_name
 
@@ -120,7 +121,7 @@ def get_multi_comp_perf(foldername, model_name, seed, num_repeats = 1, batch_len
                 if os.path.exists(file_path):
                     pass
                 else: os.makedirs(file_path)
-                np.save(file_path+'/'+model_name+'_'+task+'_holdout_multi_scores_seed'+str(seed), task_perf)
+                np.save(file_path+'/'+model_name+'_'+task+'_multi_comp_scores_seed'+str(seed), task_perf)
 
 
 def _get_model_0_shot(_task_eval_func, model_name, folder_name, exp_type, seed, batch_size, **eval_kwargs): 
