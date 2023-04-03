@@ -47,6 +47,10 @@ class PerfDataFrame():
             self.load_holdout_CCGP(submode='swap_combined')
         elif self.mode == 'layer_ccgp':
             self.load_holdout_CCGP(get_layer_list=True)
+        elif self.mode =='memNet': 
+            self.load_memNet_perf()
+        elif self.mode == 'all_holdout_comp':
+            self.load_holdout_comp_perf()
         elif len(self.training_file)>1: 
             self.load_training_data()
         else: 
@@ -194,6 +198,29 @@ class PerfDataFrame():
                             print('no data for task {} for model {} seed {}'.format(task, self.model_name, seed))
 
         super().__setattr__('data', data)
+
+    def load_memNet_perf(self):
+        data = np.load(open(self.model_name+'_memNet_holdout_perf.npy', 'rb'))[:,:,None]
+        super().__setattr__('data', data)
+
+    def load_holdout_comp_perf(self):
+        data = np.full((len(self.seeds), len(TASK_LIST), 117_600), np.nan)
+        path_root = self.file_path+'/'+self.exp_type+'_holdouts/all_comp_scores/'+self.model_name+'/'+self.model_name
+        for i, seed in enumerate(self.seeds):
+            seed_name = 'seed' + str(seed)
+
+            for label, tasks in self.exp_dict.items():
+                for task in tasks: 
+                    load_str = path_root+'_'+task+'_holdout_comp_scores_seed'+str(seed)+'.npy'
+                    try:
+                        data[i, TASK_LIST.index(task), :] = np.load(open(load_str, 'rb'))
+                    except FileNotFoundError:
+                        if self.verbose: 
+                            print(load_str)
+                            print('no data for task {} for model {} seed {}'.format(task, self.model_name, seed))
+
+        super().__setattr__('data', data)
+
 
 def load_all_comp_perf(model_name, foldername='7.20models/swap_holdouts'):
     all_comp_array = np.full((5, 50, 117_600), np.NaN)
