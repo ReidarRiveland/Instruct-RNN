@@ -152,9 +152,16 @@ def value_sim(recalls, task, init_embedding):
 
     return np.array(task_perf), W_v
 
-max_beta = 100
-trace, recalls, betas = get_memory_trace(max_beta, 1.0, 1000, 100_000, 'RTGo', use_inhibition=True)
+max_beta = 50
+trace, recalls, betas = get_memory_trace(max_beta, 1.0, 10, 1000, 'RTGo', use_inhibition=True)
 plot_memory_trace(trace, betas)
+
+recalled_task, perf = get_recalled_performance(recalls)
+
+
+comp_perf =- get_compositional_mem_perf(recalls, task)
+
+perf
 
 perf, W_v = value_sim(recalls, 'AntiDMMod2', _rule_encoding_set[TASK_LIST.index('AntiDMMod2')])
 
