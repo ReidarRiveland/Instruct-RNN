@@ -96,7 +96,7 @@ def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =10
                     out, hid = model(torch.Tensor(ins).to(model.__device__), context=contexts[i, ...])
                 else: 
                     task_info = get_task_info(num_trials, task, model.info_type, instruct_mode=instruct_mode)
-                    out, hid = model(torch.Tensor(ins).to(model.__device__), task_info, comp_task=comp_task)
+                    out, hid = model(torch.Tensor(ins).to(model.__device__), task_info)
 
                 hid = hid.cpu().numpy()
                 if epoch is None: 
