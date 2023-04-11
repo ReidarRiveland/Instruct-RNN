@@ -206,6 +206,53 @@ def plot_k_shot_task_hist(foldername, exp_type, model_list, k= 0, perf_type='cor
 
         return fig, axn
 
+
+def plot_all_comp_holdout_lolli_v(foldername, exp_type, model_list, marker = 'o', 
+                                    mode='all_holdout_comp', threshold=0.8,  seeds=range(5)):
+    with plt.rc_context({'axes.grid.axis': 'y'}):
+        total_combos_data = np.full((50, len(model_list)), np.NaN)
+
+        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
+
+        width = 1/(len(model_list)+1)
+        ind = np.arange(len(TASK_LIST))
+
+        axn.set_xticks(ind)
+        axn.set_xticklabels('')
+        axn.tick_params(axis='x', which='minor', bottom=False)
+        axn.set_xticks(ind+0.75, minor=True)
+        axn.set_xticklabels(TASK_LIST, fontsize=6, minor=True, rotation=45, ha='right', fontweight='bold') 
+        axn.set_xlim(-0.15, len(ind))
+
+        # axn.set_yticks(np.linspace(0, 1, 11))
+        # axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=8)
+        #axn.set_ylim(0.0, 100)
+        # axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+
+        for i, model_name in enumerate(model_list):  
+            data = PerfDataFrame(foldername, exp_type, model_name, mode = mode, seeds=seeds)
+            total_combos_data[:, i]=np.sum(data.data.mean(0)>threshold, axis=-1)
+
+
+        # normalized = np.divide(np.subtract(total_combos_data, np.min(total_combos_data, axis=1)[:, None]), 
+        #                             (np.max(total_combos_data, axis=1)[:, None]-np.min(total_combos_data, axis=1)[:, None]))
+        #normalized = total_combos_data
+        normalized = normalize(total_combos_data, axis=1, norm='l2')
+
+        for i, model_name in enumerate(model_list):
+            color = MODEL_STYLE_DICT[model_name][0]     
+
+            axn.axhline(normalized[:, i].mean(), color=color, linewidth=1.0, alpha=0.8, zorder=0)
+
+            x_mark = (ind+(width/2))+(i*width)
+            axn.scatter(x_mark,  normalized[:, i], color=color, s=3, marker=marker)
+            axn.vlines(x_mark, ymin=0, ymax=normalized[:, i], color=color, linewidth=0.5)
+
+        fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
+
+        plt.tight_layout()
+        return fig, axn
+
 def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='', perf_type='correct',  seeds=range(5)):
     with plt.rc_context({'axes.grid.axis': 'y'}):
         fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
@@ -430,8 +477,6 @@ def plot_layer_ccgp(foldername,exp_type, model_list, fig_axn=None, seeds=range(5
     axn.set_ylim(0.475, 1)
     axn.set_xticks(range(14))
     return fig, axn
-
-    
 
 def plot_task_var_heatmap(load_folder, model_name, seed, cmap = sns.color_palette("inferno", as_cmap=True), cluster_info=None):
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(12, 4))
