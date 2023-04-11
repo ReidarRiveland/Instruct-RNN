@@ -28,30 +28,7 @@ embedder = PCA()
 embedder.fit(rule_encoding_set.reshape(-1, 128))
 componenets = embedder.components_[:20, :]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+rule_encoding_set = rule_encoding_set.mean(1)
 
 def softmax(x, beta=1):
     return np.exp(beta*x)/np.sum(np.exp(beta*x))
@@ -73,6 +50,81 @@ def recall_mhopf_w_inhibition(pattern, last_pattern, all_encodings, beta=10.0):
 
 def make_periodic_beta(max_beta, phase, num_cycles, num_points):
     return max_beta/2*np.cos(phase*np.linspace(0, 2*num_cycles*np.pi, num_points+1))+max_beta/2
+
+def get_PCA_memory_trace(max_beta, phase, num_cycles, num_points, init_task, use_inhibition=True): 
+    betas = make_periodic_beta(max_beta, phase, num_cycles, num_points)
+
+    dir_memory_trace = np.empty((128, len(betas)))
+    task_memory_trace = np.empty((128, len(betas)))
+
+    dir_trace = np.empty((128, len(betas)))
+    task_trace = np.empty((128, len(betas)))
+
+    task_recalled = []
+    dir_recalled = []
+
+    dir_last_recalled = np.zeros(128)
+    task_last_recalled = np.zeros(128)
+    
+    task_trace_pattern = _rule_encoding_set[TASK_LIST.index(init_task), :, :].mean(0) + np.random.normal(scale = 0.1, size=128)
+    dir_trace_pattern = componenets[np.random.randint(0, 20), :]
+
+    for i, beta in enumerate(betas):
+        dir_trace_pattern = recall_mhopf_w_inhibition(dir_trace_pattern, dir_last_recalled, componenets, beta=beta)+np.random.normal(scale = 0.1, size=128)
+        task_trace_pattern = recall_mhopf_w_inhibition(task_trace_pattern, task_last_recalled, rule_encoding_set, beta=beta)+np.random.normal(scale = 0.1, size=128)
+
+        dir_memory_trace[:, i] = dir_trace_pattern
+        task_memory_trace[:, i] = task_trace_pattern
+
+        if beta == max_beta: 
+            dir_recalled.append(dir_trace_pattern)
+            task_recalled.append(task_trace_pattern)
+        if beta == 0:
+            dir_last_recalled = dir_trace_pattern
+            task_last_recalled = task_trace_pattern
+
+
+    return task_memory_trace, dir_memory_trace, np.array(task_recalled), np.array(dir_recalled), betas
+
+
+def plot_memory_trace(trace, betas): 
+    sims = cosine_similarity(trace.T, _rule_encoding_set.mean(1))
+    fig, axn = plt.subplots(2,1, sharex=True, figsize =(8, 4))
+    res = sns.heatmap(sims.T, xticklabels=[], yticklabels=in_tasks, ax=axn[0], cbar=False)
+    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 3)
+
+    axn[1].plot(betas, linewidth=0.9)
+
+    plt.show()
+
+
+SWAP_LIST[9]
+
+max_beta = 100
+task = 'Dur1'
+task_trace, dir_trace, task_recalls, dir_recalls, betas = get_PCA_memory_trace(max_beta, 1.0, 100, 10_000, task, use_inhibition=True)
+
+plot_memory_trace(task_trace+dir_trace, betas)
+
+num_trials=50
+task_perf = []
+
+comp_recalls = (task_recalls+dir_recalls)
+for i in range(comp_recalls.shape[0]):
+    info_embedded = simpleNet.rule_encoder.rule_layer2(torch.tensor(comp_recalls[i, :]).float())[None, :].repeat(num_trials, 1)
+    task_perf.append(task_eval_info_embedded(simpleNet, task, num_trials, info_embedded))
+
+plt.plot(task_perf)
+plt.show()
+
+
+
+
+
+
+
+
+
 
 def get_memory_trace(max_beta, phase, num_cycles, num_points, init_task, use_inhibition=True): 
     betas = make_periodic_beta(max_beta, phase, num_cycles, num_points)
