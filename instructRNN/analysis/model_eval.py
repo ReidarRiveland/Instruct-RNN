@@ -26,7 +26,9 @@ def task_eval_info_embedded(model, task, batch_size, info_embedded, **trial_kwar
     out, _ = model(torch.Tensor(ins).to(model.__device__), info_embedded=info_embedded)
     return np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
-def task_eval_compositional(model, task, reference_tasks, batch_size, **trial_kwargs): 
+def task_eval_compositional(model, task, batch_size, reference_tasks=None, **trial_kwargs): 
+    if reference_tasks is None: 
+        reference_tasks = construct_trials(task).comp_ref_tasks
     info_embedded = model.get_comp_task_rep(reference_tasks, batch_size)
     return task_eval_info_embedded(model, task, batch_size, info_embedded, **trial_kwargs)
 
@@ -35,7 +37,7 @@ def task_eval_compositional_all_combos(model, task, batch_size, **trial_kwargs):
     perf_array = np.full(117_600, np.NaN)
 
     for i, reference_tasks in tqdm(enumerate(all_task_combos), desc='combos tested'): 
-        perf_array[i] = task_eval_compositional(model, task, reference_tasks, batch_size)
+        perf_array[i] = task_eval_compositional(model, task, batch_size, reference_tasks = reference_tasks)
     
     return perf_array
 
@@ -74,7 +76,7 @@ def get_val_perf(foldername, model_name, seed, num_repeats = 5, batch_len=128, s
 
     return perf_array
 
-def get_holdout_comp_perf(foldername, model_name, labeled_holdouts, seed, num_repeats = 1, batch_len=50, save=False): 
+def get_holdout_all_comp_perf(foldername, model_name, labeled_holdouts, seed, num_repeats = 1, batch_len=50, save=False): 
     if 'swap' in foldername: 
         exp_dict = SWAPS_DICT
 
@@ -101,7 +103,7 @@ def get_holdout_comp_perf(foldername, model_name, labeled_holdouts, seed, num_re
                     np.save(file_path+'/'+model_name+'_'+task+'_holdout_comp_scores_seed'+str(seed), task_perf)
 
 
-def get_multi_comp_perf(foldername, model_name, seed, num_repeats = 1, batch_len=50, save=False): 
+def get_multi_all_comp_perf(foldername, model_name, seed, num_repeats = 1, batch_len=50, save=False): 
     perf_array = np.full((len(TASK_LIST), 117_600), np.NaN)
     model = full_models.make_default_model(model_name)
 
@@ -140,3 +142,4 @@ def eval_model_0_shot(model_name, folder_name, exp_type, seed, batch_size = 128,
 
 def eval_model_compositional_0_shot(model_name, folder_name, exp_type, seed, batch_size = 128):
     return _get_model_0_shot(task_eval_compositional, model_name, folder_name, exp_type, seed, batch_size = batch_size)
+

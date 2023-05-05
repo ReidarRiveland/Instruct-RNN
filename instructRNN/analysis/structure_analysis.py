@@ -13,9 +13,7 @@ def get_rnn_svd(model):
 
 def plot_svd_dist(model_list, seed=0, **plt_kwargs): 
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
-    # fig.suptitle('CCGP Across Model Hierarchy')
-    # axn.set_ylim(0.475, 1)
-    # axn.set_ylabel('Holdout Task CCGP', size=8, fontweight='bold')
+
     axn.set_xticks(range(0, 20))
     axn.set_xticklabels([str(label) for label in range(1, 21)])
 
@@ -31,9 +29,7 @@ def plot_svd_dist(model_list, seed=0, **plt_kwargs):
 
 def plot_svd_overlap(model_list, seed=0, **plt_kwargs): 
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
-    # fig.suptitle('CCGP Across Model Hierarchy')
-    # axn.set_ylim(0.475, 1)
-    # axn.set_ylabel('Holdout Task CCGP', size=8, fontweight='bold')
+
     axn.set_xticks(range(0, 20))
     axn.set_xticklabels([str(label) for label in range(1, 21)])
 
@@ -50,9 +46,7 @@ def plot_svd_overlap(model_list, seed=0, **plt_kwargs):
 
 def plot_pc_var_exp_dist(model_list, holdout_file, seed=0, **plt_kwargs): 
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
-    # fig.suptitle('CCGP Across Model Hierarchy')
-    # axn.set_ylim(0.475, 1)
-    # axn.set_ylabel('Holdout Task CCGP', size=8, fontweight='bold')
+
     axn.set_xticks(range(0, 20))
     axn.set_xticklabels([str(label) for label in range(1, 21)])
 

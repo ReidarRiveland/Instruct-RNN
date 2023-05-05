@@ -200,13 +200,14 @@ class ModelTrainer(BaseTrainer):
                 ins, tar, mask, tar_dir, task_type = data
 
                 if comp_rules: 
-                    info_embedded = model.get_comp_task_rep(task_type, ins.shape[0])
+                    reference_tasks = construct_trials(task_type).comp_ref_tasks
+                    info_embedded = model.get_comp_task_rep(reference_tasks, ins.shape[0])
                     task_info = None
                 else: 
                     info_embedded = None
+                    task_info = get_task_info(self.batch_len, task_type, model.info_type, instruct_mode=instruct_mode)
 
                 self.optimizer.zero_grad()
-                task_info = get_task_info(self.batch_len, task_type, model.info_type, instruct_mode=instruct_mode)
                 out, _ = model(ins.to(device), task_info, info_embedded=info_embedded)
                 loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
                 loss.backward()
