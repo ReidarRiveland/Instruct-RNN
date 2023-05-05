@@ -564,52 +564,37 @@ def plot_partner_perf(model_name):
     plt.show()
 
 
-def plot_model_response(model, trials, plotting_index = 0, instructions = None, save_file=None):
-    model.eval()
-    with torch.no_grad(): 
+def plot_model_response(out, hid, ins, tar, plotting_index = 0):
+    correct = isCorrect(out, torch.Tensor(tar), trials.target_dirs)[plotting_index]
+    out = out.detach().cpu().numpy()[plotting_index, :, :]
+    hid = hid.detach().cpu().numpy()[plotting_index, :, :]
 
-        tar = trials.targets
-        ins = trials.inputs
+    fix = ins[plotting_index, :, 0:1]            
+    mod1 = ins[plotting_index, :, 1:1+STIM_DIM]
+    mod2 = ins[plotting_index, :, 1+STIM_DIM:1+(2*STIM_DIM)]
 
-        if instructions is not None: 
-            assert len(instructions) == trials.num_trials, 'instructions do not equally number of trials'
-            task_info = instructions
-            is_task_instruct = all([instruct in train_instruct_dict or instruct in test_instruct_dict for instruct in instructions])
-            if not is_task_instruct: warnings.warn('Not all instructions correspond to given task!')
-        else: 
-            task_info = get_task_info(ins.shape[0], trials.task_type, model.info_type)
-        
-        out, hid = model(torch.Tensor(ins), task_info)
+    to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, tar[plotting_index, :, :].T, out.squeeze().T]
+    gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 5, 5])
+    ylabels = ['fix.', 'mod. 1', 'mod. 2', 'Target', 'Response']
 
-        correct = isCorrect(out, torch.Tensor(tar), trials.target_dirs)[plotting_index]
-        out = out.detach().cpu().numpy()[plotting_index, :, :]
-        hid = hid.detach().cpu().numpy()[plotting_index, :, :]
+    fig, axn = plt.subplots(5,1, sharex = True, gridspec_kw=gs_kw, figsize=(4,3))
+    cbar_ax = fig.add_axes([.91, .3, .03, .4])
+    for i, ax in enumerate(axn.flat):
+        sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1.3, cbar_ax=None if i else cbar_ax)
+        ax.set_ylabel(ylabels[i], fontweight = 'bold', fontsize=6)
+        if i == 0: 
+            ax.set_title(trials.task_type +' trial info; correct: ' + str(correct))
+        if i == 5: 
+            ax.set_xlabel('time')
+            ax.xaxis.set_ticks(np.arange(0, 120, 5))
+            ax.set_xticklabels(np.arange(0, 120, 5), fontsize=16)
 
-        fix = ins[plotting_index, :, 0:1]            
-        mod1 = ins[plotting_index, :, 1:1+STIM_DIM]
-        mod2 = ins[plotting_index, :, 1+STIM_DIM:1+(2*STIM_DIM)]
+            ax.tick_params(axis='x', labelsize= 6)
 
-        to_plot = [fix.T, mod1.squeeze().T, mod2.squeeze().T, tar[plotting_index, :, :].T, out.squeeze().T]
-        gs_kw = dict(width_ratios=[1], height_ratios=[1, 5, 5, 5, 5])
-        ylabels = ['fix.', 'mod. 1', 'mod. 2', 'Target', 'Response']
+    if save_file is not None: 
+        plt.savefig('figs/'+save_file)
+    plt.show()
 
-        fig, axn = plt.subplots(5,1, sharex = True, gridspec_kw=gs_kw, figsize=(4,3))
-        cbar_ax = fig.add_axes([.91, .3, .03, .4])
-        for i, ax in enumerate(axn.flat):
-            sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1.3, cbar_ax=None if i else cbar_ax)
-            ax.set_ylabel(ylabels[i], fontweight = 'bold', fontsize=6)
-            if i == 0: 
-                ax.set_title(trials.task_type +' trial info; correct: ' + str(correct))
-            if i == 5: 
-                ax.set_xlabel('time')
-                ax.xaxis.set_ticks(np.arange(0, 120, 5))
-                ax.set_xticklabels(np.arange(0, 120, 5), fontsize=16)
-
-                ax.tick_params(axis='x', labelsize= 6)
-
-        if save_file is not None: 
-            plt.savefig('figs/'+save_file)
-        plt.show()
 
 def plot_trial(trials, index):
     ins = trials.inputs

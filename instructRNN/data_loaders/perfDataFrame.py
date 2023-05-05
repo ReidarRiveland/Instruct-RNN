@@ -38,7 +38,7 @@ class PerfDataFrame():
             load_str = self.file_path+'/multitask_holdouts/multi_comp_perf/'+self.model_name+'/'+self.model_name+'_multi_comp_perf_seed{}.npy'
             self.load_multi_measure(load_str)
         elif self.mode == 'lin_comp':
-            self.load_context_data()
+            self.load_context_data(submode='lin_comp')
         elif self.mode == 'context': 
             self.load_context_data()
         elif self.mode == 'ccgp':
@@ -175,9 +175,10 @@ class PerfDataFrame():
 
         super().__setattr__('data', data)
 
-    def load_context_data(self, submode='lin_comp'): 
-        data = np.full((len(self.seeds), 50, len(TASK_LIST),  2500), np.nan)
 
+    def load_context_data(self, submode='context'): 
+        data = np.full((len(self.seeds), 25, len(TASK_LIST),  1200), np.nan)
+        self.num_batches = 1200
         for i, seed in enumerate(self.seeds):
             seed_name = 'seed' + str(seed)
 
@@ -187,17 +188,17 @@ class PerfDataFrame():
                         if submode == 'lin_comp':
                             load_str = self.file_path+'/'+self.exp_type+'_holdouts/'+label+'/'+self.model_name+'/lin_comp/'+seed_name+'_'+task+'_'+'comp_data'
                         elif submode == 'context':
-                            load_str = self.file_path+'/'+self.exp_type+'_holdouts/'+label+'/'+self.model_name+'/contexts/'+seed_name+'_'+task+'test_training_data'
+                            load_str = self.file_path+'/'+self.exp_type+'_holdouts/'+label+'/'+self.model_name+'/contexts/'+seed_name+'_'+task+'test_training_data64'
 
                         tmp_data_list = pickle.load(open(load_str, 'rb'))[0]
-                        for k in range(len(tmp_data_list)):
+                        for k in range(25):
                             trial_data_list = tmp_data_list[k]
-                            data[i, k, TASK_LIST.index(task), :len(trial_data_list)] = trial_data_list
+                            data[i, k, TASK_LIST.index(task), :np.minimum(len(trial_data_list), 1200)] = trial_data_list[:np.minimum(len(trial_data_list), 1200)]
                     except FileNotFoundError:
                         if self.verbose: 
                             print('no data for task {} for model {} seed {}'.format(task, self.model_name, seed))
 
-        super().__setattr__('data', data)
+        super().__setattr__('data', data.mean(1))
 
     def load_memNet_perf(self):
         data = np.load(open(self.model_name+'_memNet_holdout_perf.npy', 'rb'))[:,:,None]

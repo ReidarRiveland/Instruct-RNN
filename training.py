@@ -2,7 +2,7 @@ import os
 import itertools
 from instructRNN.tasks.tasks import MULTITASK_DICT, SWAPS_DICT, FAMILY_DICT
 from instructRNN.models.full_models import small_models
-from instructRNN.analysis.model_eval import get_holdout_comp_perf, get_multi_comp_perf
+from instructRNN.analysis.model_eval import get_holdout_all_comp_perf, get_multi_all_comp_perf
 
 def make_training_jobs(exp, models, seeds, holdouts, job_index):
     if exp == 'swap': 
@@ -83,8 +83,8 @@ if __name__ == "__main__":
             train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, use_checkpoint = args.use_checkpoint, use_dropout = False, overwrite=args.overwrite)
 
         if args.mode == 'holdout_comp':
-            get_holdout_comp_perf(EXP_FOLDER, model, holdouts, _seed, save=True)
+            get_holdout_all_comp_perf(EXP_FOLDER, model, holdouts, _seed, save=True)
 
         if args.mode == 'multi_comp':
-            get_multi_comp_perf(EXP_FOLDER, model, _seed, save=True)
+            get_multi_all_comp_perf(EXP_FOLDER, model, _seed, save=True)
                 
