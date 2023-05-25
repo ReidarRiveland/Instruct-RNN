@@ -24,7 +24,6 @@ plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
 plt.rcParams['axes.spines.top'] = False
 plt.rcParams['axes.spines.right'] = False
-plt.rcParams['axes.grid'] = True
 plt.rcParams['grid.color'] = 'grey'
 plt.rcParams['grid.linewidth'] = 0.5
 plt.rcParams['axes.axisbelow'] = True
@@ -206,6 +205,34 @@ def plot_k_shot_task_hist(foldername, exp_type, model_list, k= 0, perf_type='cor
 
         return fig, axn
 
+def plot_all_models_task_dist(foldername, exp_type, model_list, k= 0, perf_type='correct', mode='', seeds=range(5)): 
+    fig, axn = plt.subplots(2, 4, sharey = True, sharex=True, figsize =(8, 4))
+    fig.suptitle('Distribution of Performance on Novel Tasks')
+
+    thresholds = np.linspace(0.1, 1.0, 10)
+    thresholds0 = np.linspace(0.0, 0.9, 10)
+
+    for i, ax in enumerate(axn.flatten()):
+        model_name = model_list[i]
+        data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode=mode, seeds=seeds)
+        perf = data.data[:, :, k]
+        bins = np.zeros((len(range(5)), 10))
+        for iy, ix in np.ndindex(perf.shape):
+            bins[iy, int(np.floor((perf[iy, ix]*10)-1e-5))]+=1
+        mean_bins = np.mean(bins, axis=0)
+        std_bins = np.std(bins, axis=0)
+        ax.set_title(MODEL_STYLE_DICT[model_name][2], fontsize=8)
+
+        if i%4 == 0: 
+            ax.set_ylabel('Number of Tasks')
+        if i > 3: 
+            ax.set_xticks(np.arange(0, 10)+0.5)
+            ax.set_xticklabels([f'{x:.0%}-{y:.0%}' for x,y in list(zip(thresholds0, thresholds))][::-1], fontsize=5, rotation='45', ha='right') 
+
+
+        ax.bar(range(0,10), mean_bins[::-1], 1.0, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.8)
+
+    return fig, axn
 
 def plot_all_comp_holdout_lolli_v(foldername, exp_type, model_list, marker = 'o', 
                                     mode='all_holdout_comp', threshold=0.8,  seeds=range(5)):

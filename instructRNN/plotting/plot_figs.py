@@ -20,6 +20,7 @@ plt.show()
 ###HOLDOUTS
 plot_curves('7.20models', 'swap', to_plot_models, mode='combined', avg=True, linewidth=0.8)
 plot_k_shot_task_hist('7.20models', 'swap', to_plot_models[::-1], mode='combined')
+plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='combined')
 plt.show()
 
@@ -158,7 +159,7 @@ print_decoded_instruct(holdout_multi_instruct)
 print_decoded_instruct(holdout_holdout_instruct)
 
 ###GPT COMPARISON
-fig_axn = plot_curves('7.20models', 'swap', ['gptNetXL_lin', 'bowNet_lin', 'clipNet_lin'], mode='combined', avg=True, linewidth=0.8)
+fig_axn = plot_curves('7.20models', 'swap', ['gptNetXL_lin'], mode='combined', avg=True, linewidth=0.8)
 plot_curves('7.20models', 'swap', ['gptNetXL_L_lin'], mode='combined', fig_axn=fig_axn, avg=True, linewidth=0.8, linestyle='--')
 plt.show()
 
