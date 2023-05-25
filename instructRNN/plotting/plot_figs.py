@@ -19,7 +19,6 @@ plt.show()
 
 ###HOLDOUTS
 plot_curves('7.20models', 'swap', to_plot_models, mode='combined', avg=True, linewidth=0.8)
-plot_k_shot_task_hist('7.20models', 'swap', to_plot_models[::-1], mode='combined')
 plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='combined')
 plt.show()
@@ -140,10 +139,10 @@ get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)
 plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'clipNet_lin', 2)
 
 ###STRUCTURE FIG
-plot_comp_bar('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp', 'swap_ccgp'], y_lim=(0.5, 1.0))
+plot_comp_dots('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp', 'swap_ccgp'], y_lim=(0.5, 1.0))
 plt.show()
 
-plot_comp_bar('7.20models', 'swap', to_plot_models, ['combinedcomp', 'multi_comp'], y_lim=(0.0, 1.0))
+plot_comp_dots('7.20models', 'swap', to_plot_models, ['combinedcomp', 'multi_comp'], y_lim=(0.0, 1.0))
 plt.show()
 
 ###HOLDOUTS
@@ -161,8 +160,4 @@ print_decoded_instruct(holdout_holdout_instruct)
 ###GPT COMPARISON
 fig_axn = plot_curves('7.20models', 'swap', ['gptNetXL_lin'], mode='combined', avg=True, linewidth=0.8)
 plot_curves('7.20models', 'swap', ['gptNetXL_L_lin'], mode='combined', fig_axn=fig_axn, avg=True, linewidth=0.8, linestyle='--')
-plt.show()
-
-fig_axn = plot_layer_ccgp('7.20models', 'swap', ['gptNetXL_L_lin'], linestyle='--')
-fig_axn = plot_layer_ccgp('7.20models','swap', ['bowNet_lin', 'gptNetXL_lin', 'clipNet_lin'], fig_axn=fig_axn)
 plt.show()
