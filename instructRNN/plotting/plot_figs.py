@@ -25,19 +25,19 @@ plt.show()
 
 ##TUNED HOLDOUTS
 plot_curves('7.20models', 'swap', tuned_to_plot, mode='combined', avg=True, linewidth=0.8)
-plot_k_shot_task_hist('7.20models', 'swap', tuned_to_plot[::-1], mode='combined')
+plot_all_models_task_dist('7.20models', 'swap', tuned_to_plot[::-1], mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot, mode='combined')
 plt.show()
 
 ###SWAP HOLDOUTS
 plot_curves('7.20models', 'swap', to_plot_models, mode='swap_combined', avg=True, linewidth=0.8)
-plot_k_shot_task_hist('7.20models', 'swap', to_plot_models[::-1], mode='swap_combined')
+plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='swap_combined')
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='swap_combined')
 plt.show()
 
 ###FAMILY
 plot_curves('7.20models', 'family', to_plot_models, mode='combined', avg=True, linewidth=0.8)
-plot_k_shot_task_hist('7.20models', 'family', to_plot_models[::-1], mode='combined')
+plot_all_models_task_dist('7.20models', 'family', to_plot_models, mode='combined')
 plot_all_task_lolli_v('7.20models', 'family', to_plot_models, mode='combined')
 plt.show()
 
