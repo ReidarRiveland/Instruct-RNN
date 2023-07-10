@@ -717,18 +717,3 @@ def construct_trials(task_type, num_trials=None, return_tensor=False, **factory_
                 trial.target_dirs.astype(np.float32), 
                 TASK_LIST.index(task_type))
 
-# trials = AntiDMMod2(100)
-# trials.plot_trial(0)
-
-# if __name__ == "__main__":
-#     import argparse
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument('task')
-#     parser.add_argument('-num', default=1)
-#     args = parser.parse_args()
-
-#     _task = construct_trials(args.task)
-#     trials = _task(args.num)
-
-#     for index in range(args.num):
-#         trials.plot_trial(index)

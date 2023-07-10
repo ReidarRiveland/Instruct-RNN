@@ -1129,14 +1129,3 @@ test_instruct_dict['DNMC'] = ('pick the second direction if both stimuli are on 
 
 
 
-def save_instruct_dicts(models_path):
-	path = models_path+'/instructs/'
-	if os.path.exists(path):
-		pass
-	else: 
-		os.makedirs(path)
-
-	#pickle.dump(train_instruct_dict, open(path+'train_instruct_dict', 'wb'))
-	pickle.dump(test_instruct_dict, open(path+'test_instruct_dict', 'wb'))
-
-
