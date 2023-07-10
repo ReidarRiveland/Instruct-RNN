@@ -224,19 +224,14 @@ def plot_all_comp_holdout_lolli_v(foldername, exp_type, model_list, marker = 'o'
         axn.set_xticklabels(TASK_LIST, fontsize=6, minor=True, rotation=45, ha='right', fontweight='bold') 
         axn.set_xlim(-0.15, len(ind))
 
-        # axn.set_yticks(np.linspace(0, 1, 11))
-        # axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=8)
-        #axn.set_ylim(0.0, 100)
-        # axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+
 
         for i, model_name in enumerate(model_list):  
             data = PerfDataFrame(foldername, exp_type, model_name, mode = mode, seeds=seeds)
             total_combos_data[:, i]=np.sum(data.data.mean(0)>threshold, axis=-1)
 
 
-        # normalized = np.divide(np.subtract(total_combos_data, np.min(total_combos_data, axis=1)[:, None]), 
-        #                             (np.max(total_combos_data, axis=1)[:, None]-np.min(total_combos_data, axis=1)[:, None]))
-        #normalized = total_combos_data
+
         normalized = normalize(total_combos_data, axis=1, norm='l2')
 
         for i, model_name in enumerate(model_list):
