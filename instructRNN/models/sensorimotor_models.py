@@ -157,6 +157,8 @@ class RuleEncoder(nn.Module):
 class RuleNet(BaseNet):
     def __init__(self, config):
         super().__init__(config)
+        if self.info_type == 'comb': self.num_tasks = 10
+        
         self.rule_transform = nn.Parameter(self.gen_ortho_rules(), requires_grad=False)
 
         if self.add_rule_encoder: 

@@ -105,9 +105,22 @@ def get_input_rule(batch_size, task_type, instruct_mode=None):
     
     return torch.Tensor(task_rule)
 
+def get_comb_rule(batch_size, task_type, instruct_mode=None): 
+    if instruct_mode == 'masked': 
+        task_rule = np.zeros((batch_size, len(TASK_LIST)))
+    elif instruct_mode == 'swap' or instruct_mode == 'swap_combined': 
+        swapped_task = get_swap_task(task_type)
+        task_rule = construct_trials(swapped_task).rich_vector
+    else: 
+        task_rule = construct_trials(task_type).rich_vector
+    
+    return torch.Tensor(task_rule)
+
 def get_task_info(batch_len, task_type, info_type, instruct_mode=None): 
     if info_type=='lang': 
         return get_instructions(batch_len, task_type, instruct_mode = instruct_mode)
+    elif info_type=='comb': 
+        return get_comb_rule(batch_len, task_type, instruct_mode = instruct_mode)
     else: 
         return get_input_rule(batch_len, task_type, instruct_mode = instruct_mode)
 
