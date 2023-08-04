@@ -23,7 +23,7 @@ location = str(pathlib.Path(__file__).parent.absolute())
 
 @define
 class BaseModelConfig(): 
-    model_name: str 
+    model_name: str = None 
 
     rnn_hidden_dim: int = 256
     rnn_layers: int = 1
@@ -158,7 +158,7 @@ class RuleNet(BaseNet):
     def __init__(self, config):
         super().__init__(config)
         if self.info_type == 'comb': self.num_tasks = 10
-        
+
         self.rule_transform = nn.Parameter(self.gen_ortho_rules(), requires_grad=False)
 
         if self.add_rule_encoder: 
