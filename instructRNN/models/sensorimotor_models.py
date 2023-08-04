@@ -15,7 +15,6 @@ from instructRNN.tasks.tasks import TASK_LIST, construct_trials
 from instructRNN.models.language_models import InstructionEmbedder, LMConfig
 from instructRNN.tasks.task_factory import INPUT_DIM, OUTPUT_DIM, TRIAL_LEN
 from instructRNN.instructions.instruct_utils import get_input_rule, get_instructions, one_hot_input_rule
-import instructRNN.analysis.model_analysis as analysis
 
 SENSORY_INPUT_DIM = INPUT_DIM
 MOTOR_OUTPUT_DIM = OUTPUT_DIM
@@ -206,6 +205,7 @@ class InstructNet(BaseNet):
         self.instruct_rep_basis = None
 
     def get_instruct_rep_basis(self):
+        import instructRNN.analysis.model_analysis as analysis
         if self.instruct_rep_basis is None: 
             self.instruct_rep_basis=analysis.get_instruct_reps(self.langModel)
 
