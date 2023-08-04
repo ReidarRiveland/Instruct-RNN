@@ -113,8 +113,9 @@ def get_comb_rule(batch_size, task_type, instruct_mode=None):
         task_rule = construct_trials(swapped_task).rich_vector
     else: 
         task_rule = construct_trials(task_type).rich_vector
-    
-    return torch.Tensor(task_rule)
+    task_rule = torch.Tensor(task_rule).unsqueeze(0).repeat(batch_size, 1)
+
+    return task_rule
 
 def get_task_info(batch_len, task_type, info_type, instruct_mode=None): 
     if info_type=='lang': 
