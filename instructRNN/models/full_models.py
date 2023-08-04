@@ -185,6 +185,10 @@ def make_default_model(model_str):
     if model_str == 'simpleNetPlus':
         return SimpleNetPlus()   
     
+    if model_str == 'combNet':
+        return CombNet()
+    
+    
     if model_str == 'gptNet_lin': 
         return GPTNet_lin()
     if model_str == 'gptNet_lin_tuned': 
