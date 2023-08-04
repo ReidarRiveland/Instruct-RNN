@@ -24,10 +24,7 @@ plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
 plt.rcParams['axes.spines.top'] = False
 plt.rcParams['axes.spines.right'] = False
-plt.rcParams['axes.grid'] = True
-plt.rcParams['grid.color'] = 'grey'
-plt.rcParams['grid.linewidth'] = 0.5
-plt.rcParams['axes.axisbelow'] = True
+
 
 Blue = '#1C3FFD'
 lightBlue=	'#75E6DA'
@@ -148,52 +145,73 @@ def plot_context_curves(foldername, exp_type, model_list, mode = 'lin_comp', avg
             std = np.zeros_like(mean)
             _plot_all_performance_curves(mean, std, axn, color, zero_marker, **curve_kwargs)
 
-def plot_comp_bar(foldername, exp_type, model_list, mode_list, fig_axn=None, y_lim =(0.0, 1.0), **formatting):
-    with plt.rc_context({'axes.grid.axis': 'y'}):
-        if fig_axn is None: 
-            fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(4, 4))
-        else: 
-            fig, axn = fig_axn
 
-        axn.set_ylabel('Perforamance', size=8, fontweight='bold')
-        axn.set_ylim(y_lim)
-        width = 1/(len(model_list)+2)
+def plot_comp_dots(foldername, exp_type, model_list, mode_list, fig_axn=None, y_lim =(0.0, 1.0), **formatting):
+    if fig_axn is None: 
+        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
+    else: 
+        fig, axn = fig_axn
 
-        for j, mode in enumerate(mode_list):
-            for i, model_name in enumerate(model_list):
-                color=MODEL_STYLE_DICT[model_name][0]
-                data  = PerfDataFrame(foldername, exp_type, model_name, mode=mode)
-                mean, std = data.avg_tasks(k_shot=0)
+    axn.set_ylabel('Perforamance', size=8, fontweight='bold')
+    axn.set_ylim(y_lim)
+    width = 1/(len(model_list)+2)
 
-                x_mark = ((j)+width)+((i*1.05*width))
-                axn.bar(x_mark, mean, width, align='edge', color=color, **formatting)
+    for j, mode in enumerate(mode_list):
+        for i, model_name in enumerate(model_list):
+            color=MODEL_STYLE_DICT[model_name][0]
+            data  = PerfDataFrame(foldername, exp_type, model_name, mode=mode)
 
-        axn.set_xticklabels('')
-        axn.xaxis.set_ticks_position('none') 
-        axn.set_xlim(0, len(mode_list))
+            x_mark = ((j)+width)+((i*1.05*width))
+            for k, seed_point in enumerate(data.data[..., 0].mean(-1)):
+                axn.scatter(x_mark+(k*0.01), seed_point, color=color, edgecolor='white', s=20.0, linewidth=0.5)
+
+    axn.set_xticklabels('')
+    axn.xaxis.set_ticks_position('none') 
+    axn.set_xlim(0, len(mode_list))
     return fig, axn
 
 def plot_k_shot_task_hist(foldername, exp_type, model_list, k= 0, perf_type='correct', mode='', seeds=range(5)): 
-    with plt.rc_context({'axes.grid.axis': 'x'}):
-        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
-        fig.suptitle('Zero-Shot Performance Across Tasks')
-        axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
-        axn.set_xlabel('Number of Tasks', size=8, fontweight='bold')
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
+    fig.suptitle('Zero-Shot Performance Across Tasks')
+    axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+    axn.set_xlabel('Number of Tasks', size=8, fontweight='bold')
 
-        thresholds = np.linspace(0.1, 1.0, 10)
-        thresholds0 = np.linspace(0.0, 0.9, 10)
+    thresholds = np.linspace(0.1, 1.0, 10)
+    thresholds0 = np.linspace(0.0, 0.9, 10)
 
-        width = 1/(len(model_list)+1)
-        ind = np.arange(10)
-        axn.set_xlim(0, 27)
-        axn.set_yticks(ind+0.5, minor=True)
-        axn.set_yticklabels([f'{x:.0%}>{y:.0%}' for x,y in list(zip(thresholds, thresholds0))], fontsize=5, minor=True) 
-        
-        axn.set_yticks(np.arange(11))
-        axn.yaxis.set_ticks_position('none') 
-        axn.set_yticklabels('') 
+    width = 1/(len(model_list)+1)
+    ind = np.arange(10)
+    axn.set_xlim(0, 27)
+    axn.set_yticks(ind+0.5, minor=True)
+    axn.set_yticklabels([f'{x:.0%}>{y:.0%}' for x,y in list(zip(thresholds, thresholds0))], fontsize=5, minor=True) 
+    
+    axn.set_yticks(np.arange(11))
+    axn.yaxis.set_ticks_position('none') 
+    axn.set_yticklabels('') 
 
-        for i, model_name in enumerate(model_list):
+    for i, model_name in enumerate(model_list):
+        data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode=mode, seeds=seeds)
+        perf = data.data[:, :, k]
+        bins = np.zeros((len(range(5)), 10))
+        for iy, ix in np.ndindex(perf.shape):
+            bins[iy, int(np.floor((perf[iy, ix]*10)-1e-5))]+=1
+        mean_bins = np.mean(bins, axis=0)
+        std_bins = np.std(bins, axis=0)
+
+        axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.8)
+
+        return fig, axn
+
+def plot_all_models_task_dist(foldername, exp_type, model_list, k= 0, perf_type='correct', mode='', seeds=range(5)): 
+    fig, axn = plt.subplots(2, 4, sharey = True, sharex=True, figsize =(8, 4))
+    fig.suptitle('Distribution of Performance on Novel Tasks')
+
+    thresholds = np.linspace(0.1, 1.0, 10)
+    thresholds0 = np.linspace(0.0, 0.9, 10)
+
+    for i, ax in enumerate(axn.flatten()):
+        try:
+            model_name = model_list[i]
             data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode=mode, seeds=seeds)
             perf = data.data[:, :, k]
             bins = np.zeros((len(range(5)), 10))
@@ -201,87 +219,95 @@ def plot_k_shot_task_hist(foldername, exp_type, model_list, k= 0, perf_type='cor
                 bins[iy, int(np.floor((perf[iy, ix]*10)-1e-5))]+=1
             mean_bins = np.mean(bins, axis=0)
             std_bins = np.std(bins, axis=0)
+            ax.set_title(MODEL_STYLE_DICT[model_name][2], fontsize=8)
 
-            axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.8)
+            ax.set_ylim(0, 25)
+            ax.set_yticks([0, 10, 20])
+            ax.set_yticklabels(['0', '10', '20'])
 
-        return fig, axn
+            if i%4 == 0: 
+                ax.set_ylabel('Number of Tasks')
+            if i > 3: 
+                ax.set_xticks(np.arange(0, 10)+0.5)
+                ax.set_xticklabels([f'{x:.0%}-{y:.0%}' for x,y in list(zip(thresholds0, thresholds))][::-1], fontsize=5, rotation='45', ha='right') 
 
+
+            ax.bar(range(0,10), mean_bins[::-1], 1.0, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.8)
+        except IndexError: 
+            ax.remove()
+
+
+    return fig, axn
 
 def plot_all_comp_holdout_lolli_v(foldername, exp_type, model_list, marker = 'o', 
                                     mode='all_holdout_comp', threshold=0.8,  seeds=range(5)):
-    with plt.rc_context({'axes.grid.axis': 'y'}):
-        total_combos_data = np.full((50, len(model_list)), np.NaN)
+    total_combos_data = np.full((50, len(model_list)), np.NaN)
 
-        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
 
-        width = 1/(len(model_list)+1)
-        ind = np.arange(len(TASK_LIST))
+    width = 1/(len(model_list)+1)
+    ind = np.arange(len(TASK_LIST))
 
-        axn.set_xticks(ind)
-        axn.set_xticklabels('')
-        axn.tick_params(axis='x', which='minor', bottom=False)
-        axn.set_xticks(ind+0.75, minor=True)
-        axn.set_xticklabels(TASK_LIST, fontsize=6, minor=True, rotation=45, ha='right', fontweight='bold') 
-        axn.set_xlim(-0.15, len(ind))
-
+    axn.set_xticks(ind)
+    axn.set_xticklabels('')
+    axn.tick_params(axis='x', which='minor', bottom=False)
+    axn.set_xticks(ind+0.75, minor=True)
+    axn.set_xticklabels(TASK_LIST, fontsize=6, minor=True, rotation=45, ha='right', fontweight='bold') 
+    axn.set_xlim(-0.15, len(ind))
 
 
-        for i, model_name in enumerate(model_list):  
-            data = PerfDataFrame(foldername, exp_type, model_name, mode = mode, seeds=seeds)
-            total_combos_data[:, i]=np.sum(data.data.mean(0)>threshold, axis=-1)
-
-
-
+    for i, model_name in enumerate(model_list):  
+        data = PerfDataFrame(foldername, exp_type, model_name, mode = mode, seeds=seeds)
+        total_combos_data[:, i]=np.sum(data.data.mean(0)>threshold, axis=-1)
         normalized = normalize(total_combos_data, axis=1, norm='l2')
 
-        for i, model_name in enumerate(model_list):
-            color = MODEL_STYLE_DICT[model_name][0]     
+    for i, model_name in enumerate(model_list):
+        color = MODEL_STYLE_DICT[model_name][0]     
 
-            axn.axhline(normalized[:, i].mean(), color=color, linewidth=1.0, alpha=0.8, zorder=0)
+        axn.axhline(normalized[:, i].mean(), color=color, linewidth=1.0, alpha=0.8, zorder=0)
 
-            x_mark = (ind+(width/2))+(i*width)
-            axn.scatter(x_mark,  normalized[:, i], color=color, s=3, marker=marker)
-            axn.vlines(x_mark, ymin=0, ymax=normalized[:, i], color=color, linewidth=0.5)
+        x_mark = (ind+(width/2))+(i*width)
+        axn.scatter(x_mark,  normalized[:, i], color=color, s=3, marker=marker)
+        axn.vlines(x_mark, ymin=0, ymax=normalized[:, i], color=color, linewidth=0.5)
 
-        fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
+    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
 
-        plt.tight_layout()
-        return fig, axn
+    plt.tight_layout()
+    return fig, axn
 
 def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='', perf_type='correct',  seeds=range(5)):
-    with plt.rc_context({'axes.grid.axis': 'y'}):
-        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
+    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
 
-        width = 1/(len(model_list)+1)
-        ind = np.arange(len(TASK_LIST))
+    width = 1/(len(model_list)+1)
+    ind = np.arange(len(TASK_LIST))
 
-        axn.set_xticks(ind)
-        axn.set_xticklabels('')
-        axn.tick_params(axis='x', which='minor', bottom=False)
-        axn.set_xticks(ind+0.75, minor=True)
-        axn.set_xticklabels(TASK_LIST, fontsize=6, minor=True, rotation=45, ha='right', fontweight='bold') 
-        axn.set_xlim(-0.15, len(ind))
+    axn.set_xticks(ind)
+    axn.set_xticklabels('')
+    axn.tick_params(axis='x', which='minor', bottom=False)
+    axn.set_xticks(ind+0.75, minor=True)
+    axn.set_xticklabels(TASK_LIST, fontsize=6, minor=True, rotation=45, ha='right', fontweight='bold') 
+    axn.set_xlim(-0.15, len(ind))
 
-        axn.set_yticks(np.linspace(0, 1, 11))
-        axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=8)
-        axn.set_ylim(0.0, 1.01)
-        axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+    axn.set_yticks(np.linspace(0, 1, 11))
+    axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=8)
+    axn.set_ylim(0.0, 1.01)
+    axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
 
-        for i, model_name in enumerate(model_list):  
-            color = MODEL_STYLE_DICT[model_name][0]     
-            data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
-            zero_shot, std = data.avg_seeds(k_shot=0)
+    for i, model_name in enumerate(model_list):  
+        color = MODEL_STYLE_DICT[model_name][0]     
+        data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
+        zero_shot, std = data.avg_seeds(k_shot=0)
 
-            axn.axhline(np.mean(zero_shot), color=color, linewidth=1.0, alpha=0.8, zorder=0)
+        axn.axhline(np.mean(zero_shot), color=color, linewidth=1.0, alpha=0.8, zorder=0)
 
-            x_mark = (ind+(width/2))+(i*width)
-            axn.scatter(x_mark,  zero_shot, color=color, s=3, marker=marker)
-            axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=color, linewidth=0.5)
+        x_mark = (ind+(width/2))+(i*width)
+        axn.scatter(x_mark,  zero_shot, color=color, s=3, marker=marker)
+        axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=color, linewidth=0.5)
 
-        fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
+    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
 
-        plt.tight_layout()
-        return fig, axn
+    plt.tight_layout()
+    return fig, axn
 
 
 def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs): 
@@ -503,7 +529,7 @@ def plot_decoding_confuse_mat(confusion_mat, cmap='Blues', **heatmap_args):
 
 def _plot_partner_perf(axn, sm_holdout, decoder_holdout, model_name ='clipNet_lin'):
     mode_dict = {'All Instructions': ('all_perf', '#0392cf'), 'Novel Instructions': ('other_perf', '#7bc043'), 'Embeddings': ('context_perf','#edc951')}
-    multi_holdout_formatting = {'multi': {}, 'holdout': {'alpha':0.7, 'edgecolor':'white', 'hatch':'///'}}
+    multi_holdout_formatting = {'multi': { 'edgecolor':'white'}, 'holdout': {'edgecolor':'white', 'marker':'d'}}
 
     if sm_holdout: 
         sm_str = 'holdout'
@@ -519,18 +545,13 @@ def _plot_partner_perf(axn, sm_holdout, decoder_holdout, model_name ='clipNet_li
     axn.set_ylabel('Perforamance', size=8, fontweight='bold')
     width = 1/4
 
-    axn.set_axisbelow(True)
-    axn.grid(visible=True, color='grey', axis='y', linewidth=0.5)
-
-    axn.spines['top'].set_visible(False)
-    axn.spines['right'].set_visible(False)
-
     for i, mode_value in enumerate(mode_dict.values()):
         for j, values in enumerate(multi_holdout_formatting.items()):
             holdouts, formatting = values
-            perf_data = np.nanmean(np.load(folder+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_'+holdouts+'_'+mode_value[0]+'.npy'))
+            perf_data = np.load(folder+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_'+holdouts+'_'+mode_value[0]+'.npy')
             x_mark = ((i)+width)+((j*1.05*width))
-            axn.bar(x_mark, perf_data, width, align='edge', color=mode_value[1], **formatting)
+            for k, seed_point in enumerate(np.nanmean(perf_data, axis=(1, 2))):
+                axn.scatter(x_mark+(k*0.03), seed_point, color=mode_value[1], s=18.0, linewidth=0.5, **formatting)
                         
     axn.set_yticks(np.linspace(0, 1, 11))            
     axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5) 
@@ -539,12 +560,15 @@ def _plot_partner_perf(axn, sm_holdout, decoder_holdout, model_name ='clipNet_li
     patches = []
     for label, mode in mode_dict.items():
         patches.append(mpatches.Patch(label = label, facecolor= mode[1]))
-    patches.append(mpatches.Patch(facecolor='gray', edgecolor='white', label='Multitask Partner'))
-    patches.append(mpatches.Patch(facecolor='gray', edgecolor='white', hatch='///', label='Holdout Partner'))
+    patches.append(Line2D([0], [0], label = 'Multitask Partner', color= 'gray', marker = 'o', markersize=5, linestyle='None'))
+    patches.append(Line2D([0], [0], label = 'Holdout Partner', color= 'gray', marker = 'd', markersize=5, linestyle='None'))
+    # patches.append(mpatches.Patch(facecolor='gray', edgecolor='white', label='Multitask Partner'))
+    # patches.append(mpatches.Patch(facecolor='gray', edgecolor='white', hatch='///', label='Holdout Partner'))
     axn.set_ylim(0.0, 1.0)
     axn.set_xlim(0, 3)
 
     return patches
+
     
 def plot_partner_perf(model_name):
     fig, axn = plt.subplots(2, 2, sharex=True, figsize =(4, 4))
