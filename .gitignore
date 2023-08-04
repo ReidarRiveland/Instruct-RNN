@@ -21,7 +21,7 @@ check_download.py
 #*.sbatch
 *decoder_perf*
 scratch.py
-
+instructRNN.egg-info
 
 
 
