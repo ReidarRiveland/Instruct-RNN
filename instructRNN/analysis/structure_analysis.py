@@ -61,10 +61,3 @@ def plot_pc_var_exp_dist(model_list, holdout_file, seed=0, **plt_kwargs):
 
     axn.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list])
     plt.show()
-
-
-plot_pc_var_exp_dist(['clipNet_lin', 'gptNetXL_lin', 'sbertNet_lin', 'bertNet_lin', 'gptNet_lin'], 'swap0')
-
-plot_svd_overlap(['simpleNet', 'clipNet_lin', 'simpleNetPlus'])
-
-plot_svd_dist(['simpleNet', 'clipNet_lin', 'simpleNetPlus'])

@@ -174,7 +174,3 @@ class BoW(InstructionEmbedder):
         freq_tensor = torch.stack(tuple(map(self._make_freq_tensor, x))).to(self.__device__)
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
-
-config = LMConfig('gpt2', [], 'last', 128, 'lin', 1)
-
-model = GPT(config)
