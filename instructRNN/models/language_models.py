@@ -111,17 +111,21 @@ class BERT(TransformerEmbedder):
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
-class RawBert(TransformerEmbedder):
+class RawBERT(TransformerEmbedder):
     def __init__(self, config): 
         super().__init__(config)
         bert_config = BertConfig()
         embeddings = BertModel.from_pretrained(self.LM_load_str, output_hidden_states=True).embeddings
-        layers = nn.ModuleList([BertLayer(config)]*2)
+        layers = nn.ModuleList([BertLayer(bert_config)]*2)
         self.transformer = nn.Sequential(embeddings, layers)
-        tokenizer = BertTokenizer.from_pretrained(self.LM_load_str)
+        self.tokenizer = BertTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = bert_config.hidden_size
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
+
+    def forward(self, input_ids=None, **kw_args):
+        print(type(input_ids))
+        return self.transformer(input_ids).unsqueeze(0)
 
 class SBERT(TransformerEmbedder): 
     def __init__(self, config): 

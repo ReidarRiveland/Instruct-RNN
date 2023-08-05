@@ -1,4 +1,4 @@
-from instructRNN.models.language_models import GPT, BERT, SBERT, CLIP, RawBert, BoW
+from instructRNN.models.language_models import GPT, BERT, SBERT, CLIP, RawBERT, BoW
 from instructRNN.models.sensorimotor_models import RuleModelConfig, InstructModelConfig, RuleNet, InstructNet
 
 all_models = ['simpleNet', 'simpleNetPlus', 'combNet',
@@ -7,7 +7,7 @@ all_models = ['simpleNet', 'simpleNetPlus', 'combNet',
 
             'gptNet', 'gptNet_lin', 'gptNet_lin_tuned', 'gptNet_L_lin',
 
-            'bertNet', 'bertNet_lin', 'bertNet_lin_tuned',
+            'bertNet', 'bertNet_lin', 'bertNet_lin_tuned', 'rawBertNet_lin',
 
             'sbertNet', 'sbertNet_lin', 'sbertNet_lin_tuned',
 
@@ -163,7 +163,7 @@ def make_default_model(model_str):
     if model_str == 'rawBertNet_lin': 
         return RawBERTNet(model_name = model_str, 
                         LM_output_nonlinearity = 'lin', 
-                        LM_train_layers = [])
+                        LM_train_layers = ['0', '1'])
 
     if model_str == 'sbertNet': 
         return SBERTNet(model_name = model_str, 
@@ -208,4 +208,4 @@ def make_default_model(model_str):
     raise Exception('Model not found in make_default_model function, make sure its included there')
 
 
-model = make_default_model('rawBertNet_lin')
+
