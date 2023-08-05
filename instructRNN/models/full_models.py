@@ -163,7 +163,7 @@ def make_default_model(model_str):
     if model_str == 'rawBertNet_lin': 
         return RawBERTNet(model_name = model_str, 
                         LM_output_nonlinearity = 'lin', 
-                        LM_train_layers = ['0', '1'])
+                        LM_train_layers = ['0', '1', '2'])
 
     if model_str == 'sbertNet': 
         return SBERTNet(model_name = model_str, 
