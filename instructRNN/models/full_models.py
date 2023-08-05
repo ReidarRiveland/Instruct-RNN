@@ -1,4 +1,4 @@
-from instructRNN.models.language_models import GPT, BERT, SBERT, CLIP, BoW
+from instructRNN.models.language_models import GPT, BERT, SBERT, CLIP, RawBert, BoW
 from instructRNN.models.sensorimotor_models import RuleModelConfig, InstructModelConfig, RuleNet, InstructNet
 
 all_models = ['simpleNet', 'simpleNetPlus', 'combNet',
@@ -13,7 +13,7 @@ all_models = ['simpleNet', 'simpleNetPlus', 'combNet',
 
             'clipNet', 'clipNet_lin', 'clipNet_lin_tuned', 
 
-            'bowNet', 'bowNet_lin'
+            'bowNet', 'bowNet_lin', 'bowNetPlus'
             ]
 
 small_models = [model for model in all_models if 'XL' not in model] 
@@ -62,6 +62,14 @@ class BERTNet(InstructNet):
                                     LM_load_str = 'bert-base-uncased',
                                     **kw_args)
         super().__init__(config)
+
+class RawBERTNet(InstructNet): 
+    def __init__(self, **kw_args):
+        config = InstructModelConfig(LM_class= RawBERT,
+                                    LM_load_str = 'bert-base-uncased',
+                                    **kw_args)
+        super().__init__(config)
+
 
 class SBERTNet(InstructNet):
     def __init__(self, **kw_args):
@@ -152,6 +160,10 @@ def make_default_model(model_str):
                         LM_output_nonlinearity = 'lin', 
                         LM_train_layers = ['9', '10', '11', 'pooler'])
                         
+    if model_str == 'rawBertNet_lin': 
+        return RawBERTNet(model_name = model_str, 
+                        LM_output_nonlinearity = 'lin', 
+                        LM_train_layers = [])
 
     if model_str == 'sbertNet': 
         return SBERTNet(model_name = model_str, 
@@ -189,7 +201,11 @@ def make_default_model(model_str):
     if model_str == 'bowNet_lin': 
         return BoWNet(LM_output_nonlinearity = 'lin')
 
+    if model_str == 'bowNet_lin_plus': 
+        return BoWNet(LM_output_nonlinearity = 'lin', 
+                        LM_proj_out_layers=5)
+
     raise Exception('Model not found in make_default_model function, make sure its included there')
 
 
-make_default_model('bertNet')
+model = make_default_model('rawBertNet_lin')

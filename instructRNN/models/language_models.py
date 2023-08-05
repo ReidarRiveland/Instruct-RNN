@@ -8,10 +8,9 @@ import pathlib
 
 from transformers import GPT2Model, GPT2Tokenizer
 from transformers import CLIPTokenizer, CLIPTextModel
-from transformers import BertModel, BertTokenizer
+from transformers import BertModel, BertTokenizer, BertLayer, BertConfig
 
 from instructRNN.instructions.instruct_utils import get_all_sentences, sort_vocab
-
 from transformers import logging
 logging.set_verbosity_error()
 
@@ -102,12 +101,25 @@ class TransformerEmbedder(InstructionEmbedder):
     def forward(self, x): 
         return self.proj_out(self.forward_transformer(x)[0])
 
+
 class BERT(TransformerEmbedder):
     def __init__(self, config): 
         super().__init__(config)
         self.transformer = BertModel.from_pretrained(self.LM_load_str, output_hidden_states=True)
         self.tokenizer = BertTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
+        self.set_train_layers(self.LM_train_layers)
+        self.__init_proj_out__()
+
+class RawBert(TransformerEmbedder):
+    def __init__(self, config): 
+        super().__init__(config)
+        bert_config = BertConfig()
+        embeddings = BertModel.from_pretrained(self.LM_load_str, output_hidden_states=True).embeddings
+        layers = nn.ModuleList([BertLayer(config)]*2)
+        self.transformer = nn.Sequential(embeddings, layers)
+        tokenizer = BertTokenizer.from_pretrained(self.LM_load_str)
+        self.LM_intermediate_lang_dim = bert_config.hidden_size
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
@@ -174,3 +186,4 @@ class BoW(InstructionEmbedder):
         freq_tensor = torch.stack(tuple(map(self._make_freq_tensor, x))).to(self.__device__)
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
+
