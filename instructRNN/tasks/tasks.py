@@ -496,7 +496,6 @@ class AntiDur2(Task):
                         )
         self.task_type = 'AntiDur2'
 
-
 class AntiMultiDur1(Task): 
     comp_ref_tasks = ('AntiDur1', 'AntiDur2', 'AntiMultiDur2')
     rich_vector = [0, 0, 0, 0, 1, 0, 1, -1, 0, 0]
@@ -514,7 +513,7 @@ class AntiMultiDur1(Task):
 
 class AntiMultiDur2(Task): 
     comp_ref_tasks = ('AntiDur2', 'AntiDur1', 'AntiMultiDur1')
-    rich_vector = [0, 0, 0, 0, 1, 0, 1, -1, 0, 0]
+    rich_vector = [0, 0, 0, 0, 1, 0, -1, -1, 0, 0]
 
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
