@@ -13,7 +13,7 @@ all_models = ['simpleNet', 'simpleNetPlus', 'combNet',
 
             'clipNet', 'clipNet_lin', 'clipNet_lin_tuned', 
 
-            'bowNet', 'bowNet_lin', 'bowNetPlus'
+            'bowNet', 'bowNet_lin', 'bowNet_lin_plus'
             ]
 
 small_models = [model for model in all_models if 'XL' not in model] 
