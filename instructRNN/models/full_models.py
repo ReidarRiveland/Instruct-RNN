@@ -196,17 +196,20 @@ def make_default_model(model_str):
                     LM_train_layers = ['9', '10', '11', 'pooler'])
 
     if model_str == 'bowNet': 
-        return BoWNet(LM_output_nonlinearity = 'relu', 
+        return BoWNet(model_name=model_str, 
+                        LM_output_nonlinearity = 'relu', 
                             LM_train_layers = [])
 
 
     if model_str == 'bowNet_lin': 
-        return BoWNet(LM_output_nonlinearity = 'lin',                     
+        return BoWNet(model_name=model_str, 
+                        LM_output_nonlinearity = 'lin',                     
                         LM_train_layers = [])
 
 
     if model_str == 'bowNet_lin_plus': 
-        return BoWNet(LM_output_nonlinearity = 'lin', 
+        return BoWNet(model_name=model_str, 
+                        LM_output_nonlinearity = 'lin', 
                         LM_proj_out_layers=5,
                         LM_train_layers = [])
 
