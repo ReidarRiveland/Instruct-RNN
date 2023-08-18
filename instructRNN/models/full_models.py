@@ -7,7 +7,7 @@ all_models = ['simpleNet', 'simpleNetPlus', 'combNet',
 
             'gptNet', 'gptNet_lin', 'gptNet_lin_tuned', 'gptNet_L_lin',
 
-            'bertNet', 'bertNet_lin', 'bertNet_lin_tuned', 'rawBertNet_lin',
+            'bertNet', 'bertNet_lin', 'bertNet_lin_tuned', 'rawBertNet_lin', 'rawBertNet_lin0',
 
             'sbertNet', 'sbertNet_lin', 'sbertNet_lin_tuned',
 
@@ -163,7 +163,7 @@ def make_default_model(model_str):
     if model_str == 'rawBertNet_lin': 
         return RawBERTNet(model_name = model_str, 
                         LM_output_nonlinearity = 'lin', 
-                        LM_train_layers = ['0', '1'])
+                        LM_train_layers = ['0'])
 
     if model_str == 'sbertNet': 
         return SBERTNet(model_name = model_str, 

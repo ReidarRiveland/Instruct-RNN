@@ -132,7 +132,7 @@ class RawBertTransformer(nn.Module):
 class RawBERT(TransformerEmbedder):
     def __init__(self, config): 
         super().__init__(config)
-        self.transformer = RawBertTransformer(2, self.LM_load_str)
+        self.transformer = RawBertTransformer(1, self.LM_load_str)
         self.tokenizer = BertTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.bert_config.hidden_size
         self.set_train_layers(self.LM_train_layers)
