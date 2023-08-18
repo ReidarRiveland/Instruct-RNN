@@ -13,7 +13,7 @@ all_models = ['simpleNet', 'simpleNetPlus', 'combNet',
 
             'clipNet', 'clipNet_lin', 'clipNet_lin_tuned', 
 
-            'bowNet', 'bowNet_lin', 'bowNetPlus'
+            'bowNet', 'bowNet_lin', 'bowNet_lin_plus'
             ]
 
 small_models = [model for model in all_models if 'XL' not in model] 
@@ -196,14 +196,23 @@ def make_default_model(model_str):
                     LM_train_layers = ['9', '10', '11', 'pooler'])
 
     if model_str == 'bowNet': 
-        return BoWNet(LM_output_nonlinearity = 'relu')
+        return BoWNet(model_name=model_str, 
+                        LM_output_nonlinearity = 'relu', 
+                            LM_train_layers = [])
+
 
     if model_str == 'bowNet_lin': 
-        return BoWNet(LM_output_nonlinearity = 'lin')
+        return BoWNet(model_name=model_str, 
+                        LM_output_nonlinearity = 'lin',                     
+                        LM_train_layers = [])
+
 
     if model_str == 'bowNet_lin_plus': 
-        return BoWNet(LM_output_nonlinearity = 'lin', 
-                        LM_proj_out_layers=5)
+        return BoWNet(model_name=model_str, 
+                        LM_output_nonlinearity = 'lin', 
+                        LM_proj_out_layers=5,
+                        LM_train_layers = [])
+
 
     raise Exception('Model not found in make_default_model function, make sure its included there')
 
