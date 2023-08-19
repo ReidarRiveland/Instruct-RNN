@@ -304,7 +304,7 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=F
     
     model = make_default_model(model_name)
 
-    if model_name == 'gptNet_lin' or model_name == 'gptNet_L_lin':
+    if model_name == 'gptNet_lin' or model_name == 'gptNet_L_lin' or model_name == 'gptNet':
         trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, checker_threshold=0.85, scheduler_gamma=0.95, **train_config_kwargs)
     else:
         trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
