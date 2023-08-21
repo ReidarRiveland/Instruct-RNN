@@ -74,14 +74,6 @@ if __name__ == "__main__":
         elif args.mode == 'clusters':
             get_model_clusters(EXP_FOLDER, model, _seed, save=True)
 
-        elif args.mode == 'holdout_comp': 
-            for labeled_holdouts in SWAPS_DICT.items():
-                get_holdout_all_comp_perf(EXP_FOLDER, model, labeled_holdouts, _seed)
-
-        elif args.mode == 'multi_comp': 
-            get_multi_all_comp_perf(EXP_FOLDER, model, _seed)
-
-                
 
 
                 
