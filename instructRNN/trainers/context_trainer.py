@@ -113,7 +113,7 @@ class ContextTrainer(BaseTrainer):
                 ins, tar, mask, tar_dir, task_type = data
 
                 self.optimizer.zero_grad()
-                out, _ = model(ins.to(device), context=in_contexts)
+                out, _ = model(ins.to(device), info_embedded=in_contexts)
                 loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
                 frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
                 self._log_step(task_type, frac_correct, loss.item())
@@ -185,7 +185,7 @@ def train_contexts(exp_folder, model_name,  seed, labeled_holdouts, layer, mode 
     elif layer=='last': 
         context_dim = model.langModel.LM_intermediate_lang_dim 
     file_name = exp_folder+'/'+labels+'/'+model_name+'/contexts'
-
+    print(context_dim)
     if tasks is None: 
         tasks = holdouts
 
