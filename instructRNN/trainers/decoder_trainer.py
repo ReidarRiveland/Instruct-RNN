@@ -180,7 +180,6 @@ class DecoderTrainer(BaseTrainer):
                     print('Decoded Vec: {}'.format(str(decoder_output[0,0, :].detach())))
                     self._record_session(decoder, 'CHECKPOINT')
                     
-            self.scheduler.step()
         self._record_session(decoder, 'FINAL')
 
     def train(self, sm_model, decoder): 
