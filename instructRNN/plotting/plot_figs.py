@@ -167,6 +167,10 @@ plt.show()
 plot_comp_dots('7.20models', 'swap', to_plot_models, ['combinedcomp', 'multi_comp'], y_lim=(0.0, 1.0))
 plt.show()
 
+p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='multi_ccgp')
+plot_significance(is_sig, to_plot_models)
+plt.show()
+
 ###HOLDOUTS
 plot_curves('7.20models', 'swap', to_plot_models, mode='combinedinputs_only', avg=True, linewidth=0.8)
 plt.show()

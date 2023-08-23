@@ -9,11 +9,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from instructRNN.instructions.instruct_utils import get_comb_rule
 from instructRNN.models.full_models import make_default_model
 from instructRNN.trainers.base_trainer import BaseTrainer
 from instructRNN.instructions.instruct_utils import get_input_rule, get_instructions
 from instructRNN.data_loaders.dataset import TaskDataSet
-from instructRNN.decoding_models.decoder_models import DecoderRNN
+from instructRNN.decoding_models.decoder_models import DecoderRNN, DecoderMLP
 
 device = torch.device(0)
 
@@ -146,6 +147,42 @@ class DecoderTrainer(BaseTrainer):
             opt_path = self.checkpoint_path + '_opt'
             self.optimizer.load_state_dict(torch.load(opt_path))  
 
+    def train_mlp(self, sm_model, decoder):
+        if decoder.drop_p > 0.0:
+            self.drop_str = 'wDropout'
+        else: 
+            self.drop_str = ''
+
+        criterion = nn.MSELoss()
+        self.pad_len  = 1
+         
+        self._init_streamer()
+        self.optimizer = optim.Adam(decoder.parameters(), lr = self.lr)
+
+        for self.cur_epoch in tqdm(range(self.cur_epoch, self.epochs), desc='epochs'): 
+            print('Epoch: ' + str(self.cur_epoch)+'\n', flush=True)
+            for j, data in enumerate(self.streamer.stream_batch()): 
+                ins, _, _, _, task_type = data
+        
+                self.optimizer.zero_grad()
+                target_tensor = get_comb_rule(self.batch_len, task_type).to(device)
+                _, sm_hidden = sm_model.forward(ins.to(device), task_rule = target_tensor)
+                decoder_output = decoder(sm_hidden)
+
+                loss = criterion(decoder_output.squeeze(), target_tensor)
+                self._log_step(loss.item(), False)
+                loss.backward()
+                self.optimizer.step()
+
+                if j%50==0: 
+                    print('Loss: {}'.format(loss.item()))
+                    print('Target Vec: {}'.format(str(target_tensor[0, :].detach())))
+                    print('Decoded Vec: {}'.format(str(decoder_output[0,0, :].detach())))
+                    self._record_session(decoder, 'CHECKPOINT')
+                    
+            self.scheduler.step()
+        self._record_session(decoder, 'FINAL')
+
     def train(self, sm_model, decoder): 
         if decoder.drop_p > 0.0:
             self.drop_str = 'wDropout'
@@ -256,6 +293,11 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, 
     label, holdouts = labeled_holdouts
     file_name = exp_folder+'/'+label+'/'+model_name
 
+    if 'combNet' in model_name: 
+        decoder_class = DecoderMLP
+    else: 
+        decoder_class = DecoderRNN
+
     if not overwrite and check_decoder_trained(file_name+'/decoders', seed, use_holdouts, use_dropout):
         return True
 
@@ -270,10 +312,10 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, 
     model.to(device)
     if use_dropout: 
         p=0.05
-        decoder = DecoderRNN(128, drop_p=p)
+        decoder = decoder_class(128, drop_p=p)
     else: 
         p=0.0
-        decoder = DecoderRNN(256, drop_p=p)
+        decoder = decoder_class(256, drop_p=p)
     decoder.to(device)
 
     if use_checkpoint:
@@ -287,5 +329,8 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, 
         trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)
         trainer = DecoderTrainer(trainer_config)
     
-    trainer.train(model, decoder)
+    if 'combNet' in model_name: 
+        trainer.train_mlp(model, decoder)
+    else: 
+        trainer.train(model, decoder)
 

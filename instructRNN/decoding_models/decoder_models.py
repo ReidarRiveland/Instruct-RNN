@@ -78,21 +78,22 @@ class SMDecoder(nn.Module):
 class DecoderMLP(nn.Module): 
     def __init__(self, hidden_size, num_layers = 3, sm_hidden_dim=256, drop_p = 0.0):
         super().__init__()
+        self.drop_p = drop_p
         self.decoder_name = 'mlp_decoder'
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.sm_decoder = SMDecoder(self.hidden_size, sm_hidden_dim, drop_p=drop_p)
         self.layers_list = nn.ModuleList()                     
         for i in range(self.num_layers):
-            self.layers.append(nn.Linear(hidden_size, hidden_size))
-            self.layers.append(nn.ReLU())
-        self.layers = nn.Sequential(self.layer_list)
+            self.layers_list.append(nn.Linear(hidden_size, hidden_size))
+            self.layers_list.append(nn.ReLU())
+        self.layers = nn.Sequential(*self.layers_list)
         self.out_layer = nn.Linear(self.hidden_size, 10)
 
     def forward(self, sm_hidden): 
         init_hidden = self.sm_decoder(sm_hidden)
         out = self.layers(init_hidden)
-        out = nn.Tanh(self.out_layer(out))
+        out = torch.tanh(self.out_layer(out))
         return out 
 
     def save_model(self, save_string): 
