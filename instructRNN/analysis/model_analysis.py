@@ -4,6 +4,7 @@ import numpy.linalg as LA
 
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.stats import pearsonr
+from scipy.stats import ttest_ind
 from tqdm import tqdm
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -30,6 +31,15 @@ else:
 def get_reps_from_tasks(reps, tasks): 
     indices = [TASK_LIST.index(task) for task in tasks]
     return reps[indices, ...]
+
+def calc_t_test(folder, exp, model_list, mode='combined'):
+    p_value_arr = np.empty((len(model_list), len(model_list)))
+    data_list = [PerfDataFrame(folder, exp, model, mode=mode) for model in model_list]
+    for i, x_data in enumerate(data_list): 
+        for j, y_data in enumerate(data_list): 
+            p_value_arr[i,j] = ttest_ind(x_data.get_k_shot(0).flatten(), y_data.get_k_shot(0).flatten(), equal_var=False)[1]
+    is_significant = p_value_arr < 0.001
+    return p_value_arr, is_significant
 
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
     langModel.eval()

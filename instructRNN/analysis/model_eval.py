@@ -131,7 +131,7 @@ def get_multi_comp_perf(foldername, model_name, num_repeats = 1, batch_len=50, s
     for seed in range(5): 
         model.load_model(foldername+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
         model.to(device)
-        file_path = foldername+'/multi_comp_scores/'+model_name
+        file_path = foldername+'/multi_comp_perf/'+model_name
 
         for i, task in enumerate(TASK_LIST):
             print('processing task '+task)
@@ -161,4 +161,3 @@ def eval_model_0_shot(model_name, folder_name, exp_type, seed, batch_size = 128,
 def eval_model_compositional_0_shot(model_name, folder_name, exp_type, seed, batch_size = 128):
     return _get_model_0_shot(task_eval_compositional, model_name, folder_name, exp_type, seed, batch_size = batch_size)
 
-get_multi_comp_perf('7.20models/multitask_holdouts', 'combNet')

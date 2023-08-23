@@ -310,6 +310,9 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='
     plt.tight_layout()
     return fig, axn
 
+def plot_significance(sig_mat, model_list): 
+    sns.heatmap(sig_mat, linecolor='white', linewidths=1, cbar=False, xticklabels=model_list, yticklabels=model_list, annot=True)
+    plt.show()
 
 def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs): 
     task_reps = reps_reduced
