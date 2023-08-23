@@ -4,10 +4,11 @@ from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
 from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio, print_decoded_instruct
 from instructRNN.data_loaders.perfDataFrame import *
+from instructRNN.analysis.model_analysis import calc_t_test
 
 to_plot_models = ['combNet', 'clipNet_lin', 'sbertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet']
 non_lin_models = ['clipNet', 'sbertNet', 'gptNetXL', 'gptNet', 'bertNet', 'bowNet']
-tuned_to_plot = ['clipNet_lin_tuned', 'sbertNet_lin_tuned', 'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
+tuned_to_plot = ['combNet', 'clipNet_lin_tuned', 'sbertNet_lin_tuned', 'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
 aux_models = ['bowNet_lin_plus', 'rawBertNet_lin', 'simpleNetPlus']
 
 ##ALL MODEL LEARNING CURVES
@@ -23,6 +24,8 @@ plt.show()
 plot_curves('7.20models', 'swap', to_plot_models, mode='combined', avg=True, linewidth=0.8)
 plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='combined')
+_, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combined')
+plot_significance(is_sig, to_plot_models)
 plt.show()
 
 ##non-linear holdouts
@@ -39,9 +42,14 @@ plt.show()
 
 ##TUNED HOLDOUTS
 plot_curves('7.20models', 'swap', tuned_to_plot, mode='combined', avg=True, linewidth=0.8)
-plot_all_models_task_dist('7.20models', 'swap', tuned_to_plot[::-1], mode='combined')
+plot_all_models_task_dist('7.20models', 'swap', tuned_to_plot, mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot, mode='combined')
 plt.show()
+
+p_mat, is_sig = calc_t_test('7.20models', 'swap', tuned_to_plot, mode='combined')
+plot_significance(is_sig, tuned_to_plot)
+plt.show()
+
 
 ###SWAP HOLDOUTS
 plot_curves('7.20models', 'swap', to_plot_models, mode='swap_combined', avg=True, linewidth=0.8)
