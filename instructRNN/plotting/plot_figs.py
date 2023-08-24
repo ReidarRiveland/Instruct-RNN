@@ -9,7 +9,7 @@ from instructRNN.analysis.model_analysis import calc_t_test
 to_plot_models = ['combNet', 'clipNet_lin', 'sbertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet']
 non_lin_models = ['clipNet', 'sbertNet', 'gptNetXL', 'gptNet', 'bertNet', 'bowNet']
 tuned_to_plot = ['combNet', 'clipNet_lin_tuned', 'sbertNet_lin_tuned', 'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
-aux_models = ['bowNet_lin_plus', 'rawBertNet_lin', 'simpleNetPlus']
+aux_models = ['combNet', 'bowNet_lin_plus', 'rawBertNet_lin', 'simpleNetPlus', 'simpleNet']
 
 ##ALL MODEL LEARNING CURVES
 fig_axn = plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask', linewidth=0.5)
@@ -24,6 +24,7 @@ plt.show()
 plot_curves('7.20models', 'swap', to_plot_models, mode='combined', avg=True, linewidth=0.8)
 plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='combined')
+
 _, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combined')
 plot_significance(is_sig, to_plot_models)
 plt.show()
@@ -34,10 +35,18 @@ plot_all_models_task_dist('7.20models', 'swap', non_lin_models, mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', non_lin_models, mode='combined')
 plt.show()
 
+p_mat, is_sig = calc_t_test('7.20models', 'swap', non_lin_models, mode='combined')
+plot_significance(is_sig, non_lin_models)
+plt.show()
+
 ##langPlus 
 plot_curves('7.20models', 'swap', aux_models, mode='combined', avg=True, linewidth=0.8)
-plot_all_models_task_dist('7.20models', 'swap', aux_models, mode='combined')
+plot_all_models_task_dist('7.20models', 'swap', aux_models, mode='combined', hatch = '///', edgecolor='white')
 plot_all_task_lolli_v('7.20models', 'swap', aux_models, mode='combined')
+plt.show()
+
+p_mat, is_sig = calc_t_test('7.20models', 'swap', aux_models, mode='combined')
+plot_significance(is_sig, aux_models)
 plt.show()
 
 ##TUNED HOLDOUTS
@@ -57,10 +66,18 @@ plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='swap_combi
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='swap_combined')
 plt.show()
 
+_, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='swap_combined')
+plot_significance(is_sig, to_plot_models)
+plt.show()
+
 ###FAMILY
 plot_curves('7.20models', 'family', to_plot_models, mode='combined', avg=True, linewidth=0.8)
 plot_all_models_task_dist('7.20models', 'family', to_plot_models, mode='combined')
 plot_all_task_lolli_v('7.20models', 'family', to_plot_models, mode='combined')
+plt.show()
+
+_, is_sig = calc_t_test('7.20models', 'family', to_plot_models, mode='combined')
+plot_significance(is_sig, to_plot_models)
 plt.show()
 
 ####PC PLOTS
@@ -164,10 +181,26 @@ plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'clipNet_lin', 2)
 plot_comp_dots('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp', 'swap_ccgp'], y_lim=(0.5, 1.0))
 plt.show()
 
-plot_comp_dots('7.20models', 'swap', to_plot_models, ['combinedcomp', 'multi_comp'], y_lim=(0.0, 1.0))
+p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='ccgp')
+plot_significance(is_sig, to_plot_models)
 plt.show()
 
 p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='multi_ccgp')
+plot_significance(is_sig, to_plot_models)
+plt.show()
+
+p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='swap_ccgp')
+plot_significance(is_sig, to_plot_models)
+plt.show()
+
+plot_comp_dots('7.20models', 'swap', to_plot_models, ['combinedcomp', 'multi_comp'], y_lim=(0.0, 1.0))
+plt.show()
+
+p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combinedcomp')
+plot_significance(is_sig, to_plot_models)
+plt.show()
+
+p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='multi_comp')
 plot_significance(is_sig, to_plot_models)
 plt.show()
 
@@ -187,3 +220,6 @@ print_decoded_instruct(holdout_holdout_instruct)
 fig_axn = plot_curves('7.20models', 'swap', ['gptNetXL_lin'], mode='combined', avg=True, linewidth=0.8)
 plot_curves('7.20models', 'swap', ['gptNetXL_L_lin'], mode='combined', fig_axn=fig_axn, avg=True, linewidth=0.8, linestyle='--')
 plt.show()
+
+
+plot_all_comp_holdout_lolli_v('7.20models', 'swap', to_plot_models)

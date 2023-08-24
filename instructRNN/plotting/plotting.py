@@ -36,7 +36,7 @@ Yellow = '#FFEE58'
 Purple = '#800080'
 Grey = '#36454F'
 
-MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (lightBlue, None, 'simpleNetPlus'),  'combNet': (lightBlue, None, 'structureNet'), 
+MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Blue, None, 'simpleNetPlus'),  'combNet': (lightBlue, None, 'structureNet'), 
                     'clipNet_lin': (Purple, None, 'clipNet'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 'clipNet': (Purple, None, 'clipNet'), 
                     'bowNet_lin': (Yellow, None, 'bowNet'), 'bowNet': (Yellow, None, 'bowNet'), 'bowNet_lin_plus': (Yellow, None, 'bowNetPlus'), 
                     'gptNet_lin': (lightRed, None, 'gptNet'), 'gptNet_lin_tuned': (lightRed, 'v','gptNet (tuned)'), 'gptNet': (lightRed, 'v','gptNet'),
@@ -124,8 +124,9 @@ def plot_curves(foldername, exp_type, model_list, mode = '', training_file = '',
                 axn.scatter(0, mean[0], color=color, s=3, marker=zero_marker)
             else: 
                 mean, std = data.avg_seeds()
-
-            plt_func(mean, std, axn, color, zero_marker, **curve_kwargs)
+            if model_name in ['rawBertNet_lin', 'bowNet_lin_plus', 'simpleNetPlus']: linestyle = '--'
+            else: linestyle = '-'
+            plt_func(mean, std, axn, color, zero_marker, linestyle=linestyle, **curve_kwargs)
 
         fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')   
         return fig, axn
@@ -171,39 +172,7 @@ def plot_comp_dots(foldername, exp_type, model_list, mode_list, fig_axn=None, y_
     axn.set_xlim(0, len(mode_list))
     return fig, axn
 
-def plot_k_shot_task_hist(foldername, exp_type, model_list, k= 0, perf_type='correct', mode='', seeds=range(5)): 
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
-    fig.suptitle('Zero-Shot Performance Across Tasks')
-    axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
-    axn.set_xlabel('Number of Tasks', size=8, fontweight='bold')
-
-    thresholds = np.linspace(0.1, 1.0, 10)
-    thresholds0 = np.linspace(0.0, 0.9, 10)
-
-    width = 1/(len(model_list)+1)
-    ind = np.arange(10)
-    axn.set_xlim(0, 27)
-    axn.set_yticks(ind+0.5, minor=True)
-    axn.set_yticklabels([f'{x:.0%}>{y:.0%}' for x,y in list(zip(thresholds, thresholds0))], fontsize=5, minor=True) 
-    
-    axn.set_yticks(np.arange(11))
-    axn.yaxis.set_ticks_position('none') 
-    axn.set_yticklabels('') 
-
-    for i, model_name in enumerate(model_list):
-        data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode=mode, seeds=seeds)
-        perf = data.data[:, :, k]
-        bins = np.zeros((len(range(5)), 10))
-        for iy, ix in np.ndindex(perf.shape):
-            bins[iy, int(np.floor((perf[iy, ix]*10)-1e-5))]+=1
-        mean_bins = np.mean(bins, axis=0)
-        std_bins = np.std(bins, axis=0)
-
-        axn.barh((ind+(width/2))+(i*width), mean_bins, width, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.8)
-
-        return fig, axn
-
-def plot_all_models_task_dist(foldername, exp_type, model_list, k= 0, perf_type='correct', mode='', seeds=range(5)): 
+def plot_all_models_task_dist(foldername, exp_type, model_list, k= 0, perf_type='correct', mode='', seeds=range(5), **kwargs): 
     fig, axn = plt.subplots(2, 4, sharey = True, sharex=True, figsize =(8, 4))
     fig.suptitle('Distribution of Performance on Novel Tasks')
 
@@ -233,10 +202,9 @@ def plot_all_models_task_dist(foldername, exp_type, model_list, k= 0, perf_type=
                 ax.set_xticklabels([f'{x:.0%}-{y:.0%}' for x,y in list(zip(thresholds0, thresholds))][::-1], fontsize=5, rotation='45', ha='right') 
 
 
-            ax.bar(range(0,10), mean_bins[::-1], 1.0, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.8)
+            ax.bar(range(0,10), mean_bins[::-1], 1.0, color=MODEL_STYLE_DICT[model_name][0], align='edge', alpha=0.8, **kwargs)
         except IndexError: 
             ax.remove()
-
 
     return fig, axn
 
@@ -259,8 +227,9 @@ def plot_all_comp_holdout_lolli_v(foldername, exp_type, model_list, marker = 'o'
 
     for i, model_name in enumerate(model_list):  
         data = PerfDataFrame(foldername, exp_type, model_name, mode = mode, seeds=seeds)
-        total_combos_data[:, i]=np.sum(data.data.mean(0)>threshold, axis=-1)
-        normalized = normalize(total_combos_data, axis=1, norm='l2')
+        total_combos_data[:, i]=np.sum(data.data>threshold, axis=(0, 2))
+    
+    normalized = normalize(total_combos_data, axis=1, norm='l2')
 
     for i, model_name in enumerate(model_list):
         color = MODEL_STYLE_DICT[model_name][0]     
@@ -276,7 +245,8 @@ def plot_all_comp_holdout_lolli_v(foldername, exp_type, model_list, marker = 'o'
     plt.tight_layout()
     return fig, axn
 
-def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='', perf_type='correct',  seeds=range(5)):
+
+def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='', perf_type='correct',  seeds=range(5), **kwargs):
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
 
     width = 1/(len(model_list)+1)
@@ -299,11 +269,14 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='
         data = PerfDataFrame(foldername, exp_type, model_name, perf_type=perf_type, mode = mode, seeds=seeds)
         zero_shot, std = data.avg_seeds(k_shot=0)
 
-        axn.axhline(np.mean(zero_shot), color=color, linewidth=1.0, alpha=0.8, zorder=0)
 
         x_mark = (ind+(width/2))+(i*width)
         axn.scatter(x_mark,  zero_shot, color=color, s=3, marker=marker)
-        axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=color, linewidth=0.5)
+        if model_name in ['rawBertNet_lin', 'bowNet_lin_plus', 'simpleNetPlus']: linestyle = '--'
+        else: linestyle = '-'
+        axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=color, linewidth=0.5, linestyle=linestyle, **kwargs)
+        axn.axhline(np.mean(zero_shot), color=color, linewidth=1.0, alpha=0.8, zorder=0, linestyle=linestyle)
+
 
     fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
 
