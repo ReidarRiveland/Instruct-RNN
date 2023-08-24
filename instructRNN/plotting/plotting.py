@@ -27,7 +27,7 @@ plt.rcParams['axes.spines.right'] = False
 
 
 Blue = '#1C3FFD'
-lightBlue=	'#75E6DA'
+lightBlue=	'#89cff0'
 lightRed = '#FF6D6A'
 Green = "#5A5C53"
 Red = '#FF3131'
@@ -36,7 +36,7 @@ Yellow = '#FFEE58'
 Purple = '#800080'
 Grey = '#36454F'
 
-MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (lightBlue, None, 'simpleNetPlus'),  'combNet': (Grey, None, 'comboNet'), 
+MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (lightBlue, None, 'simpleNetPlus'),  'combNet': (lightBlue, None, 'structureNet'), 
                     'clipNet_lin': (Purple, None, 'clipNet'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 'clipNet': (Purple, None, 'clipNet'), 
                     'bowNet_lin': (Yellow, None, 'bowNet'), 'bowNet': (Yellow, None, 'bowNet'), 'bowNet_lin_plus': (Yellow, None, 'bowNetPlus'), 
                     'gptNet_lin': (lightRed, None, 'gptNet'), 'gptNet_lin_tuned': (lightRed, 'v','gptNet (tuned)'), 'gptNet': (lightRed, 'v','gptNet'),
@@ -310,10 +310,21 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='
     plt.tight_layout()
     return fig, axn
 
+def make_sig_labels(sig_mat): 
+    for num, label in [(0, 'ns'), (1, '*'), (2, '**'), (3, '***')]:
+        sig_mat = np.where(sig_mat == num, np.full_like(sig_mat, label, dtype='object'), sig_mat)
+    
+    return sig_mat
+
 def plot_significance(sig_mat, model_list): 
+    labels = make_sig_labels(sig_mat)
+    for num, label in [(0, 'ns'), (1, '*'), (2, '**'), (3, '***')]:
+        labels = np.where(labels == num, np.full_like(labels, label, dtype='object'), labels)
+    model_names = [MODEL_STYLE_DICT[model_name][2] for model_name in model_list]
     with sns.plotting_context(rc={ 'xtick.labelsize': 4,'ytick.labelsize': 4}):
         sns.heatmap(sig_mat, linecolor='white', linewidths=1, cbar=False, 
-                xticklabels=model_list, yticklabels=model_list, annot=True, annot_kws={"size": 6})
+                xticklabels=model_names, yticklabels=model_names, annot=labels, fmt= '', annot_kws={"size": 6})
+
 
 def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs): 
     task_reps = reps_reduced
