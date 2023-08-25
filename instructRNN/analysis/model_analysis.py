@@ -33,17 +33,21 @@ def get_reps_from_tasks(reps, tasks):
     return reps[indices, ...]
     
 def calc_t_test(folder, exp, model_list, mode='combined', p_threshs = [0.05, 0.01, 0.001]):
+    t_value_arr = np.empty((len(model_list), len(model_list)))
     p_value_arr = np.empty((len(model_list), len(model_list)))
+
     is_significant = np.zeros((len(model_list), len(model_list)))
 
     data_list = [PerfDataFrame(folder, exp, model, mode=mode) for model in model_list]
     for i, x_data in enumerate(data_list): 
         for j, y_data in enumerate(data_list): 
-            p_value_arr[i,j] = ttest_ind(x_data.get_k_shot(0).flatten(), y_data.get_k_shot(0).flatten(), equal_var=False)[1]
+            t_stat, p_value = ttest_ind(x_data.get_k_shot(0).flatten(), y_data.get_k_shot(0).flatten(), equal_var=False)
+            t_value_arr[i, j] = t_stat
+            p_value_arr[i,j] = p_value
     for p_thresh in p_threshs: 
         is_significant += (p_value_arr < p_thresh)
 
-    return p_value_arr, is_significant
+    return np.round(t_value_arr, 4), np.round(p_value_arr, 4), is_significant
 
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
     langModel.eval()

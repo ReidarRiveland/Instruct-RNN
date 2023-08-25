@@ -190,10 +190,9 @@ def plot_all_models_task_dist(foldername, exp_type, model_list, k= 0, perf_type=
             mean_bins = np.mean(bins, axis=0)
             std_bins = np.std(bins, axis=0)
             ax.set_title(MODEL_STYLE_DICT[model_name][2], fontsize=8)
-
-            ax.set_ylim(0, 25)
-            ax.set_yticks([0, 10, 20])
-            ax.set_yticklabels(['0', '10', '20'])
+            ax.set_ylim(0, 35)
+            ax.set_yticks([0, 10, 20, 30])
+            ax.set_yticklabels(['0', '10', '20', '30'])
 
             if i%4 == 0: 
                 ax.set_ylabel('Number of Tasks')
@@ -290,13 +289,13 @@ def make_sig_labels(sig_mat):
     return sig_mat
 
 def plot_significance(sig_mat, model_list): 
-    labels = make_sig_labels(sig_mat)
-    for num, label in [(0, 'ns'), (1, '*'), (2, '**'), (3, '***')]:
-        labels = np.where(labels == num, np.full_like(labels, label, dtype='object'), labels)
+    # labels = make_sig_labels(sig_mat)
+    # for num, label in [(0, 'ns'), (1, '*'), (2, '**'), (3, '***')]:
+    #     labels = np.where(labels == num, np.full_like(labels, label, dtype='object'), labels)
     model_names = [MODEL_STYLE_DICT[model_name][2] for model_name in model_list]
     with sns.plotting_context(rc={ 'xtick.labelsize': 4,'ytick.labelsize': 4}):
-        sns.heatmap(sig_mat, linecolor='white', linewidths=1, cbar=False, 
-                xticklabels=model_names, yticklabels=model_names, annot=labels, fmt= '', annot_kws={"size": 6})
+        sns.heatmap(sig_mat, linecolor='white', linewidths=1, cbar=False, fmt='.4g',
+                xticklabels=model_names, yticklabels=model_names, annot=True, annot_kws={"size": 6})
 
 
 def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs): 
