@@ -1,7 +1,7 @@
 from instructRNN.models.language_models import GPT, BERT, SBERT, CLIP, RawBERT, BoW
 from instructRNN.models.sensorimotor_models import RuleModelConfig, InstructModelConfig, RuleNet, InstructNet
 
-all_models = ['simpleNet', 'simpleNetPlus', 'combNet',
+all_models = ['simpleNet', 'simpleNetPlus', 'combNet', 'combNetPlus', 
 
             'gptNetXL', 'gptNetXL_lin', 'gptNetXL_lin_tuned', 'gptNetXL_L_lin',
 
@@ -38,6 +38,11 @@ class CombNet(RuleNet):
 class SimpleNetPlus(RuleNet):
     def __init__(self, **kw_args):
         config = RuleModelConfig('simpleNetPlus', add_rule_encoder=True, **kw_args)
+        super().__init__(config)
+
+class CombNetPlus(RuleNet): 
+    def __init__(self, **kw_args): 
+        config = RuleModelConfig('combNet', info_type='comb', add_rule_encoder=True, **kw_args)
         super().__init__(config)
 
 class GPTNet(InstructNet):
@@ -101,6 +106,8 @@ def make_default_model(model_str):
         return SimpleNetPlus()   
     if model_str == 'combNet':
         return CombNet()
+    if model_str == 'combNetPlus':
+        return CombNetPlus()
     
     if model_str == 'gptNet': 
         return GPTNet(model_name = model_str, 
