@@ -395,36 +395,38 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
         return True
     
     model = make_default_model(model_name)
-    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
+    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, min_run_epochs=5, **train_config_kwargs)
 
     if use_checkpoint: 
         try:
             model, trainer = load_checkpoint(model, file_name, seed)
         except: 
-            print('Starting Training from untrained model')
             trainer = ModelTrainer(trainer_config)
     else: 
         trainer = ModelTrainer(trainer_config)
 
     if model_name == 'simpleComb': 
-        instruct_load_file = exp_folder+'/'+label+'/combNet'
+        instruct_load_file = exp_folder+'/'+label+'/combNet/combNet_seed'+str(seed)+'.pt'
     elif model_name == 'simpleClip':
-        instruct_load_file = exp_folder+'/'+label+'/clipNet_lin'
+        instruct_load_file = exp_folder+'/'+label+'/clipNet_lin/clipNet_lin_seed'+str(seed)+'.pt'
 
-    model.load_model(instruct_load_file, suffix='_seed'+str(seed))
-    model.load_recurrent_units(exp_folder+'/'+label+'/simpleNet', suffix='_seed'+str(seed))
-    model.freeze_recurrent_units()
+    print('LOADING COMPATABILITY COMPONENETS')
+    model.load_state_dict(torch.load(instruct_load_file), strict=False)
+    model.load_recurrent_units(exp_folder+'/'+label+'/simpleNet/simpleNet', suffix='_seed'+str(seed))
+    model.freeze_all_but_rnn_ins()
 
     is_trained = trainer.train(model)
     return is_trained
 
 def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, ot=False, use_checkpoint=False, **train_config_kwargs):
+    if model_name in ['simpleComb', 'simpleClip']:
+        is_trained = train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs)
     if not '_tuned' in model_name:
         is_trained = train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs) 
     elif '_tuned' in model_name: 
         is_trained = tune_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs)
     else: 
-        is_trained = train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs)
+        raise Exception()
         
     if is_trained: 
         for instruct_mode in [None, 'combined', 'swap_combined']:
