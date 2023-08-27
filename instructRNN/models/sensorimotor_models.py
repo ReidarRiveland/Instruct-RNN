@@ -129,6 +129,10 @@ class BaseNet(nn.Module):
         self.load_state_dict(torch.load(file_path+'/'+self.model_name+suffix+'.pt', 
                 map_location='cpu'), strict=False)
 
+    def load_recurrent_units(self, file_path, suffix=''): 
+        self.recurrent_units.load_state_dict(torch.load(file_path+'/'+self.model_name+suffix+'.pt', 
+                map_location='cpu'), strict=False)
+
     def to(self, cuda_device): 
         super().to(cuda_device)
         self.recurrent_units._mask_to(cuda_device)

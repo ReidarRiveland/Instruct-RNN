@@ -1,7 +1,7 @@
 from instructRNN.models.language_models import GPT, BERT, SBERT, CLIP, RawBERT, BoW
 from instructRNN.models.sensorimotor_models import RuleModelConfig, InstructModelConfig, RuleNet, InstructNet
 
-all_models = ['simpleNet', 'simpleNetPlus', 'combNet', 'combNetPlus', 
+all_models = ['simpleNet', 'simpleNetPlus', 'combNet', 'combNetPlus', 'simpleComb', 'simpleClip',
 
             'gptNetXL', 'gptNetXL_lin', 'gptNetXL_lin_tuned', 'gptNetXL_L_lin',
 
@@ -106,6 +106,9 @@ def make_default_model(model_str):
         return SimpleNetPlus()   
     if model_str == 'combNet':
         return CombNet()
+
+    if model_str == 'simpleComb':
+        return CombNet()
     if model_str == 'combNetPlus':
         return CombNetPlus()
     
@@ -196,6 +199,13 @@ def make_default_model(model_str):
         return CLIPNet(model_name=model_str, 
                     LM_output_nonlinearity = 'lin', 
                     LM_train_layers = [])
+
+    
+    if model_str == 'simpleClip': 
+        return CLIPNet(model_name=model_str, 
+                    LM_output_nonlinearity = 'lin', 
+                    LM_train_layers = [])
+
 
     if model_str == 'clipNet_lin_tuned': 
         return CLIPNet(model_name=model_str, 
