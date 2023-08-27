@@ -412,7 +412,7 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
 
     print('LOADING COMPATABILITY COMPONENETS')
     model.load_state_dict(torch.load(instruct_load_file), strict=False)
-    model.load_recurrent_units(exp_folder+'/'+label+'/simpleNet/simpleNet', suffix='_seed'+str(seed))
+    model.load_recurrent_units('7.20models/swap_holdouts/'+label+'/simpleNet/simpleNet', suffix='_seed'+str(seed))
     model.freeze_all_but_rnn_ins()
 
     is_trained = trainer.train(model)
