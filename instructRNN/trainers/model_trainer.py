@@ -414,6 +414,9 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
     model.load_state_dict(torch.load(instruct_load_file), strict=False)
     model.load_recurrent_units('7.20models/swap_holdouts/'+label+'/simpleNet/simpleNet', suffix='_seed'+str(seed))
     model.freeze_all_but_rnn_ins()
+    model.langModel.set_train_layers(['11', '10', '9'])
+    for n, p in model.named_parameters(): 
+        if p.requires_grad(): print(n)
 
     is_trained = trainer.train(model)
     return is_trained
