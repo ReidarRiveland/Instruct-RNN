@@ -395,7 +395,7 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
         return True
     
     model = make_default_model(model_name)
-    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, min_run_epochs=5, **train_config_kwargs)
+    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, min_run_epochs=5, scheduler_gamma = 0.95, init_lr=1e-3, init_lang_lr=5e-3, **train_config_kwargs)
 
     if use_checkpoint: 
         try:
@@ -405,24 +405,34 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
     else: 
         trainer = ModelTrainer(trainer_config)
 
-    if model_name == 'simpleComb': 
-        instruct_load_file = exp_folder+'/'+label+'/combNet/combNet_seed'+str(seed)+'.pt'
+    print('LOADING COMPATABILITY COMPONENETS', flush=True)
+
+    if model_name == 'clipClip': 
+        instruct_load_file = exp_folder+'/'+label+'/clipNet_lin/clipNet_lin_seed'+str(seed)+'.pt'
+        model.load_state_dict(torch.load(instruct_load_file), strict=False)
+        recurrent_seed = (seed+1)%5
+        print(recurrent_seed)
+        model.load_recurrent_units(exp_folder+'/'+label+'/clipNet_lin/clipNet_lin', suffix='_seed'+str(recurrent_seed))
+
     elif model_name == 'simpleClip':
         instruct_load_file = exp_folder+'/'+label+'/clipNet_lin/clipNet_lin_seed'+str(seed)+'.pt'
+        model.load_state_dict(torch.load(instruct_load_file), strict=False)
+        model.load_recurrent_units(exp_folder+'/'+label+'/simpleNet/simpleNet', suffix='_seed'+str(seed))
 
-    print('LOADING COMPATABILITY COMPONENETS')
-    model.load_state_dict(torch.load(instruct_load_file), strict=False)
-    model.load_recurrent_units('7.20models/swap_holdouts/'+label+'/simpleNet/simpleNet', suffix='_seed'+str(seed))
+    # model.freeze_all_but_rnn_ins()
+    # model.langModel.set_train_layers([])
+
     model.freeze_all_but_rnn_ins()
-    model.langModel.set_train_layers(['11', '10', '9'])
-    for n, p in model.named_parameters(): 
-        if p.requires_grad(): print(n)
+    model.langModel.__init_proj_out__()
+    model.langModel.set_train_layers([])
+    for n, p in model.named_parameters():
+        if p.requires_grad: print(n)
 
     is_trained = trainer.train(model)
     return is_trained
 
 def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, ot=False, use_checkpoint=False, **train_config_kwargs):
-    if model_name in ['simpleComb', 'simpleClip']:
+    if model_name in ['simpleClip', 'clipClip']:
         is_trained = train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs)
     if not '_tuned' in model_name:
         is_trained = train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs) 

@@ -9,7 +9,7 @@ from instructRNN.analysis.model_analysis import calc_t_test
 to_plot_models = ['combNet', 'clipNet_lin', 'sbertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet']
 non_lin_models = ['clipNet', 'sbertNet', 'gptNetXL', 'gptNet', 'bertNet', 'bowNet']
 tuned_to_plot = ['combNet', 'clipNet_lin_tuned', 'sbertNet_lin_tuned', 'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
-aux_models = ['combNet', 'bowNet_lin_plus', 'rawBertNet_lin', 'simpleNetPlus', 'simpleNet']
+aux_models = ['combNet', 'combNetPlus', 'bowNet_lin_plus', 'rawBertNet_lin', 'simpleNetPlus', 'simpleNet']
 
 ##ALL MODEL LEARNING CURVES
 fig_axn = plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask', linewidth=0.5)
@@ -24,10 +24,16 @@ plt.show()
 plot_curves('7.20models', 'swap', to_plot_models, mode='combined', avg=True, linewidth=0.8)
 plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='combined')
-
-_, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combined')
-plot_significance(is_sig, to_plot_models)
 plt.show()
+
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combined')
+plot_significance(t_mat, to_plot_models)
+
+plt.show()
+
+data = PerfDataFrame('7.20models', 'swap', 'combNet', mode = 'combined')
+data.get_k_shot(0).mean()
+
 
 ##non-linear holdouts
 plot_curves('7.20models', 'swap', non_lin_models, mode='combined', avg=True, linewidth=0.8)
@@ -35,7 +41,7 @@ plot_all_models_task_dist('7.20models', 'swap', non_lin_models, mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', non_lin_models, mode='combined')
 plt.show()
 
-p_mat, is_sig = calc_t_test('7.20models', 'swap', non_lin_models, mode='combined')
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', non_lin_models, mode='combined')
 plot_significance(is_sig, non_lin_models)
 plt.show()
 
@@ -45,8 +51,8 @@ plot_all_models_task_dist('7.20models', 'swap', aux_models, mode='combined', hat
 plot_all_task_lolli_v('7.20models', 'swap', aux_models, mode='combined')
 plt.show()
 
-p_mat, is_sig = calc_t_test('7.20models', 'swap', aux_models, mode='combined')
-plot_significance(is_sig, aux_models)
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', aux_models, mode='combined')
+plot_significance(t_mat, aux_models)
 plt.show()
 
 ##TUNED HOLDOUTS

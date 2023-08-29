@@ -36,7 +36,7 @@ Yellow = '#FFEE58'
 Purple = '#800080'
 Grey = '#36454F'
 
-MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Blue, None, 'simpleNetPlus'),  'combNet': (lightBlue, None, 'structureNet'), 
+MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Blue, None, 'simpleNetPlus'),  'combNet': (lightBlue, None, 'structureNet'), 'combNetPlus': (lightBlue, None, 'structureNetPlus'),
                     'clipNet_lin': (Purple, None, 'clipNet'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 'clipNet': (Purple, None, 'clipNet'), 
                     'bowNet_lin': (Yellow, None, 'bowNet'), 'bowNet': (Yellow, None, 'bowNet'), 'bowNet_lin_plus': (Yellow, None, 'bowNetPlus'), 
                     'gptNet_lin': (lightRed, None, 'gptNet'), 'gptNet_lin_tuned': (lightRed, 'v','gptNet (tuned)'), 'gptNet': (lightRed, 'v','gptNet'),
@@ -124,7 +124,7 @@ def plot_curves(foldername, exp_type, model_list, mode = '', training_file = '',
                 axn.scatter(0, mean[0], color=color, s=3, marker=zero_marker)
             else: 
                 mean, std = data.avg_seeds()
-            if model_name in ['rawBertNet_lin', 'bowNet_lin_plus', 'simpleNetPlus']: linestyle = '--'
+            if model_name in ['rawBertNet_lin', 'bowNet_lin_plus', 'simpleNetPlus', 'combNetPlus']: linestyle = '--'
             else: linestyle = '-'
             plt_func(mean, std, axn, color, zero_marker, linestyle=linestyle, **curve_kwargs)
 
@@ -282,20 +282,33 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='
     plt.tight_layout()
     return fig, axn
 
-def make_sig_labels(sig_mat): 
-    for num, label in [(0, 'ns'), (1, '*'), (2, '**'), (3, '***')]:
-        sig_mat = np.where(sig_mat == num, np.full_like(sig_mat, label, dtype='object'), sig_mat)
-    
-    return sig_mat
 
-def plot_significance(sig_mat, model_list): 
-    # labels = make_sig_labels(sig_mat)
-    # for num, label in [(0, 'ns'), (1, '*'), (2, '**'), (3, '***')]:
-    #     labels = np.where(labels == num, np.full_like(labels, label, dtype='object'), labels)
+def plot_significance(t_mat, p_mat, model_list): 
+    labels = []
+    for p in p_mat.flatten(): 
+        if p< 0.001: 
+            labels.append('*** \n p<0.001')
+        elif p<0.01: 
+            labels.append('** \n p = {}'.format(np.round(p, 4)))
+        elif p<0.05: 
+            labels.append('* \n p = {}'.format(np.round(p, 4)))
+        elif p > 0.05: 
+            labels.append('n.s. \n p>0.05')
+    
+    mask = np.zeros_like(t_mat)
+    mask[np.triu_indices_from(mask)] = True
+    mask[np.diag_indices_from(mask)] = False
+
+    t_mat = np.where(mask, np.full_like(t_mat, np.nan), t_mat)
+
+
+
+    labels = np.array(labels).reshape(len(model_list), len(model_list))
     model_names = [MODEL_STYLE_DICT[model_name][2] for model_name in model_list]
     with sns.plotting_context(rc={ 'xtick.labelsize': 4,'ytick.labelsize': 4}):
-        sns.heatmap(sig_mat, linecolor='white', linewidths=1, cbar=False, fmt='.4g',
-                xticklabels=model_names, yticklabels=model_names, annot=True, annot_kws={"size": 6})
+        sns.heatmap(t_mat, linecolor='white', linewidths=1, cbar=True, fmt='', cbar_kws={'label': 't-value'}, mask=mask,
+                xticklabels=model_names, yticklabels=model_names, annot=labels, annot_kws={"size": 6})
+
 
 
 def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs): 
