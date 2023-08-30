@@ -133,7 +133,7 @@ class BaseNet(nn.Module):
         tmp_state_dict = torch.load(file_path+suffix+'.pt')
         rnn_state_dict = OrderedDict()
         for name, params in tmp_state_dict.items(): 
-            if 'recurrent_units.' in name and 'hh' in name: 
+            if 'recurrent_units.' in name: 
                 new_name = name.replace('recurrent_units.', '')
                 rnn_state_dict[new_name] = params
         self.recurrent_units.load_state_dict(rnn_state_dict, strict=False)

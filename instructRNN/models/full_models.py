@@ -11,7 +11,7 @@ all_models = ['simpleNet', 'simpleNetPlus', 'combNet', 'combNetPlus', 'simpleCli
 
             'sbertNet', 'sbertNet_lin', 'sbertNet_lin_tuned',
 
-            'clipNet', 'clipNet_lin', 'clipNet_lin_tuned', 'clipClip',
+            'clipNet', 'clipNet_lin', 'clipNet_lin_tuned', 'clipClip', 'clipNet_lin_new', 
 
             'bowNet', 'bowNet_lin', 'bowNet_lin_plus'
             ]
@@ -194,6 +194,11 @@ def make_default_model(model_str):
                     LM_train_layers = [])
 
     if model_str == 'clipNet_lin': 
+        return CLIPNet(model_name=model_str, 
+                    LM_output_nonlinearity = 'lin', 
+                    LM_train_layers = [])
+
+    if model_str == 'clipNet_lin_new': 
         return CLIPNet(model_name=model_str, 
                     LM_output_nonlinearity = 'lin', 
                     LM_train_layers = [])
