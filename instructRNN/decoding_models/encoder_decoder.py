@@ -21,7 +21,8 @@ class EncoderDecoder(nn.Module):
         self.sm_model.eval()
         self.decoder.eval()
 
-        decoder.tokenizer.index2word[2] = '<|endoftext|>'
+        if hasattr(decoder, 'tokenizer'):
+            decoder.tokenizer.index2word[2] = '<|endoftext|>'
 
     def load_model_componenets(self, load_folder, seed, tasks=TASK_LIST, with_holdout=False):
         suffix = '_seed'+str(seed)
@@ -71,15 +72,17 @@ class EncoderDecoder(nn.Module):
                     
                     decoded_sentences = self.decoder.decode_sentence(sm_hidden) 
                     shallow_decoded_set[task] = decoded_sentences
-                    for instruct in decoded_sentences:
-                        try: 
-                            decoded_task = inv_train_instruct_dict[instruct]
-                            tasks_decoded[decoded_task].append(instruct)
-                            confusion_mat[i, TASK_LIST.index(decoded_task)] += 1
-                        except KeyError:
-                            tasks_decoded['other'].append(instruct)
-                            confusion_mat[i, -1] += 1
-                    rich_decoded_set[task] = tasks_decoded
+
+                    if isinstance(self.decoder, DecoderRNN):
+                        for instruct in decoded_sentences:
+                            try: 
+                                decoded_task = inv_train_instruct_dict[instruct]
+                                tasks_decoded[decoded_task].append(instruct)
+                                confusion_mat[i, TASK_LIST.index(decoded_task)] += 1
+                            except KeyError:
+                                tasks_decoded['other'].append(instruct)
+                                confusion_mat[i, -1] += 1
+                        rich_decoded_set[task] = tasks_decoded
 
         return shallow_decoded_set, rich_decoded_set, confusion_mat
 

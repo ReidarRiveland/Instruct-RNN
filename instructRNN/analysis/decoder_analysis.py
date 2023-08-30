@@ -5,7 +5,7 @@ import numpy as np
 import pickle
 import itertools
 from collections import defaultdict, Counter
-from instructRNN.decoding_models.decoder_models import DecoderRNN
+from instructRNN.decoding_models.decoder_models import DecoderRNN, DecoderMLP
 from instructRNN.decoding_models.encoder_decoder import EncoderDecoder
 from instructRNN.models.full_models import make_default_model
 from instructRNN.tasks.tasks import SWAPS_DICT, TASK_LIST, MULTITASK_DICT, construct_trials
@@ -25,10 +25,15 @@ def get_decoded_set(foldername: str, model_name: str, seeds=range(5), from_conte
     full_rich_set = {}
     full_confuse_mat = np.full((len(seeds), len(TASK_LIST), len(TASK_LIST)+1), np.nan)
     sm_model = make_default_model(model_name)
-    rnn_decoder = DecoderRNN(256, drop_p=0.0)
+    if model_name == 'clipNet_lin': 
+        decoder = DecoderRNN(256, drop_p=0.0)
+    elif model_name =='combNet': 
+        decoder = DecoderMLP(256, drop_p=0.0)
+    else:
+        raise Exception() 
 
-    rnn_decoder.eval()
-    encoder = EncoderDecoder(sm_model, rnn_decoder)
+    decoder.eval()
+    encoder = EncoderDecoder(sm_model, decoder)
     full_all_contexts = np.full((len(seeds), len(TASK_LIST), 25, 64), np.nan)
     encoder.to(0)
 
@@ -60,6 +65,7 @@ def get_decoded_set(foldername: str, model_name: str, seeds=range(5), from_conte
         if decoder_holdouts: decoder_str='holdout'
         else: decoder_str = 'multi'
 
+        pickle.dump(full_rich_set, open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_shallow_instructs_dict', 'wb'))
         pickle.dump(full_rich_set, open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_instructs_dict', 'wb'))
         np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_confuse_mat.npy',full_confuse_mat)
         np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_contexts.npy', full_all_contexts)
@@ -79,7 +85,7 @@ def _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks
         
             if contexts is not None: 
                 task_info = torch.Tensor(contexts[TASK_LIST.index(task), 0:num_trials, ...]).repeat(2, 1).to(partner_model.__device__)
-                out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), context = task_info)
+                out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), info_embedded = task_info)
                 contexts_perf_array[i] = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
             try:
@@ -99,8 +105,8 @@ def _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks
 
 
 def test_partner_model(load_folder, model_name, decoded_dict, contexts = None, num_trials=50, tasks = TASK_LIST, partner_seed=3): 
-    partner_model = make_default_model('clipNet_lin')
-    partner_model.load_state_dict(torch.load('7.20models/multitask_holdouts/Multitask/clipNet_lin/clipNet_lin_seed'+str(partner_seed)+'.pt'), strict=False)
+    partner_model = make_default_model(model_name)
+    partner_model.load_state_dict(torch.load('7.20models/multitask_holdouts/Multitask/'+model_name+'/'+model_name+'_seed'+str(partner_seed)+'.pt'), strict=False)
     return _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks)
 
 def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_LIST, partner_seeds=range(5), decoder_holdouts=False, sm_holdouts= False, save=False):
@@ -156,7 +162,7 @@ def test_holdout_partner_perf(foldername, model_name, num_trials = 50, partner_s
     other_perf_array = np.full((len(partner_seeds), len(full_decoded_dict),  len(TASK_LIST)), np.nan)
     contexts_perf_array = np.full(( len(partner_seeds), len(full_decoded_dict), len(TASK_LIST)), np.nan)
     
-    partner_model = make_default_model('clipNet_lin')
+    partner_model = make_default_model(model_name)
     for i, seed in enumerate(partner_seeds):
         for holdout_file, holdouts in SWAPS_DICT.items():
             print('processing '+ holdout_file)
@@ -220,7 +226,7 @@ def get_novel_instruct_ratio(sm_holdout=False, decoder_holdout=False):
     if decoder_holdout: decoder_str = 'holdout'
     else: decoder_str = 'multi'
 
-    confuse_mat = np.load(folder+'/decoder_perf/clipNet_lin/test_sm_'+sm_str+'_decoder_'+decoder_str+'_confuse_mat.npy')
+    confuse_mat = np.load(folder+'/decoder_perf/'+model_name_+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_confuse_mat.npy')
     return np.sum(confuse_mat[:, :, -1:])/np.sum(confuse_mat)
 
 def get_trained_ratio(foldername, exp, model_name, seeds = range(5), sm_holdout=False, decoder_holdout=False):

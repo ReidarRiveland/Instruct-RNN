@@ -96,6 +96,9 @@ class DecoderMLP(nn.Module):
         out = torch.tanh(self.out_layer(out))
         return out 
 
+    def decode_sentence(self, sm_hidden): 
+        return self.foward(sm_hidden)
+
     def save_model(self, save_string): 
         torch.save(self.state_dict(), save_string+'.pt')
         
