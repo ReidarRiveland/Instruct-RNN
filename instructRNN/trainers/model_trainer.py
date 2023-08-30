@@ -395,7 +395,7 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
         return True
     
     model = make_default_model(model_name)
-    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, min_run_epochs=5, 
+    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, min_run_epochs=50, checker_threshold=0.9, 
                                         scheduler_gamma = 0.99, init_lr=1e-3, init_lang_lr=1e-4, **train_config_kwargs)
 
     if use_checkpoint: 
