@@ -395,8 +395,6 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
         return True
     
     model = make_default_model(model_name)
-    model.langModel.LM_proj_out_layers = 2
-    model.langModel.__init_proj_out__()
 
     trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, min_run_epochs=50, checker_threshold=0.9, 
                                         scheduler_gamma = 0.99, init_lr=1e-3, init_lang_lr=1e-3, **train_config_kwargs)
@@ -412,11 +410,11 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
     print('LOADING COMPATABILITY COMPONENETS', flush=True)
 
     if model_name == 'clipClip': 
-        instruct_load_file = exp_folder+'/'+label+'/clipNet_lin/clipNet_lin_seed'+str(seed)+'.pt'
+        instruct_load_file = exp_folder+'/'+label+'/clipNet_lin_new/clipNet_lin_new_seed'+str(seed)+'.pt'
         model.load_state_dict(torch.load(instruct_load_file), strict=False)
         recurrent_seed = (seed+1)%5
         print(recurrent_seed)
-        model.load_recurrent_units(exp_folder+'/'+label+'/clipNet_lin/clipNet_lin', suffix='_seed'+str(recurrent_seed))
+        model.load_recurrent_units(exp_folder+'/'+label+'/clipNet_lin_new/clipNet_lin_new', suffix='_seed'+str(recurrent_seed))
 
     elif model_name == 'simpleClip':
         instruct_load_file = exp_folder+'/'+label+'/clipNet_lin/clipNet_lin_seed'+str(seed)+'.pt'
@@ -426,8 +424,6 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
 
 
     model.freeze_all_but_rnn_ins()
-
-    model.langModel.set_train_layers([])
     for n, p in model.named_parameters():
         if p.requires_grad: print(n)
 
