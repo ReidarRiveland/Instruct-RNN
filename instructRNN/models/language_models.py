@@ -12,7 +12,7 @@ from transformers import BertModel, BertTokenizer, BertLayer, BertConfig
 
 from instructRNN.instructions.instruct_utils import get_all_sentences, sort_vocab
 from transformers import logging
-logging.set_verbosity_error()
+#logging.set_verbosity_error()
 
 location = str(pathlib.Path(__file__).parent.absolute())
 
@@ -155,7 +155,10 @@ class RawBERT(TransformerEmbedder):
 class SBERT(TransformerEmbedder): 
     def __init__(self, config): 
         super().__init__(config)
-        self.transformer = BertModel.from_pretrained('bert-base-uncased', output_hidden_states=True)
+        if 'large' in self.LM_load_str: bert_model = 'bert-large-uncased'
+        else: bert_model = 'bert-base-uncased'
+
+        self.transformer = BertModel.from_pretrained(bert_model, output_hidden_states=True)
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
         self.set_train_layers(self.LM_train_layers)

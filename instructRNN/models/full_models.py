@@ -3,17 +3,19 @@ from instructRNN.models.sensorimotor_models import RuleModelConfig, InstructMode
 
 all_models = ['simpleNet', 'simpleNetPlus', 'combNet', 'combNetPlus', 
 
-            'gptNetXL', 'gptNetXL_lin', 'gptNetXL_lin_tuned', 'gptNetXL_L_lin', 'gptNetXL_lin_bias',
+            'gptNetXL', 'gptNetXL_lin', 'gptNetXL_lin_tuned', 'gptNetXL_L_lin', 
 
-            'gptNet', 'gptNet_lin', 'gptNet_lin_tuned', 'gptNet_L_lin', 'gptNet_lin_bias',
+            'gptNet', 'gptNet_lin', 'gptNet_lin_tuned', 'gptNet_L_lin',
 
-            'bertNet', 'bertNet_lin', 'bertNet_lin_tuned', 'bertNet_lin_bias', 'rawBertNet_lin',
+            'bertNet', 'bertNet_lin', 'bertNet_lin_tuned', 'rawBertNet_lin',
 
-            'sbertNet', 'sbertNet_lin', 'sbertNet_lin_tuned', 'sbertNet_lin_bias',
+            'sbertNet', 'sbertNet_lin', 'sbertNet_lin_tuned',
 
-            'clipNet', 'clipNet_lin', 'clipNet_lin_tuned', 'clipNet_lin_bias', 
+            'sbertNetXL', 'sbertNetXL_lin', 'sbertNetXL_lin_tuned',
 
-            'bowNet', 'bowNet_lin', 'bowNet_lin_plus'
+            'clipNet', 'clipNet_lin', 'clipNet_lin_tuned', 'clipNet_lin_new', 'clipNet_lin_new_tuned', 
+
+            'bowNet', 'bowNet_lin_plus'
             ]
 
 small_models = [model for model in all_models if 'XL' not in model] 
@@ -82,6 +84,13 @@ class SBERTNet(InstructNet):
                                     LM_load_str = 'sbert-base-nli-mean-tokens.pt', 
                                     **kw_args)
         super().__init__(config)
+
+class SBERTNetXL(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig(LM_class= SBERT,
+                                    LM_load_str = 'sbert-large-nli-mean-tokens.pt', 
+                                    **kw_args)
+        super().__init__(config)
             
 class CLIPNet(InstructNet):
     def __init__(self, **kw_args):
@@ -120,11 +129,6 @@ def make_default_model(model_str):
                     LM_output_nonlinearity='lin',
                     LM_train_layers = [])
 
-    if model_str == 'gptNet_lin_bias': 
-        return GPTNet(model_name=model_str, 
-                    LM_output_nonlinearity='lin',
-                    LM_train_layers = ['bias'])
-
     if model_str == 'gptNet_lin_tuned': 
         return GPTNet(model_name=model_str, 
                     LM_output_nonlinearity='lin', 
@@ -141,11 +145,6 @@ def make_default_model(model_str):
                     LM_output_nonlinearity='lin',
                     LM_train_layers = [])
 
-    if model_str == 'gptNetXL_lin_bias':
-        return GPTNetXL(model_name=model_str, 
-                    LM_output_nonlinearity='lin',
-                    LM_train_layers = ['bias'])
-
     if model_str == 'gptNetXL_lin_tuned':
         return GPTNetXL(model_name=model_str, 
                     LM_output_nonlinearity='lin',
@@ -156,24 +155,13 @@ def make_default_model(model_str):
                     LM_output_nonlinearity='lin',
                     LM_train_layers = [], 
                     LM_reducer='last')
-    
-    if model_str == 'gptNet_L_lin_bias':
-        return GPTNet(model_name=model_str, 
-                    LM_output_nonlinearity='lin',
-                    LM_train_layers = ['bias'], 
-                    LM_reducer='last')
+
 
     if model_str == 'gptNetXL_L_lin':
         return GPTNetXL(model_name=model_str, 
                     LM_output_nonlinearity='lin',
                     LM_reducer = 'last',
                     LM_train_layers = [])
-    
-    if model_str == 'gptNetXL_L_lin_bias':
-        return GPTNetXL(model_name=model_str, 
-                    LM_output_nonlinearity='lin',
-                    LM_reducer = 'last',
-                    LM_train_layers = ['bias'])
 
     if model_str == 'bertNet': 
         return BERTNet(model_name = model_str, 
@@ -184,11 +172,6 @@ def make_default_model(model_str):
         return BERTNet(model_name = model_str, 
                         LM_output_nonlinearity = 'lin', 
                         LM_train_layers = [])
-
-    if model_str == 'bertNet_lin_bias': 
-        return BERTNet(model_name = model_str, 
-                        LM_output_nonlinearity = 'lin', 
-                        LM_train_layers = ['bias'])
 
     if model_str == 'bertNet_lin_tuned': 
         return BERTNet(model_name = model_str, 
@@ -210,15 +193,28 @@ def make_default_model(model_str):
                         LM_output_nonlinearity = 'lin', 
                         LM_train_layers = [])
 
-    if model_str == 'sbertNet_lin_bias': 
-        return SBERTNet(model_name = model_str, 
-                        LM_output_nonlinearity = 'lin', 
-                        LM_train_layers = ['bias'])
-
     if model_str == 'sbertNet_lin_tuned': 
         return SBERTNet(model_name = model_str, 
                         LM_output_nonlinearity = 'lin', 
                         LM_train_layers = ['9', '10', '11', 'pooler'])  
+
+    if model_str == 'sbertNetXL': 
+        return SBERTNet(model_name = model_str, 
+                        LM_output_nonlinearity = 'relu', 
+                        LM_train_layers = [])
+
+
+    if model_str == 'sbertNetXL_lin': 
+        return SBERTNet(model_name = model_str, 
+                        LM_output_nonlinearity = 'lin', 
+                        LM_train_layers = [])
+
+
+    if model_str == 'sbertNetXL_lin_tuned': 
+        return SBERTNet(model_name = model_str, 
+                        LM_output_nonlinearity = 'lin', 
+                        LM_train_layers = ['21', '22', '23', 'pooler'])
+
 
     if model_str == 'clipNet': 
         return CLIPNet(model_name = model_str, 
@@ -230,25 +226,12 @@ def make_default_model(model_str):
                     LM_output_nonlinearity = 'lin', 
                     LM_train_layers = [])
 
-    if model_str == 'clipNet_lin_bias': 
-        return CLIPNet(model_name=model_str, 
-                    LM_output_nonlinearity = 'lin', 
-                    LM_train_layers = ['bias'])
-
-    
-    if model_str == 'simpleClip': 
-        return CLIPNet(model_name=model_str, 
-                    LM_output_nonlinearity = 'lin', 
-                    LM_train_layers = [])
-    
-        
-    if model_str == 'clipClip': 
+    if model_str == 'clipNet_lin_new': 
         return CLIPNet(model_name=model_str, 
                     LM_output_nonlinearity = 'lin', 
                     LM_train_layers = [])
 
-
-    if model_str == 'clipNet_lin_tuned': 
+    if model_str == 'clipNet_lin_new_tuned': 
         return CLIPNet(model_name=model_str, 
                     LM_output_nonlinearity = 'lin', 
                     LM_train_layers = ['9', '10', '11', 'pooler'])
@@ -257,7 +240,6 @@ def make_default_model(model_str):
         return BoWNet(model_name=model_str, 
                         LM_output_nonlinearity = 'relu', 
                             LM_train_layers = [])
-
 
     if model_str == 'bowNet_lin': 
         return BoWNet(model_name=model_str, 

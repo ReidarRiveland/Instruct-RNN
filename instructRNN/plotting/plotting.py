@@ -37,7 +37,7 @@ Purple = '#800080'
 Grey = '#36454F'
 
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Blue, None, 'simpleNetPlus'),  'combNet': (lightBlue, None, 'structureNet'), 'combNetPlus': (lightBlue, None, 'structureNetPlus'),
-                    'clipNet_lin': (Purple, None, 'clipNet'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 'clipNet': (Purple, None, 'clipNet'), 
+                    'clipNet_lin_new': (Purple, None, 'clipNet'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 'clipNet': (Purple, None, 'clipNet'), 
                     'bowNet_lin': (Yellow, None, 'bowNet'), 'bowNet': (Yellow, None, 'bowNet'), 'bowNet_lin_plus': (Yellow, None, 'bowNetPlus'), 
                     'gptNet_lin': (lightRed, None, 'gptNet'), 'gptNet_lin_tuned': (lightRed, 'v','gptNet (tuned)'), 'gptNet': (lightRed, 'v','gptNet'),
                     'gptNetXL_lin': (Red, None, 'gptNetXL'), 'gptNetXL_lin_tuned': (Red, None, 'gptNetXL (tuned)'), 'gptNetXL': (Red, None, 'gptNetXL'), 
