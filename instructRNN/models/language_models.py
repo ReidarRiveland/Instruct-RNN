@@ -7,8 +7,9 @@ from attrs import define
 import pathlib
 
 from transformers import GPT2Model, GPT2Tokenizer
-from transformers import CLIPTokenizer, CLIPTextModel
+from transformers import CLIPTokenizer, CLIPTextModelWithProjection, CLIPTextConfig
 from transformers import BertModel, BertTokenizer, BertLayer, BertConfig
+from transformers import AutoModel, AutoTokenizer
 
 from instructRNN.instructions.instruct_utils import get_all_sentences, sort_vocab
 from transformers import logging
@@ -155,21 +156,21 @@ class RawBERT(TransformerEmbedder):
 class SBERT(TransformerEmbedder): 
     def __init__(self, config): 
         super().__init__(config)
-        if 'large' in self.LM_load_str: bert_model = 'bert-large-uncased'
-        else: bert_model = 'bert-base-uncased'
+        # if 'large' in self.LM_load_str: bert_model = 'bert-large-uncased'
+        # else: bert_model = 'bert-base-uncased'
 
-        self.transformer = BertModel.from_pretrained(bert_model, output_hidden_states=True)
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        self.transformer = AutoModel.from_pretrained(self.LM_load_str, output_hidden_states=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
-        self.transformer.load_state_dict(self._convert_state_dict_format(location+'/_pretrained_state_dicts/'+self.LM_load_str))
+        #self.transformer.load_state_dict(self._convert_state_dict_format(location+'/_pretrained_state_dicts/'+self.LM_load_str))
 
-    def _convert_state_dict_format(self, state_dict_file): 
-        sbert_state_dict = torch.load(state_dict_file, map_location='cpu')
-        for key in list(sbert_state_dict.keys()):
-            sbert_state_dict[key.replace('0.auto_model.', '')] = sbert_state_dict.pop(key)
-        return sbert_state_dict
+    # def _convert_state_dict_format(self, state_dict_file): 
+    #     sbert_state_dict = torch.load(state_dict_file, map_location='cpu')
+    #     for key in list(sbert_state_dict.keys()):
+    #         sbert_state_dict[key.replace('0.auto_model.', '')] = sbert_state_dict.pop(key)
+    #     return sbert_state_dict
 
 
 class GPT(TransformerEmbedder): 
@@ -185,17 +186,17 @@ class GPT(TransformerEmbedder):
 class CLIP(TransformerEmbedder): 
     def __init__(self, config): 
         super().__init__(config)
-        self.transformer = CLIPTextModel.from_pretrained(self.LM_load_str, output_hidden_states=True)
+        self.transformer = CLIPTextModelWithProjection.from_pretrained(self.LM_load_str, output_hidden_states=True)
         self.tokenizer = CLIPTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
-        self._reducer = mean_embedding
+        self._reducer = None
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
     def forward_transformer(self, x):
         tokens = self.tokens_to_tensor(x)
         trans_out = self.transformer(**tokens, output_hidden_states=True)
-        return trans_out.pooler_output, trans_out.hidden_states
+        return trans_out.text_embeds, trans_out.hidden_states
 
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()

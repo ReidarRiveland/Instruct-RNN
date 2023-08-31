@@ -14,6 +14,9 @@ all_models = ['simpleNet', 'simpleNetPlus', 'combNet', 'combNetPlus',
             'sbertNetXL', 'sbertNetXL_lin', 'sbertNetXL_lin_tuned',
 
             'clipNet', 'clipNet_lin', 'clipNet_lin_tuned', 'clipNet_lin_new', 'clipNet_lin_new_tuned', 
+            
+            'clipNetXL', 'clipNetXL_lin', 'clipNetXL_lin_tuned',
+
 
             'bowNet', 'bowNet_lin_plus'
             ]
@@ -88,7 +91,7 @@ class SBERTNet(InstructNet):
 class SBERTNetXL(InstructNet):
     def __init__(self, **kw_args):
         config = InstructModelConfig(LM_class= SBERT,
-                                    LM_load_str = 'sbert-large-nli-mean-tokens.pt', 
+                                    LM_load_str = 'sentence-transformers/bert-large-nli-mean-tokens', 
                                     **kw_args)
         super().__init__(config)
             
@@ -96,6 +99,13 @@ class CLIPNet(InstructNet):
     def __init__(self, **kw_args):
         config = InstructModelConfig(LM_class= CLIP,
                                     LM_load_str = 'openai/clip-vit-base-patch32',
+                                    **kw_args)
+        super().__init__(config)
+        
+class CLIPNetXL(InstructNet):
+    def __init__(self, **kw_args):
+        config = InstructModelConfig(LM_class= CLIP,
+                                    LM_load_str = 'openai/clip-vit-large-patch14',
                                     **kw_args)
         super().__init__(config)
         
@@ -199,22 +209,21 @@ def make_default_model(model_str):
                         LM_train_layers = ['9', '10', '11', 'pooler'])  
 
     if model_str == 'sbertNetXL': 
-        return SBERTNet(model_name = model_str, 
+        return SBERTNetXL(model_name = model_str, 
                         LM_output_nonlinearity = 'relu', 
                         LM_train_layers = [])
 
 
     if model_str == 'sbertNetXL_lin': 
-        return SBERTNet(model_name = model_str, 
+        return SBERTNetXL(model_name = model_str, 
                         LM_output_nonlinearity = 'lin', 
                         LM_train_layers = [])
 
 
     if model_str == 'sbertNetXL_lin_tuned': 
-        return SBERTNet(model_name = model_str, 
+        return SBERTNetXL(model_name = model_str, 
                         LM_output_nonlinearity = 'lin', 
                         LM_train_layers = ['21', '22', '23', 'pooler'])
-
 
     if model_str == 'clipNet': 
         return CLIPNet(model_name = model_str, 
@@ -233,6 +242,22 @@ def make_default_model(model_str):
 
     if model_str == 'clipNet_lin_new_tuned': 
         return CLIPNet(model_name=model_str, 
+                    LM_output_nonlinearity = 'lin', 
+                    LM_train_layers = ['9', '10', '11', 'pooler'])
+
+    if model_str == 'clipNetXL': 
+        return CLIPNetXL(model_name = model_str, 
+                    LM_output_nonlinearity = 'relu', 
+                    LM_train_layers = [])
+
+    if model_str == 'clipNetXL_lin': 
+        return CLIPNetXL(model_name=model_str, 
+                    LM_output_nonlinearity = 'lin', 
+                    LM_train_layers = [])
+
+
+    if model_str == 'clipNetXL_lin_tuned': 
+        return CLIPNetXL(model_name=model_str, 
                     LM_output_nonlinearity = 'lin', 
                     LM_train_layers = ['9', '10', '11', 'pooler'])
 
