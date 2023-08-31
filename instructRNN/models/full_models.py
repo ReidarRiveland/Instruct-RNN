@@ -243,7 +243,7 @@ def make_default_model(model_str):
     if model_str == 'clipNet_lin_new_tuned': 
         return CLIPNet(model_name=model_str, 
                     LM_output_nonlinearity = 'lin', 
-                    LM_train_layers = ['9', '10', '11', 'pooler'])
+                    LM_train_layers = ['9', '10', '11', 'text_projection', 'pooler'])
 
     if model_str == 'clipNetXL': 
         return CLIPNetXL(model_name = model_str, 
@@ -259,7 +259,7 @@ def make_default_model(model_str):
     if model_str == 'clipNetXL_lin_tuned': 
         return CLIPNetXL(model_name=model_str, 
                     LM_output_nonlinearity = 'lin', 
-                    LM_train_layers = ['9', '10', '11', 'pooler'])
+                    LM_train_layers = ['9', '10', '11', 'text_projection', 'pooler'])
 
     if model_str == 'bowNet': 
         return BoWNet(model_name=model_str, 

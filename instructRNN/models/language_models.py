@@ -156,22 +156,12 @@ class RawBERT(TransformerEmbedder):
 class SBERT(TransformerEmbedder): 
     def __init__(self, config): 
         super().__init__(config)
-        # if 'large' in self.LM_load_str: bert_model = 'bert-large-uncased'
-        # else: bert_model = 'bert-base-uncased'
-
         self.transformer = AutoModel.from_pretrained(self.LM_load_str, output_hidden_states=True)
         self.tokenizer = AutoTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
-        #self.transformer.load_state_dict(self._convert_state_dict_format(location+'/_pretrained_state_dicts/'+self.LM_load_str))
-
-    # def _convert_state_dict_format(self, state_dict_file): 
-    #     sbert_state_dict = torch.load(state_dict_file, map_location='cpu')
-    #     for key in list(sbert_state_dict.keys()):
-    #         sbert_state_dict[key.replace('0.auto_model.', '')] = sbert_state_dict.pop(key)
-    #     return sbert_state_dict
-
+        
 
 class GPT(TransformerEmbedder): 
     def __init__(self, config): 
