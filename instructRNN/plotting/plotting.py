@@ -38,13 +38,14 @@ Grey = '#36454F'
 
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Blue, None, 'simpleNetPlus'),  'combNet': (lightBlue, None, 'structureNet'), 'combNetPlus': (lightBlue, None, 'structureNetPlus'),
                     'clipNet_lin_new': (Purple, None, 'clipNet'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 'clipNet': (Purple, None, 'clipNet'), 
+                    'clipNetXL_lin': ('Pink', None, 'clipNetXL'),
                     'bowNet_lin': (Yellow, None, 'bowNet'), 'bowNet': (Yellow, None, 'bowNet'), 'bowNet_lin_plus': (Yellow, None, 'bowNetPlus'), 
                     'gptNet_lin': (lightRed, None, 'gptNet'), 'gptNet_lin_tuned': (lightRed, 'v','gptNet (tuned)'), 'gptNet': (lightRed, 'v','gptNet'),
                     'gptNetXL_lin': (Red, None, 'gptNetXL'), 'gptNetXL_lin_tuned': (Red, None, 'gptNetXL (tuned)'), 'gptNetXL': (Red, None, 'gptNetXL'), 
                     'gptNetXL_L_lin': (Red, 'D', 'gptNetXL (last)'), 
                     'gptNet_L_lin': (Red, 'D', 'gptNet (last)'), 
                     'bertNet_lin': (Orange, None, 'bertNet'), 'bertNet_lin_tuned': (Orange, 'v', 'bertNet (tuned)'), 'bertNet': (Orange, None, 'bertNet'), 'rawBertNet_lin': (Orange, None, 'rawBertNet'),
-                    'sbertNet_lin': (Green, None, 'sbertNet'), 'sbertNet_lin_tuned': (Green, 'v', 'sbertNet (tuned)'), 'sbertNet': (Green, None, 'sbertNet')
+                    'sbertNetXL_lin': (Green, None, 'sbertNetXL'), 'sbertNet_lin_tuned': (Green, 'v', 'sbertNet (tuned)'), 'sbertNet': (Green, None, 'sbertNet')
                     }
 
 def get_task_color(task): 
