@@ -39,7 +39,7 @@ class BaseTrainer(ABC):
         self.seed_suffix = 'seed'+str(self.random_seed)
 
 
-    def _check_model_training(self, duration=5): 
+    def _check_model_training(self, duration=3): 
         min_run_elapsed = (self.cur_epoch >= self.min_run_epochs) or \
                             (self.cur_epoch == self.min_run_epochs-1 and self.cur_step == self.num_batches-1)
         if min_run_elapsed: 

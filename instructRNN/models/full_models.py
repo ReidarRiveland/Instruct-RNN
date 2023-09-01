@@ -226,6 +226,16 @@ def make_default_model(model_str):
                         LM_train_layers = [])
 
 
+    if model_str == 'sbertNetXL_lin_new_tuned': 
+        return SBERTNetXL(model_name = model_str, 
+                        LM_output_nonlinearity = 'lin', 
+                        LM_train_layers = ['21', '22', '23', 'pooler'])
+
+    if model_str == 'sbertNetXL_new': 
+        return SBERTNetXL(model_name = model_str, 
+                        LM_output_nonlinearity = 'relu', 
+                        LM_train_layers = [])
+
 
     if model_str == 'sbertNetXL_lin_tuned': 
         return SBERTNetXL(model_name = model_str, 

@@ -45,7 +45,7 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Bl
                     'gptNetXL_L_lin': (Red, 'D', 'gptNetXL (last)'), 
                     'gptNet_L_lin': (Red, 'D', 'gptNet (last)'), 
                     'bertNet_lin': (Orange, None, 'bertNet'), 'bertNet_lin_tuned': (Orange, 'v', 'bertNet (tuned)'), 'bertNet': (Orange, None, 'bertNet'), 'rawBertNet_lin': (Orange, None, 'rawBertNet'),
-                    'sbertNetXL_lin': (Green, None, 'sbertNetXL'), 'sbertNet_lin_tuned': (Green, 'v', 'sbertNet (tuned)'), 'sbertNet': (Green, None, 'sbertNet')
+                    'sbertNetXL_lin_new': (Green, None, 'sbertNetXL'), 'sbertNet_lin_tuned': (Green, 'v', 'sbertNet (tuned)'), 'sbertNet': (Green, None, 'sbertNet')
                     }
 
 def get_task_color(task): 
