@@ -11,7 +11,7 @@ all_models = ['simpleNet', 'simpleNetPlus', 'combNet', 'combNetPlus',
 
             'sbertNet', 'sbertNet_lin', 'sbertNet_lin_tuned',
 
-            'sbertNetXL', 'sbertNetXL_lin', 'sbertNetXL_lin_tuned',
+            'sbertNetXL', 'sbertNetXL_lin', 'sbertNetXL_lin_tuned', 'sbertNetXL_lin_new', 
 
             'clipNet', 'clipNet_lin', 'clipNet_lin_tuned', 'clipNet_lin_new', 'clipNet_lin_new_tuned', 
             
