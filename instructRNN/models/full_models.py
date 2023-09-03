@@ -1,7 +1,7 @@
 from instructRNN.models.language_models import GPT, BERT, SBERT, CLIP, RawBERT, BoW
 from instructRNN.models.sensorimotor_models import RuleModelConfig, InstructModelConfig, RuleNet, InstructNet
 
-all_models = ['simpleNet', 'simpleNetPlus', 'combNet', 'combNetPlus', 
+all_models = ['simpleNet', 'simpleNetPlus', 'combNet', 'combNetPlus', 'simpleSbert',
 
             'gptNetXL', 'gptNetXL_lin', 'gptNetXL_lin_tuned', 'gptNetXL_L_lin', 
 
@@ -11,7 +11,7 @@ all_models = ['simpleNet', 'simpleNetPlus', 'combNet', 'combNetPlus',
 
             'sbertNet', 'sbertNet_lin', 'sbertNet_lin_tuned',
 
-            'sbertNetXL', 'sbertNetXL_lin', 'sbertNetXL_lin_tuned', 'sbertNetXL_lin_new', 
+            'sbertNetXL', 'sbertNetXL_lin', 'sbertNetXL_lin_tuned', 'sbertNetXL_lin_new', 'sbertSbert', 
 
             'clipNet', 'clipNet_lin', 'clipNet_lin_tuned', 'clipNet_lin_new', 'clipNet_lin_new_tuned', 
             
@@ -29,7 +29,7 @@ tuned_models = [model_name for model_name in all_models if '_tuned' in model_nam
 nonlin_models = [model_name for model_name in all_models if 'lin' not in model_name 
                                                             and 'simple' not in model_name 
                                                             and model_name != 'combNet']
-
+big_models
 class SimpleNet(RuleNet):
     def __init__(self, **kw_args):
         config = RuleModelConfig('simpleNet', **kw_args)
@@ -219,6 +219,15 @@ def make_default_model(model_str):
                         LM_output_nonlinearity = 'lin', 
                         LM_train_layers = [])
     
+    if model_str == 'sbertSbert': 
+        return SBERTNetXL(model_name = model_str, 
+                        LM_output_nonlinearity = 'lin', 
+                        LM_train_layers = [])
+    
+    if model_str == 'simpleSbert': 
+        return SBERTNetXL(model_name = model_str, 
+                        LM_output_nonlinearity = 'lin', 
+                        LM_train_layers = [])
 
     if model_str == 'sbertNetXL_lin_new': 
         return SBERTNetXL(model_name = model_str, 

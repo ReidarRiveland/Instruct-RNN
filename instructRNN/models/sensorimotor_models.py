@@ -138,6 +138,13 @@ class BaseNet(nn.Module):
                 rnn_state_dict[new_name] = params
         self.recurrent_units.load_state_dict(rnn_state_dict, strict=False)
 
+        sensory_out_state_dict = OrderedDict()
+        for name, params in tmp_state_dict.items(): 
+            if 'sensory_motor_outs.' in name: 
+                new_name = name.replace('sensory_motor_outs.', '')
+                sensory_out_state_dict[new_name] = params
+        self.sensory_motor_outs.load_state_dict(sensory_out_state_dict)
+
     def to(self, cuda_device): 
         super().to(cuda_device)
         self.recurrent_units._mask_to(cuda_device)
