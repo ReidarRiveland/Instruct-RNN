@@ -7,7 +7,7 @@ from attrs import define
 import pathlib
 
 from transformers import GPT2Model, GPT2Tokenizer
-from transformers import CLIPTokenizer, CLIPTextModelWithProjection, CLIPTextConfig
+from transformers import CLIPTokenizer, CLIPTextModel
 from transformers import BertModel, BertTokenizer, BertLayer, BertConfig
 from transformers import AutoModel, AutoTokenizer
 
@@ -146,12 +146,10 @@ class RawBERT(TransformerEmbedder):
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
-
     def forward_transformer(self, x): 
         tokens = self.tokens_to_tensor(x)
         trans_out = self.transformer(tokens)
         return self._reducer(trans_out[0]), trans_out[1]
-
 
 class SBERT(TransformerEmbedder): 
     def __init__(self, config): 
@@ -161,16 +159,6 @@ class SBERT(TransformerEmbedder):
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
-
-    def mean_pooling(self, model_output, attention_mask):
-        token_embeddings = model_output[0] #First element of model_output contains all token embeddings
-        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-        return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-
-    def forward_transformer(self, x): 
-        tokens = self.tokens_to_tensor(x)
-        trans_out = self.transformer(**tokens)
-        return self.mean_pooling(trans_out, tokens['attention_mask']), trans_out[2]
 
 class GPT(TransformerEmbedder): 
     def __init__(self, config): 
@@ -185,17 +173,12 @@ class GPT(TransformerEmbedder):
 class CLIP(TransformerEmbedder): 
     def __init__(self, config): 
         super().__init__(config)
-        self.transformer = CLIPTextModelWithProjection.from_pretrained(self.LM_load_str, output_hidden_states=True)
+        self.transformer = CLIPTextModel.from_pretrained(self.LM_load_str, output_hidden_states=True)
         self.tokenizer = CLIPTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
         self._reducer = None
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
-
-    def forward_transformer(self, x):
-        tokens = self.tokens_to_tensor(x)
-        trans_out = self.transformer(**tokens, output_hidden_states=True)
-        return trans_out.text_embeds, trans_out.hidden_states
 
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()
