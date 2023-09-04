@@ -180,6 +180,11 @@ class CLIP(TransformerEmbedder):
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
+    def forward_transformer(self, x): 
+        tokens = self.tokens_to_tensor(x)
+        trans_out = self.transformer(**tokens)
+        return trans_out.pooler_output, trans_out[1]
+
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()
     def __init__(self, config): 
