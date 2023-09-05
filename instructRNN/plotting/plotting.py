@@ -38,15 +38,15 @@ Grey = '#36454F'
 lightGreen = '#90EE90'
 
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Blue, None, 'simpleNetPlus'),  'combNet': (lightBlue, None, 'structureNet'), 'combNetPlus': (lightBlue, None, 'structureNetPlus'),
-                    'clipNet_lin_new': ('Pink', None, 'clipNet (s)'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 'clipNet': (Purple, None, 'clipNet'), 
-                    'clipNetXL_lin': (Purple, None, 'clipNet'), 'clipNetXL': (Purple, None, 'clipNet'),
+                    'clipNet_lin': (Purple, None, 'clipNet'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 'clipNet': (Purple, None, 'clipNet'), 
+                    'clipNetS_lin': ('Pink', None, 'clipNet (S)'), 'clipNetS_lin_tuned': (Purple, None, 'clipNet (S)(tuned)'), 'clipNetS': (Purple, None, 'clipNet (S)'),
                     'bowNet_lin': (Yellow, None, 'bowNet'), 'bowNet': (Yellow, None, 'bowNet'), 'bowNet_lin_plus': (Yellow, None, 'bowNetPlus'), 
                     'gptNet_lin': (lightRed, None, 'gptNet'), 'gptNet_lin_tuned': (lightRed, 'v','gptNet (tuned)'), 'gptNet': (lightRed, 'v','gptNet'),
-                    'gptNetXL_lin': (Red, None, 'gptNet (XL)'), 'gptNetXL_lin_tuned': (Red, None, 'gptNetXL (tuned)'), 'gptNetXL': (Red, None, 'gptNetXL'), 
+                    'gptNetXL_lin': (Red, None, 'gptNet (XL)'), 'gptNetXL_lin_tuned': (Red, None, 'gptNet (XL)(tuned)'), 'gptNetXL': (Red, None, 'gptNet (XL)'), 
                     'gptNetXL_L_lin': (Red, 'D', 'gptNetXL (last)'), 
                     'gptNet_L_lin': (Red, 'D', 'gptNet (last)'), 
                     'bertNet_lin': (Orange, None, 'bertNet'), 'bertNet_lin_tuned': (Orange, 'v', 'bertNet (tuned)'), 'bertNet': (Orange, None, 'bertNet'), 'rawBertNet_lin': (Orange, None, 'rawBertNet'),
-                    'sbertNetXL_lin_new': (Green, None, 'sbertNet (L)'), 'sbertNetXL_lin_new_tuned': (Green, None, 'sbertNetXL (tuned)'), 'sbertNetXL': (Green, None, 'sbertNetXL (relu)'), 
+                    'sbertNetL_lin': (Green, None, 'sbertNet (L)'), 'sbertNetL_lin_tuned': (Green, None, 'sbertNet (L)(tuned)'), 'sbertNetL': (Green, None, 'sbertNet (L)'), 
                     'sbertNet_lin': (lightGreen, 'v', 'sbertNet'), 'sbertNet_lin_tuned': (lightGreen, 'v', 'sbertNet (tuned)'), 'sbertNet': (lightGreen, None, 'sbertNet'),
                     
                     }

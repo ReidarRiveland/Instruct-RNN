@@ -6,10 +6,10 @@ from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio, prin
 from instructRNN.data_loaders.perfDataFrame import *
 from instructRNN.analysis.model_analysis import calc_t_test
 
-to_plot_models = ['combNet',  'sbertNetXL_lin_new', 'clipNetXL_lin', 'sbertNet_lin', 'gptNetXL_lin', 'gptNet_lin', 'bertNet_lin', 'bowNet_lin', 'simpleNet']
-non_lin_models = ['sbertNetXL', 'sbertNet', 'clipNetXL', 'gptNetXL', 'gptNet', 'bertNet', 'bowNet']
-tuned_to_plot = ['combNet', 'clipNet_lin_new_tuned', 'sbertNetXL_lin_new_tuned', 'clipNetXL_lin_tuned', 'sbertNet_lin_tuned', 'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
-aux_models = ['combNet', 'combNetPlus', 'bowNet_lin_plus', 'rawBertNet_lin', 'simpleNetPlus', 'simpleNet']
+to_plot_models = ['combNet',  'sbertNetL_lin','sbertNet_lin',  'clipNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet']
+non_lin_models = ['sbertNetL', 'sbertNet', 'clipNet', 'gptNetXL', 'gptNet', 'bertNet', 'bowNet']
+tuned_to_plot = ['combNet', 'clipNet_lin_tuned', 'sbertNetL_lin_tuned', 'sbertNet_lin_tuned', 'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
+aux_models = ['combNet', 'combNetPlus', 'clipNetS_lin', 'bowNet_lin_plus', 'rawBertNet_lin', 'simpleNetPlus', 'simpleNet']
 
 ##ALL MODEL LEARNING CURVES
 fig_axn = plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask', linewidth=0.5)
@@ -23,7 +23,7 @@ plt.show()
 ###HOLDOUTS
 plot_curves('7.20models', 'swap', to_plot_models, mode='combined', avg=True, linewidth=0.8)
 plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='combined')
-plot_all_task_lolli_v('7.20models', 'swap', ['sbertNetXL_lin_new'], mode='combined')
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='combined')
 plt.show()
 
 t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combined')
@@ -33,7 +33,6 @@ plt.show()
 
 data = PerfDataFrame('7.20models', 'swap', 'combNet', mode = 'combined')
 data.get_k_shot(0).mean()
-
 
 ##non-linear holdouts
 plot_curves('7.20models', 'swap', non_lin_models, mode='combined', avg=True, linewidth=0.8)
@@ -61,10 +60,9 @@ plot_all_models_task_dist('7.20models', 'swap', tuned_to_plot, mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot, mode='combined')
 plt.show()
 
-p_mat, is_sig = calc_t_test('7.20models', 'swap', tuned_to_plot, mode='combined')
-plot_significance(is_sig, tuned_to_plot)
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', tuned_to_plot, mode='combined')
+plot_significance(t_mat, is_sig, tuned_to_plot)
 plt.show()
-
 
 ###SWAP HOLDOUTS
 plot_curves('7.20models', 'swap', to_plot_models, mode='swap_combined', avg=True, linewidth=0.8)
@@ -89,20 +87,19 @@ plt.show()
 ####PC PLOTS
 EXP_FILE = '7.20models/swap_holdouts'
 
-
 #SBERTNET
-sbertNet = make_default_model('sbertNetXL_lin_new')
+sbertNet = make_default_model('sbertNetL_lin')
 holdouts_file = 'swap9'
 
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed4')
 plot_scatter(sbertNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
 plot_scatter(sbertNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, rep_depth='full')
 
-sbertNet.load_model('7.20models/multitask_holdouts/Multitask/'+clipNet.model_name, suffix='_seed0')
+sbertNet.load_model('7.20models/multitask_holdouts/Multitask/'+sbertNet.model_name, suffix='_seed0')
 plot_scatter(sbertNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, instruct_mode=None)
 
 #GPTNET
-gptNet = GPTNetXL_lin(LM_out_dim=64, rnn_hidden_dim=256)
+gptNet = make_default_model('gptNetXL_lin')
 holdouts_file = 'swap9'
 
 gptNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+gptNet.model_name, suffix='_seed2')
@@ -128,45 +125,41 @@ plt.show()
 plot_ccgp_corr('7.20models', 'swap', to_plot_models)
 
 #############SINGLE UNIT TUING
-
 EXP_FILE = '7.20models/swap_holdouts'
-##TUNING
-clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
-holdouts_file = 'swap9'
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
+sbertNet = make_default_model('sbertNetL_lin')
 
 ##ANTI GO
-unit=39
-plot_tuning_curve(clipNet, ['Go', 'AntiGo', 'RTGo', 'AntiRTGo'], unit, [145]*4, num_trials=80, smoothing=1, min_coh=0.01, max_coh=0.5)
+holdouts_file = 'swap9'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed2')
+unit=42
+plot_tuning_curve(sbertNet, ['Go', 'AntiGo', 'RTGo', 'AntiRTGo'], unit, [149]*4, num_trials=80, smoothing=1, min_coh=0.01, max_coh=0.5)
 
 ##DM
-unit=175
-plot_neural_resp(clipNet, 'DMMod1', 'diff_strength', unit, num_trials=25)
-plot_neural_resp(clipNet, 'AntiDMMod1','diff_strength', unit, num_trials=25)
-plot_neural_resp(clipNet, 'DMMod2','diff_strength', unit, num_trials=25)
-plot_neural_resp(clipNet, 'AntiDMMod2','diff_strength', unit, num_trials=25)
+holdouts_file = 'swap9'
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-###COMP
-EXP_FILE = '7.20models/swap_holdouts'
-clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
+#unit = 216, seed 3
+#unit=3, seed 0
+unit = 3
+plot_neural_resp(sbertNet, 'DMMod1', 'diff_strength', unit, num_trials=25)
+plot_neural_resp(sbertNet, 'AntiDMMod1','diff_strength', unit, num_trials=25)
+plot_neural_resp(sbertNet, 'DMMod2','diff_strength', unit, num_trials=25)
+plot_neural_resp(sbertNet, 'AntiDMMod2','diff_strength', unit, num_trials=25)
+
+###COMP REDO!
 holdouts_file = 'swap6'
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed5')
 
-unit=82
-plot_neural_resp(clipNet, 'COMP2', 'diff_strength', unit, num_trials=25)
-plot_neural_resp(clipNet, 'AntiCOMP2','diff_strength', unit, num_trials=25)
-plot_neural_resp(clipNet, 'COMP1','diff_strength', unit, num_trials=25)
-plot_neural_resp(clipNet, 'AntiCOMP1','diff_strength', unit, num_trials=25)
-
+plot_neural_resp(sbertNet, 'COMP1','diff_strength', unit, num_trials=25)
+plot_neural_resp(sbertNet, 'COMP2', 'diff_strength', unit, num_trials=25)
+plot_neural_resp(sbertNet, 'AntiCOMP1','diff_strength', unit, num_trials=25)
+plot_neural_resp(sbertNet, 'AntiCOMP2','diff_strength', unit, num_trials=25)
 
 ##matching
-EXP_FILE = '7.20models/swap_holdouts'
-clipNet = CLIPNet_lin(LM_out_dim=64, rnn_hidden_dim=256)
 holdouts_file = 'swap1'
-clipNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+clipNet.model_name, suffix='_seed2')
-
-unit=147
-plot_tuning_curve(clipNet, ['DMS', 'DNMS', 'DMC', 'DNMC'], unit, [149]*4, num_trials=50, smoothing=1.0)
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed1')
+unit=14
+plot_tuning_curve(sbertNet, ['DMS', 'DNMS', 'DMC', 'DNMC'], unit, [149]*4, num_trials=50, smoothing=1.0)
 
 
 ###decoder figs
@@ -181,7 +174,9 @@ get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)
 
 ###ADDITIONAL SUPP FIGS
 ###Unit Var
-plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'clipNet_lin', 2)
+var = plot_task_var_heatmap('7.20models/swap_holdouts/swap6', 'sbertNetXL_lin_new', 4)
+
+
 
 ###STRUCTURE FIG
 plot_comp_dots('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp', 'swap_ccgp'], y_lim=(0.5, 1.0))

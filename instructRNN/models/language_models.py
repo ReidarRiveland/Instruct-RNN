@@ -13,7 +13,7 @@ from transformers import AutoModel, AutoTokenizer
 
 from instructRNN.instructions.instruct_utils import get_all_sentences, sort_vocab
 from transformers import logging
-#logging.set_verbosity_error()
+logging.set_verbosity_error()
 
 location = str(pathlib.Path(__file__).parent.absolute())
 

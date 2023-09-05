@@ -152,7 +152,8 @@ def _get_model_0_shot(_task_eval_func, model_name, folder_name, exp_type, seed, 
     with torch.no_grad():
         for holdout_label, tasks in exp_dict.items(): 
             model.load_model(folder_name+'/'+exp_type+'_holdouts/'+holdout_label+'/'+model.model_name, suffix='_seed'+str(seed))
-            perf_array[TASK_LIST.index(task)] = _task_eval_func(model, task, batch_size, **eval_kwargs)
+            for task in tasks: 
+                perf_array[TASK_LIST.index(task)] = _task_eval_func(model, task, batch_size, **eval_kwargs)
     return perf_array
 
 def eval_model_0_shot(model_name, folder_name, exp_type, seed, batch_size = 128, instruct_mode=None):
