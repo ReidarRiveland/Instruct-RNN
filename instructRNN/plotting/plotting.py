@@ -152,7 +152,7 @@ def plot_context_curves(foldername, exp_type, model_list, mode = 'lin_comp', avg
             _plot_all_performance_curves(mean, std, axn, color, zero_marker, **curve_kwargs)
 
 
-def plot_comp_dots(foldername, exp_type, model_list, mode_list, fig_axn=None, y_lim =(0.0, 1.0), **formatting):
+def plot_comp_dots(foldername, exp_type, model_list, mode_list, split_clauses = False, fig_axn=None, y_lim =(0.0, 1.0), **formatting):
     if fig_axn is None: 
         fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
     else: 
@@ -161,14 +161,27 @@ def plot_comp_dots(foldername, exp_type, model_list, mode_list, fig_axn=None, y_
     axn.set_ylabel('Perforamance', size=8, fontweight='bold')
     axn.set_ylim(y_lim)
     width = 1/(len(model_list)+2)
+    if split_clauses: 
+        _mode = mode_list[0]
+        mode_list = ['w_clauses', 'wo_clauses']
+        
 
     for j, mode in enumerate(mode_list):
+        if mode == 'w_clauses': 
+            task_indices = [TASK_LIST.index(task) for task in COND_CLAUSE_LIST]
+        elif mode == 'wo_clauses': 
+            task_indices = [TASK_LIST.index(task) for task in NONCOND_CLAUSE_LIST]
+        else: 
+            _mode = mode 
+            task_indices = range(len(TASK_LIST))
+
         for i, model_name in enumerate(model_list):
             color=MODEL_STYLE_DICT[model_name][0]
-            data  = PerfDataFrame(foldername, exp_type, model_name, mode=mode)
+            data  = PerfDataFrame(foldername, exp_type, model_name, mode=_mode)
+            zero_shot = data.data[...,task_indices, 0].mean(-1)
 
             x_mark = ((j)+width)+((i*1.05*width))
-            for k, seed_point in enumerate(data.data[..., 0].mean(-1)):
+            for k, seed_point in enumerate(zero_shot):
                 axn.scatter(x_mark+(k*0.01), seed_point, color=color, edgecolor='white', s=20.0, linewidth=0.5)
 
     axn.set_xticklabels('')

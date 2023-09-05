@@ -148,8 +148,10 @@ plot_neural_resp(sbertNet, 'AntiDMMod2','diff_strength', unit, num_trials=25)
 
 ###COMP REDO!
 holdouts_file = 'swap6'
-sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed5')
+sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed1')
 
+#unit = 201, seed 1
+unit = 220
 plot_neural_resp(sbertNet, 'COMP1','diff_strength', unit, num_trials=25)
 plot_neural_resp(sbertNet, 'COMP2', 'diff_strength', unit, num_trials=25)
 plot_neural_resp(sbertNet, 'AntiCOMP1','diff_strength', unit, num_trials=25)
@@ -174,16 +176,18 @@ get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)
 
 ###ADDITIONAL SUPP FIGS
 ###Unit Var
-var = plot_task_var_heatmap('7.20models/swap_holdouts/swap6', 'sbertNetXL_lin_new', 4)
-
+var = plot_task_var_heatmap('7.20models/swap_holdouts/swap6', 'sbertNetL_lin', 1)
 
 
 ###STRUCTURE FIG
+plot_comp_dots('7.20models', 'swap', to_plot_models, ['combined'], split_clauses = True, y_lim=(0.0, 1.0))
+plt.show()
+
 plot_comp_dots('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp', 'swap_ccgp'], y_lim=(0.5, 1.0))
 plt.show()
 
-p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='ccgp')
-plot_significance(is_sig, to_plot_models)
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='ccgp')
+plot_significance(t_mat, p_mat, to_plot_models)
 plt.show()
 
 p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='multi_ccgp')
