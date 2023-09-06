@@ -412,10 +412,9 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
     print('LOADING COMPATABILITY COMPONENETS', flush=True)
 
     if model_name == 'sbertSbert': 
-
         recurrent_seed = (seed+1)%5
         print(recurrent_seed)
-        model.load_recurrent_units(exp_folder+'/'+label+'/sbertNetXL_lin_new/sbertNetXL_lin_new', suffix='_seed'+str(recurrent_seed))
+        model.load_recurrent_units(exp_folder+'/'+label+'/sbertNetL_lin/sbertNetL_lin', suffix='_seed'+str(recurrent_seed))
 
     elif model_name == 'simpleSbert':
         model.load_recurrent_units(exp_folder+'/'+label+'/simpleNet/simpleNet', suffix='_seed'+str(seed))

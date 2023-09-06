@@ -176,14 +176,13 @@ class CLIP(TransformerEmbedder):
         self.transformer = CLIPTextModel.from_pretrained(self.LM_load_str, output_hidden_states=True)
         self.tokenizer = CLIPTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
-        self._reducer = None
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
     def forward_transformer(self, x): 
         tokens = self.tokens_to_tensor(x)
         trans_out = self.transformer(**tokens)
-        return trans_out.pooler_output, trans_out[1]
+        return trans_out.pooler_output, trans_out[2]
 
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()

@@ -40,7 +40,7 @@ NONCOND_CLAUSE_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             'RTGoMod1', 'AntiRTGoMod1',  'RTGoMod2','AntiRTGoMod2',
             'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
             'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2',
-            'ConDM', 'ConAntiDM']
+            ]
 
 COND_CLAUSE_LIST = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
             'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 
@@ -48,7 +48,7 @@ COND_CLAUSE_LIST = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2',
             'Dur1', 'Dur2', 'MultiDur1', 'MultiDur2',
             'AntiDur1', 'AntiDur2', 'AntiMultiDur1', 'AntiMultiDur2',
             'Dur1Mod1', 'Dur2Mod1', 'Dur1Mod2', 'Dur2Mod2', 
-            'DMS', 'DNMS', 'DMC', 'DNMC']
+            'DMS', 'DNMS', 'DMC', 'DNMC', 'ConDM', 'ConAntiDM']
 
 SWAP_LIST = [            
             ('AntiDMMod2', 'RTGo', 'DM', 'MultiCOMP2',  'AntiMultiDur1'), 

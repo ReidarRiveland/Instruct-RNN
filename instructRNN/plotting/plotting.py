@@ -376,6 +376,55 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, num_trials = 50
         plt.legend(handles=Patches, fontsize=5)
         plt.show()
 
+
+def plot_clauses_dots(foldername, exp_type, model_list, mode='combined', fig_axn=None, y_lim =(0.0, 1.0), **formatting):
+    t_value_arr = np.empty((len(model_list), len(model_list)))
+    p_value_arr = np.empty((len(model_list), len(model_list)))
+
+    if fig_axn is None: 
+        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
+    else: 
+        fig, axn = fig_axn
+    
+    clause_indices = [TASK_LIST.index(task) for task in COND_CLAUSE_LIST]
+    wo_clause_indices = [TASK_LIST.index(task) for task in NONCOND_CLAUSE_LIST]
+    clause_arr = np.empty((len(model_list), 5, len(clause_indices)))
+    wo_clause_arr = np.empty((len(model_list), 5, len(wo_clause_indices)))
+
+
+    axn.set_ylabel('Perforamance', size=8, fontweight='bold')
+    axn.set_ylim(y_lim)
+    width = 1/(len(model_list)+2)
+    
+    for i, model_name in enumerate(model_list):
+        color=MODEL_STYLE_DICT[model_name][0]
+        data  = PerfDataFrame(foldername, exp_type, model_name, mode=mode)
+        clause_zero_shot = data.data[:,clause_indices, 0]
+        wo_clause_zero_shot = data.data[:, wo_clause_indices, 0]
+        clause_arr[i, ... ] = clause_zero_shot
+        wo_clause_arr[i, ... ] = wo_clause_zero_shot
+        zero_shot = wo_clause_zero_shot.mean(-1)-clause_zero_shot.mean(-1)
+
+
+        x_mark = ((i*1.05*width))
+        for k, seed_point in enumerate(zero_shot):
+            axn.scatter(x_mark+(k*0.01), seed_point, color=color, edgecolor='white', s=20.0, linewidth=0.5)
+
+    clause_diff = clause_arr.mean(-1)-wo_clause_arr.mean(-1)
+    for i, diff1 in enumerate(clause_diff): 
+        for j, diff2 in enumerate(clause_diff): 
+            t_stat, p_value = ttest_ind(diff1, diff2, equal_var=False)
+        
+            t_value_arr[i, j] = t_stat
+            p_value_arr[i,j] = p_value
+
+
+
+    axn.set_xticklabels('')
+    axn.xaxis.set_ticks_position('none') 
+    return fig, axn, (t_value_arr, p_value_arr)
+
+
 def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', save_file=None):
     number_reps=sim_scores.shape[1]/len(TASK_LIST)
 
@@ -394,7 +443,7 @@ def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot
     plt.show()
 
 def plot_tuning_curve(model, tasks, unit, times, num_trials=50, num_repeats=20, smoothing = 1e-7, max_coh=0.3, min_coh=0.05, **trial_kwargs): 
-    fig, axn = plt.subplots(1,1, sharey = True, sharex=True, figsize =(8, 4))
+    fig, axn = plt.subplots(1,1, sharey = True, sharex=True, figsize =(6, 6))
 
     if 'Go' in tasks[0]:
         x_label = "direction"
@@ -457,7 +506,7 @@ def plot_neural_resp(model, task, task_variable, unit, num_trials=25, num_repeat
         axn.plot(hid_mean[i, :, unit], c = cmap(i/hid_mean.shape[0]))
 
 
-    plt.xticks([30, 130], labels=['Stim. Onset', 'Reponse'])
+    plt.xticks([30, 130], labels=['Stim. Onset', 'Response'])
     plt.vlines(130, -1.5, ylim+0.15, colors='k', linestyles='dashed')
     plt.vlines(30, -1.5, ylim+0.15, colors='k', linestyles='dashed')
 
@@ -601,8 +650,7 @@ def plot_partner_perf(model_name):
     plt.show()
 
 
-def plot_model_response(out, hid, ins, tar, plotting_index = 0):
-    correct = isCorrect(out, torch.Tensor(tar), trials.target_dirs)[plotting_index]
+def plot_model_response(out, hid, ins, tar, task_type, plotting_index = 0, cmap = 'Reds'):
     out = out.detach().cpu().numpy()[plotting_index, :, :]
     hid = hid.detach().cpu().numpy()[plotting_index, :, :]
 
@@ -617,23 +665,22 @@ def plot_model_response(out, hid, ins, tar, plotting_index = 0):
     fig, axn = plt.subplots(5,1, sharex = True, gridspec_kw=gs_kw, figsize=(4,3))
     cbar_ax = fig.add_axes([.91, .3, .03, .4])
     for i, ax in enumerate(axn.flat):
-        sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1.3, cbar_ax=None if i else cbar_ax)
+        sns.heatmap(to_plot[i], yticklabels = False, cmap = cmap, ax=ax, cbar=i == 0, vmin=0, vmax=1.3, cbar_ax=None if i else cbar_ax)
         ax.set_ylabel(ylabels[i], fontweight = 'bold', fontsize=6)
         if i == 0: 
-            ax.set_title(trials.task_type +' trial info; correct: ' + str(correct))
+            ax.set_title(task_type +' trial info')
         if i == 5: 
             ax.set_xlabel('time')
-            ax.xaxis.set_ticks(np.arange(0, 120, 5))
-            ax.set_xticklabels(np.arange(0, 120, 5), fontsize=16)
+            ax.xaxis.set_ticks(np.arange(0, 150, 5))
+            ax.set_xticklabels(np.arange(0, 150, 5), fontsize=16)
 
             ax.tick_params(axis='x', labelsize= 6)
 
-    if save_file is not None: 
-        plt.savefig('figs/'+save_file)
+
     plt.show()
 
 
-def plot_trial(trials, index):
+def plot_trial(trials, index, cmap="Reds"):
     ins = trials.inputs
     tars = trials.targets
     fix = ins[index, :, 0:1]
@@ -649,7 +696,7 @@ def plot_trial(trials, index):
     cbar_ax = fig.add_axes([.91, .3, .03, .4])
     ylabels = ('fix.', 'mod. 1', 'mod. 2', 'Target')
     for i, ax in enumerate(axn.flat):
-        sns.heatmap(to_plot[i], yticklabels = False, cmap = 'Reds', ax=ax, cbar=i == 0, vmin=0, vmax=1.8, cbar_ax=None if i else cbar_ax)
+        sns.heatmap(to_plot[i], yticklabels = False, cmap = cmap, ax=ax, cbar=i == 0, vmin=0, vmax=1.8, cbar_ax=None if i else cbar_ax)
 
         ax.set_ylabel(ylabels[i])
         if i == 0: 

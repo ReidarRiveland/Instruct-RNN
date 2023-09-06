@@ -13,7 +13,7 @@ aux_models = ['combNet', 'combNetPlus', 'clipNetS_lin', 'bowNet_lin_plus', 'rawB
 
 ##ALL MODEL LEARNING CURVES
 fig_axn = plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask', linewidth=0.5)
-fig.tight_layout()
+fig_axn[0].tight_layout()
 plt.show()
 
 ##VALIDATION
@@ -30,9 +30,6 @@ t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='c
 plot_significance(t_mat, p_mat, to_plot_models)
 p_mat
 plt.show()
-
-data = PerfDataFrame('7.20models', 'swap', 'combNet', mode = 'combined')
-data.get_k_shot(0).mean()
 
 ##non-linear holdouts
 plot_curves('7.20models', 'swap', non_lin_models, mode='combined', avg=True, linewidth=0.8)
@@ -119,6 +116,13 @@ plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3
 simpleNet.load_model('7.20models/multitask_holdouts/Multitask/'+simpleNet.model_name, suffix='_seed1')
 plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
 
+#COMBNET
+combNet = make_default_model('combNet')
+holdouts_file = 'swap9'
+
+combNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+combNet.model_name, suffix='_seed2')
+plot_scatter(combNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
+
 #CCGP PLOTS
 plot_layer_ccgp('7.20models', 'swap', to_plot_models)
 plt.show()
@@ -180,7 +184,14 @@ var = plot_task_var_heatmap('7.20models/swap_holdouts/swap6', 'sbertNetL_lin', 1
 
 
 ###STRUCTURE FIG
-plot_comp_dots('7.20models', 'swap', to_plot_models, ['combined'], split_clauses = True, y_lim=(0.0, 1.0))
+
+_, _, stats_arr = plot_clauses_dots('7.20models', 'swap', to_plot_models, y_lim=(-0.3, 0.6))
+plt.show()
+
+plot_significance(stats_arr[0], stats_arr[1], to_plot_models)
+plt.show()
+
+plot_comp_dots('7.20models', 'swap', to_plot_models, ['combined'], y_lim=(0.0, 1.0))
 plt.show()
 
 plot_comp_dots('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp', 'swap_ccgp'], y_lim=(0.5, 1.0))
