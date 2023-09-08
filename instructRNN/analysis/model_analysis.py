@@ -333,8 +333,8 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
 
         if layer == 'task':
             reps = get_task_reps(model, num_trials = 250, epoch=epoch, use_comp=False)
-        elif layer =='full' and model_name =='simpleNetPlus':
-            reps = get_rule_embedder_reps(model)[:, None, :]
+        elif layer =='full' and model_name in ['simpleNetPlus', 'simpleNet', 'combNet']:
+            reps = get_rule_reps(model)
         else: 
             reps = get_instruct_reps(model.langModel, depth=layer)
 

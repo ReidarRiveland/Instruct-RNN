@@ -545,7 +545,7 @@ def plot_ccgp_corr(folder, exp_type, model_list):
     axn.plot(x, a*x+b, linewidth=0.8, linestyle='dotted', color='black')
     plt.show()
 
-def plot_layer_ccgp(foldername,exp_type, model_list, fig_axn=None, seeds=range(5), **plt_kwargs): 
+def plot_layer_ccgp(foldername,exp_type, model_list, fig_axn=None, seeds=range(5), ylim = (0.495, 1.05), **plt_kwargs): 
     if fig_axn is None: 
         fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
         fig.suptitle('CCGP Across Model Hierarchy')
@@ -564,7 +564,7 @@ def plot_layer_ccgp(foldername,exp_type, model_list, fig_axn=None, seeds=range(5
 
     axn.legend(handles = patches, fontsize='x-small')
     axn.set_xticklabels([str(x) for x in range(1, 13)] + ['embed', 'task']) 
-    axn.set_ylim(0.475, 1)
+    axn.set_ylim(*ylim)
     axn.set_xticks(range(14))
     return fig, axn
 

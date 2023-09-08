@@ -73,10 +73,10 @@ class SMDecoder(nn.Module):
         out = torch.cat((out_max, out_mean), dim=-1)
         out = self.dropper(out)
         out = torch.relu(self.fc1(out))
-        return out.unsqueeze(0)
+        return out
 
 class DecoderMLP(nn.Module): 
-    def __init__(self, hidden_size, num_layers = 3, sm_hidden_dim=256, drop_p = 0.0):
+    def __init__(self, hidden_size, num_layers = 3, sm_hidden_dim=256, drop_p = 0.0, decode_embeddings=None):
         super().__init__()
         self.drop_p = drop_p
         self.decoder_name = 'mlp_decoder'
@@ -106,16 +106,27 @@ class DecoderMLP(nn.Module):
         self.load_state_dict(torch.load(load_string+'decoders/'+self.decoder_name+suffix+'.pt', map_location=torch.device('cpu')))
 
 class DecoderRNN(nn.Module):
-    def __init__(self, hidden_size, sm_hidden_dim=256, drop_p = 0.0):
+    def __init__(self, hidden_size, sm_hidden_dim=256, drop_p = 0.0, decode_embeddings=False):
         super().__init__()
-        self.decoder_name = 'rnn_decoder'
-        self.hidden_size = hidden_size
+        self.decode_embeddings = decode_embeddings
         self.tokenizer = RNNtokenizer()
+        
+        self.hidden_size = hidden_size
         self.embedding_size=64
+
+        self.decode_embeddings = decode_embeddings
+        if self.decode_embeddings: 
+            self.decoder_name = 'rnn_embedding_decoder'
+            self.sm_decoder = nn.Sequential(nn.Linear(64, hidden_size), nn.ReLU())
+        else: 
+            self.decoder_name = 'rnn_decoder'
+            self.sm_decoder = SMDecoder(self.hidden_size, sm_hidden_dim, drop_p=drop_p)
+        
+
         self.embedding = nn.Embedding(self.tokenizer.n_words, self.embedding_size)
         self.gru = ScriptGRU(self.embedding_size, self.hidden_size, 1, activ_func = torch.relu, batch_first=True)
         self.out = nn.Linear(self.hidden_size, self.tokenizer.n_words)
-        self.sm_decoder = SMDecoder(self.hidden_size, sm_hidden_dim, drop_p=drop_p)
+        
         self.softmax = nn.LogSoftmax(dim=1)
         self.drop_p = drop_p
 
@@ -134,7 +145,7 @@ class DecoderRNN(nn.Module):
 
     def _base_forward(self, ins, sm_hidden):
         embedded = torch.relu(self.embedding(ins))
-        init_hidden = self.sm_decoder(sm_hidden)
+        init_hidden = self.sm_decoder(sm_hidden).unsqueeze(0)
         rnn_out, _ = self.gru(embedded.transpose(0,1), init_hidden)
         logits = self.out(rnn_out[:, -1,:])
         return logits, rnn_out

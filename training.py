@@ -44,6 +44,8 @@ if __name__ == "__main__":
     parser.add_argument('--layer', default='emb', help='the dim corresponding to the layer the contexts gets trained at, \
                                                     must be emd or last, only for use if mode is context')
     parser.add_argument('--use_holdouts', default=False, action='store_true', help='whether to holdout tasks instructions in training decoders')
+    parser.add_argument('--decode_embeddings', default=False, action='store_true', help='whether to decode directly from the embeddings')
+
     parser.add_argument('--job_index', type=int, help='for use with slurm sbatch script, indexes the combination of seed and holdout tasks along with the model')
     parser.add_argument('--comp_mode', type=str, default='')
     args = parser.parse_args()
@@ -80,7 +82,9 @@ if __name__ == "__main__":
 
         if args.mode == 'decoder' or args.mode == 'd': 
             from instructRNN.trainers.decoder_trainer import *
-            train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, use_checkpoint = args.use_checkpoint, use_dropout = False, overwrite=args.overwrite)
+            train_decoder(EXP_FOLDER, model, _seed, holdouts, args.use_holdouts, 
+                            use_checkpoint = args.use_checkpoint, use_dropout = False, 
+                            decode_embeddings = args.decode_embeddings, overwrite=args.overwrite)
 
         if args.mode == 'holdout_comp':
             get_holdout_all_comp_perf(EXP_FOLDER, model, holdouts, _seed, save=True)

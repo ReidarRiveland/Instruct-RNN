@@ -204,7 +204,9 @@ class DecoderTrainer(BaseTrainer):
                 target_instruct = get_instructions(self.batch_len, task_type, None)
                 target_tensor = decoder.tokenizer(target_instruct).to(device)
 
-                if hasattr(sm_model, 'langModel'):
+                if decoder.decode_embeddings: 
+                    sm_hidden = sm_model.langModel(target_instruct)
+                elif hasattr(sm_model, 'langModel'):
                     _, sm_hidden = sm_model.forward(ins.to(device), target_instruct)
                 else: 
                     rule = get_input_rule(self.batch_len, task_type)
@@ -287,7 +289,9 @@ def load_checkpoint(model, file_name, seed):
     trainer = DecoderTrainer.from_checkpoint(checkpoint_path)
     return model, trainer
 
-def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, use_checkpoint = False, overwrite=False, use_dropout=False, **train_config_kwargs): 
+def train_decoder(exp_folder, model_name, seed, labeled_holdouts, 
+                    use_holdouts, use_checkpoint = False, overwrite=False, 
+                    use_dropout=False, decode_embeddings = False, **train_config_kwargs): 
     torch.manual_seed(seed)
     label, holdouts = labeled_holdouts
     file_name = exp_folder+'/'+label+'/'+model_name
@@ -311,10 +315,10 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, 
     model.to(device)
     if use_dropout: 
         p=0.05
-        decoder = decoder_class(128, drop_p=p)
+        decoder = decoder_class(128, drop_p=p, decode_embeddings=decode_embeddings)
     else: 
         p=0.0
-        decoder = decoder_class(256, drop_p=p)
+        decoder = decoder_class(256, drop_p=p, decode_embeddings=decode_embeddings)
     decoder.to(device)
 
     if use_checkpoint:
@@ -328,6 +332,10 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts, use_holdouts, 
         trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)
         trainer = DecoderTrainer(trainer_config)
     
+    print(decoder.decoder_name)
+    for n, p in decoder.named_parameters(): 
+        if p.requires_grad: print(n)
+
     if 'combNet' in model_name: 
         trainer.train_mlp(model, decoder)
     else: 

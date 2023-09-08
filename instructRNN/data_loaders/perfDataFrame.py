@@ -149,7 +149,7 @@ class PerfDataFrame():
     def load_holdout_CCGP(self, get_layer_list=False, get_last_layer=False, submode=''): 
         if get_layer_list: 
             if self.model_name == 'simpleNet': 
-                self.layer_list = ['task']
+                self.layer_list = ['full', 'task']
             elif self.model_name == 'simpleNetPlus': 
                 self.layer_list = ['full', 'task']
             elif 'XL' in self.model_name or 'sbertNetL_lin' in self.model_name: 

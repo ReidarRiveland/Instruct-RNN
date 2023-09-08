@@ -127,7 +127,7 @@ plot_scatter(combNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
 plot_scatter(combNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, rep_depth='rule')
 
 #CCGP PLOTS
-plot_layer_ccgp('7.20models', 'swap', to_plot_models)
+plot_layer_ccgp('7.20models', 'swap', to_plot_models, ylim=(0.48, 1.01))
 plt.show()
 plot_ccgp_corr('7.20models', 'swap', to_plot_models)
 
