@@ -6,7 +6,7 @@ from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio, prin
 from instructRNN.data_loaders.perfDataFrame import *
 from instructRNN.analysis.model_analysis import calc_t_test
 
-to_plot_models = ['combNet',  'sbertNetL_lin','sbertNet_lin',  'clipNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet']
+to_plot_models = ['combNet',  'sbertNetL_lin','sbertNet_lin',   'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet']
 non_lin_models = ['sbertNetL', 'sbertNet', 'clipNet', 'gptNetXL', 'gptNet', 'bertNet', 'bowNet']
 tuned_to_plot = ['combNet', 'clipNet_lin_tuned', 'sbertNetL_lin_tuned', 'sbertNet_lin_tuned', 'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
 aux_models = ['combNet', 'combNetPlus', 'clipNetS_lin', 'bowNet_lin_plus', 'rawBertNet_lin', 'simpleNetPlus', 'simpleNet']
@@ -112,6 +112,8 @@ holdouts_file = 'swap9'
 
 simpleNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+simpleNet.model_name, suffix='_seed0')
 plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
+plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, rep_depth='rule')
+
 
 simpleNet.load_model('7.20models/multitask_holdouts/Multitask/'+simpleNet.model_name, suffix='_seed1')
 plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
@@ -122,6 +124,7 @@ holdouts_file = 'swap9'
 
 combNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+combNet.model_name, suffix='_seed2')
 plot_scatter(combNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
+plot_scatter(combNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, rep_depth='rule')
 
 #CCGP PLOTS
 plot_layer_ccgp('7.20models', 'swap', to_plot_models)
@@ -185,13 +188,13 @@ var = plot_task_var_heatmap('7.20models/swap_holdouts/swap6', 'sbertNetL_lin', 1
 
 ###STRUCTURE FIG
 
-_, _, stats_arr = plot_clauses_dots('7.20models', 'swap', to_plot_models, y_lim=(-0.3, 0.6))
+_, _, stats_arr = plot_clauses_dots('7.20models', 'swap', to_plot_models[:-1], y_lim=(-0.3, 0.6))
 plt.show()
 
-plot_significance(stats_arr[0], stats_arr[1], to_plot_models)
+plot_significance(stats_arr[0], stats_arr[1], to_plot_models[:-1])
 plt.show()
 
-plot_comp_dots('7.20models', 'swap', to_plot_models, ['combined'], y_lim=(0.0, 1.0))
+plot_comp_dots('7.20models', 'family', to_plot_models, ['combined'], y_lim=(0.0, 1.0))
 plt.show()
 
 plot_comp_dots('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp', 'swap_ccgp'], y_lim=(0.5, 1.0))

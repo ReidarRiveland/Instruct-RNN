@@ -399,7 +399,7 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
     # model.langModel.__init_proj_out__()
 
     trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, min_run_epochs=50, checker_threshold=0.93, 
-                                        scheduler_gamma = 0.99, init_lr=1e-4, init_lang_lr=1e-4, **train_config_kwargs)
+                                        scheduler_gamma = 0.95, init_lr=1e-3, init_lang_lr=1e-4, **train_config_kwargs)
 
     if use_checkpoint: 
         try:

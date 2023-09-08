@@ -152,7 +152,7 @@ class PerfDataFrame():
                 self.layer_list = ['task']
             elif self.model_name == 'simpleNetPlus': 
                 self.layer_list = ['full', 'task']
-            elif 'XL' in self.model_name: 
+            elif 'XL' in self.model_name or 'sbertNetL_lin' in self.model_name: 
                 self.layer_list = [str(layer) for layer in range(13, 25)] + ['full', 'task']
             elif 'bow' in self.model_name: 
                 self.layer_list = ['bow', 'full', 'task']

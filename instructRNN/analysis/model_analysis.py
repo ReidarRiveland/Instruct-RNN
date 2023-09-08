@@ -77,15 +77,18 @@ def get_instruct_reps(langModel, depth='full', instruct_mode=None):
             instruct_reps[i, :, :] = out_rep
     return instruct_reps.cpu().numpy().astype(np.float64)
 
-def get_rule_embedder_reps(model):
+def get_rule_reps(model, use_rule_encoder=False):
     reps = np.empty((len(TASK_LIST), model.rule_dim))
     with torch.no_grad():
         for i, task in enumerate(TASK_LIST): 
-            task_rule = get_task_info(1, task, False)
+            task_rule = get_task_info(1, task, model.info_type)
             rule_transformed = torch.matmul(task_rule.to(model.__device__), model.rule_transform.float())
-            info= model.rule_encoder(rule_transformed)
+            if use_rule_encoder:
+                info= model.rule_encoder(rule_transformed)
+            else: 
+                info = rule_transformed
             reps[i, :] = info.cpu().numpy()
-    return reps
+    return reps[ :, None, :]
 
 def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, tasks=TASK_LIST, instruct_mode=None, 
                     contexts=None, default_intervals=False, num_repeats=1, use_comp=False, **trial_kwargs):
@@ -143,6 +146,7 @@ def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'):
         embedder = TSNE()
 
     _embedded = embedder.fit_transform(reps.reshape(-1, reps.shape[-1]))
+    print(_embedded.shape)
     embedded = _embedded.reshape(reps.shape[0], reps.shape[1], dims)
 
     if reduction_method == 'PCA': 

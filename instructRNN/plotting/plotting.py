@@ -38,8 +38,8 @@ Grey = '#36454F'
 lightGreen = '#90EE90'
 
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Blue, None, 'simpleNetPlus'),  'combNet': (lightBlue, None, 'structureNet'), 'combNetPlus': (lightBlue, None, 'structureNetPlus'),
-                    'clipNet_lin': (Purple, None, 'clipNet'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 'clipNet': (Purple, None, 'clipNet'), 
-                    'clipNetS_lin': ('Pink', None, 'clipNet (S)'), 'clipNetS_lin_tuned': (Purple, None, 'clipNet (S)(tuned)'), 'clipNetS': (Purple, None, 'clipNet (S)'),
+                    'clipNet_lin': ('Pink', None, 'clipNet'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 'clipNet': (Purple, None, 'clipNet'), 
+                    'clipNetS_lin': (Purple, None, 'clipNet (S)'), 'clipNetS_lin_tuned': (Purple, None, 'clipNet (S)(tuned)'), 'clipNetS': (Purple, None, 'clipNet (S)'),
                     'bowNet_lin': (Yellow, None, 'bowNet'), 'bowNet': (Yellow, None, 'bowNet'), 'bowNet_lin_plus': (Yellow, None, 'bowNetPlus'), 
                     'gptNet_lin': (lightRed, None, 'gptNet'), 'gptNet_lin_tuned': (lightRed, 'v','gptNet (tuned)'), 'gptNet': (lightRed, 'v','gptNet'),
                     'gptNetXL_lin': (Red, None, 'gptNet (XL)'), 'gptNetXL_lin_tuned': (Red, None, 'gptNet (XL)(tuned)'), 'gptNetXL': (Red, None, 'gptNet (XL)'), 
@@ -327,7 +327,6 @@ def plot_significance(t_mat, p_mat, model_list):
                 xticklabels=model_names, yticklabels=model_names, annot=labels, annot_kws={"size": 6})
 
 
-
 def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs): 
     task_reps = reps_reduced
     if dims ==2: 
@@ -337,7 +336,7 @@ def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs):
 
 def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwargs): 
     Patches = []
-    for task in task_to_plot: 
+    for i, task in enumerate(task_to_plot): 
         if task_to_plot == TASK_LIST:
             task_color, marker = get_all_tasks_markers(task)
             marker = 'o'
@@ -354,6 +353,9 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, num_trials = 50
 
         if rep_depth == 'task': 
             reps = get_task_reps(model, epoch=epoch, num_trials = num_trials, main_var=True, instruct_mode=instruct_mode)
+        if rep_depth == 'rule': 
+            assert model.model_name in ['combNet', 'simpleNet']
+            reps = get_rule_reps(model)
         elif rep_depth != 'task': 
             reps = get_instruct_reps(model.langModel, depth=rep_depth, instruct_mode=instruct_mode)
         reduced, _ = reduce_rep(reps, pcs=pcs)
@@ -556,7 +558,7 @@ def plot_layer_ccgp(foldername,exp_type, model_list, fig_axn=None, seeds=range(5
     patches = []
     for model_name in model_list:
         color = MODEL_STYLE_DICT[model_name][0]
-        holdout_ccgp = PerfDataFrame(foldername, exp_type, model_name, mode='layer_ccgp')
+        holdout_ccgp = PerfDataFrame(foldername, exp_type, model_name, mode='layer_ccgp', seeds=seeds)
         axn.plot(range(14-len(holdout_ccgp.layer_list), 14), np.nanmean(holdout_ccgp.data, axis=(0,1)), marker='.', c=color, linewidth=0.8, **plt_kwargs)
         patches.append(Line2D([0], [0], label = MODEL_STYLE_DICT[model_name][2], color= color, marker = 'o', linestyle = 'None', markersize=4))
 
