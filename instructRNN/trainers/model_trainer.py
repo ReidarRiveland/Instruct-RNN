@@ -398,7 +398,7 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
     # model.langModel.LM_proj_out_layers =5
     # model.langModel.__init_proj_out__()
 
-    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, min_run_epochs=50, checker_threshold=0.93, 
+    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, epochs=200, min_run_epochs=50, checker_threshold=0.85, 
                                         scheduler_gamma = 0.95, init_lr=1e-3, init_lang_lr=1e-4, **train_config_kwargs)
 
     if use_checkpoint: 
@@ -417,7 +417,7 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
         model.load_recurrent_units(exp_folder+'/'+label+'/sbertNetL_lin/sbertNetL_lin', suffix='_seed'+str(recurrent_seed))
 
     elif model_name == 'simpleSbert':
-        model.load_recurrent_units(exp_folder+'/'+label+'/simpleNet/simpleNet', suffix='_seed'+str(seed))
+        model.load_recurrent_units('7.20models/swap_holdouts/'+label+'/simpleNet/simpleNet', suffix='_seed'+str(seed))
 
 
     model.freeze_all_but_rnn_ins()
