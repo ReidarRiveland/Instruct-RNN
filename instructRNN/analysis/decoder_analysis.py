@@ -25,7 +25,7 @@ def get_decoded_set(foldername: str, model_name: str, seeds=range(5), from_conte
     full_rich_set = {}
     full_confuse_mat = np.full((len(seeds), len(TASK_LIST), len(TASK_LIST)+1), np.nan)
     sm_model = make_default_model(model_name)
-    if model_name == 'clipNet_lin': 
+    if model_name == 'sbertNetL_lin': 
         decoder = DecoderRNN(256, drop_p=0.0)
     elif model_name =='combNet': 
         decoder = DecoderMLP(256, drop_p=0.0)
