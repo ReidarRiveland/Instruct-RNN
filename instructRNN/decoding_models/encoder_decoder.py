@@ -63,7 +63,9 @@ class EncoderDecoder(nn.Module):
 
                     ins, _, _, _, _ = construct_trials(task, num_trials, noise=0)
 
-                    if from_contexts: 
+                    if from_contexts and self.decoder.decode_embeddings: 
+                        sm_hidden = torch.Tensor(self.contexts[TASK_LIST.index(task), :25, :]).repeat(2,1).to(self.sm_model.__device__)
+                    elif from_contexts: 
                         task_info = torch.Tensor(self.contexts[TASK_LIST.index(task), :25, :]).repeat(2,1).to(self.sm_model.__device__)
                         _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), context=task_info)
                     else: 

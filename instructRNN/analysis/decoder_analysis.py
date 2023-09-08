@@ -118,7 +118,10 @@ def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_
     if sm_holdouts: sm_str = 'holdout'
     else: sm_str = 'multi'
 
-    full_decoded_dict = pickle.load(open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_instructs_dict', 'rb'))
+    if model_name == 'combNet': instruct_type = '_shallow_instructs_dict'
+    else: instruct_type = '_instructs_dict'
+
+    full_decoded_dict = pickle.load(open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+instruct_type, 'rb'))
     contexts = np.load(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_contexts.npy')
 
     instruct_perf_array = np.full((len(full_decoded_dict), len(partner_seeds), len(TASK_LIST)), np.nan)
@@ -155,7 +158,10 @@ def test_holdout_partner_perf(foldername, model_name, num_trials = 50, partner_s
     if sm_holdouts: sm_str = 'holdout'
     else: sm_str = 'multi'
 
-    full_decoded_dict = pickle.load(open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_instructs_dict', 'rb'))
+    if model_name == 'combNet': instruct_type = '_shallow_instructs_dict'
+    else: instruct_type = '_instructs_dict'
+
+    full_decoded_dict = pickle.load(open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+instruct_type, 'rb'))
     contexts = np.load(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_contexts.npy')
 
     instruct_perf_array = np.full((len(partner_seeds), len(full_decoded_dict), len(TASK_LIST)), np.nan)
@@ -166,7 +172,7 @@ def test_holdout_partner_perf(foldername, model_name, num_trials = 50, partner_s
     for i, seed in enumerate(partner_seeds):
         for holdout_file, holdouts in SWAPS_DICT.items():
             print('processing '+ holdout_file)
-            partner_model.load_model('7.20models/swap_holdouts/'+holdout_file+'/'+partner_model.model_name, suffix='_seed'+str(seed))
+            partner_model.load_model(foldername+'/'+holdout_file+'/'+partner_model.model_name, suffix='_seed'+str(seed))
             for j, item in enumerate(full_decoded_dict.items()): 
                 decoder_seed, decoded_set = item
                 if decoder_seed == seed: 
