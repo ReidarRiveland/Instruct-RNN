@@ -265,9 +265,8 @@ def check_decoder_trained(file_name, seed, use_holdouts, use_dropout):
     else: 
         drop_str = ''
 
-
     try: 
-        pickle.load(open(file_name+'/rnn_decoder_seed'+str(seed)+holdouts_suffix+drop_str+'_attrs', 'rb'))
+        pickle.load(open(file_name+'/rnn_decoder_seed'+str(seed)+'_attrs'+holdouts_suffix+drop_str, 'rb'))
         print('\n Model at ' + file_name + ' for seed '+str(seed)+' and holdouts ' + str(use_holdouts) +' aleady trained')
         return True
     except FileNotFoundError:
