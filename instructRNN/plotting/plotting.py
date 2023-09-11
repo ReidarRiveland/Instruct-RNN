@@ -38,6 +38,8 @@ Grey = '#36454F'
 lightGreen = '#90EE90'
 
 MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Blue, None, 'simpleNetPlus'),  'combNet': (lightBlue, None, 'structureNet'), 'combNetPlus': (lightBlue, None, 'structureNetPlus'),
+                    'simpleSbert':(Yellow, None, 'simpleNet (transfer)'),
+                    'sbertSbert':('lawngreen', None, 'sbertNet (L) (transfer)'),
                     'clipNet_lin': ('Pink', None, 'clipNet'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 'clipNet': (Purple, None, 'clipNet'), 
                     'clipNetS_lin': (Purple, None, 'clipNet (S)'), 'clipNetS_lin_tuned': (Purple, None, 'clipNet (S)(tuned)'), 'clipNetS': (Purple, None, 'clipNet (S)'),
                     'bowNet_lin': (Yellow, None, 'bowNet'), 'bowNet': (Yellow, None, 'bowNet'), 'bowNet_lin_plus': (Yellow, None, 'bowNetPlus'), 

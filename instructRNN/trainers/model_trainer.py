@@ -398,7 +398,7 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
     # model.langModel.LM_proj_out_layers =5
     # model.langModel.__init_proj_out__()
 
-    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, epochs=200, min_run_epochs=50, checker_threshold=0.85, 
+    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, checker_threshold=0.93, 
                                         scheduler_gamma = 0.95, init_lr=1e-3, init_lang_lr=1e-4, **train_config_kwargs)
 
     if use_checkpoint: 
@@ -422,7 +422,7 @@ def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_chec
 
     model.freeze_all_but_rnn_ins()
     #model.langModel.__init_proj_out__()
-    #model.langModel.set_train_layers([])
+    model.langModel.set_train_layers([])
 
     for n, p in model.named_parameters():
         if p.requires_grad: print(n)

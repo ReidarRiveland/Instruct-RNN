@@ -6,9 +6,10 @@ from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio, prin
 from instructRNN.data_loaders.perfDataFrame import *
 from instructRNN.analysis.model_analysis import calc_t_test
 
-to_plot_models = ['combNet',  'sbertNetL_lin','sbertNet_lin', 'clipNetS_lin', 'clipNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet']
-non_lin_models = ['sbertNetL', 'sbertNet', 'clipNet', 'gptNetXL', 'gptNet', 'bertNet', 'bowNet']
-tuned_to_plot = ['combNet', 'sbertNetL_lin_tuned', 'sbertNet_lin_tuned', 'clipNetS_lin_tuned',  'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
+to_plot_models = ['combNet',  'sbertNetL_lin','sbertNet_lin', 'clipNetS_lin', 'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet']
+non_lin_models = ['sbertNetL', 'sbertNet', 'clipNetS', 'gptNetXL', 'gptNet', 'bertNet', 'bowNet']
+tuned_to_plot = ['combNet', 'sbertNetL_lin_tuned', 'sbertNet_lin_tuned', 'clipNetS_lin_tuned',  
+                    'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
 aux_models = ['combNet', 'combNetPlus', 'clipNetS_lin', 'bowNet_lin_plus', 'rawBertNet_lin', 'simpleNetPlus', 'simpleNet']
 
 ##ALL MODEL LEARNING CURVES
@@ -17,7 +18,7 @@ fig_axn[0].tight_layout()
 plt.show()
 
 ##VALIDATION
-plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[:-2], mode='val')
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[1:-2], mode='val')
 plt.show()
 
 ###HOLDOUTS
@@ -123,7 +124,7 @@ plot_scatter(combNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
 plot_scatter(combNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, rep_depth='rule', s=10)
 
 #CCGP PLOTS
-plot_layer_ccgp('7.20models', 'swap', to_plot_models, ylim=(0.48, 1.01))
+plot_layer_ccgp('7.20models', 'swap', to_plot_models, ylim=(0.48, 1.01), markersize=4.5)
 plt.show()
 plot_ccgp_corr('7.20models', 'swap', to_plot_models)
 
@@ -193,19 +194,24 @@ plt.show()
 plot_comp_dots('7.20models', 'family', to_plot_models, ['combined'], y_lim=(0.0, 1.0))
 plt.show()
 
+plot_comp_dots('7.20models', 'swap', ['simpleSbert', 'sbertSbert'], ['combined'], y_lim=(0.0, 1.0))
+plt.show()
+
 plot_comp_dots('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp', 'swap_ccgp'], y_lim=(0.5, 1.0))
 plt.show()
 
+
+##DOUBLE CHECK CCGP STATS
 t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='ccgp')
 plot_significance(t_mat, p_mat, to_plot_models)
 plt.show()
 
-p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='multi_ccgp')
-plot_significance(is_sig, to_plot_models)
+t_mat, p_mat, is_sig  = calc_t_test('7.20models', 'multitask', to_plot_models, mode='multi_ccgp')
+plot_significance(t_mat,p_mat, to_plot_models)
 plt.show()
 
-p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='swap_ccgp')
-plot_significance(is_sig, to_plot_models)
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='swap_ccgp')
+plot_significance(t_mat, p_mat, to_plot_models)
 plt.show()
 
 plot_comp_dots('7.20models', 'swap', to_plot_models, ['combinedcomp', 'multi_comp'], y_lim=(0.0, 1.0))
