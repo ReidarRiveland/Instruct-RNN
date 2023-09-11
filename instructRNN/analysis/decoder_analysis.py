@@ -51,7 +51,6 @@ def get_decoded_set(foldername: str, model_name: str, seeds=range(5), from_conte
             shallow_decoded_set = {**_shallow, **shallow_decoded_set}
             rich_decoded_set = {**_rich, **rich_decoded_set}
             confuse_mat[[TASK_LIST.index(task) for task in swap_tasks], :] = _confuse_mat
-
         full_shallow_set[seed] = shallow_decoded_set
         full_rich_set[seed] = rich_decoded_set
         full_confuse_mat[i, ...] = confuse_mat
@@ -65,7 +64,7 @@ def get_decoded_set(foldername: str, model_name: str, seeds=range(5), from_conte
         if decoder_holdouts: decoder_str='holdout'
         else: decoder_str = 'multi'
 
-        pickle.dump(full_rich_set, open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_shallow_instructs_dict', 'wb'))
+        pickle.dump(full_shallow_set, open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_shallow_instructs_dict', 'wb'))
         pickle.dump(full_rich_set, open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_instructs_dict', 'wb'))
         np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_confuse_mat.npy',full_confuse_mat)
         np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_contexts.npy', full_all_contexts)
@@ -80,7 +79,6 @@ def _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks
 
     with torch.no_grad():
         for i, task in enumerate(tasks):
-            print(task)
             ins, targets, _, target_dirs, _ = construct_trials(task, num_trials)
         
             if contexts is not None: 
@@ -88,21 +86,26 @@ def _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks
                 out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), info_embedded = task_info)
                 contexts_perf_array[i] = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
-            try:
-                task_info = list(np.random.choice(decoded_dict[task]['other'], num_trials))
-                out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), instruction = task_info)
-                other_perf_array[i] = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
-            except ValueError:
-                pass
+            if partner_model.info_type == 'lang':
+                try:
+                    task_info = list(np.random.choice(decoded_dict[task]['other'], num_trials))
+                    out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), instruction = task_info)
+                    other_perf_array[i] = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
+                except ValueError:
+                    pass
 
-            task_instructs = list(itertools.chain.from_iterable([value for value in decoded_dict[task].values()]))
-            task_info = list(np.random.choice(task_instructs, num_trials))
-            out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), instruction = task_info)
+
+            if partner_model.info_type == 'lang':
+                task_instructs = list(itertools.chain.from_iterable([value for value in decoded_dict[task].values()]))
+                task_info = torch.tensor(list(np.random.choice(task_instructs, num_trials)))
+                out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), instruction = task_info)
+            else: 
+                task_info = torch.tensor(decoded_dict[task])
+                out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), task_rule = task_info)
 
             instruct_perf_array[i] = np.mean(isCorrect(out, torch.Tensor(targets), target_dirs))
 
     return instruct_perf_array, other_perf_array, contexts_perf_array
-
 
 def test_partner_model(load_folder, model_name, decoded_dict, contexts = None, num_trials=50, tasks = TASK_LIST, partner_seed=3): 
     partner_model = make_default_model(model_name)
@@ -122,6 +125,8 @@ def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_
     else: instruct_type = '_instructs_dict'
 
     full_decoded_dict = pickle.load(open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+instruct_type, 'rb'))
+    print(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+instruct_type)
+    print(full_decoded_dict[0].keys())
     contexts = np.load(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_contexts.npy')
 
     instruct_perf_array = np.full((len(full_decoded_dict), len(partner_seeds), len(TASK_LIST)), np.nan)
@@ -210,8 +215,9 @@ def decoder_pipeline(foldername, model_name, decoder_holdout=False, sm_holdout=F
         get_decoded_set(foldername, model_name, seeds=seeds, from_contexts=True, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
 
     try:
-        print('Multi Partner Already Trained')
         np.load(foldername+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_all_perf.npy')
+        print('Multi Partner Already Trained')
+
     except FileNotFoundError:
         print('Testing Multi Partner')
         test_multi_partner_perf(foldername, model_name, partner_seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)

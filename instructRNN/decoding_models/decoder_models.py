@@ -76,8 +76,9 @@ class SMDecoder(nn.Module):
         return out
 
 class DecoderMLP(nn.Module): 
-    def __init__(self, hidden_size, num_layers = 3, sm_hidden_dim=256, drop_p = 0.0, decode_embeddings=None):
+    def __init__(self, hidden_size, num_layers = 3, sm_hidden_dim=256, drop_p = 0.0, decode_embeddings=False):
         super().__init__()
+        self.decode_embeddings = False
         self.drop_p = drop_p
         self.decoder_name = 'mlp_decoder'
         self.hidden_size = hidden_size
@@ -97,7 +98,7 @@ class DecoderMLP(nn.Module):
         return out 
 
     def decode_sentence(self, sm_hidden): 
-        return self.foward(sm_hidden)
+        return self.forward(sm_hidden).detach().cpu().numpy()
 
     def save_model(self, save_string): 
         torch.save(self.state_dict(), save_string+'.pt')

@@ -125,23 +125,21 @@ def get_multi_all_comp_perf(foldername, model_name, seed, num_repeats = 1, batch
                 else: os.makedirs(file_path)
                 np.save(file_path+'/'+model_name+'_'+task+'_multi_comp_scores_seed'+str(seed), task_perf)
 
-def get_multi_comp_perf(foldername, model_name, num_repeats = 1, batch_len=50, save=False): 
-    perf_array = np.full((len(TASK_LIST), 5), np.NaN)
+def get_multi_comp_perf(foldername, model_name, seed, num_repeats = 1, batch_len=50, save=False): 
     model = full_models.make_default_model(model_name)
-    for seed in range(5): 
-        model.load_model(foldername+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
-        model.to(device)
-        file_path = foldername+'/multi_comp_perf/'+model_name
+    file_path = foldername+'/multi_comp_perf/'+model_name
 
-        for i, task in enumerate(TASK_LIST):
-            print('processing task '+task)
-            task_perf = eval_model_compositional_perf(model)
+    model.load_model(foldername+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
+    model.to(device)
+    file_path = foldername+'/multi_comp_perf/'+model_name
+    task_perf = eval_model_compositional_perf(model)
 
-        if save:
-            if os.path.exists(file_path):
-                pass
-            else: os.makedirs(file_path)
-            np.save(file_path+'/'+model_name+'_multi_comp_perf_seed'+str(seed), task_perf)
+    if save:
+        if os.path.exists(file_path):
+            pass
+        else: os.makedirs(file_path)
+        np.save(file_path+'/'+model_name+'_multi_comp_perf_seed'+str(seed), task_perf)
+    return task_perf
 
 
 def _get_model_0_shot(_task_eval_func, model_name, folder_name, exp_type, seed, batch_size, **eval_kwargs): 
