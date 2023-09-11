@@ -332,7 +332,7 @@ def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs):
     if dims ==2: 
         ax.scatter(task_reps[:, 0], task_reps[:, 1], s=5, **scatter_kwargs)
     else: 
-        ax.scatter(task_reps[:, 0], task_reps[:, 1], task_reps[:,2], s=5, **scatter_kwargs)
+        ax.scatter(task_reps[:, 0], task_reps[:, 1], task_reps[:,2], **scatter_kwargs)
 
 def _group_rep_scatter(reps_reduced, task_to_plot, ax, dims, pcs, **scatter_kwargs): 
     Patches = []

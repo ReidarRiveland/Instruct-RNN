@@ -47,7 +47,7 @@ if __name__ == "__main__":
     jobs = make_analysis_jobs(args.models, args.seeds, args.layers, args.job_index)
     for job in jobs: 
         _seed, model, layer = job
-        if model in full_models.big_models or 'sbertNetL' in model:
+        if (model in full_models.big_models or 'sbertNetL' in model) and isinstance(layer, int):
             layer += 12
         
         print(EXP_FOLDER)

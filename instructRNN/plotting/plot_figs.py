@@ -6,9 +6,9 @@ from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio, prin
 from instructRNN.data_loaders.perfDataFrame import *
 from instructRNN.analysis.model_analysis import calc_t_test
 
-to_plot_models = ['combNet',  'sbertNetL_lin','sbertNet_lin',   'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet']
+to_plot_models = ['combNet',  'sbertNetL_lin','sbertNet_lin', 'clipNetS_lin', 'clipNet_lin', 'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet']
 non_lin_models = ['sbertNetL', 'sbertNet', 'clipNet', 'gptNetXL', 'gptNet', 'bertNet', 'bowNet']
-tuned_to_plot = ['combNet', 'clipNet_lin_tuned', 'sbertNetL_lin_tuned', 'sbertNet_lin_tuned', 'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
+tuned_to_plot = ['combNet', 'sbertNetL_lin_tuned', 'sbertNet_lin_tuned', 'clipNetS_lin_tuned',  'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
 aux_models = ['combNet', 'combNetPlus', 'clipNetS_lin', 'bowNet_lin_plus', 'rawBertNet_lin', 'simpleNetPlus', 'simpleNet']
 
 ##ALL MODEL LEARNING CURVES
@@ -58,7 +58,7 @@ plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot, mode='combined')
 plt.show()
 
 t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', tuned_to_plot, mode='combined')
-plot_significance(t_mat, is_sig, tuned_to_plot)
+plot_significance(t_mat, p_mat, tuned_to_plot)
 plt.show()
 
 ###SWAP HOLDOUTS
@@ -77,8 +77,8 @@ plot_all_models_task_dist('7.20models', 'family', to_plot_models, mode='combined
 plot_all_task_lolli_v('7.20models', 'family', to_plot_models, mode='combined')
 plt.show()
 
-_, is_sig = calc_t_test('7.20models', 'family', to_plot_models, mode='combined')
-plot_significance(is_sig, to_plot_models)
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'family', to_plot_models, mode='combined')
+plot_significance(t_mat, p_mat, to_plot_models)
 plt.show()
 
 ####PC PLOTS
@@ -112,11 +112,7 @@ holdouts_file = 'swap9'
 
 simpleNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+simpleNet.model_name, suffix='_seed0')
 plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
-plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, rep_depth='rule')
-
-
-simpleNet.load_model('7.20models/multitask_holdouts/Multitask/'+simpleNet.model_name, suffix='_seed1')
-plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
+plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, rep_depth='rule', s=15)
 
 #COMBNET
 combNet = make_default_model('combNet')
@@ -124,7 +120,7 @@ holdouts_file = 'swap9'
 
 combNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+combNet.model_name, suffix='_seed2')
 plot_scatter(combNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
-plot_scatter(combNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, rep_depth='rule')
+plot_scatter(combNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, rep_depth='rule', s=10)
 
 #CCGP PLOTS
 plot_layer_ccgp('7.20models', 'swap', to_plot_models, ylim=(0.48, 1.01))
