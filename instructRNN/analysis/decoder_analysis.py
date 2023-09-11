@@ -177,7 +177,7 @@ def test_holdout_partner_perf(foldername, model_name, num_trials = 50, partner_s
     for i, seed in enumerate(partner_seeds):
         for holdout_file, holdouts in SWAPS_DICT.items():
             print('processing '+ holdout_file)
-            partner_model.load_model(foldername+'/'+holdout_file+'/'+partner_model.model_name, suffix='_seed'+str(seed))
+            partner_model.load_model(foldername.split('/')[0]+'/swap_holdouts/'+holdout_file+'/'+partner_model.model_name, suffix='_seed'+str(seed))
             for j, item in enumerate(full_decoded_dict.items()): 
                 decoder_seed, decoded_set = item
                 if decoder_seed == seed: 
