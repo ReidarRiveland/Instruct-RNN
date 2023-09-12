@@ -302,15 +302,15 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='
     return fig, axn
 
 
-def plot_significance(t_mat, p_mat, model_list): 
+def plot_significance(t_mat, p_mat, model_list, **heatmap_kwargs): 
     labels = []
     for p in p_mat.flatten(): 
         if p< 0.001: 
             labels.append('*** \n p<0.001')
         elif p<0.01: 
-            labels.append('** \n p = {}'.format(np.round(p, 4)))
+            labels.append('** \n p = {}'.format(np.round(p, 3)))
         elif p<0.05: 
-            labels.append('* \n p = {}'.format(np.round(p, 4)))
+            labels.append('* \n p = {}'.format(np.round(p, 3)))
         elif p > 0.05: 
             labels.append('n.s. \n p>0.05')
     
@@ -320,13 +320,15 @@ def plot_significance(t_mat, p_mat, model_list):
 
     t_mat = np.where(mask, np.full_like(t_mat, np.nan), t_mat)
 
-
-
     labels = np.array(labels).reshape(len(model_list), len(model_list))
     model_names = [MODEL_STYLE_DICT[model_name][2] for model_name in model_list]
     with sns.plotting_context(rc={ 'xtick.labelsize': 4,'ytick.labelsize': 4}):
-        sns.heatmap(t_mat, linecolor='white', linewidths=1, cbar=True, fmt='', cbar_kws={'label': 't-value'}, mask=mask,
-                xticklabels=model_names, yticklabels=model_names, annot=labels, annot_kws={"size": 6})
+
+        sns.heatmap(t_mat, linecolor='white', linewidths=1, cbar=True, fmt='', 
+                    cbar_kws={'label': 't-value'}, mask=mask, 
+                    xticklabels=model_names, yticklabels=model_names, 
+                    annot=labels, annot_kws={"size": 6}, 
+                    **heatmap_kwargs)
 
 
 def _rep_scatter(reps_reduced, task, ax, dims, pcs, **scatter_kwargs): 

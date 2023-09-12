@@ -11,7 +11,8 @@ from instructRNN.models.full_models import make_default_model
 from instructRNN.tasks.tasks import SWAPS_DICT, TASK_LIST, MULTITASK_DICT, construct_trials
 from instructRNN.tasks.task_criteria import isCorrect
 
-def get_decoded_set(foldername: str, model_name: str, seeds=range(5), from_contexts=False, sm_holdouts=False, decoder_holdouts=False, save=False): 
+def get_decoded_set(foldername: str, model_name: str, seeds=range(5), decode_embeddings = False, 
+                        from_contexts=False, sm_holdouts=False, decoder_holdouts=False, save=False): 
     if sm_holdouts: assert 'swap' in foldername
     
     if sm_holdouts:
@@ -21,14 +22,17 @@ def get_decoded_set(foldername: str, model_name: str, seeds=range(5), from_conte
         exp_dict = {'Multitask': TASK_LIST}
         sm_str = 'multi'
 
+    if decode_embeddings: dec_emd_str = 'from_embeddings'
+    else: dec_emd_str = ''
+
     full_shallow_set = {}
     full_rich_set = {}
     full_confuse_mat = np.full((len(seeds), len(TASK_LIST), len(TASK_LIST)+1), np.nan)
     sm_model = make_default_model(model_name)
     if model_name == 'sbertNetL_lin': 
-        decoder = DecoderRNN(256, drop_p=0.0)
+        decoder = DecoderRNN(256, drop_p=0.0, decode_embeddings=decode_embeddings)
     elif model_name =='combNet': 
-        decoder = DecoderMLP(256, drop_p=0.0)
+        decoder = DecoderMLP(256, drop_p=0.0, decode_embeddings=decode_embeddings)
     else:
         raise Exception() 
 
@@ -64,10 +68,10 @@ def get_decoded_set(foldername: str, model_name: str, seeds=range(5), from_conte
         if decoder_holdouts: decoder_str='holdout'
         else: decoder_str = 'multi'
 
-        pickle.dump(full_shallow_set, open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_shallow_instructs_dict', 'wb'))
-        pickle.dump(full_rich_set, open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_instructs_dict', 'wb'))
-        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_confuse_mat.npy',full_confuse_mat)
-        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_contexts.npy', full_all_contexts)
+        pickle.dump(full_shallow_set, open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_shallow_instructs_dict'+dec_emd_str, 'wb'))
+        pickle.dump(full_rich_set, open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_instructs_dict'+dec_emd_str, 'wb'))
+        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_confuse_mat'+dec_emd_str+'.npy',full_confuse_mat)
+        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_contexts'+dec_emd_str+'.npy', full_all_contexts)
 
     return full_rich_set, full_shallow_set, full_confuse_mat, full_all_contexts
 
@@ -113,7 +117,10 @@ def test_partner_model(load_folder, model_name, decoded_dict, contexts = None, n
     partner_model.load_state_dict(torch.load(load_folder.split('/')[0]+'/multitask_holdouts/Multitask/'+model_name+'/'+model_name+'_seed'+str(partner_seed)+'.pt'), strict=False)
     return _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks)
 
-def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_LIST, partner_seeds=range(5), decoder_holdouts=False, sm_holdouts= False, save=False):
+def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_LIST, 
+                            partner_seeds=range(5), decode_embeddings = False, 
+                            decoder_holdouts=False, sm_holdouts= False, save=False):
+
     file_path = foldername+'/decoder_perf/'+model_name
     
     if decoder_holdouts: decoder_str='holdout'
@@ -125,8 +132,11 @@ def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_
     if model_name == 'combNet': instruct_type = '_shallow_instructs_dict'
     else: instruct_type = '_instructs_dict'
 
-    full_decoded_dict = pickle.load(open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+instruct_type, 'rb'))
-    print(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+instruct_type)
+    if decode_embeddings: dec_emd_str = 'from_embeddings'
+    else: dec_emd_str = ''
+
+    full_decoded_dict = pickle.load(open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+instruct_type+dec_emd_str, 'rb'))
+    print(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+instruct_type+dec_emd_str)
     print(full_decoded_dict[0].keys())
     contexts = np.load(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_contexts.npy')
 
@@ -151,13 +161,17 @@ def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_
         if os.path.exists(file_path):
             pass
         else: os.makedirs(file_path)
-        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_multi_all_perf',instruct_perf_array)
-        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_multi_other_perf',other_perf_array)
-        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_multi_context_perf',contexts_perf_array)
+        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_multi_all_perf'+dec_emd_str, instruct_perf_array)
+        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_multi_other_perf'+dec_emd_str, other_perf_array)
+        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_multi_context_perf'+dec_emd_str, contexts_perf_array)
     return instruct_perf_array, other_perf_array, contexts_perf_array
 
-def test_holdout_partner_perf(foldername, model_name, num_trials = 50, partner_seeds = range(5), decoder_holdouts=False, sm_holdouts= False, save=False):
+def test_holdout_partner_perf(foldername, model_name, num_trials = 50, 
+                                decode_embeddings = False, partner_seeds = range(5), 
+                                decoder_holdouts=False, sm_holdouts= False, save=False):
+
     file_path = foldername+'/decoder_perf/'+model_name
+
     if decoder_holdouts: decoder_str='holdout'
     else: decoder_str = 'multi'
     
@@ -167,7 +181,11 @@ def test_holdout_partner_perf(foldername, model_name, num_trials = 50, partner_s
     if model_name == 'combNet': instruct_type = '_shallow_instructs_dict'
     else: instruct_type = '_instructs_dict'
 
-    full_decoded_dict = pickle.load(open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+instruct_type, 'rb'))
+    if decode_embeddings: dec_emd_str = 'from_embeddings'
+    else: dec_emd_str = ''
+
+    full_decoded_dict = pickle.load(open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+instruct_type+dec_emd_str, 'rb'))
+    print(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+instruct_type+dec_emd_str)
     contexts = np.load(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_contexts.npy')
 
     instruct_perf_array = np.full((len(partner_seeds), len(full_decoded_dict), len(TASK_LIST)), np.nan)
@@ -202,7 +220,7 @@ def test_holdout_partner_perf(foldername, model_name, num_trials = 50, partner_s
     return instruct_perf_array, other_perf_array, contexts_perf_array
 
 
-def decoder_pipeline(foldername, model_name, decoder_holdout=False, sm_holdout=False, seeds=range(5)): 
+def decoder_pipeline(foldername, model_name, decode_embeddings = False, decoder_holdout=False, sm_holdout=False, seeds=range(5)): 
     try: 
         if decoder_holdout: decoder_str='holdout'
         else: decoder_str = 'multi'
@@ -210,10 +228,15 @@ def decoder_pipeline(foldername, model_name, decoder_holdout=False, sm_holdout=F
         if sm_holdout: sm_str = 'holdout'
         else: sm_str = 'multi'
 
-        np.load(foldername+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_contexts.npy')
+        if decode_embeddings: dec_emd_str = 'from_embeddings'
+        else: dec_emd_str = ''
+
+
+        np.load(foldername+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_contexts'+dec_emd_str+'.npy')
     except FileNotFoundError:
         print('getting decoded set')
-        get_decoded_set(foldername, model_name, seeds=seeds, from_contexts=True, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
+        get_decoded_set(foldername, model_name, seeds=seeds, from_contexts=True, decode_embeddings = decode_embeddings, 
+                                decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
 
     try:
         np.load(foldername+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_all_perf.npy')
@@ -221,10 +244,12 @@ def decoder_pipeline(foldername, model_name, decoder_holdout=False, sm_holdout=F
 
     except FileNotFoundError:
         print('Testing Multi Partner')
-        test_multi_partner_perf(foldername, model_name, partner_seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
+        test_multi_partner_perf(foldername, model_name, partner_seeds=seeds, decode_embeddings = decode_embeddings, 
+                                        decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
 
     print('Testing Holdout Partner')
-    test_holdout_partner_perf(foldername, model_name, partner_seeds=seeds, decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
+    test_holdout_partner_perf(foldername, model_name, partner_seeds=seeds, decode_embeddings = decode_embeddings, 
+                                        decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
 
 
 def get_novel_instruct_ratio(sm_holdout=False, decoder_holdout=False):

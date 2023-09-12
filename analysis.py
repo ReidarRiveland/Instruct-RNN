@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')
     parser.add_argument('--layers', default=[layer for layer in range(1, 13)] + ['full', 'task'], nargs='+')
     parser.add_argument('--overwrite', default=False, action='store_true', help='whether or not to overwrite existing files')
-
+    parser.add_argument('--decode_embeddings', default=False, action='store_true', help='use a decoder that directly maps embeddings to instructions')
     parser.add_argument('--job_index', type=int, help='for use with slurm sbatch script, indexes the combination of seed and holdout tasks along with the model')
     args = parser.parse_args()
 
@@ -36,13 +36,14 @@ if __name__ == "__main__":
     if args.mode == 'decode':
         model_name = args.models[0]
         print('processing multitask')
-        decoder_pipeline(MODEL_FOLDER+'/multitask_holdouts', args.models[0])
-
-        print('processing sm holdouts')
-        decoder_pipeline(MODEL_FOLDER+'/swap_holdouts', args.models[0], sm_holdout=True)
+        decoder_pipeline(MODEL_FOLDER+'/multitask_holdouts', args.models[0], decode_embeddings=args.decode_embeddings)
         
-        print('processing sm holdouts and decoder holdouts')
-        decoder_pipeline(MODEL_FOLDER+'/swap_holdouts', args.models[0], sm_holdout=True, decoder_holdout=True)
+        if not args.decode_embeddings:
+            print('processing sm holdouts')
+            decoder_pipeline(MODEL_FOLDER+'/swap_holdouts', args.models[0], sm_holdout=True)
+        
+            print('processing sm holdouts and decoder holdouts')
+            decoder_pipeline(MODEL_FOLDER+'/swap_holdouts', args.models[0], sm_holdout=True, decoder_holdout=True)
 
     jobs = make_analysis_jobs(args.models, args.seeds, args.layers, args.job_index)
     for job in jobs: 

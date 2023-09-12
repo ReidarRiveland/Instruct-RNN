@@ -7,10 +7,10 @@ from instructRNN.data_loaders.perfDataFrame import *
 from instructRNN.analysis.model_analysis import calc_t_test
 
 to_plot_models = ['combNet',  'sbertNetL_lin','sbertNet_lin', 'clipNetS_lin', 'bertNet_lin', 'gptNetXL_lin', 'gptNet_lin',  'bowNet_lin', 'simpleNet']
-non_lin_models = ['sbertNetL', 'sbertNet', 'clipNetS', 'gptNetXL', 'gptNet', 'bertNet', 'bowNet']
+non_lin_models = ['combNet', 'sbertNetL', 'sbertNet', 'clipNetS', 'gptNetXL', 'gptNet', 'bertNet', 'bowNet', 'simpleNet']
 tuned_to_plot = ['combNet', 'sbertNetL_lin_tuned', 'sbertNet_lin_tuned', 'clipNetS_lin_tuned',  
                     'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
-aux_models = ['combNet', 'combNetPlus', 'clipNetS_lin', 'bowNet_lin_plus', 'rawBertNet_lin', 'simpleNetPlus', 'simpleNet']
+aux_models = ['combNet', 'combNetPlus', 'bowNet_lin', 'bowNet_lin_plus', 'bertNet_lin', 'rawBertNet_lin', 'simpleNet', 'simpleNetPlus', ]
 
 ##ALL MODEL LEARNING CURVES
 fig_axn = plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask', linewidth=0.5)
@@ -29,7 +29,6 @@ plt.show()
 
 t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combined')
 plot_significance(t_mat, p_mat, to_plot_models)
-p_mat
 plt.show()
 
 ##non-linear holdouts
@@ -222,7 +221,7 @@ plot_significance(is_sig, to_plot_models)
 plt.show()
 
 p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='multi_comp')
-plot_significance(is_sig, to_plot_models)
+plot_significance(t_mat, p_mat, to_plot_models)
 plt.show()
 
 ###HOLDOUTS
