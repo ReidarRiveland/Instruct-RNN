@@ -79,6 +79,7 @@ def _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks
 
     with torch.no_grad():
         for i, task in enumerate(tasks):
+            print('process')
             ins, targets, _, target_dirs, _ = construct_trials(task, num_trials)
         
             if contexts is not None: 
@@ -97,7 +98,7 @@ def _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks
 
             if partner_model.info_type == 'lang':
                 task_instructs = list(itertools.chain.from_iterable([value for value in decoded_dict[task].values()]))
-                task_info = torch.tensor(list(np.random.choice(task_instructs, num_trials)))
+                task_info = list(np.random.choice(task_instructs, num_trials))
                 out, _ = partner_model(torch.Tensor(ins).to(partner_model.__device__), instruction = task_info)
             else: 
                 task_info = torch.tensor(decoded_dict[task])
