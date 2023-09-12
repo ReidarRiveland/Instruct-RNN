@@ -156,7 +156,7 @@ def plot_context_curves(foldername, exp_type, model_list, mode = 'lin_comp', avg
 
 def plot_comp_dots(foldername, exp_type, model_list, mode_list, split_clauses = False, fig_axn=None, y_lim =(0.0, 1.0), **formatting):
     if fig_axn is None: 
-        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
+        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(3, 4))
     else: 
         fig, axn = fig_axn
 
@@ -192,7 +192,7 @@ def plot_comp_dots(foldername, exp_type, model_list, mode_list, split_clauses = 
     return fig, axn
 
 def plot_all_models_task_dist(foldername, exp_type, model_list, k= 0, perf_type='correct', mode='', seeds=range(5), **kwargs): 
-    fig, axn = plt.subplots(2, 4, sharey = True, sharex=True, figsize =(8, 4))
+    fig, axn = plt.subplots(3, 3, sharey = True, sharex=True, figsize =(5, 4))
     fig.suptitle('Distribution of Performance on Novel Tasks')
 
     thresholds = np.linspace(0.1, 1.0, 10)
@@ -213,7 +213,7 @@ def plot_all_models_task_dist(foldername, exp_type, model_list, k= 0, perf_type=
             ax.set_yticks([0, 10, 20, 30])
             ax.set_yticklabels(['0', '10', '20', '30'])
 
-            if i%4 == 0: 
+            if i == 3: 
                 ax.set_ylabel('Number of Tasks')
             if i > 3: 
                 ax.set_xticks(np.arange(0, 10)+0.5)
@@ -388,7 +388,7 @@ def plot_clauses_dots(foldername, exp_type, model_list, mode='combined', fig_axn
     p_value_arr = np.empty((len(model_list), len(model_list)))
 
     if fig_axn is None: 
-        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(6, 4))
+        fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(3, 4))
     else: 
         fig, axn = fig_axn
     

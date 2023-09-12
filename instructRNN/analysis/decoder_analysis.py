@@ -77,6 +77,7 @@ def get_decoded_set(foldername: str, model_name: str, seeds=range(5), decode_emb
 
 def _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks): 
     partner_model.eval()
+    partner_model.to(0)
     instruct_perf_array = np.full((len(tasks)), np.nan)
     other_perf_array = np.full((len(tasks)), np.nan)
     contexts_perf_array = np.full((len(tasks)), np.nan)
