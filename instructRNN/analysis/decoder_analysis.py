@@ -5,6 +5,8 @@ import numpy as np
 import pickle
 import itertools
 from collections import defaultdict, Counter
+from sklearn.metrics.pairwise import cosine_similarity
+
 from instructRNN.decoding_models.decoder_models import DecoderRNN, DecoderMLP
 from instructRNN.decoding_models.encoder_decoder import EncoderDecoder
 from instructRNN.models.full_models import make_default_model
@@ -214,9 +216,9 @@ def test_holdout_partner_perf(foldername, model_name, num_trials = 50,
         if os.path.exists(file_path):
             pass
         else: os.makedirs(file_path)
-        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_holdout_all_perf',instruct_perf_array)
-        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_holdout_other_perf',other_perf_array)
-        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_holdout_context_perf',contexts_perf_array)
+        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_holdout_all_perf'+dec_emd_str,instruct_perf_array)
+        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_holdout_other_perf'+dec_emd_str,other_perf_array)
+        np.save(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_holdout_context_perf'+dec_emd_str,contexts_perf_array)
 
     return instruct_perf_array, other_perf_array, contexts_perf_array
 
@@ -253,7 +255,7 @@ def decoder_pipeline(foldername, model_name, decode_embeddings = False, decoder_
                                         decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
 
 
-def get_novel_instruct_ratio(sm_holdout=False, decoder_holdout=False):
+def get_novel_instruct_ratio(model_name, sm_holdout=False, decoder_holdout=False):
     if sm_holdout: 
         sm_str = 'holdout'
         folder = '7.20models/swap_holdouts'
@@ -265,7 +267,7 @@ def get_novel_instruct_ratio(sm_holdout=False, decoder_holdout=False):
     if decoder_holdout: decoder_str = 'holdout'
     else: decoder_str = 'multi'
 
-    confuse_mat = np.load(folder+'/decoder_perf/'+model_name_+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_confuse_mat.npy')
+    confuse_mat = np.load(folder+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_confuse_mat.npy')
     return np.sum(confuse_mat[:, :, -1:])/np.sum(confuse_mat)
 
 def get_trained_ratio(foldername, exp, model_name, seeds = range(5), sm_holdout=False, decoder_holdout=False):
@@ -302,6 +304,18 @@ def collapse_decoded_dict(decoded_dict):
 
 
     return col_dict
+
+def get_decoded_vec_cos_sim(): 
+    decoded_vecs = pickle.load(open('7.20models/multitask_holdouts/decoder_perf/combNet/test_sm_multi_decoder_multi_shallow_instructs_dict', 'rb'))
+    rich_vec_mat = np.array([construct_trials(task).rich_vector for task in TASK_LIST])
+
+    sim_mat = np.full((5, 50, 50), np.nan)
+    sim = np.zeros(50)
+    for i in range(5):
+        for j, task in enumerate(TASK_LIST):
+            sim_mat[i,j, :] = cosine_similarity(decoded_vecs[i][task], rich_vec_mat).mean(0)
+        
+    return sim_mat.mean(0)
 
 def print_decoded_instruct(decoded_instruct, most_common=5):
     master_str = ''

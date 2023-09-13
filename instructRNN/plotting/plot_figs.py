@@ -2,7 +2,7 @@ from instructRNN.plotting.plotting import *
 from instructRNN.models.full_models import *
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
-from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio, print_decoded_instruct
+from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio, print_decoded_instruct, get_decoded_vec_cos_sim
 from instructRNN.data_loaders.perfDataFrame import *
 from instructRNN.analysis.model_analysis import calc_t_test
 
@@ -10,7 +10,7 @@ to_plot_models = ['combNet',  'sbertNetL_lin','sbertNet_lin', 'clipNetS_lin', 'b
 non_lin_models = ['combNet', 'sbertNetL', 'sbertNet', 'clipNetS', 'gptNetXL', 'gptNet', 'bertNet', 'bowNet', 'simpleNet']
 tuned_to_plot = ['combNet', 'sbertNetL_lin_tuned', 'sbertNet_lin_tuned', 'clipNetS_lin_tuned',  
                     'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
-aux_models = ['combNet', 'combNetPlus', 'bowNet_lin', 'bowNet_lin_plus', 'bertNet_lin', 'rawBertNet_lin', 'simpleNet', 'simpleNetPlus', ]
+aux_models = ['combNet', 'combNetPlus', 'bowNet_lin', 'bowNet_lin_plus', 'bertNet_lin', 'rawBertNet_lin', 'simpleNet', 'simpleNetPlus']
 
 ##ALL MODEL LEARNING CURVES
 fig_axn = plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask', linewidth=0.5)
@@ -38,7 +38,7 @@ plot_all_task_lolli_v('7.20models', 'swap', non_lin_models, mode='combined')
 plt.show()
 
 t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', non_lin_models, mode='combined')
-plot_significance(is_sig, non_lin_models)
+plot_significance(t_mat, p_mat, non_lin_models)
 plt.show()
 
 ##langPlus 
@@ -48,7 +48,7 @@ plot_all_task_lolli_v('7.20models', 'swap', aux_models, mode='combined')
 plt.show()
 
 t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', aux_models, mode='combined')
-plot_significance(t_mat, aux_models)
+plot_significance(t_mat, p_mat, aux_models)
 plt.show()
 
 ##TUNED HOLDOUTS
@@ -168,14 +168,33 @@ plot_tuning_curve(sbertNet, ['DMS', 'DNMS', 'DMC', 'DNMC'], unit, [149]*4, num_t
 
 
 ###decoder figs
-plot_partner_perf('clipNet_lin')
+plot_partner_perf('sbertNetL_lin', figsize=(3, 3), s=12)
+plt.show()
 
-confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/test_sm_multi_decoder_multi_confuse_mat.npy')
+confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_confuse_mat.npy')
 plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), linewidths=0.1, linecolor='#E5E4E2')
+
+
 
 get_novel_instruct_ratio(sm_holdout=False, decoder_holdout=False)
 get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=False)
 get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)
+
+###additional decoders 
+plot_partner_perf('combNet', figsize=(3, 3), s=12)
+plt.show()
+
+confuse_mat = get_decoded_vec_cos_sim()
+plot_decoding_confuse_mat(confuse_mat, cos_sim=True)
+
+
+confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_confuse_matfrom_embeddings.npy')
+plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), linewidths=0.1, linecolor='#E5E4E2')
+
+plot_partner_perf('sbertNetL_lin', figsize=(3, 3), s=12, decode_embeddings=True)
+
+
+
 
 ###ADDITIONAL SUPP FIGS
 ###Unit Var
@@ -184,13 +203,19 @@ var = plot_task_var_heatmap('7.20models/swap_holdouts/swap6', 'sbertNetL_lin', 1
 
 ###STRUCTURE FIG
 
-_, _, stats_arr = plot_clauses_dots('7.20models', 'swap', to_plot_models[:-1], y_lim=(-0.3, 0.6))
+_, _, stats_arr = plot_clauses_dots('7.20models', 'swap', to_plot_models[:], y_lim=(-0.3, 0.6))
 plt.show()
 
 plot_significance(stats_arr[0], stats_arr[1], to_plot_models[:-1])
 plt.show()
 
+plot_comp_dots('7.20models', 'swap', to_plot_models, ['swap_combined'], y_lim=(0.0, 1.0))
+plt.show()
+
 plot_comp_dots('7.20models', 'family', to_plot_models, ['combined'], y_lim=(0.0, 1.0))
+plt.show()
+
+plot_comp_dots('7.20models', 'swap', tuned_to_plot, ['combined'], y_lim=(0.0, 1.0))
 plt.show()
 
 plot_comp_dots('7.20models', 'swap', ['simpleSbert', 'sbertSbert'], ['combined'], y_lim=(0.0, 1.0))
@@ -228,9 +253,10 @@ plt.show()
 plot_curves('7.20models', 'swap', to_plot_models, mode='combinedinputs_only', avg=True, linewidth=0.8)
 plt.show()
 
-multi_multi_instruct = pickle.load(open('7.20models/multitask_holdouts/decoder_perf/clipNet_lin/test_sm_multi_decoder_multi_instructs_dict', 'rb'))
-holdout_multi_instruct = pickle.load(open('7.20models/swap_holdouts/decoder_perf/clipNet_lin/test_sm_holdout_decoder_multi_instructs_dict', 'rb'))
-holdout_holdout_instruct = pickle.load(open('7.20models/swap_holdouts/decoder_perf/clipNet_lin/test_sm_holdout_decoder_holdout_instructs_dict', 'rb'))
+
+multi_multi_instruct = pickle.load(open('7.20models/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_instructs_dict', 'rb'))
+holdout_multi_instruct = pickle.load(open('7.20models/swap_holdouts/decoder_perf/sbertNetL_lin/test_sm_holdout_decoder_multi_instructs_dict', 'rb'))
+holdout_holdout_instruct = pickle.load(open('7.20models/swap_holdouts/decoder_perf/sbertNetL_lin/test_sm_holdout_decoder_holdout_instructs_dict', 'rb'))
 
 print_decoded_instruct(multi_multi_instruct)
 print_decoded_instruct(holdout_multi_instruct)

@@ -163,24 +163,12 @@ def plot_comp_dots(foldername, exp_type, model_list, mode_list, split_clauses = 
     axn.set_ylabel('Perforamance', size=8, fontweight='bold')
     axn.set_ylim(y_lim)
     width = 1/(len(model_list)+2)
-    if split_clauses: 
-        _mode = mode_list[0]
-        mode_list = ['w_clauses', 'wo_clauses']
-        
 
     for j, mode in enumerate(mode_list):
-        if mode == 'w_clauses': 
-            task_indices = [TASK_LIST.index(task) for task in COND_CLAUSE_LIST]
-        elif mode == 'wo_clauses': 
-            task_indices = [TASK_LIST.index(task) for task in NONCOND_CLAUSE_LIST]
-        else: 
-            _mode = mode 
-            task_indices = range(len(TASK_LIST))
-
         for i, model_name in enumerate(model_list):
             color=MODEL_STYLE_DICT[model_name][0]
-            data  = PerfDataFrame(foldername, exp_type, model_name, mode=_mode)
-            zero_shot = data.data[...,task_indices, 0].mean(-1)
+            data  = PerfDataFrame(foldername, exp_type, model_name, mode=mode)
+            zero_shot = data.data[..., 0].mean(-1)
 
             x_mark = ((j)+width)+((i*1.05*width))
             for k, seed_point in enumerate(zero_shot):
@@ -190,6 +178,7 @@ def plot_comp_dots(foldername, exp_type, model_list, mode_list, split_clauses = 
     axn.xaxis.set_ticks_position('none') 
     axn.set_xlim(0, len(mode_list))
     return fig, axn
+
 
 def plot_all_models_task_dist(foldername, exp_type, model_list, k= 0, perf_type='correct', mode='', seeds=range(5), **kwargs): 
     fig, axn = plt.subplots(3, 3, sharey = True, sharex=True, figsize =(5, 4))
@@ -290,7 +279,7 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='
 
         x_mark = (ind+(width/2))+(i*width)
         axn.scatter(x_mark,  zero_shot, color=color, s=3, marker=marker)
-        if model_name in ['rawBertNet_lin', 'bowNet_lin_plus', 'simpleNetPlus']: linestyle = '--'
+        if model_name in ['rawBertNet_lin', 'bowNet_lin_plus', 'simpleNetPlus', 'combNetPlus']: linestyle = '--'
         else: linestyle = '-'
         axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=color, linewidth=0.5, linestyle=linestyle, **kwargs)
         axn.axhline(np.mean(zero_shot), color=color, linewidth=1.0, alpha=0.8, zorder=0, linestyle=linestyle)
@@ -591,8 +580,11 @@ def plot_task_var_heatmap(load_folder, model_name, seed, cmap = sns.color_palett
     return task_var, cluters_dict, cluster_labels, sorted_indices
         
 
-def plot_decoding_confuse_mat(confusion_mat, cmap='Blues', **heatmap_args): 
-    res=sns.heatmap(confusion_mat, mask=confusion_mat == 0, 
+def plot_decoding_confuse_mat(confusion_mat, cmap='Blues', cos_sim=False, **heatmap_args): 
+    if cos_sim: 
+        res=sns.heatmap(confusion_mat, xticklabels=TASK_LIST, yticklabels=TASK_LIST, cmap=cmap, **heatmap_args)
+    else: 
+        res=sns.heatmap(confusion_mat, mask=confusion_mat == 0, 
                             xticklabels=TASK_LIST+['novel'], yticklabels=TASK_LIST, cmap=cmap, **heatmap_args)
              
     res.set_xticklabels(res.get_xmajorticklabels(), fontsize = 4, rotation=45, ha='right')
@@ -600,7 +592,8 @@ def plot_decoding_confuse_mat(confusion_mat, cmap='Blues', **heatmap_args):
     plt.show()
 
 
-def _plot_partner_perf(axn, sm_holdout, decoder_holdout, model_name ='clipNet_lin'):
+
+def _plot_partner_perf(model_name, axn, sm_holdout, decoder_holdout, decode_embeddings=False, **scatter_kwargs):
     mode_dict = {'All Instructions': ('all_perf', '#0392cf'), 'Novel Instructions': ('other_perf', '#7bc043'), 'Embeddings': ('context_perf','#edc951')}
     multi_holdout_formatting = {'multi': { 'edgecolor':'white'}, 'holdout': {'edgecolor':'white', 'marker':'d'}}
 
@@ -615,16 +608,20 @@ def _plot_partner_perf(axn, sm_holdout, decoder_holdout, model_name ='clipNet_li
         decoder_str = 'holdout'
     else: 
         decoder_str = 'multi'
+
+    if decode_embeddings: dec_emd_str = 'from_embeddings'
+    else: dec_emd_str = ''
+    
     axn.set_ylabel('Perforamance', size=8, fontweight='bold')
     width = 1/4
 
     for i, mode_value in enumerate(mode_dict.values()):
         for j, values in enumerate(multi_holdout_formatting.items()):
             holdouts, formatting = values
-            perf_data = np.load(folder+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_'+holdouts+'_'+mode_value[0]+'.npy')
+            perf_data = np.load(folder+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_'+holdouts+'_'+mode_value[0]+dec_emd_str+'.npy')
             x_mark = ((i)+width)+((j*1.05*width))
             for k, seed_point in enumerate(np.nanmean(perf_data, axis=(1, 2))):
-                axn.scatter(x_mark+(k*0.03), seed_point, color=mode_value[1], s=18.0, linewidth=0.5, **formatting)
+                axn.scatter(x_mark+(k*0.03), seed_point, color=mode_value[1], linewidth=0.5, **formatting, **scatter_kwargs)
                         
     axn.set_yticks(np.linspace(0, 1, 11))            
     axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5) 
@@ -643,13 +640,15 @@ def _plot_partner_perf(axn, sm_holdout, decoder_holdout, model_name ='clipNet_li
     return patches
 
     
-def plot_partner_perf(model_name):
-    fig, axn = plt.subplots(2, 2, sharex=True, figsize =(4, 4))
+def plot_partner_perf(model_name, decode_embeddings=False, figsize=(4,4), **scatter_kwargs):
+    fig, axn = plt.subplots(2, 2, sharex=True, figsize =figsize)
     print(axn[0])
-    _ = _plot_partner_perf(axn.flatten()[0], False, False, model_name=model_name)
-    axn.flatten()[1].axis('off')
-    _ = _plot_partner_perf(axn.flatten()[2], True, False, model_name=model_name)
-    patches = _plot_partner_perf(axn.flatten()[3], True, True, model_name=model_name)
+    patches = _plot_partner_perf(model_name, axn.flatten()[0], False, False, decode_embeddings=decode_embeddings, **scatter_kwargs)
+
+    if not decode_embeddings: 
+        axn.flatten()[1].axis('off')
+        _ = _plot_partner_perf(model_name, axn.flatten()[2], True, False, **scatter_kwargs)
+        _ = _plot_partner_perf(model_name, axn.flatten()[3], True, True, **scatter_kwargs)
 
 
     axn[0,0].legend(handles = patches, fontsize='x-small')

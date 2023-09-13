@@ -38,12 +38,12 @@ if __name__ == "__main__":
         print('processing multitask')
         decoder_pipeline(MODEL_FOLDER+'/multitask_holdouts', args.models[0], decode_embeddings=args.decode_embeddings)
         
-        if not args.decode_embeddings:
-            print('processing sm holdouts')
-            decoder_pipeline(MODEL_FOLDER+'/swap_holdouts', args.models[0], sm_holdout=True)
+        # if not args.decode_embeddings:
+        #     print('processing sm holdouts')
+        #     decoder_pipeline(MODEL_FOLDER+'/swap_holdouts', args.models[0], sm_holdout=True)
         
-            print('processing sm holdouts and decoder holdouts')
-            decoder_pipeline(MODEL_FOLDER+'/swap_holdouts', args.models[0], sm_holdout=True, decoder_holdout=True)
+        #     print('processing sm holdouts and decoder holdouts')
+        #     decoder_pipeline(MODEL_FOLDER+'/swap_holdouts', args.models[0], sm_holdout=True, decoder_holdout=True)
 
     jobs = make_analysis_jobs(args.models, args.seeds, args.layers, args.job_index)
     for job in jobs: 
