@@ -560,8 +560,6 @@ def plot_decoding_confuse_mat(confusion_mat, cmap='Blues', cos_sim=False, **heat
     res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 5)
     plt.show()
 
-
-
 def _plot_partner_perf(model_name, axn, sm_holdout, decoder_holdout, decode_embeddings=False, **scatter_kwargs):
     mode_dict = {'All Instructions': ('all_perf', '#0392cf'), 'Novel Instructions': ('other_perf', '#7bc043'), 'Embeddings': ('context_perf','#edc951')}
     multi_holdout_formatting = {'multi': { 'edgecolor':'white'}, 'holdout': {'edgecolor':'white', 'marker':'d'}}
@@ -583,14 +581,22 @@ def _plot_partner_perf(model_name, axn, sm_holdout, decoder_holdout, decode_embe
     
     axn.set_ylabel('Perforamance', size=8, fontweight='bold')
     width = 1/4
-
+    means_list = []
     for i, mode_value in enumerate(mode_dict.values()):
         for j, values in enumerate(multi_holdout_formatting.items()):
             holdouts, formatting = values
             perf_data = np.load(folder+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_'+holdouts+'_'+mode_value[0]+dec_emd_str+'.npy')
+            
+            zero_shot = np.nanmean(perf_data)
+            means_list.append(zero_shot)
+            std = sem(perf_data.flatten(), nan_policy='omit')
+
             x_mark = ((i)+width)+((j*1.05*width))
-            for k, seed_point in enumerate(np.nanmean(perf_data, axis=(1, 2))):
-                axn.scatter(x_mark+(k*0.03), seed_point, color=mode_value[1], linewidth=0.5, **formatting, **scatter_kwargs)
+            axn.scatter(x_mark, zero_shot, color=mode_value[1], s=5)
+            axn.errorbar(x_mark, zero_shot, yerr=std, color=mode_value[1], linewidth=0.5, capsize=1.0)
+
+            # for k, seed_point in enumerate(np.nanmean(perf_data, axis=(1, 2))):
+            #     axn.scatter(x_mark+(k*0.03), seed_point, color=mode_value[1], linewidth=0.5, **formatting, **scatter_kwargs)
                         
     axn.set_yticks(np.linspace(0, 1, 11))            
     axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5) 
@@ -601,27 +607,30 @@ def _plot_partner_perf(model_name, axn, sm_holdout, decoder_holdout, decode_embe
         patches.append(mpatches.Patch(label = label, facecolor= mode[1]))
     patches.append(Line2D([0], [0], label = 'Multitask Partner', color= 'gray', marker = 'o', markersize=5, linestyle='None'))
     patches.append(Line2D([0], [0], label = 'Holdout Partner', color= 'gray', marker = 'd', markersize=5, linestyle='None'))
-    # patches.append(mpatches.Patch(facecolor='gray', edgecolor='white', label='Multitask Partner'))
-    # patches.append(mpatches.Patch(facecolor='gray', edgecolor='white', hatch='///', label='Holdout Partner'))
+
     axn.set_ylim(0.0, 1.0)
     axn.set_xlim(0, 3)
 
-    return patches
+    return patches, means_list
 
-    
 def plot_partner_perf(model_name, decode_embeddings=False, figsize=(4,4), **scatter_kwargs):
     fig, axn = plt.subplots(2, 2, sharex=True, figsize =figsize)
-    print(axn[0])
-    patches = _plot_partner_perf(model_name, axn.flatten()[0], False, False, decode_embeddings=decode_embeddings, **scatter_kwargs)
+    means_list = []
 
+    patches, means = _plot_partner_perf(model_name, axn.flatten()[0], False, False, decode_embeddings=decode_embeddings, **scatter_kwargs)
+    means_list.append(means)
     if not decode_embeddings: 
         axn.flatten()[1].axis('off')
-        _ = _plot_partner_perf(model_name, axn.flatten()[2], True, False, **scatter_kwargs)
-        _ = _plot_partner_perf(model_name, axn.flatten()[3], True, True, **scatter_kwargs)
+        _, means = _plot_partner_perf(model_name, axn.flatten()[2], True, False, **scatter_kwargs)
+        means_list.append(means)
 
+        _, means = _plot_partner_perf(model_name, axn.flatten()[3], True, True, **scatter_kwargs)
+        means_list.append(means)
 
     axn[0,0].legend(handles = patches, fontsize='x-small')
     plt.show()
+    return means_list
+    
 
 
 def plot_model_response(out, hid, ins, tar, task_type, plotting_index = 0, cmap = 'Reds'):

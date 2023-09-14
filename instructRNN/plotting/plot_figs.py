@@ -191,7 +191,7 @@ plot_decoding_confuse_mat(confuse_mat, cos_sim=True)
 confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_confuse_matfrom_embeddings.npy')
 plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), linewidths=0.1, linecolor='#E5E4E2')
 
-plot_partner_perf('sbertNetL_lin', figsize=(3, 3), s=12, decode_embeddings=True)
+plot_partner_perf('sbertNetL_lin', figsize=(3, 3), s=12)
 
 
 
