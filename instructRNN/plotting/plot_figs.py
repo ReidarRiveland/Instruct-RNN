@@ -209,7 +209,7 @@ plt.show()
 plot_significance(stats_arr[0], stats_arr[1], to_plot_models[:-1])
 plt.show()
 
-plot_comp_dots('7.20models', 'swap', to_plot_models, ['swap_combined'], y_lim=(0.0, 1.0))
+plot_comp_dots('7.20models', 'swap', to_plot_models, 'swap_combined', y_lim=(0.0, 1.0))
 plt.show()
 
 plot_comp_dots('7.20models', 'family', to_plot_models, ['combined'], y_lim=(0.0, 1.0))
@@ -218,8 +218,6 @@ plt.show()
 plot_comp_dots('7.20models', 'swap', tuned_to_plot, ['combined'], y_lim=(0.0, 1.0))
 plt.show()
 
-plot_comp_dots('7.20models', 'swap', ['simpleSbert', 'sbertSbert'], ['combined'], y_lim=(0.0, 1.0))
-plt.show()
 
 plot_comp_dots('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp', 'swap_ccgp'], y_lim=(0.5, 1.0))
 plt.show()

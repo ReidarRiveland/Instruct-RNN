@@ -14,6 +14,7 @@ from matplotlib import cm
 from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator
 import torch
+from scipy.stats import sem
 
 from scipy.ndimage import gaussian_filter1d
 import warnings
@@ -126,7 +127,8 @@ def plot_curves(foldername, exp_type, model_list, mode = '', training_file = '',
             color = MODEL_STYLE_DICT[model_name][0] 
             data = PerfDataFrame(foldername, exp_type, model_name, training_file = training_file, perf_type=perf_type, mode = mode, seeds=seeds)
             if avg: 
-                mean, std = data.avg_tasks()
+                mean, _ = data.avg_tasks()
+                std = sem(data.data.reshape(-1, data.data.shape[-1]), axis=0)
                 axn.scatter(0, mean[0], color=color, s=3, marker=zero_marker)
             else: 
                 mean, std = data.avg_seeds()
@@ -154,7 +156,7 @@ def plot_context_curves(foldername, exp_type, model_list, mode = 'lin_comp', avg
             _plot_all_performance_curves(mean, std, axn, color, zero_marker, **curve_kwargs)
 
 
-def plot_comp_dots(foldername, exp_type, model_list, mode_list, split_clauses = False, fig_axn=None, y_lim =(0.0, 1.0), **formatting):
+def plot_comp_dots(foldername, exp_type, model_list, mode, split_clauses = False, fig_axn=None, y_lim =(0.0, 1.0), **formatting):
     if fig_axn is None: 
         fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(3, 4))
     else: 
@@ -164,21 +166,19 @@ def plot_comp_dots(foldername, exp_type, model_list, mode_list, split_clauses = 
     axn.set_ylim(y_lim)
     width = 1/(len(model_list)+2)
 
-    for j, mode in enumerate(mode_list):
-        for i, model_name in enumerate(model_list):
-            color=MODEL_STYLE_DICT[model_name][0]
-            data  = PerfDataFrame(foldername, exp_type, model_name, mode=mode)
-            zero_shot = data.data[..., 0].mean(-1)
+    for i, model_name in enumerate(model_list):
+        color=MODEL_STYLE_DICT[model_name][0]
+        data  = PerfDataFrame(foldername, exp_type, model_name, mode=mode)
+        zero_shot = data.data[..., 0].mean()
+        std = sem(data.data[..., 0].flatten())
 
-            x_mark = ((j)+width)+((i*1.05*width))
-            for k, seed_point in enumerate(zero_shot):
-                axn.scatter(x_mark+(k*0.01), seed_point, color=color, edgecolor='white', s=20.0, linewidth=0.5)
+        x_mark = ((0)+width)+((i*1.05*width))
+        axn.scatter(x_mark, zero_shot, color=color, s=5)
+        axn.errorbar(x_mark, zero_shot, yerr=std, color=color, linewidth=0.5, capsize=1.0, **formatting)
 
     axn.set_xticklabels('')
     axn.xaxis.set_ticks_position('none') 
-    axn.set_xlim(0, len(mode_list))
     return fig, axn
-
 
 def plot_all_models_task_dist(foldername, exp_type, model_list, k= 0, perf_type='correct', mode='', seeds=range(5), **kwargs): 
     fig, axn = plt.subplots(3, 3, sharey = True, sharex=True, figsize =(5, 4))
@@ -215,44 +215,6 @@ def plot_all_models_task_dist(foldername, exp_type, model_list, k= 0, perf_type=
 
     return fig, axn
 
-def plot_all_comp_holdout_lolli_v(foldername, exp_type, model_list, marker = 'o', 
-                                    mode='all_holdout_comp', threshold=0.8,  seeds=range(5)):
-    total_combos_data = np.full((50, len(model_list)), np.NaN)
-
-    fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
-
-    width = 1/(len(model_list)+1)
-    ind = np.arange(len(TASK_LIST))
-
-    axn.set_xticks(ind)
-    axn.set_xticklabels('')
-    axn.tick_params(axis='x', which='minor', bottom=False)
-    axn.set_xticks(ind+0.75, minor=True)
-    axn.set_xticklabels(TASK_LIST, fontsize=6, minor=True, rotation=45, ha='right', fontweight='bold') 
-    axn.set_xlim(-0.15, len(ind))
-
-
-    for i, model_name in enumerate(model_list):  
-        data = PerfDataFrame(foldername, exp_type, model_name, mode = mode, seeds=seeds)
-        total_combos_data[:, i]=np.sum(data.data>threshold, axis=(0, 2))
-    
-    normalized = normalize(total_combos_data, axis=1, norm='l2')
-
-    for i, model_name in enumerate(model_list):
-        color = MODEL_STYLE_DICT[model_name][0]     
-
-        axn.axhline(normalized[:, i].mean(), color=color, linewidth=1.0, alpha=0.8, zorder=0)
-
-        x_mark = (ind+(width/2))+(i*width)
-        axn.scatter(x_mark,  normalized[:, i], color=color, s=3, marker=marker)
-        axn.vlines(x_mark, ymin=0, ymax=normalized[:, i], color=color, linewidth=0.5)
-
-    fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
-
-    plt.tight_layout()
-    return fig, axn
-
-
 def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='', perf_type='correct',  seeds=range(5), **kwargs):
     fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(11, 4))
 
@@ -281,15 +243,17 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='
         axn.scatter(x_mark,  zero_shot, color=color, s=3, marker=marker)
         if model_name in ['rawBertNet_lin', 'bowNet_lin_plus', 'simpleNetPlus', 'combNetPlus']: linestyle = '--'
         else: linestyle = '-'
-        axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=color, linewidth=0.5, linestyle=linestyle, **kwargs)
-        axn.axhline(np.mean(zero_shot), color=color, linewidth=1.0, alpha=0.8, zorder=0, linestyle=linestyle)
+        #print(np.min(np.ones_like(zero_shot), zero_shot+std))
+        axn.vlines(x_mark, ymin=zero_shot-std, ymax=np.minimum(np.ones_like(zero_shot), zero_shot+std), color=color, linewidth=0.8, linestyle=linestyle, **kwargs)
+        axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=color, linewidth=0.5, linestyle=linestyle, alpha=0.5, **kwargs)
 
+
+        axn.axhline(np.mean(zero_shot), color=color, linewidth=1.0, alpha=0.8, zorder=0, linestyle=linestyle)
 
     fig.legend(labels=[MODEL_STYLE_DICT[model_name][2] for model_name in model_list], loc=5, title='Models', title_fontsize = 'x-small', fontsize='x-small')        
 
     plt.tight_layout()
     return fig, axn
-
 
 def plot_significance(t_mat, p_mat, model_list, **heatmap_kwargs): 
     labels = []
@@ -400,10 +364,15 @@ def plot_clauses_dots(foldername, exp_type, model_list, mode='combined', fig_axn
         wo_clause_arr[i, ... ] = wo_clause_zero_shot
         zero_shot = wo_clause_zero_shot.mean(-1)-clause_zero_shot.mean(-1)
 
+        std = sem(zero_shot)
+
 
         x_mark = ((i*1.05*width))
-        for k, seed_point in enumerate(zero_shot):
-            axn.scatter(x_mark+(k*0.01), seed_point, color=color, edgecolor='white', s=20.0, linewidth=0.5)
+
+        x_mark = ((0)+width)+((i*1.05*width))
+        axn.scatter(x_mark, zero_shot.mean(), color=color, s=5)
+        axn.errorbar(x_mark, zero_shot.mean(), yerr=std, color=color, linewidth=0.5, capsize = 1.0, **formatting)
+
 
     clause_diff = clause_arr.mean(-1)-wo_clause_arr.mean(-1)
     for i, diff1 in enumerate(clause_diff): 
