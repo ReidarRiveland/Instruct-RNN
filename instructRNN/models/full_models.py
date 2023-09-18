@@ -83,7 +83,7 @@ class RawBERTNet(InstructNet):
 class SBERTNet(InstructNet):
     def __init__(self, **kw_args):
         config = InstructModelConfig(LM_class= SBERT,
-                                    LM_load_str = 'sbert-base-nli-mean-tokens.pt', 
+                                    LM_load_str = 'sentence-transformers/bert-base-nli-mean-tokens', 
                                     **kw_args)
         super().__init__(config)
 
