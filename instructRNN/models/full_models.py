@@ -31,7 +31,7 @@ nonlin_models = [model_name for model_name in all_models if 'lin' not in model_n
 big_models
 class SimpleNet(RuleNet):
     def __init__(self, **kw_args):
-        config = RuleModelConfig('simpleNet', **kw_args)
+        config = RuleModelConfig(**kw_args)
         super().__init__(config)
 
 class CombNet(RuleNet): 
@@ -46,7 +46,7 @@ class SimpleNetPlus(RuleNet):
 
 class CombNetPlus(RuleNet): 
     def __init__(self, **kw_args): 
-        config = RuleModelConfig('combNet', info_type='comb', add_rule_encoder=True, **kw_args)
+        config = RuleModelConfig('combNetPlus', info_type='comb', add_rule_encoder=True, **kw_args)
         super().__init__(config)
 
 class GPTNet(InstructNet):
@@ -165,7 +165,6 @@ def make_default_model(model_str):
                     LM_train_layers = [], 
                     LM_reducer='last')
 
-
     if model_str == 'gptNetXL_L_lin':
         return GPTNetXL(model_name=model_str, 
                     LM_output_nonlinearity='lin',
@@ -222,16 +221,9 @@ def make_default_model(model_str):
         return SBERTNetL(model_name = model_str, 
                         LM_output_nonlinearity = 'lin', 
                         LM_train_layers = ['21', '22', '23', 'pooler'])
-    
-    if model_str == 'sbertSbert': 
-        return SBERTNetL(model_name = model_str, 
-                        LM_output_nonlinearity = 'lin', 
-                        LM_train_layers = [])
-    
+        
     if model_str == 'simpleSbert': 
-        return SBERTNetL(model_name = model_str, 
-                        LM_output_nonlinearity = 'lin', 
-                        LM_train_layers = [])
+        return SimpleNet(model_name = model_str)
 
     if model_str == 'clipNet': 
         return CLIPNet(model_name = model_str, 

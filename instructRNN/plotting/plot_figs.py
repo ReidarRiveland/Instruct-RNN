@@ -22,7 +22,7 @@ plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[1:-2], mode='val')
 plt.show()
 
 ###HOLDOUTS
-plot_curves('7.20models', 'swap', to_plot_models, mode='combined', avg=True, linewidth=0.8)
+plot_curves('7.20models', 'swap', to_plot_models, mode='combined', avg=True, linewidth=1.2)
 plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='combined')
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='combined')
 plt.show()
@@ -67,8 +67,8 @@ plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='swap_combi
 plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='swap_combined')
 plt.show()
 
-_, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='swap_combined')
-plot_significance(is_sig, to_plot_models)
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='swap_combined')
+plot_significance(t_mat, p_mat, to_plot_models)
 plt.show()
 
 ###FAMILY
@@ -188,7 +188,7 @@ confuse_mat = get_decoded_vec_cos_sim()
 plot_decoding_confuse_mat(confuse_mat, cos_sim=True)
 
 
-confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_confuse_matfrom_embeddings.npy')
+confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_confuse_mat.npy')
 plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), linewidths=0.1, linecolor='#E5E4E2')
 
 plot_partner_perf('sbertNetL_lin', figsize=(3, 3), s=12)
@@ -206,16 +206,16 @@ var = plot_task_var_heatmap('7.20models/swap_holdouts/swap6', 'sbertNetL_lin', 1
 _, _, stats_arr = plot_clauses_dots('7.20models', 'swap', to_plot_models[:], y_lim=(-0.3, 0.6))
 plt.show()
 
-plot_significance(stats_arr[0], stats_arr[1], to_plot_models[:-1])
+plot_significance(stats_arr[0], stats_arr[1], to_plot_models[:])
 plt.show()
 
 plot_comp_dots('7.20models', 'swap', to_plot_models, 'swap_combined', y_lim=(0.0, 1.0))
 plt.show()
 
-plot_comp_dots('7.20models', 'family', to_plot_models, ['combined'], y_lim=(0.0, 1.0))
+plot_comp_dots('7.20models', 'family', to_plot_models, 'combined', y_lim=(0.0, 1.0))
 plt.show()
 
-plot_comp_dots('7.20models', 'swap', tuned_to_plot, ['combined'], y_lim=(0.0, 1.0))
+plot_comp_dots('7.20models', 'swap', tuned_to_plot, 'combined', y_lim=(0.0, 1.0))
 plt.show()
 
 
@@ -236,16 +236,20 @@ t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='s
 plot_significance(t_mat, p_mat, to_plot_models)
 plt.show()
 
-plot_comp_dots('7.20models', 'swap', to_plot_models, ['combinedcomp', 'multi_comp'], y_lim=(0.0, 1.0))
+plot_comp_dots('7.20models', 'swap', to_plot_models, 'combinedcomp', y_lim=(0.0, 1.0))
 plt.show()
 
-p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combinedcomp')
-plot_significance(is_sig, to_plot_models)
+plot_comp_dots('7.20models', 'swap', to_plot_models, 'multi_comp', y_lim=(0.0, 1.0))
 plt.show()
 
-p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='multi_comp')
-plot_significance(t_mat, p_mat, to_plot_models)
+p_mat, t_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combinedcomp')
+plot_significance(p_mat, t_mat,  to_plot_models)
 plt.show()
+
+p_mat, t_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='multi_comp')
+plot_significance(p_mat, t_mat,  to_plot_models)
+plt.show()
+
 
 ###HOLDOUTS
 plot_curves('7.20models', 'swap', to_plot_models, mode='combinedinputs_only', avg=True, linewidth=0.8)

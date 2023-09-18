@@ -127,9 +127,9 @@ def plot_curves(foldername, exp_type, model_list, mode = '', training_file = '',
             color = MODEL_STYLE_DICT[model_name][0] 
             data = PerfDataFrame(foldername, exp_type, model_name, training_file = training_file, perf_type=perf_type, mode = mode, seeds=seeds)
             if avg: 
-                mean, _ = data.avg_tasks()
-                std = sem(data.data.reshape(-1, data.data.shape[-1]), axis=0)
-                axn.scatter(0, mean[0], color=color, s=3, marker=zero_marker)
+                mean, std = data.avg_tasks()
+                
+                axn.scatter(0, mean[0], color=color, s=5, marker=zero_marker)
             else: 
                 mean, std = data.avg_seeds()
             if model_name in ['rawBertNet_lin', 'bowNet_lin_plus', 'simpleNetPlus', 'combNetPlus']: linestyle = '--'
@@ -162,22 +162,26 @@ def plot_comp_dots(foldername, exp_type, model_list, mode, split_clauses = False
     else: 
         fig, axn = fig_axn
 
-    axn.set_ylabel('Perforamance', size=8, fontweight='bold')
+    axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
     axn.set_ylim(y_lim)
     width = 1/(len(model_list)+2)
 
     for i, model_name in enumerate(model_list):
         color=MODEL_STYLE_DICT[model_name][0]
         data  = PerfDataFrame(foldername, exp_type, model_name, mode=mode)
-        zero_shot = data.data[..., 0].mean()
-        std = sem(data.data[..., 0].flatten())
+        zero_shot = data.data[..., 0].mean(-1)
 
-        x_mark = ((0)+width)+((i*1.05*width))
-        axn.scatter(x_mark, zero_shot, color=color, s=5)
-        axn.errorbar(x_mark, zero_shot, yerr=std, color=color, linewidth=0.5, capsize=1.0, **formatting)
+        x_mark = width+((i*1.05*width))
+        for k, seed_point in enumerate(zero_shot):
+            axn.scatter(x_mark+(k*0.01), seed_point, color=color, edgecolor='white', s=20.0, linewidth=0.5)
 
     axn.set_xticklabels('')
     axn.xaxis.set_ticks_position('none') 
+
+    axn.yaxis.set_tick_params(labelsize=8)
+    axn.yaxis.set_major_locator(MaxNLocator(10)) 
+    axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
+
     return fig, axn
 
 def plot_all_models_task_dist(foldername, exp_type, model_list, k= 0, perf_type='correct', mode='', seeds=range(5), **kwargs): 
@@ -592,11 +596,11 @@ def _plot_partner_perf(model_name, axn, sm_holdout, decoder_holdout, decode_embe
             std = sem(perf_data.flatten(), nan_policy='omit')
 
             x_mark = ((i)+width)+((j*1.05*width))
-            axn.scatter(x_mark, zero_shot, color=mode_value[1], s=5)
-            axn.errorbar(x_mark, zero_shot, yerr=std, color=mode_value[1], linewidth=0.5, capsize=1.0)
+            # axn.scatter(x_mark, zero_shot, color=mode_value[1], s=5)
+            # axn.errorbar(x_mark, zero_shot, yerr=std, color=mode_value[1], linewidth=0.5, capsize=1.0)
 
-            # for k, seed_point in enumerate(np.nanmean(perf_data, axis=(1, 2))):
-            #     axn.scatter(x_mark+(k*0.03), seed_point, color=mode_value[1], linewidth=0.5, **formatting, **scatter_kwargs)
+            for k, seed_point in enumerate(np.nanmean(perf_data, axis=(1, 2))):
+                axn.scatter(x_mark+(k*0.03), seed_point, color=mode_value[1], linewidth=0.5, **formatting, **scatter_kwargs)
                         
     axn.set_yticks(np.linspace(0, 1, 11))            
     axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)], fontsize=5) 
