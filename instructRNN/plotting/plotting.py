@@ -132,7 +132,7 @@ def plot_curves(foldername, exp_type, model_list, mode = '', training_file = '',
                 axn.scatter(0, mean[0], color=color, s=5, marker=zero_marker)
             else: 
                 mean, std = data.avg_seeds()
-            if model_name in ['rawBertNet_lin', 'bowNet_lin_plus', 'simpleNetPlus', 'combNetPlus']: linestyle = '--'
+            if model_name in ['rawBertNet_lin', 'bowNet_lin_plus', 'simpleNetPlus', 'combNetPlus', 'gptNetXL_L_lin']: linestyle = '--'
             else: linestyle = '-'
             plt_func(mean, std, axn, color, zero_marker, linestyle=linestyle, **curve_kwargs)
 
@@ -178,9 +178,10 @@ def plot_comp_dots(foldername, exp_type, model_list, mode, split_clauses = False
     axn.set_xticklabels('')
     axn.xaxis.set_ticks_position('none') 
 
-    axn.yaxis.set_tick_params(labelsize=8)
-    axn.yaxis.set_major_locator(MaxNLocator(10)) 
-    axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
+    if not 'ccgp' in mode: 
+        axn.yaxis.set_tick_params(labelsize=8)
+        axn.yaxis.set_major_locator(MaxNLocator(10)) 
+        axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
 
     return fig, axn
 
@@ -262,15 +263,18 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='
 def plot_significance(t_mat, p_mat, model_list, **heatmap_kwargs): 
     labels = []
     for p in p_mat.flatten(): 
-        if p< 0.001: 
-            labels.append('*** \n p<0.001')
-        elif p<0.01: 
-            labels.append('** \n p = {}'.format(np.round(p, 3)))
-        elif p<0.05: 
-            labels.append('* \n p = {}'.format(np.round(p, 3)))
-        elif p > 0.05: 
-            labels.append('n.s. \n p>0.05')
+
     
+        if p< 0.001: 
+            labels.append('***')
+        elif p<0.01: 
+            labels.append('**')
+        elif p<0.05: 
+            labels.append('*')
+        elif p > 0.05: 
+            labels.append('n.s.')
+    
+
     mask = np.zeros_like(t_mat)
     mask[np.triu_indices_from(mask)] = True
     mask[np.diag_indices_from(mask)] = False
@@ -284,7 +288,7 @@ def plot_significance(t_mat, p_mat, model_list, **heatmap_kwargs):
         sns.heatmap(t_mat, linecolor='white', linewidths=1, cbar=True, fmt='', 
                     cbar_kws={'label': 't-value'}, mask=mask, 
                     xticklabels=model_names, yticklabels=model_names, 
-                    annot=labels, annot_kws={"size": 6}, 
+                    annot=labels, annot_kws={'fontweight': 'bold', 'fontsize':'14'}, 
                     **heatmap_kwargs)
 
 
@@ -340,6 +344,18 @@ def plot_scatter(model, tasks_to_plot, rep_depth='task', dims=2, num_trials = 50
         plt.show()
 
 
+def get_clause_diff(data, clause_indices=None, wo_clause_indices=None):
+    if clause_indices is None:     
+        clause_indices = [TASK_LIST.index(task) for task in COND_CLAUSE_LIST]
+    
+    if wo_clause_indices is None:
+        wo_clause_indices = [TASK_LIST.index(task) for task in NONCOND_CLAUSE_LIST]
+
+    clause_zero_shot = data.data[:,clause_indices, 0]
+    wo_clause_zero_shot = data.data[:, wo_clause_indices, 0]
+    zero_shot = clause_zero_shot.mean(-1)-wo_clause_zero_shot.mean(-1)
+    return zero_shot, clause_zero_shot, wo_clause_zero_shot
+
 def plot_clauses_dots(foldername, exp_type, model_list, mode='combined', fig_axn=None, y_lim =(0.0, 1.0), **formatting):
     t_value_arr = np.empty((len(model_list), len(model_list)))
     p_value_arr = np.empty((len(model_list), len(model_list)))
@@ -348,34 +364,37 @@ def plot_clauses_dots(foldername, exp_type, model_list, mode='combined', fig_axn
         fig, axn = plt.subplots(1, 1, sharey = True, sharex=True, figsize =(3, 4))
     else: 
         fig, axn = fig_axn
-    
-    clause_indices = [TASK_LIST.index(task) for task in COND_CLAUSE_LIST]
-    wo_clause_indices = [TASK_LIST.index(task) for task in NONCOND_CLAUSE_LIST]
-    clause_arr = np.empty((len(model_list), 5, len(clause_indices)))
-    wo_clause_arr = np.empty((len(model_list), 5, len(wo_clause_indices)))
-
 
     axn.set_ylabel('Perforamance', size=8, fontweight='bold')
     axn.set_ylim(y_lim)
     width = 1/(len(model_list)+2)
     
+    clause_arr = np.empty((len(model_list), 5, 30))
+    wo_clause_arr = np.empty((len(model_list), 5, 20))
+
+    within_sig = []
+
     for i, model_name in enumerate(model_list):
         color=MODEL_STYLE_DICT[model_name][0]
         data  = PerfDataFrame(foldername, exp_type, model_name, mode=mode)
-        clause_zero_shot = data.data[:,clause_indices, 0]
-        wo_clause_zero_shot = data.data[:, wo_clause_indices, 0]
+        zero_shot, clause_zero_shot, wo_clause_zero_shot = get_clause_diff(data)
         clause_arr[i, ... ] = clause_zero_shot
         wo_clause_arr[i, ... ] = wo_clause_zero_shot
-        zero_shot = wo_clause_zero_shot.mean(-1)-clause_zero_shot.mean(-1)
-
-        std = sem(zero_shot)
-
-
+        
         x_mark = ((i*1.05*width))
+        for k, seed_point in enumerate(zero_shot):
+            axn.scatter(x_mark+(k*0.01), seed_point, color=color, s=20, edgecolor='white', linewidth=0.5)
 
-        x_mark = ((0)+width)+((i*1.05*width))
-        axn.scatter(x_mark, zero_shot.mean(), color=color, s=5)
-        axn.errorbar(x_mark, zero_shot.mean(), yerr=std, color=color, linewidth=0.5, capsize = 1.0, **formatting)
+        dummy_perfs = []
+        for _ in range(50): 
+            clause_indices = np.random.choice(list(range(50)), size = 30, replace=False)
+            wo_clause_indices = [x for x in list(range(50)) if x not in clause_indices]
+            dummy_perf, _, _ = get_clause_diff(data, clause_indices=clause_indices, wo_clause_indices=wo_clause_indices)
+            dummy_perfs+=list(dummy_perf)
+            axn.scatter(x_mark+(2*0.01), dummy_perf.mean(), color='white', edgecolor=color, s=3, alpha=0.25)
+
+        t_stat, p_value =ttest_ind(dummy_perfs, zero_shot, equal_var=False)
+        within_sig.append((t_stat, p_value))
 
 
     clause_diff = clause_arr.mean(-1)-wo_clause_arr.mean(-1)
@@ -386,11 +405,10 @@ def plot_clauses_dots(foldername, exp_type, model_list, mode='combined', fig_axn
             t_value_arr[i, j] = t_stat
             p_value_arr[i,j] = p_value
 
-
-
     axn.set_xticklabels('')
     axn.xaxis.set_ticks_position('none') 
-    return fig, axn, (t_value_arr, p_value_arr)
+    return fig, axn, within_sig, (t_value_arr, p_value_arr)
+
 
 
 def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', save_file=None):

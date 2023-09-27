@@ -18,7 +18,7 @@ fig_axn[0].tight_layout()
 plt.show()
 
 ##VALIDATION
-plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[1:-2], mode='val')
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[1:-1], mode='val')
 plt.show()
 
 ###HOLDOUTS
@@ -30,6 +30,8 @@ plt.show()
 t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combined')
 plot_significance(t_mat, p_mat, to_plot_models)
 plt.show()
+
+p_mat[to_plot_models.index('gptNetXL_lin'), to_plot_models.index('clipNetS_lin')]
 
 ##non-linear holdouts
 plot_curves('7.20models', 'swap', non_lin_models, mode='combined', avg=True, linewidth=0.8)
@@ -127,6 +129,8 @@ plot_layer_ccgp('7.20models', 'swap', to_plot_models, ylim=(0.48, 1.01), markers
 plt.show()
 plot_ccgp_corr('7.20models', 'swap', to_plot_models)
 
+
+
 #############SINGLE UNIT TUING
 EXP_FILE = '7.20models/swap_holdouts'
 sbertNet = make_default_model('sbertNetL_lin')
@@ -167,6 +171,10 @@ unit=14
 plot_tuning_curve(sbertNet, ['DMS', 'DNMS', 'DMC', 'DNMC'], unit, [149]*4, num_trials=50, smoothing=1.0)
 
 
+var = plot_task_var_heatmap('7.20models/swap_holdouts/swap1', 'sbertNetL_lin', 1)
+var
+
+
 ###decoder figs
 plot_partner_perf('sbertNetL_lin', figsize=(3, 3), s=12)
 plt.show()
@@ -176,8 +184,8 @@ plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), linewidt
 
 
 
-get_novel_instruct_ratio(sm_holdout=False, decoder_holdout=False)
-get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=False)
+get_novel_instruct_ratio('sbertNetL_lin', sm_holdout=False, decoder_holdout=False)
+get_novel_instruct_ratio('sbertNetL_lin', sm_holdout=True, decoder_holdout=False)
 get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)
 
 ###additional decoders 
@@ -198,64 +206,66 @@ plot_partner_perf('sbertNetL_lin', figsize=(3, 3), s=12)
 
 ###ADDITIONAL SUPP FIGS
 ###Unit Var
-var = plot_task_var_heatmap('7.20models/swap_holdouts/swap6', 'sbertNetL_lin', 1)
+var = plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'sbertNetL_lin', 3)
 
 
-###STRUCTURE FIG
+###CLAUSE STRUCTURE
 
-_, _, stats_arr = plot_clauses_dots('7.20models', 'swap', to_plot_models[:], y_lim=(-0.3, 0.6))
+_, _, within_sig, stats_arr = plot_clauses_dots('7.20models', 'swap', to_plot_models[:], y_lim=(-0.55, 0.28))
 plt.show()
 
 plot_significance(stats_arr[0], stats_arr[1], to_plot_models[:])
 plt.show()
 
-plot_comp_dots('7.20models', 'swap', to_plot_models, 'swap_combined', y_lim=(0.0, 1.0))
+
+###CCGP
+plot_comp_dots('7.20models', 'swap', to_plot_models, 'ccgp', y_lim=(0.5, 1.0))
 plt.show()
 
-plot_comp_dots('7.20models', 'family', to_plot_models, 'combined', y_lim=(0.0, 1.0))
-plt.show()
-
-plot_comp_dots('7.20models', 'swap', tuned_to_plot, 'combined', y_lim=(0.0, 1.0))
-plt.show()
-
-
-plot_comp_dots('7.20models', 'swap', to_plot_models, ['ccgp', 'multi_ccgp', 'swap_ccgp'], y_lim=(0.5, 1.0))
-plt.show()
-
-
-##DOUBLE CHECK CCGP STATS
 t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='ccgp')
 plot_significance(t_mat, p_mat, to_plot_models)
+plt.show()
+
+plot_comp_dots('7.20models', 'swap', to_plot_models, 'multi_ccgp', y_lim=(0.5, 1.0))
 plt.show()
 
 t_mat, p_mat, is_sig  = calc_t_test('7.20models', 'multitask', to_plot_models, mode='multi_ccgp')
 plot_significance(t_mat,p_mat, to_plot_models)
 plt.show()
 
+plot_comp_dots('7.20models', 'swap', to_plot_models, 'swap_ccgp', y_lim=(0.5, 1.0))
+plt.show()
+
 t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='swap_ccgp')
 plot_significance(t_mat, p_mat, to_plot_models)
 plt.show()
 
+###compositional inputs
 plot_comp_dots('7.20models', 'swap', to_plot_models, 'combinedcomp', y_lim=(0.0, 1.0))
+plt.show()
+
+
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combinedcomp')
+plot_significance(t_mat, p_mat,  to_plot_models)
 plt.show()
 
 plot_comp_dots('7.20models', 'swap', to_plot_models, 'multi_comp', y_lim=(0.0, 1.0))
 plt.show()
 
-p_mat, t_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combinedcomp')
-plot_significance(p_mat, t_mat,  to_plot_models)
-plt.show()
-
-p_mat, t_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='multi_comp')
-plot_significance(p_mat, t_mat,  to_plot_models)
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='multi_comp')
+plot_significance(t_mat, p_mat,  to_plot_models)
 plt.show()
 
 
-###HOLDOUTS
+###INPUTS ONLY
 plot_curves('7.20models', 'swap', to_plot_models, mode='combinedinputs_only', avg=True, linewidth=0.8)
 plt.show()
 
+plot_comp_dots('7.20models', 'family', ['combNet'], 'combinedcomp', y_lim=(0.0, 1.0))
+plt.show()
 
+
+###ADDITIONAL DECODER
 multi_multi_instruct = pickle.load(open('7.20models/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_instructs_dict', 'rb'))
 holdout_multi_instruct = pickle.load(open('7.20models/swap_holdouts/decoder_perf/sbertNetL_lin/test_sm_holdout_decoder_multi_instructs_dict', 'rb'))
 holdout_holdout_instruct = pickle.load(open('7.20models/swap_holdouts/decoder_perf/sbertNetL_lin/test_sm_holdout_decoder_holdout_instructs_dict', 'rb'))
@@ -266,8 +276,12 @@ print_decoded_instruct(holdout_holdout_instruct)
 
 ###GPT COMPARISON
 fig_axn = plot_curves('7.20models', 'swap', ['gptNetXL_lin'], mode='combined', avg=True, linewidth=0.8)
-plot_curves('7.20models', 'swap', ['gptNetXL_L_lin'], mode='combined', fig_axn=fig_axn, avg=True, linewidth=0.8, linestyle='--')
+plot_curves('7.20models', 'swap', ['gptNetXL_L_lin'], mode='combined', fig_axn=fig_axn, avg=True, linewidth=0.8)
 plt.show()
 
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', ['gptNetXL_lin', 'gptNetXL_L_lin'])
+plot_significance(t_mat, p_mat, ['gptNetXL_lin', 'gptNetXL_L_lin'])
+plt.show()
 
-plot_all_comp_holdout_lolli_v('7.20models', 'swap', to_plot_models)
+p_mat
+

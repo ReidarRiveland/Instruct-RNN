@@ -92,7 +92,6 @@ INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
 INV_GROUP_DICT = invert_holdout_dict(TASK_GROUPS)
 MULTITASK_DICT = {'Multitask':[]}
 
-
 DICH_DICT = {
     'dich0' : [('Go', 'AntiGo'), ('GoMod1', 'AntiGoMod1'), ('GoMod2', 'AntiGoMod2'), 
                             ('RTGo', 'AntiRTGo'),('RTGoMod1', 'AntiRTGoMod1'), ('RTGoMod2', 'AntiRTGoMod2')],

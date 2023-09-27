@@ -58,21 +58,17 @@ class InstructionEmbedder(nn.Module):
                 self._output_nonlinearity)
         else:
             layer_list = []
-            layer_list.append(nn.Linear(self.LM_out_dim, 256)) 
+            layer_list.append(nn.Linear(self.LM_intermediate_lang_dim, 256)) 
             layer_list.append(self._output_nonlinearity)
 
-            for _ in range(self.LM_proj_out_layers):
+            for _ in range(self.LM_proj_out_layers-2):
                 layer_list.append(nn.Linear(256, 256)) 
                 layer_list.append(self._output_nonlinearity)
 
             layer_list.append(nn.Linear(256, self.LM_out_dim)) 
             layer_list.append(self._output_nonlinearity)
             
-            self.proj_out= nn.Sequential(
-                nn.Linear(self.LM_intermediate_lang_dim, self.LM_out_dim), 
-                self._output_nonlinearity, 
-                *layer_list,
-                )
+            self.proj_out= nn.Sequential(*layer_list)
 
     def set_train_layers(self, train_layers): 
         all_train_layers = train_layers+['proj_out']

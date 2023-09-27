@@ -137,7 +137,7 @@ def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_
 
     if decode_embeddings: dec_emd_str = 'from_embeddings'
     else: dec_emd_str = ''
-
+    print(sm_str)
     full_decoded_dict = pickle.load(open(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+instruct_type+dec_emd_str, 'rb'))
     print(file_path+'/test_sm_'+sm_str+'_decoder_'+decoder_str+instruct_type+dec_emd_str)
     print(full_decoded_dict[0].keys())
@@ -240,6 +240,8 @@ def decoder_pipeline(foldername, model_name, decode_embeddings = False, decoder_
         print('getting decoded set')
         get_decoded_set(foldername, model_name, seeds=seeds, from_contexts=True, decode_embeddings = decode_embeddings, 
                                 decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
+
+    print(sm_str)
 
     try:
         np.load(foldername+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_all_perf.npy')
