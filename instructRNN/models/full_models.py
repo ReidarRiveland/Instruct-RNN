@@ -131,7 +131,7 @@ def make_default_model(model_str):
     if model_str == 'gptNet': 
         return GPTNet(model_name = model_str, 
                     LM_output_nonlinearity='relu',
-                    LM_proj_out_layers = 5,
+                    LM_proj_out_layers = 3,
                     LM_train_layers = [])
 
     if model_str == 'gptNet_lin': 
@@ -148,7 +148,7 @@ def make_default_model(model_str):
     if model_str == 'gptNetXL':
         return GPTNetXL(model_name=model_str, 
                     LM_output_nonlinearity='relu',
-                    LM_proj_out_layers = 5,
+                    LM_proj_out_layers = 3,
                     LM_train_layers = [])
 
     if model_str == 'gptNetXL_lin':
@@ -176,7 +176,7 @@ def make_default_model(model_str):
     if model_str == 'bertNet': 
         return BERTNet(model_name = model_str, 
                         LM_output_nonlinearity = 'relu', 
-                        LM_proj_out_layers = 5,
+                        LM_proj_out_layers = 3,
                         LM_train_layers = [])
 
     if model_str == 'bertNet_lin': 
@@ -197,7 +197,7 @@ def make_default_model(model_str):
     if model_str == 'sbertNet': 
         return SBERTNet(model_name = model_str, 
                         LM_output_nonlinearity = 'relu', 
-                        LM_proj_out_layers = 5,
+                        LM_proj_out_layers = 3,
                         LM_train_layers = [])
 
     if model_str == 'sbertNet_lin': 
@@ -213,7 +213,7 @@ def make_default_model(model_str):
     if model_str == 'sbertNetL': 
         return SBERTNetL(model_name = model_str, 
                         LM_output_nonlinearity = 'relu', 
-                        LM_proj_out_layers = 5,
+                        LM_proj_out_layers = 3,
                         LM_train_layers = [])
 
 
@@ -233,7 +233,7 @@ def make_default_model(model_str):
     if model_str == 'clipNet': 
         return CLIPNet(model_name = model_str, 
                     LM_output_nonlinearity = 'relu', 
-                    LM_proj_out_layers = 5,
+                    LM_proj_out_layers = 3,
                     LM_train_layers = [])
 
     if model_str == 'clipNet_lin': 
@@ -249,7 +249,7 @@ def make_default_model(model_str):
     if model_str == 'clipNetS': 
         return CLIPNetS(model_name = model_str, 
                     LM_output_nonlinearity = 'relu', 
-                    LM_proj_out_layers = 5,
+                    LM_proj_out_layers = 3,
                     LM_train_layers = [])
 
     if model_str == 'clipNetS_lin': 
@@ -266,7 +266,7 @@ def make_default_model(model_str):
     if model_str == 'bowNet': 
         return BoWNet(model_name=model_str, 
                         LM_output_nonlinearity = 'relu', 
-                        LM_proj_out_layers = 5,
+                        LM_proj_out_layers = 3,
                         LM_train_layers = [])
 
     if model_str == 'bowNet_lin': 
@@ -277,13 +277,13 @@ def make_default_model(model_str):
     if model_str == 'bowNetPlus_lin': 
         return BoWNet(model_name=model_str, 
                         LM_output_nonlinearity = 'lin', 
-                        LM_proj_out_layers=5,
+                        LM_proj_out_layers=3,
                         LM_train_layers = [])
 
     if model_str == 'bowNetPlus': 
         return BoWNet(model_name=model_str, 
                         LM_output_nonlinearity = 'relu', 
-                        LM_proj_out_layers=5,
+                        LM_proj_out_layers=3,
                         LM_train_layers = [])
 
 

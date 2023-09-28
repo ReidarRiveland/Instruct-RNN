@@ -319,6 +319,9 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=F
     else: 
         trainer = ModelTrainer(trainer_config)
 
+    for n, p in model.named_parameters(): 
+        if p.requires_grad: print(n)
+
     is_trained = trainer.train(model)
     return is_trained
 
@@ -438,6 +441,7 @@ def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False
     else: 
         raise Exception()
         
+    
     if is_trained: 
         for instruct_mode in [None, 'combined', 'swap_combined']:
             print('TESTING '+ str(instruct_mode) + '\n')
