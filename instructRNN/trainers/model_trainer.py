@@ -110,7 +110,7 @@ class ModelTrainer(BaseTrainer):
         self.loss_data = list(loss_array.mean(axis=0))
 
     def _init_streamer(self):
-        self.streamer = TaskDataSet(self.file_path.partition('/')[0], 
+        self.streamer = TaskDataSet(
                         self.stream_data, 
                         self.batch_len, 
                         self.num_batches, 

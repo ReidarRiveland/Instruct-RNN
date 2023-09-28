@@ -119,11 +119,11 @@ class BoWNet(InstructNet):
 
 def make_default_model(model_str): 
     if model_str == 'simpleNet':
-        return SimpleNet()
+        return SimpleNet(model_name= model_str)
     if model_str == 'simpleNetPlus':
-        return SimpleNetPlus()   
+        return SimpleNetPlus(model_name= model_str)
     if model_str == 'combNet':
-        return CombNet()
+        return CombNet(model_name= model_str)
 
     if model_str == 'combNetPlus':
         return CombNetPlus()
