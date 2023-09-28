@@ -169,4 +169,3 @@ class DecoderRNN(nn.Module):
     def to(self, cuda_device): 
         super().to(cuda_device)
         self.gru._mask_to(cuda_device)
-
