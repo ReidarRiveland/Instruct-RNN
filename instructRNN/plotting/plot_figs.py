@@ -2,7 +2,7 @@ from instructRNN.plotting.plotting import *
 from instructRNN.models.full_models import *
 from instructRNN.tasks.tasks import *
 from instructRNN.tasks.task_factory import *
-from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio, print_decoded_instruct, get_decoded_vec_cos_sim
+from instructRNN.analysis.decoder_analysis import get_novel_instruct_ratio, print_decoded_instruct, get_decoded_vec_cos_sim, _get_partner_perf_labels
 from instructRNN.data_loaders.perfDataFrame import *
 from instructRNN.analysis.model_analysis import calc_t_test
 
@@ -10,80 +10,22 @@ to_plot_models = ['combNet',  'sbertNetL_lin','sbertNet_lin', 'clipNetS_lin', 'b
 non_lin_models = ['combNet', 'sbertNetL', 'sbertNet', 'clipNetS', 'gptNetXL', 'gptNet', 'bertNet', 'bowNet', 'simpleNet']
 tuned_to_plot = ['combNet', 'sbertNetL_lin_tuned', 'sbertNet_lin_tuned', 'clipNetS_lin_tuned',  
                     'gptNetXL_lin_tuned', 'gptNet_lin_tuned', 'bertNet_lin_tuned', 'bowNet_lin', 'simpleNet']
-aux_models = ['combNet', 'combNetPlus', 'bowNet_lin', 'bowNet_lin_plus', 'bertNet_lin', 'rawBertNet_lin', 'simpleNet', 'simpleNetPlus']
+aux_models = ['combNet', 'combNetPlus', 'bowNet_lin', 'bowNetPlus', 'bertNet_lin', 'rawBertNet_lin', 'simpleNet', 'simpleNetPlus']
 
-##ALL MODEL LEARNING CURVES
-fig_axn = plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask', linewidth=0.5)
-fig_axn[0].tight_layout()
-plt.show()
 
-##VALIDATION
-plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[1:-1], mode='val')
-plt.show()
 
-###HOLDOUTS
+###FIG2
 plot_curves('7.20models', 'swap', to_plot_models, mode='combined', avg=True, linewidth=1.2)
 plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='combined')
-plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='combined')
 plt.show()
 
-t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combined')
-plot_significance(t_mat, p_mat, to_plot_models)
+plot_comp_dots('7.20models', 'swap', to_plot_models, mode='swap_combined')
+plot_comp_dots('7.20models', 'family', to_plot_models, mode='combined')
+plot_comp_dots('7.20models', 'swap', tuned_to_plot, mode='combined')
+_, _, within_sig, stats_arr = plot_clauses_dots('7.20models', 'swap', to_plot_models[:], y_lim=(-0.55, 0.28))
 plt.show()
 
-p_mat[to_plot_models.index('gptNetXL_lin'), to_plot_models.index('clipNetS_lin')]
-
-##non-linear holdouts
-plot_curves('7.20models', 'swap', non_lin_models, mode='combined', avg=True, linewidth=0.8)
-plot_all_models_task_dist('7.20models', 'swap', non_lin_models, mode='combined')
-plot_all_task_lolli_v('7.20models', 'swap', non_lin_models, mode='combined')
-plt.show()
-
-t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', non_lin_models, mode='combined')
-plot_significance(t_mat, p_mat, non_lin_models)
-plt.show()
-
-##langPlus 
-plot_curves('7.20models', 'swap', aux_models, mode='combined', avg=True, linewidth=0.8)
-plot_all_models_task_dist('7.20models', 'swap', aux_models, mode='combined', hatch = '///', edgecolor='white')
-plot_all_task_lolli_v('7.20models', 'swap', aux_models, mode='combined')
-plt.show()
-
-t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', aux_models, mode='combined')
-plot_significance(t_mat, p_mat, aux_models)
-plt.show()
-
-##TUNED HOLDOUTS
-plot_curves('7.20models', 'swap', tuned_to_plot, mode='combined', avg=True, linewidth=0.8)
-plot_all_models_task_dist('7.20models', 'swap', tuned_to_plot, mode='combined')
-plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot, mode='combined')
-plt.show()
-
-t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', tuned_to_plot, mode='combined')
-plot_significance(t_mat, p_mat, tuned_to_plot)
-plt.show()
-
-###SWAP HOLDOUTS
-plot_curves('7.20models', 'swap', to_plot_models, mode='swap_combined', avg=True, linewidth=0.8)
-plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='swap_combined')
-plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='swap_combined')
-plt.show()
-
-t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='swap_combined')
-plot_significance(t_mat, p_mat, to_plot_models)
-plt.show()
-
-###FAMILY
-plot_curves('7.20models', 'family', to_plot_models, mode='combined', avg=True, linewidth=0.8)
-plot_all_models_task_dist('7.20models', 'family', to_plot_models, mode='combined')
-plot_all_task_lolli_v('7.20models', 'family', to_plot_models, mode='combined')
-plt.show()
-
-t_mat, p_mat, is_sig = calc_t_test('7.20models', 'family', to_plot_models, mode='combined')
-plot_significance(t_mat, p_mat, to_plot_models)
-plt.show()
-
-####PC PLOTS
+###FIG3
 EXP_FILE = '7.20models/swap_holdouts'
 
 #SBERTNET
@@ -94,9 +36,6 @@ sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='
 plot_scatter(sbertNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
 plot_scatter(sbertNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, rep_depth='full')
 
-sbertNet.load_model('7.20models/multitask_holdouts/Multitask/'+sbertNet.model_name, suffix='_seed0')
-plot_scatter(sbertNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, instruct_mode=None)
-
 #GPTNET
 gptNet = make_default_model('gptNetXL_lin')
 holdouts_file = 'swap9'
@@ -104,9 +43,6 @@ holdouts_file = 'swap9'
 gptNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+gptNet.model_name, suffix='_seed2')
 plot_scatter(gptNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
 plot_scatter(gptNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, rep_depth='full')
-
-gptNet.load_model('7.20models/multitask_holdouts/Multitask/'+gptNet.model_name, suffix='_seed3')
-plot_scatter(gptNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, instruct_mode=None)
 
 #SIMPLENET
 simpleNet = SimpleNet(rnn_hidden_dim=256)
@@ -116,7 +52,7 @@ simpleNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+simpleNet.model_name, suffix
 plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3)
 plot_scatter(simpleNet, ['DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2'], dims=3, rep_depth='rule', s=15)
 
-#COMBNET
+#StructureNet
 combNet = make_default_model('combNet')
 holdouts_file = 'swap9'
 
@@ -130,7 +66,7 @@ plt.show()
 plot_ccgp_corr('7.20models', 'swap', to_plot_models)
 
 
-
+###FIG4
 #############SINGLE UNIT TUING
 EXP_FILE = '7.20models/swap_holdouts'
 sbertNet = make_default_model('sbertNetL_lin')
@@ -153,7 +89,6 @@ plot_neural_resp(sbertNet, 'AntiDMMod1','diff_strength', unit, num_trials=25)
 plot_neural_resp(sbertNet, 'DMMod2','diff_strength', unit, num_trials=25)
 plot_neural_resp(sbertNet, 'AntiDMMod2','diff_strength', unit, num_trials=25)
 
-###COMP REDO!
 holdouts_file = 'swap6'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed1')
 
@@ -171,12 +106,103 @@ unit=14
 plot_tuning_curve(sbertNet, ['DMS', 'DNMS', 'DMC', 'DNMC'], unit, [149]*4, num_trials=50, smoothing=1.0)
 
 
+###Fig5
+plot_partner_perf('sbertNetL_lin', figsize=(3, 3), s=12)
+plt.show()
+
+confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_confuse_mat.npy')
+plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), linewidths=0.1, linecolor='#E5E4E2')
+
+
+
+####SUPPLEMENT####
+
+##ALL MODEL LEARNING CURVES
+fig_axn = plot_curves('7.20models', 'multitask', to_plot_models, training_file='Multitask', linewidth=0.5)
+fig_axn[0].tight_layout()
+plt.show()
+
+##VALIDATION
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models[1:-1], mode='val')
+plt.show()
+
+
+####ADDITIONAL HOLDOUT####
+
+###HOLDOUTS
+plot_curves('7.20models', 'swap', to_plot_models, mode='combined', avg=True, linewidth=1.2)
+plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='combined')
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='combined')
+plt.show()
+
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='combined')
+plot_significance(t_mat, p_mat, to_plot_models)
+plt.show()
+
+
+###SWAP HOLDOUTS
+plot_curves('7.20models', 'swap', to_plot_models, mode='swap_combined', avg=True, linewidth=0.8)
+plot_all_models_task_dist('7.20models', 'swap', to_plot_models, mode='swap_combined')
+plot_all_task_lolli_v('7.20models', 'swap', to_plot_models, mode='swap_combined')
+plt.show()
+
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='swap_combined')
+plot_significance(t_mat, p_mat, to_plot_models)
+plt.show()
+
+###FAMILY
+plot_curves('7.20models', 'family', to_plot_models, mode='combined', avg=True, linewidth=0.8)
+plot_all_models_task_dist('7.20models', 'family', to_plot_models, mode='combined')
+plot_all_task_lolli_v('7.20models', 'family', to_plot_models, mode='combined')
+plt.show()
+
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'family', to_plot_models, mode='combined')
+plot_significance(t_mat, p_mat, to_plot_models)
+plt.show()
+
+
+##TUNED HOLDOUTS
+plot_curves('7.20models', 'swap', tuned_to_plot, mode='combined', avg=True, linewidth=0.8)
+plot_all_models_task_dist('7.20models', 'swap', tuned_to_plot, mode='combined')
+plot_all_task_lolli_v('7.20models', 'swap', tuned_to_plot, mode='combined')
+plt.show()
+
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', tuned_to_plot, mode='combined')
+plot_significance(t_mat, p_mat, tuned_to_plot)
+plt.show()
+
+
+##non-linear holdouts
+plot_curves('7.20models', 'swap', non_lin_models, mode='combined', avg=True, linewidth=0.8)
+plot_all_models_task_dist('7.20models', 'swap', non_lin_models, mode='combined')
+plot_all_task_lolli_v('7.20models', 'swap', non_lin_models, mode='combined')
+plt.show()
+
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', non_lin_models, mode='combined')
+plot_significance(t_mat, p_mat, non_lin_models)
+plt.show()
+
+##langPlus 
+plot_curves('7.20models', 'swap', aux_models, mode='combined', avg=True, linewidth=0.8)
+plot_all_models_task_dist('7.20models', 'swap', aux_models, mode='combined', hatch = '///', edgecolor='white')
+plot_all_task_lolli_v('7.20models', 'swap', aux_models, mode='combined')
+plt.show()
+
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', aux_models, mode='combined')
+plot_significance(t_mat, p_mat, aux_models)
+plt.show()
+
+
+
+
 var = plot_task_var_heatmap('7.20models/swap_holdouts/swap1', 'sbertNetL_lin', 1)
 var
 
 
 ###decoder figs
-plot_partner_perf('sbertNetL_lin', figsize=(3, 3), s=12)
+mean_perfs, stats_arr = plot_partner_perf('sbertNetL_lin', figsize=(3, 3), s=12)
+
+plot_significance(stats_arr[0], stats_arr[1], xticklabels=_get_partner_perf_labels(), yticklabels=_get_partner_perf_labels())
 plt.show()
 
 confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_confuse_mat.npy')
@@ -209,12 +235,15 @@ plot_partner_perf('sbertNetL_lin', figsize=(3, 3), s=12)
 var = plot_task_var_heatmap('7.20models/swap_holdouts/swap9', 'sbertNetL_lin', 3)
 
 
-###CLAUSE STRUCTURE
+###CLAUSE SIG
 
 _, _, within_sig, stats_arr = plot_clauses_dots('7.20models', 'swap', to_plot_models[:], y_lim=(-0.55, 0.28))
 plt.show()
 
-plot_significance(stats_arr[0], stats_arr[1], to_plot_models[:])
+plot_significance(stats_arr[0], stats_arr[1], to_plot_models, vmin=-80, vmax=80)
+plt.show()
+
+plot_significance(within_sig[0][None, :], within_sig[1][None,:], to_plot_models, vmin=-80, vmax=80)
 plt.show()
 
 
@@ -261,7 +290,7 @@ plt.show()
 plot_curves('7.20models', 'swap', to_plot_models, mode='combinedinputs_only', avg=True, linewidth=0.8)
 plt.show()
 
-plot_comp_dots('7.20models', 'family', ['combNet'], 'combinedcomp', y_lim=(0.0, 1.0))
+plot_curves('7.20models', 'family', ['combNet'], mode='combinedinputs_only', avg=True)
 plt.show()
 
 

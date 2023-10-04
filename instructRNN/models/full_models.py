@@ -121,9 +121,9 @@ def make_default_model(model_str):
     if model_str == 'simpleNet':
         return SimpleNet(model_name= model_str)
     if model_str == 'simpleNetPlus':
-        return SimpleNetPlus(model_name= model_str)
+        return SimpleNetPlus()
     if model_str == 'combNet':
-        return CombNet(model_name= model_str)
+        return CombNet()
 
     if model_str == 'combNetPlus':
         return CombNetPlus()
@@ -283,7 +283,7 @@ def make_default_model(model_str):
     if model_str == 'bowNetPlus': 
         return BoWNet(model_name=model_str, 
                         LM_output_nonlinearity = 'relu', 
-                        LM_proj_out_layers=3,
+                        LM_proj_out_layers=7,
                         LM_train_layers = [])
 
 

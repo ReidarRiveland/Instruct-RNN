@@ -329,3 +329,13 @@ def print_decoded_instruct(decoded_instruct, most_common=5):
             master_str += '\''+decoded + '\', ' + str(freq)+'; '
 
     print(master_str)
+
+def _get_partner_perf_labels(): 
+    labels = []
+    for prod_train in ['all', 'holdout']: 
+        for sm_train in ['all', 'holdout']: 
+            if prod_train == 'all' and sm_train == 'holdout': continue
+            for instruct in ['full', 'novel', 'context']:
+                for partner in ['all', 'holdout']:
+                    labels.append('partner '+partner+' sm '+sm_train+' prod. '+prod_train+' '+instruct+' instructs')
+    return labels

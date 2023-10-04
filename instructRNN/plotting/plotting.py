@@ -43,7 +43,7 @@ MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Bl
                     'sbertSbert':('lawngreen', None, 'sbertNet (L) (transfer)'),
                     'clipNet_lin': ('Pink', None, 'clipNet'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 'clipNet': (Purple, None, 'clipNet'), 
                     'clipNetS_lin': (Purple, None, 'clipNet (S)'), 'clipNetS_lin_tuned': (Purple, None, 'clipNet (S)(tuned)'), 'clipNetS': (Purple, None, 'clipNet (S)'),
-                    'bowNet_lin': (Yellow, None, 'bowNet'), 'bowNet': (Yellow, None, 'bowNet'), 'bowNet_lin_plus': (Yellow, None, 'bowNetPlus'), 
+                    'bowNet_lin': (Yellow, None, 'bowNet'), 'bowNet': (Yellow, None, 'bowNet'), 'bowNetPlus': (Yellow, None, 'bowNetPlus'), 
                     'gptNet_lin': (lightRed, None, 'gptNet'), 'gptNet_lin_tuned': (lightRed, 'v','gptNet (tuned)'), 'gptNet': (lightRed, 'v','gptNet'),
                     'gptNetXL_lin': (Red, None, 'gptNet (XL)'), 'gptNetXL_lin_tuned': (Red, None, 'gptNet (XL)(tuned)'), 'gptNetXL': (Red, None, 'gptNet (XL)'), 
                     'gptNetXL_L_lin': (Red, 'D', 'gptNetXL (last)'), 
@@ -132,7 +132,7 @@ def plot_curves(foldername, exp_type, model_list, mode = '', training_file = '',
                 axn.scatter(0, mean[0], color=color, s=5, marker=zero_marker)
             else: 
                 mean, std = data.avg_seeds()
-            if model_name in ['rawBertNet_lin', 'bowNet_lin_plus', 'simpleNetPlus', 'combNetPlus', 'gptNetXL_L_lin']: linestyle = '--'
+            if model_name in ['rawBertNet_lin', 'bowNetPlus', 'simpleNetPlus', 'combNetPlus', 'gptNetXL_L_lin']: linestyle = '--'
             else: linestyle = '-'
             plt_func(mean, std, axn, color, zero_marker, linestyle=linestyle, **curve_kwargs)
 
@@ -260,11 +260,10 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='
     plt.tight_layout()
     return fig, axn
 
-def plot_significance(t_mat, p_mat, model_list, **heatmap_kwargs): 
+def plot_significance(t_mat, p_mat, model_list=None, xticklabels=None, yticklabels=None, **heatmap_kwargs): 
     labels = []
     for p in p_mat.flatten(): 
 
-    
         if p< 0.001: 
             labels.append('***')
         elif p<0.01: 
@@ -273,21 +272,27 @@ def plot_significance(t_mat, p_mat, model_list, **heatmap_kwargs):
             labels.append('*')
         elif p > 0.05: 
             labels.append('n.s.')
-    
+    try:
+        mask = np.zeros_like(t_mat)
+        mask[np.triu_indices_from(mask)] = True
+        mask[np.diag_indices_from(mask)] = False
+        t_mat = np.where(mask, np.full_like(t_mat, np.nan), t_mat)
+        labels = np.array(labels).reshape(p_mat.shape)
 
-    mask = np.zeros_like(t_mat)
-    mask[np.triu_indices_from(mask)] = True
-    mask[np.diag_indices_from(mask)] = False
+    except ValueError: 
+        mask = None
+        labels = np.array(labels)[None, :]
 
-    t_mat = np.where(mask, np.full_like(t_mat, np.nan), t_mat)
+    if model_list is not None: 
+        model_names = [MODEL_STYLE_DICT[model_name][2] for model_name in model_list]
+        yticklabels = model_names
+        xticklabels = model_names
 
-    labels = np.array(labels).reshape(len(model_list), len(model_list))
-    model_names = [MODEL_STYLE_DICT[model_name][2] for model_name in model_list]
     with sns.plotting_context(rc={ 'xtick.labelsize': 4,'ytick.labelsize': 4}):
 
         sns.heatmap(t_mat, linecolor='white', linewidths=1, cbar=True, fmt='', 
                     cbar_kws={'label': 't-value'}, mask=mask, 
-                    xticklabels=model_names, yticklabels=model_names, 
+                    xticklabels=xticklabels, yticklabels=yticklabels, 
                     annot=labels, annot_kws={'fontweight': 'bold', 'fontsize':'14'}, 
                     **heatmap_kwargs)
 
@@ -372,7 +377,8 @@ def plot_clauses_dots(foldername, exp_type, model_list, mode='combined', fig_axn
     clause_arr = np.empty((len(model_list), 5, 30))
     wo_clause_arr = np.empty((len(model_list), 5, 20))
 
-    within_sig = []
+    within_p = []
+    within_t = []
 
     for i, model_name in enumerate(model_list):
         color=MODEL_STYLE_DICT[model_name][0]
@@ -394,8 +400,9 @@ def plot_clauses_dots(foldername, exp_type, model_list, mode='combined', fig_axn
             axn.scatter(x_mark+(2*0.01), dummy_perf.mean(), color='white', edgecolor=color, s=3, alpha=0.25)
 
         t_stat, p_value =ttest_ind(dummy_perfs, zero_shot, equal_var=False)
-        within_sig.append((t_stat, p_value))
-
+        within_t.append(t_stat)
+        within_p.append(p_value)
+    
 
     clause_diff = clause_arr.mean(-1)-wo_clause_arr.mean(-1)
     for i, diff1 in enumerate(clause_diff): 
@@ -407,8 +414,7 @@ def plot_clauses_dots(foldername, exp_type, model_list, mode='combined', fig_axn
 
     axn.set_xticklabels('')
     axn.xaxis.set_ticks_position('none') 
-    return fig, axn, within_sig, (t_value_arr, p_value_arr)
-
+    return fig, axn, (np.array(within_t), np.array(within_p)), (t_value_arr, p_value_arr)
 
 
 def plot_RDM(sim_scores,  cmap=sns.color_palette("rocket_r", as_cmap=True), plot_title = 'RDM', save_file=None):
@@ -604,18 +610,18 @@ def _plot_partner_perf(model_name, axn, sm_holdout, decoder_holdout, decode_embe
     axn.set_ylabel('Perforamance', size=8, fontweight='bold')
     width = 1/4
     means_list = []
+    perf_list = []
     for i, mode_value in enumerate(mode_dict.values()):
         for j, values in enumerate(multi_holdout_formatting.items()):
             holdouts, formatting = values
             perf_data = np.load(folder+'/decoder_perf/'+model_name+'/test_sm_'+sm_str+'_decoder_'+decoder_str+'_partner_'+holdouts+'_'+mode_value[0]+dec_emd_str+'.npy')
-            
+            perf_list.append(perf_data.flatten())
+
             zero_shot = np.nanmean(perf_data)
             means_list.append(zero_shot)
             std = sem(perf_data.flatten(), nan_policy='omit')
 
             x_mark = ((i)+width)+((j*1.05*width))
-            # axn.scatter(x_mark, zero_shot, color=mode_value[1], s=5)
-            # axn.errorbar(x_mark, zero_shot, yerr=std, color=mode_value[1], linewidth=0.5, capsize=1.0)
 
             for k, seed_point in enumerate(np.nanmean(perf_data, axis=(1, 2))):
                 axn.scatter(x_mark+(k*0.03), seed_point, color=mode_value[1], linewidth=0.5, **formatting, **scatter_kwargs)
@@ -633,27 +639,40 @@ def _plot_partner_perf(model_name, axn, sm_holdout, decoder_holdout, decode_embe
     axn.set_ylim(0.0, 1.0)
     axn.set_xlim(0, 3)
 
-    return patches, means_list
+    return patches, means_list, perf_list
 
 def plot_partner_perf(model_name, decode_embeddings=False, figsize=(4,4), **scatter_kwargs):
     fig, axn = plt.subplots(2, 2, sharex=True, figsize =figsize)
     means_list = []
+    perf_list = [] 
 
-    patches, means = _plot_partner_perf(model_name, axn.flatten()[0], False, False, decode_embeddings=decode_embeddings, **scatter_kwargs)
+    patches, means, _perf_list = _plot_partner_perf(model_name, axn.flatten()[0], False, False, decode_embeddings=decode_embeddings, **scatter_kwargs)
     means_list.append(means)
+    perf_list += _perf_list
+
     if not decode_embeddings: 
         axn.flatten()[1].axis('off')
-        _, means = _plot_partner_perf(model_name, axn.flatten()[2], True, False, **scatter_kwargs)
+        _, means, _perf_list = _plot_partner_perf(model_name, axn.flatten()[2], True, False, **scatter_kwargs)
         means_list.append(means)
+        perf_list += _perf_list
 
-        _, means = _plot_partner_perf(model_name, axn.flatten()[3], True, True, **scatter_kwargs)
+        _, means, _perf_list = _plot_partner_perf(model_name, axn.flatten()[3], True, True, **scatter_kwargs)
         means_list.append(means)
+        perf_list += _perf_list
 
     axn[0,0].legend(handles = patches, fontsize='x-small')
-    plt.show()
-    return means_list
-    
 
+    t_value_arr = np.empty((18, 18))
+    p_value_arr = np.empty((18, 18))
+    for i, perf1 in enumerate(perf_list): 
+        for j, perf2 in enumerate(perf_list):
+            t_stat, p_value = ttest_ind(perf1, perf2, equal_var=False, nan_policy='omit')
+        
+            t_value_arr[i, j] = t_stat
+            p_value_arr[i,j] = p_value
+
+    plt.show()
+    return means_list, (t_value_arr, p_value_arr)
 
 def plot_model_response(out, hid, ins, tar, task_type, plotting_index = 0, cmap = 'Reds'):
     out = out.detach().cpu().numpy()[plotting_index, :, :]
