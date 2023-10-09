@@ -56,10 +56,6 @@ def _get_model_performance(_task_eval_func, model, num_repeats, batch_len, **eva
 def eval_model_perf(model, num_repeats=1, batch_len=128, instruct_mode=None): 
     return _get_model_performance(task_eval, model, num_repeats, batch_len, instruct_mode=instruct_mode)
 
-def eval_model_info_embedded_perf(model, num_repeats=1, batch_len=128, info_embedded=None):
-    assert info_embedded is not None, 'must enter a value for info embedded'
-    return _get_model_performance(task_eval_info_embedded, model, num_repeats, batch_len, info_embedded=info_embedded)
-
 def eval_model_compositional_perf(model, num_repeats=1, batch_len=128):
     return _get_model_performance(task_eval_compositional, model, num_repeats, batch_len)
 

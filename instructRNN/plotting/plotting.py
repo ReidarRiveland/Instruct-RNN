@@ -162,7 +162,7 @@ def plot_comp_dots(foldername, exp_type, model_list, mode, split_clauses = False
     else: 
         fig, axn = fig_axn
 
-    axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
+
     axn.set_ylim(y_lim)
     width = 1/(len(model_list)+2)
 
@@ -179,6 +179,7 @@ def plot_comp_dots(foldername, exp_type, model_list, mode, split_clauses = False
     axn.xaxis.set_ticks_position('none') 
 
     if not 'ccgp' in mode: 
+        axn.set_ylabel('Percent Correct', size=8, fontweight='bold')
         axn.yaxis.set_tick_params(labelsize=8)
         axn.yaxis.set_major_locator(MaxNLocator(10)) 
         axn.set_yticklabels([f'{x:.0%}' for x in np.linspace(0, 1, 11)]) 
@@ -246,7 +247,7 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='
 
         x_mark = (ind+(width/2))+(i*width)
         axn.scatter(x_mark,  zero_shot, color=color, s=3, marker=marker)
-        if model_name in ['rawBertNet_lin', 'bowNet_lin_plus', 'simpleNetPlus', 'combNetPlus']: linestyle = '--'
+        if model_name in ['rawBertNet_lin', 'bowNetPlus', 'simpleNetPlus', 'combNetPlus']: linestyle = '--'
         else: linestyle = '-'
         #print(np.min(np.ones_like(zero_shot), zero_shot+std))
         axn.vlines(x_mark, ymin=zero_shot-std, ymax=np.minimum(np.ones_like(zero_shot), zero_shot+std), color=color, linewidth=0.8, linestyle=linestyle, **kwargs)
@@ -264,20 +265,23 @@ def plot_significance(t_mat, p_mat, model_list=None, xticklabels=None, yticklabe
     labels = []
     for p in p_mat.flatten(): 
 
-        if p< 0.001: 
+        if p < 0.001: 
             labels.append('***')
-        elif p<0.01: 
+        elif p<=0.01: 
             labels.append('**')
-        elif p<0.05: 
+        elif p<=0.05: 
             labels.append('*')
-        elif p > 0.05: 
+        elif p >= 0.05: 
             labels.append('n.s.')
+        else: 
+            labels.append(str(p))
+            print(p)
     try:
         mask = np.zeros_like(t_mat)
         mask[np.triu_indices_from(mask)] = True
         mask[np.diag_indices_from(mask)] = False
         t_mat = np.where(mask, np.full_like(t_mat, np.nan), t_mat)
-        labels = np.array(labels).reshape(p_mat.shape)
+        labels = np.array(labels).reshape((len(model_list), len(model_list)))
 
     except ValueError: 
         mask = None

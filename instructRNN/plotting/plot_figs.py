@@ -269,6 +269,14 @@ t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='s
 plot_significance(t_mat, p_mat, to_plot_models)
 plt.show()
 
+plot_comp_dots('7.20models', 'swap', to_plot_models, 'embedding_ccgp', y_lim=(0.475, 1.01))
+plt.show()
+
+t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', to_plot_models, mode='embedding_ccgp')
+plot_significance(t_mat, p_mat, to_plot_models)
+plt.show()
+
+
 ###compositional inputs
 plot_comp_dots('7.20models', 'swap', to_plot_models, 'combinedcomp', y_lim=(0.0, 1.0))
 plt.show()

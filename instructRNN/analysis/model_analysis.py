@@ -47,7 +47,7 @@ def calc_t_test(folder, exp, model_list, mode='combined', p_threshs = [0.05, 0.0
     for p_thresh in p_threshs: 
         is_significant += (p_value_arr < p_thresh)
 
-    return np.round(t_value_arr, 4), np.round(p_value_arr, 4), is_significant
+    return t_value_arr, p_value_arr, is_significant
 
 
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
