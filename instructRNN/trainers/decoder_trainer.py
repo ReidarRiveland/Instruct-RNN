@@ -23,7 +23,7 @@ class DecoderTrainerConfig():
     file_path: str
     random_seed: int
 
-    epochs: int = 80
+    epochs: int = 100
     batch_len: int = 64
     num_batches: int = 1600
     stream_data: bool = True
@@ -34,7 +34,7 @@ class DecoderTrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_type: str = 'exp'
-    scheduler_gamma: float = 0.999
+    scheduler_gamma: float = 0.99
 
     init_teacher_forcing_ratio: float = 0.5
     
@@ -316,7 +316,7 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts,
         p=0.05
         decoder = decoder_class(128, drop_p=p, decode_embeddings=decode_embeddings)
     else: 
-        p=0.0
+        p=0.05
         decoder = decoder_class(256, drop_p=p, decode_embeddings=decode_embeddings)
     decoder.to(device)
 
