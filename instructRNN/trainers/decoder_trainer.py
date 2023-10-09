@@ -310,7 +310,7 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts,
         holdouts = []
 
     model = make_default_model(model_name)   
-    model.load_model('NN_rev'+exp_folder.split('/')[1]+'/'+label+'/'+model_name, suffix='_seed'+str(seed))
+    model.load_model('NN_rev/'+exp_folder.split('/')[1]+'/'+label+'/'+model_name, suffix='_seed'+str(seed))
     model.to(device)
     if use_dropout: 
         p=0.05
