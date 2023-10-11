@@ -102,18 +102,18 @@ class DecoderTrainer(BaseTrainer):
         else: os.makedirs(self.file_path)
 
         if mode == 'CHECKPOINT':    
-            chk_path = record_file+'_CHECKPOINT'+holdouts_suffix+self.drop_str
+            chk_path = record_file+'_CHECKPOINT'+holdouts_suffix
             pickle.dump(checkpoint_attrs, open(chk_path+'_attrs', 'wb'))
             decoder.save_model(chk_path)
             torch.save(self.optimizer.state_dict(), chk_path+'_opt')
 
         if mode=='FINAL': 
-            pickle.dump(checkpoint_attrs, open(record_file+'_attrs'+holdouts_suffix+self.drop_str, 'wb'))
-            decoder.save_model(record_file+holdouts_suffix+self.drop_str)
+            pickle.dump(checkpoint_attrs, open(record_file+'_attrs'+holdouts_suffix, 'wb'))
+            decoder.save_model(record_file+holdouts_suffix)
 
-            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+self.drop_str+'_attrs')
-            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+self.drop_str+'.pt')
-            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+self.drop_str+'_opt')
+            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'_attrs')
+            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'.pt')
+            os.remove(record_file+'_CHECKPOINT'+holdouts_suffix+'_opt')
 
 
     def _init_streamer(self):
@@ -251,7 +251,7 @@ def check_decoder_trained(file_name, seed, use_holdouts):
         holdouts_suffix = ''
 
     try: 
-        pickle.load(open(file_name+'/rnn_decoder_seed'+str(seed)+'_attrs'+holdouts_suffix+drop_str, 'rb'))
+        pickle.load(open(file_name+'/rnn_decoder_seed'+str(seed)+'_attrs'+holdouts_suffix, 'rb'))
         print('\n Model at ' + file_name + ' for seed '+str(seed)+' and holdouts ' + str(use_holdouts) +' aleady trained')
         return True
     except FileNotFoundError:
