@@ -258,7 +258,7 @@ def check_decoder_trained(file_name, seed, use_holdouts):
         return False
 
 def load_checkpoint(model, file_name, seed): 
-    checkpoint_name = 'rnn_decoder_seed'+str(seed)
+    checkpoint_name = 'rnn_decoder_seed'+str(seed)+'_CHECKPOINT'
     checkpoint_model_path = file_name+'/'+checkpoint_name+'.pt'
 
     print('\n Attempting to load model CHECKPOINT')
