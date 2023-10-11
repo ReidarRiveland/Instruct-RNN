@@ -312,12 +312,13 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts,
     model = make_default_model(model_name)   
     model.load_model('NN_rev/'+exp_folder.split('/')[1]+'/'+label+'/'+model_name, suffix='_seed'+str(seed))
     model.to(device)
+    
     if use_dropout: 
         p=0.05
-        decoder = decoder_class(128, drop_p=p, decode_embeddings=decode_embeddings)
-    else: 
-        p=0.05
         decoder = decoder_class(256, drop_p=p, decode_embeddings=decode_embeddings)
+    else: 
+        decoder = decoder_class(256, drop_p=p, decode_embeddings=decode_embeddings)
+
     decoder.to(device)
 
     if use_checkpoint:

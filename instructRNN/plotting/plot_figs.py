@@ -298,7 +298,7 @@ plt.show()
 plot_curves('7.20models', 'swap', to_plot_models, mode='combinedinputs_only', avg=True, linewidth=0.8)
 plt.show()
 
-plot_curves('7.20models', 'family', ['combNet'], mode='combinedinputs_only', avg=True)
+plot_curves('7.20models', 'family', to_plot_models, mode='combinedinputs_only', avg=True)
 plt.show()
 
 
