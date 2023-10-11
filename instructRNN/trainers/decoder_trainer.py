@@ -277,7 +277,7 @@ def load_checkpoint(model, file_name, seed, use_dropout):
         drop_str = 'wDropout'
     else: 
         drop_str = ''
-    checkpoint_name = 'rnn_decoder_seed'+str(seed)+'_CHECKPOINT'+drop_str
+    checkpoint_name = 'rnn_decoder_seed'+str(seed)+'_CHECKPOINTwDropout'
     checkpoint_model_path = file_name+'/'+checkpoint_name+'.pt'
 
     print('\n Attempting to load model CHECKPOINT')
