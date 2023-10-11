@@ -23,9 +23,9 @@ class DecoderTrainerConfig():
     file_path: str
     random_seed: int
 
-    epochs: int = 100
+    epochs: int = 80
     batch_len: int = 64
-    num_batches: int = 1600
+    num_batches: int = 2400
     stream_data: bool = True
     holdouts: list = []
 
@@ -148,11 +148,6 @@ class DecoderTrainer(BaseTrainer):
             self.optimizer.load_state_dict(torch.load(opt_path))  
 
     def train_mlp(self, sm_model, decoder):
-        if decoder.drop_p > 0.0:
-            self.drop_str = 'wDropout'
-        else: 
-            self.drop_str = ''
-
         criterion = nn.MSELoss()
         self.pad_len  = 1
          
@@ -183,11 +178,6 @@ class DecoderTrainer(BaseTrainer):
         self._record_session(decoder, 'FINAL')
 
     def train(self, sm_model, decoder): 
-        if decoder.drop_p > 0.0:
-            self.drop_str = 'wDropout'
-        else: 
-            self.drop_str = ''
-
         criterion = nn.NLLLoss(reduction='mean')
         self.pad_len  = decoder.tokenizer.pad_len 
          
@@ -254,16 +244,11 @@ class DecoderTrainer(BaseTrainer):
             print('Teacher Force Ratio: ' + str(self.teacher_forcing_ratio))
         self._record_session(decoder, 'FINAL')
 
-def check_decoder_trained(file_name, seed, use_holdouts, use_dropout): 
+def check_decoder_trained(file_name, seed, use_holdouts): 
     if use_holdouts: 
         holdouts_suffix = '_wHoldout'
     else: 
         holdouts_suffix = ''
-
-    if use_dropout: 
-        drop_str = '_wDropout'
-    else: 
-        drop_str = ''
 
     try: 
         pickle.load(open(file_name+'/rnn_decoder_seed'+str(seed)+'_attrs'+holdouts_suffix+drop_str, 'rb'))
@@ -272,12 +257,8 @@ def check_decoder_trained(file_name, seed, use_holdouts, use_dropout):
     except FileNotFoundError:
         return False
 
-def load_checkpoint(model, file_name, seed, use_dropout): 
-    if use_dropout: 
-        drop_str = 'wDropout'
-    else: 
-        drop_str = ''
-    checkpoint_name = 'rnn_decoder_seed'+str(seed)+'_CHECKPOINTwDropout'
+def load_checkpoint(model, file_name, seed): 
+    checkpoint_name = 'rnn_decoder_seed'+str(seed)
     checkpoint_model_path = file_name+'/'+checkpoint_name+'.pt'
 
     print('\n Attempting to load model CHECKPOINT')
@@ -294,7 +275,8 @@ def load_checkpoint(model, file_name, seed, use_dropout):
 
 def train_decoder(exp_folder, model_name, seed, labeled_holdouts, 
                     use_holdouts, use_checkpoint = False, overwrite=False, 
-                    use_dropout=False, decode_embeddings = False, **train_config_kwargs): 
+                    decode_embeddings = False, **train_config_kwargs):
+
     torch.manual_seed(seed)
     label, holdouts = labeled_holdouts
     file_name = exp_folder+'/'+label+'/'+model_name
@@ -316,13 +298,8 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts,
     model = make_default_model(model_name)   
     model.load_model('NN_rev/'+exp_folder.split('/')[1]+'/'+label+'/'+model_name, suffix='_seed'+str(seed))
     model.to(device)
-    
-    if use_dropout: 
-        p=0.05
-        decoder = decoder_class(256, drop_p=p, decode_embeddings=decode_embeddings)
-    else: 
-        decoder = decoder_class(256, drop_p=p, decode_embeddings=decode_embeddings)
 
+    decoder = decoder_class(256, drop_p=p, decode_embeddings=decode_embeddings)
     decoder.to(device)
 
     if use_checkpoint:
