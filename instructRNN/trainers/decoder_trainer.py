@@ -286,10 +286,10 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts,
     else: 
         decoder_class = DecoderRNN
 
-    if not overwrite and check_decoder_trained(file_name+'/decoders', seed, use_holdouts, use_dropout):
+    if not overwrite and check_decoder_trained(file_name+'/decoders', seed, use_holdouts):
         return True
 
-    print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts)+ 'with dropout' + str(use_dropout) + '\n')
+    print('\n TRAINING DECODER at ' + file_name + ' with holdouts ' +str(use_holdouts) + '\n')
     if use_holdouts:
         holdouts=holdouts
     else: 
@@ -304,7 +304,7 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts,
 
     if use_checkpoint:
         try: 
-            decoder, trainer = load_checkpoint(decoder, file_name+'/decoders', seed, use_dropout)
+            decoder, trainer = load_checkpoint(decoder, file_name+'/decoders', seed)
         except FileNotFoundError: 
             'NO checkpoint found, training model from starting point'
             trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)    
