@@ -272,8 +272,12 @@ def check_decoder_trained(file_name, seed, use_holdouts, use_dropout):
     except FileNotFoundError:
         return False
 
-def load_checkpoint(model, file_name, seed): 
-    checkpoint_name = 'rnn_decoder_seed'+str(seed)+'_CHECKPOINT'
+def load_checkpoint(model, file_name, seed, use_dropout): 
+    if use_dropout: 
+        drop_str = 'wDropout'
+    else: 
+        drop_str = ''
+    checkpoint_name = 'rnn_decoder_seed'+str(seed)+'_CHECKPOINT'+drop_str
     checkpoint_model_path = file_name+'/'+checkpoint_name+'.pt'
 
     print('\n Attempting to load model CHECKPOINT')
@@ -322,7 +326,7 @@ def train_decoder(exp_folder, model_name, seed, labeled_holdouts,
 
     if use_checkpoint:
         try: 
-            decoder, trainer = load_checkpoint(decoder, file_name+'/decoders', seed)
+            decoder, trainer = load_checkpoint(decoder, file_name+'/decoders', seed, use_dropout)
         except FileNotFoundError: 
             'NO checkpoint found, training model from starting point'
             trainer_config = DecoderTrainerConfig(file_name+'/decoders', seed, holdouts=holdouts, **train_config_kwargs)    
