@@ -156,3 +156,29 @@ def eval_model_0_shot(model_name, folder_name, exp_type, seed, batch_size = 128,
 def eval_model_compositional_0_shot(model_name, folder_name, exp_type, seed, batch_size = 128):
     return _get_model_0_shot(task_eval_compositional, model_name, folder_name, exp_type, seed, batch_size = batch_size)
 
+
+def eval_multitask_contexts(model_name): 
+    model = make_default_model(model_name)
+    perf_array = np.empty((5, 50))
+    file_prefix = '7.20models/multitask_holdouts/Multitask/'+model.model_name
+    for i in range(5): 
+        model.load_model(file_prefix, suffix='_seed'+str(i))
+        for j, task in enumerate(TASK_LIST): 
+            contexts = pickle.load(open(file_prefix+'/contexts/seed'+str(i)+'_'+task+'test_context_vecs64', 'rb'))
+            perf = task_eval_info_embedded(model, task, 25, torch.tensor(contexts))
+            perf_array[i, j] = perf
+
+    return perf_array 
+
+def eval_holdout_contexts(model_name): 
+    model = make_default_model(model_name)
+    perf_array = np.empty((5, 50))
+    file_prefix = '7.20models/multitask_holdouts/Multitask/'+model.model_name
+    for i in range(5): 
+        model.load_model(file_prefix, suffix='_seed'+str(i))
+        for j, task in enumerate(TASK_LIST): 
+            contexts = pickle.load(open(file_prefix+'/contexts/seed'+str(i)+'_'+task+'test_context_vecs64', 'rb'))
+            perf = task_eval_info_embedded(model, task, 25, torch.tensor(contexts))
+            perf_array[i, j] = perf
+
+    return perf_array 

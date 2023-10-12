@@ -598,10 +598,10 @@ def _plot_partner_perf(model_name, axn, sm_holdout, decoder_holdout, decode_embe
 
     if sm_holdout: 
         sm_str = 'holdout'
-        folder = '7.20models/swap_holdouts'
+        folder = 'dec_check/swap_holdouts'
     else: 
         sm_str = 'multi'
-        folder = '7.20models/multitask_holdouts'
+        folder = 'dec_check/multitask_holdouts'
 
     if decoder_holdout: 
         decoder_str = 'holdout'
@@ -660,9 +660,9 @@ def plot_partner_perf(model_name, decode_embeddings=False, figsize=(4,4), **scat
         means_list.append(means)
         perf_list += _perf_list
 
-        _, means, _perf_list = _plot_partner_perf(model_name, axn.flatten()[3], True, True, **scatter_kwargs)
-        means_list.append(means)
-        perf_list += _perf_list
+        # _, means, _perf_list = _plot_partner_perf(model_name, axn.flatten()[3], True, True, **scatter_kwargs)
+        # means_list.append(means)
+        # perf_list += _perf_list
 
     axn[0,0].legend(handles = patches, fontsize='x-small')
 

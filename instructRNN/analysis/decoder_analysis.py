@@ -117,7 +117,7 @@ def _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks
 
 def test_partner_model(load_folder, model_name, decoded_dict, contexts = None, num_trials=50, tasks = TASK_LIST, partner_seed=3): 
     partner_model = make_default_model(model_name)
-    partner_model.load_state_dict(torch.load(load_folder.split('/')[0]+'/multitask_holdouts/Multitask/'+model_name+'/'+model_name+'_seed'+str(partner_seed)+'.pt'), strict=False)
+    partner_model.load_state_dict(torch.load('7.20models/multitask_holdouts/Multitask/'+model_name+'/'+model_name+'_seed'+str(partner_seed)+'.pt'), strict=False)
     return _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks)
 
 def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_LIST, 
@@ -199,7 +199,7 @@ def test_holdout_partner_perf(foldername, model_name, num_trials = 50,
     for i, seed in enumerate(partner_seeds):
         for holdout_file, holdouts in SWAPS_DICT.items():
             print('processing '+ holdout_file)
-            partner_model.load_model(foldername.split('/')[0]+'/swap_holdouts/'+holdout_file+'/'+partner_model.model_name, suffix='_seed'+str(seed))
+            partner_model.load_model('7.20models/swap_holdouts/'+holdout_file+'/'+partner_model.model_name, suffix='_seed'+str(seed))
             for j, item in enumerate(full_decoded_dict.items()): 
                 decoder_seed, decoded_set = item
                 if decoder_seed == seed: 
@@ -260,10 +260,10 @@ def decoder_pipeline(foldername, model_name, decode_embeddings = False, decoder_
 def get_novel_instruct_ratio(model_name, sm_holdout=False, decoder_holdout=False):
     if sm_holdout: 
         sm_str = 'holdout'
-        folder = '7.20models/swap_holdouts'
+        folder = 'dec_check/swap_holdouts'
     else: 
         sm_str = 'multi'
-        folder = '7.20models/multitask_holdouts'
+        folder = 'dec_check/multitask_holdouts'
 
 
     if decoder_holdout: decoder_str = 'holdout'

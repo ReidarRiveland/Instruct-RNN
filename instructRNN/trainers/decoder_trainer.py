@@ -263,7 +263,6 @@ def check_decoder_trained(file_name, seed, use_holdouts, decode_embeddings):
         return False
 
 def load_checkpoint(model, file_name, seed, use_holdouts, decode_embeddings): 
-
     if use_holdouts: 
         holdouts_suffix = '_wHoldout'
     else: 
@@ -274,7 +273,7 @@ def load_checkpoint(model, file_name, seed, use_holdouts, decode_embeddings):
     else: 
         embed_str = ''
 
-    checkpoint_name = 'rnn_'+embed_str+'decoder_seed'+str(seed)+'_CHECKPOINT'
+    checkpoint_name = 'rnn_'+embed_str+'decoder_seed'+str(seed)+'_CHECKPOINT'+holdouts_suffix
     checkpoint_model_path = file_name+'/'+checkpoint_name+'.pt'
 
     print('\n Attempting to load model CHECKPOINT')

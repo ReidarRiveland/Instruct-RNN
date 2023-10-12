@@ -110,9 +110,8 @@ plot_tuning_curve(sbertNet, ['DMS', 'DNMS', 'DMC', 'DNMC'], unit, [149]*4, num_t
 plot_partner_perf('sbertNetL_lin', figsize=(3, 3), s=12)
 plt.show()
 
-confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_confuse_mat.npy')
+confuse_mat = np.load('dec_check/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_confuse_mat.npy')
 plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), linewidths=0.1, linecolor='#E5E4E2')
-
 
 
 ####SUPPLEMENT####
@@ -192,11 +191,7 @@ t_mat, p_mat, is_sig = calc_t_test('7.20models', 'swap', aux_models, mode='combi
 plot_significance(t_mat, p_mat, aux_models)
 plt.show()
 
-
-
-
 var = plot_task_var_heatmap('7.20models/swap_holdouts/swap1', 'sbertNetL_lin', 1)
-var
 
 
 ###decoder figs
@@ -208,8 +203,6 @@ plt.show()
 confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_confuse_mat.npy')
 plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), linewidths=0.1, linecolor='#E5E4E2')
 
-
-
 get_novel_instruct_ratio('sbertNetL_lin', sm_holdout=False, decoder_holdout=False)
 get_novel_instruct_ratio('sbertNetL_lin', sm_holdout=True, decoder_holdout=False)
 get_novel_instruct_ratio(sm_holdout=True, decoder_holdout=True)
@@ -220,7 +213,6 @@ plt.show()
 
 confuse_mat = get_decoded_vec_cos_sim()
 plot_decoding_confuse_mat(confuse_mat, cos_sim=True)
-
 
 confuse_mat = np.load('7.20models/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_confuse_mat.npy')
 plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), linewidths=0.1, linecolor='#E5E4E2')
