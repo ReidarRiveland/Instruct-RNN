@@ -172,7 +172,7 @@ class DecoderTrainer(BaseTrainer):
                 if j%50==0: 
                     print('Loss: {}'.format(loss.item()))
                     print('Target Vec: {}'.format(str(target_tensor[0, :].detach())))
-                    print('Decoded Vec: {}'.format(str(decoder_output[0,0, :].detach())))
+                    print('Decoded Vec: {}'.format(str(decoder_output[0, :].detach())))
                     self._record_session(decoder, 'CHECKPOINT')
                     
         self._record_session(decoder, 'FINAL')
