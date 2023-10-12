@@ -244,21 +244,37 @@ class DecoderTrainer(BaseTrainer):
             print('Teacher Force Ratio: ' + str(self.teacher_forcing_ratio))
         self._record_session(decoder, 'FINAL')
 
-def check_decoder_trained(file_name, seed, use_holdouts): 
+def check_decoder_trained(file_name, seed, use_holdouts, decode_embeddings): 
     if use_holdouts: 
         holdouts_suffix = '_wHoldout'
     else: 
         holdouts_suffix = ''
 
+    if decode_embeddings: 
+        embed_str = 'embedding_'
+    else: 
+        embed_str = ''
+
     try: 
-        pickle.load(open(file_name+'/rnn_decoder_seed'+str(seed)+'_attrs'+holdouts_suffix, 'rb'))
+        pickle.load(open(file_name+'/rnn_'+embed_str+'decoder_seed'+str(seed)+'_attrs'+holdouts_suffix, 'rb'))
         print('\n Model at ' + file_name + ' for seed '+str(seed)+' and holdouts ' + str(use_holdouts) +' aleady trained')
         return True
     except FileNotFoundError:
         return False
 
 def load_checkpoint(model, file_name, seed): 
-    checkpoint_name = 'rnn_decoder_seed'+str(seed)+'_CHECKPOINT'
+
+    if use_holdouts: 
+        holdouts_suffix = '_wHoldout'
+    else: 
+        holdouts_suffix = ''
+
+    if decode_embeddings: 
+        embed_str = 'embedding_'
+    else: 
+        embed_str = ''
+
+    checkpoint_name = 'rnn_'+embed_str+'decoder_seed'+str(seed)+'_CHECKPOINT'
     checkpoint_model_path = file_name+'/'+checkpoint_name+'.pt'
 
     print('\n Attempting to load model CHECKPOINT')
