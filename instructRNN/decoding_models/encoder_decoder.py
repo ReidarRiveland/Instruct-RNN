@@ -26,10 +26,16 @@ class EncoderDecoder(nn.Module):
         if hasattr(decoder, 'tokenizer'):
             decoder.tokenizer.index2word[2] = '<|endoftext|>'
 
-    def load_model_componenets(self, load_folder, seed, tasks=TASK_LIST, with_holdout=True):
+    def load_model_componenets(self, load_folder, seed, tasks=TASK_LIST, with_holdout=False, decode_embeddings=False):
         suffix = '_seed'+str(seed)
+
+        if with_holdout: 
+            holdout_suffix = '_wHoldout'
+        else: 
+            holdout_suffix = ''
+
         self.sm_model.load_model('7.20models/'+'/'.join(load_folder.split('/')[1:]), suffix=suffix)
-        self.decoder.load_model(load_folder, suffix=suffix)
+        self.decoder.load_model(load_folder, suffix=suffix+holdout_suffix)
         self.init_context_set('7.20models/'+'/'.join(load_folder.split('/')[1:]), seed, tasks)
 
     def init_context_set(self, file_name, seed, tasks, verbose=True):

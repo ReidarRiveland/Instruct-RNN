@@ -136,6 +136,7 @@ class DecoderRNN(nn.Module):
         
     def load_model(self, load_string, suffix=''): 
         self.load_state_dict(torch.load(load_string+'decoders/'+self.decoder_name+suffix+'.pt', map_location=torch.device('cpu')))
+        print('loaded: '+load_string+'decoders/'+self.decoder_name+suffix+'.pt')
 
     def draw_next(self, logits, k_sample=1):
         top_k = logits.topk(k_sample)

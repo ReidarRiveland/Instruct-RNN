@@ -197,6 +197,8 @@ var = plot_task_var_heatmap('7.20models/swap_holdouts/swap1', 'sbertNetL_lin', 1
 ###decoder figs
 mean_perfs, stats_arr = plot_partner_perf('sbertNetL_lin', figsize=(3, 3), s=12)
 
+mean_perfs
+
 plot_significance(stats_arr[0], stats_arr[1], xticklabels=_get_partner_perf_labels(), yticklabels=_get_partner_perf_labels())
 plt.show()
 

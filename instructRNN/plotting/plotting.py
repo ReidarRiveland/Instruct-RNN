@@ -660,9 +660,9 @@ def plot_partner_perf(model_name, decode_embeddings=False, figsize=(4,4), **scat
         means_list.append(means)
         perf_list += _perf_list
 
-        # _, means, _perf_list = _plot_partner_perf(model_name, axn.flatten()[3], True, True, **scatter_kwargs)
-        # means_list.append(means)
-        # perf_list += _perf_list
+        _, means, _perf_list = _plot_partner_perf(model_name, axn.flatten()[3], True, True, **scatter_kwargs)
+        means_list.append(means)
+        perf_list += _perf_list
 
     axn[0,0].legend(handles = patches, fontsize='x-small')
 
