@@ -261,43 +261,38 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='
     plt.tight_layout()
     return fig, axn
 
-def plot_significance(t_mat, p_mat, model_list=None, xticklabels=None, yticklabels=None, **heatmap_kwargs): 
+def plot_significance(t_mat, p_mat, model_list=None, fig_size = (6, 4), labelsize = 4, xticklabels=None, yticklabels=None, **heatmap_kwargs): 
     labels = []
     for p in p_mat.flatten(): 
-
         if p < 0.001: 
-            labels.append('***')
-        elif p<=0.01: 
-            labels.append('**')
-        elif p<=0.05: 
-            labels.append('*')
-        elif p >= 0.05: 
-            labels.append('n.s.')
+            labels.append('p<0.001')
+        elif p == 1: 
+            labels.append('')
         else: 
-            labels.append(str(p))
-            print(p)
-    try:
-        mask = np.zeros_like(t_mat)
-        mask[np.triu_indices_from(mask)] = True
-        mask[np.diag_indices_from(mask)] = False
-        t_mat = np.where(mask, np.full_like(t_mat, np.nan), t_mat)
-        labels = np.array(labels).reshape((len(model_list), len(model_list)))
-
-    except ValueError: 
-        mask = None
-        labels = np.array(labels)[None, :]
+            labels.append('p={:.3f}'.format(p))
 
     if model_list is not None: 
         model_names = [MODEL_STYLE_DICT[model_name][2] for model_name in model_list]
         yticklabels = model_names
         xticklabels = model_names
 
-    with sns.plotting_context(rc={ 'xtick.labelsize': 4,'ytick.labelsize': 4}):
+    try:
+        mask = np.zeros_like(t_mat)
+        mask[np.triu_indices_from(mask)] = True
+        mask[np.diag_indices_from(mask)] = False
+        t_mat = np.where(mask, np.full_like(t_mat, np.nan), t_mat)
+        labels = np.array(labels).reshape((len(xticklabels), len(yticklabels)))
 
+    except ValueError: 
+        mask = None
+        labels = np.array(labels)[None, :]
+
+    with sns.plotting_context(rc={ 'xtick.labelsize': labelsize,'ytick.labelsize': labelsize}):
+        fig, axn = plt.subplots(1, 1, figsize =fig_size)
         sns.heatmap(t_mat, linecolor='white', linewidths=1, cbar=True, fmt='', 
-                    cbar_kws={'label': 't-value'}, mask=mask, 
+                    cbar_kws={'label': 't-value'}, mask=mask, ax=axn,
                     xticklabels=xticklabels, yticklabels=yticklabels, 
-                    annot=labels, annot_kws={'fontweight': 'bold', 'fontsize':'14'}, 
+                    annot=labels,annot_kws={'fontweight': 'bold', 'fontsize':'6'}, 
                     **heatmap_kwargs)
 
 
@@ -592,16 +587,16 @@ def plot_decoding_confuse_mat(confusion_mat, cmap='Blues', cos_sim=False, **heat
     res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 5)
     plt.show()
 
-def _plot_partner_perf(model_name, axn, sm_holdout, decoder_holdout, decode_embeddings=False, **scatter_kwargs):
+def _plot_partner_perf(foldername, model_name, axn, sm_holdout, decoder_holdout, decode_embeddings=False, **scatter_kwargs):
     mode_dict = {'All Instructions': ('all_perf', '#0392cf'), 'Novel Instructions': ('other_perf', '#7bc043'), 'Embeddings': ('context_perf','#edc951')}
     multi_holdout_formatting = {'multi': { 'edgecolor':'white'}, 'holdout': {'edgecolor':'white', 'marker':'d'}}
 
     if sm_holdout: 
         sm_str = 'holdout'
-        folder = 'dec_check/swap_holdouts'
+        folder = foldername+'/swap_holdouts'
     else: 
         sm_str = 'multi'
-        folder = 'dec_check/multitask_holdouts'
+        folder = foldername+'/multitask_holdouts'
 
     if decoder_holdout: 
         decoder_str = 'holdout'
@@ -645,22 +640,22 @@ def _plot_partner_perf(model_name, axn, sm_holdout, decoder_holdout, decode_embe
 
     return patches, means_list, perf_list
 
-def plot_partner_perf(model_name, decode_embeddings=False, figsize=(4,4), **scatter_kwargs):
+def plot_partner_perf(foldername, model_name, decode_embeddings=False, figsize=(4,4), **scatter_kwargs):
     fig, axn = plt.subplots(2, 2, sharex=True, figsize =figsize)
     means_list = []
     perf_list = [] 
 
-    patches, means, _perf_list = _plot_partner_perf(model_name, axn.flatten()[0], False, False, decode_embeddings=decode_embeddings, **scatter_kwargs)
+    patches, means, _perf_list = _plot_partner_perf(foldername, model_name, axn.flatten()[0], False, False, decode_embeddings=decode_embeddings, **scatter_kwargs)
     means_list.append(means)
     perf_list += _perf_list
 
     if not decode_embeddings: 
         axn.flatten()[1].axis('off')
-        _, means, _perf_list = _plot_partner_perf(model_name, axn.flatten()[2], True, False, **scatter_kwargs)
+        _, means, _perf_list = _plot_partner_perf(foldername, model_name, axn.flatten()[2], True, False, **scatter_kwargs)
         means_list.append(means)
         perf_list += _perf_list
 
-        _, means, _perf_list = _plot_partner_perf(model_name, axn.flatten()[3], True, True, **scatter_kwargs)
+        _, means, _perf_list = _plot_partner_perf(foldername, model_name, axn.flatten()[3], True, True, **scatter_kwargs)
         means_list.append(means)
         perf_list += _perf_list
 

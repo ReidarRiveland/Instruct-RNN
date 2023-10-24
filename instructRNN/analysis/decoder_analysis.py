@@ -117,7 +117,7 @@ def _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks
 
 def test_partner_model(load_folder, model_name, decoded_dict, contexts = None, num_trials=50, tasks = TASK_LIST, partner_seed=3): 
     partner_model = make_default_model(model_name)
-    partner_model.load_state_dict(torch.load('7.20models/multitask_holdouts/Multitask/'+model_name+'/'+model_name+'_seed'+str(partner_seed)+'.pt'), strict=False)
+    partner_model.load_state_dict(torch.load(load_folder.split('/')[0]+'/multitask_holdouts/Multitask/'+model_name+'/'+model_name+'_seed'+str(partner_seed)+'.pt'), strict=False)
     return _test_partner_model(partner_model, decoded_dict, num_trials, contexts, tasks)
 
 def test_multi_partner_perf(foldername, model_name, num_trials=50, tasks = TASK_LIST, 
@@ -199,7 +199,7 @@ def test_holdout_partner_perf(foldername, model_name, num_trials = 50,
     for i, seed in enumerate(partner_seeds):
         for holdout_file, holdouts in SWAPS_DICT.items():
             print('processing '+ holdout_file)
-            partner_model.load_model('7.20models/swap_holdouts/'+holdout_file+'/'+partner_model.model_name, suffix='_seed'+str(seed))
+            partner_model.load_model(foldername+holdout_file+'/'+partner_model.model_name, suffix='_seed'+str(seed))
             for j, item in enumerate(full_decoded_dict.items()): 
                 decoder_seed, decoded_set = item
                 if decoder_seed == seed: 
@@ -307,8 +307,8 @@ def collapse_decoded_dict(decoded_dict):
 
     return col_dict
 
-def get_decoded_vec_cos_sim(): 
-    decoded_vecs = pickle.load(open('7.20models/multitask_holdouts/decoder_perf/combNet/test_sm_multi_decoder_multi_shallow_instructs_dict', 'rb'))
+def get_decoded_vec_cos_sim(foldername): 
+    decoded_vecs = pickle.load(open(foldername+'/multitask_holdouts/decoder_perf/combNet/test_sm_multi_decoder_multi_shallow_instructs_dict', 'rb'))
     rich_vec_mat = np.array([construct_trials(task).rich_vector for task in TASK_LIST])
 
     sim_mat = np.full((5, 50, 50), np.nan)

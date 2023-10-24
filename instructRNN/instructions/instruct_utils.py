@@ -18,7 +18,7 @@ def inv_instruct_dict(instruct_dict):
 try:
     INSTRUCT_PATH = os.environ['MODEL_FOLDER']+'/instructs/'
 except KeyError:
-    INSTRUCT_PATH = '7.20models/instructs/'
+    INSTRUCT_PATH = 'NN_simData/instructs/'
     
 train_instruct_dict = pickle.load(open(INSTRUCT_PATH+'train_instruct_dict', 'rb'))
 test_instruct_dict = pickle.load(open(INSTRUCT_PATH+'test_instruct_dict', 'rb'))
