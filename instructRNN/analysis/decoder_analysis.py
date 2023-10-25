@@ -257,13 +257,13 @@ def decoder_pipeline(foldername, model_name, decode_embeddings = False, decoder_
                                         decoder_holdouts=decoder_holdout, sm_holdouts=sm_holdout, save=True)
 
 
-def get_novel_instruct_ratio(model_name, sm_holdout=False, decoder_holdout=False):
+def get_novel_instruct_ratio(foldername, model_name, sm_holdout=False, decoder_holdout=False):
     if sm_holdout: 
         sm_str = 'holdout'
-        folder = 'dec_check/swap_holdouts'
+        folder = foldername+'/swap_holdouts'
     else: 
         sm_str = 'multi'
-        folder = 'dec_check/multitask_holdouts'
+        folder = foldername+'/multitask_holdouts'
 
 
     if decoder_holdout: decoder_str = 'holdout'

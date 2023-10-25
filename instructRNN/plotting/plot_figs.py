@@ -112,6 +112,10 @@ confuse_mat = np.load('NN_simData/multitask_holdouts/decoder_perf/sbertNetL_lin/
 plot_decoding_confuse_mat(np.round(np.mean(confuse_mat, axis=0)/50, 2), linewidths=0.1, linecolor='#E5E4E2')
 
 
+get_novel_instruct_ratio('NN_simData', 'sbertNetL_lin')
+get_novel_instruct_ratio('NN_simData', 'sbertNetL_lin', sm_holdout=True)
+get_novel_instruct_ratio('NN_simData', 'sbertNetL_lin', sm_holdout=True, decoder_holdout=True)
+
 ####SUPPLEMENT####
 
 ##ALL MODEL LEARNING CURVES
@@ -272,18 +276,18 @@ plt.show()
 
 ###additional decoders 
 mean_perfs, stats = plot_partner_perf('NN_simData', 'sbertNetL_lin', figsize=(3, 3), s=12)
-plot_significance(stats[0], stats[1], fig_size = (14, 3), xticklabels=_get_partner_perf_labels(), yticklabels=_get_partner_perf_labels())
+plot_significance(stats[0], stats[1], fig_size = (14, 3), xticklabels=_get_partner_perf_labels(), yticklabels=_get_partner_perf_labels(), labelsize=8)
 plt.show()
 
 mean_perfs, stats_comb = plot_partner_perf('NN_simData', 'combNet', figsize=(3, 3), s=12)
-plot_significance(stats_comb[0], stats_comb[1], fig_size = (14, 3), xticklabels=_get_partner_perf_labels(), yticklabels=_get_partner_perf_labels())
+plot_significance(stats_comb[0], stats_comb[1], fig_size = (14, 3), xticklabels=_get_partner_perf_labels(), yticklabels=_get_partner_perf_labels(), labelsize=8)
 plt.show()
 
 confuse_mat = get_decoded_vec_cos_sim('NN_simData')
 plot_decoding_confuse_mat(confuse_mat, cos_sim=True)
 
 mean_perfs, stats_emb = plot_partner_perf('NN_simData','sbertNetL_lin', figsize=(3, 3), s=12, decode_embeddings=True)
-plot_significance(stats_emb[0][:6, :6], stats_emb[1][:6,:6], fig_size = (14, 3), xticklabels=_get_partner_perf_labels()[:6], yticklabels=_get_partner_perf_labels()[:6])
+plot_significance(stats_emb[0][:6, :6], stats_emb[1][:6,:6], fig_size = (14, 3), xticklabels=_get_partner_perf_labels()[:6], yticklabels=_get_partner_perf_labels()[:6], labelsize=8)
 plt.show()
 
 confuse_mat = np.load('NN_simData/multitask_holdouts/decoder_perf/sbertNetL_lin/test_sm_multi_decoder_multi_confuse_matfrom_embeddings.npy')
