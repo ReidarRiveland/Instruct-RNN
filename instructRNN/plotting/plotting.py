@@ -249,7 +249,6 @@ def plot_all_task_lolli_v(foldername, exp_type, model_list, marker = 'o', mode='
         axn.scatter(x_mark,  zero_shot, color=color, s=3, marker=marker)
         if model_name in ['rawBertNet_lin', 'bowNetPlus', 'simpleNetPlus', 'combNetPlus']: linestyle = '--'
         else: linestyle = '-'
-        #print(np.min(np.ones_like(zero_shot), zero_shot+std))
         axn.vlines(x_mark, ymin=zero_shot-std, ymax=np.minimum(np.ones_like(zero_shot), zero_shot+std), color=color, linewidth=0.8, linestyle=linestyle, **kwargs)
         axn.vlines(x_mark, ymin=0, ymax=zero_shot, color=color, linewidth=0.5, linestyle=linestyle, alpha=0.5, **kwargs)
 
