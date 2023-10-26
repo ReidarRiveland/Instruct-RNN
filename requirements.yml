@@ -44,7 +44,7 @@ dependencies:
   - brotlipy=0.7.0=py37h27cfd23_1003
   - bzip2=1.0.8=h7b6447c_0
   - c-ares=1.18.1=h7f8727e_0
-  - ca-certificates=2022.4.26=h06a4308_0
+  - ca-certificates=2022.07.19=h06a4308_0
   - cairo=1.16.0=hf32fb01_1
   - catalogue=1.0.0=py37_1
   - cffi=1.14.6=py37h400218f_0
@@ -232,7 +232,7 @@ dependencies:
   - olefile=0.46=py37_0
   - openh264=2.1.1=h4ff587b_0
   - openpyxl=3.0.9=pyhd3eb1b0_0
-  - openssl=1.1.1o=h7f8727e_0
+  - openssl=1.1.1q=h7f8727e_0
   - packaging=21.3=pyhd3eb1b0_0
   - pandas=1.2.4=py37h2531618_0
   - pandoc=2.12=h06a4308_0
@@ -256,6 +256,7 @@ dependencies:
   - pkginfo=1.7.1=py37h06a4308_0
   - plac=0.9.6=py37_1
   - platformdirs=2.4.0=pyhd3eb1b0_0
+  - plotly=5.9.0=py37h06a4308_0
   - pluggy=1.0.0=py37h06a4308_0
   - ply=3.11=py37_0
   - poyo=0.5.0=pyhd3eb1b0_0
@@ -351,6 +352,7 @@ dependencies:
   - sympy=1.9=py37h06a4308_0
   - tbb=2021.5.0=hd09550d_0
   - tblib=1.7.0=pyhd3eb1b0_0
+  - tenacity=8.0.1=py37h06a4308_1
   - tensorboard=1.14.0=py37hf484d3e_0
   - terminado=0.9.4=py37h06a4308_0
   - testpath=0.5.0=pyhd3eb1b0_0
@@ -404,6 +406,7 @@ dependencies:
   - zstd=1.4.9=haebb681_0
   - pip:
     - atari-py==0.2.6
+    - bcrypt==4.0.1
     - boto3==1.9.252
     - botocore==1.12.252
     - bz2file==0.98
@@ -415,18 +418,21 @@ dependencies:
     - fse==1.0.0
     - ftfy==6.1.1
     - gensim==4.2.0
-    - huggingface-hub==0.4.0
+    - huggingface-hub==0.16.4
     - instructrnn==0.1.0
     - langcodes==3.3.0
     - opencv-python==4.6.0.66
+    - paramiko==3.0.0
     - pip==22.1.2
+    - pynacl==1.5.0
     - s3transfer==0.2.1
     - sacremoses==0.0.47
+    - scp==0.14.5
     - sentence-transformers==2.2.0
     - sentencepiece==0.1.96
     - smart-open==2.0.0
     - tokenizers==0.11.6
-    - transformers==4.16.2
+    - transformers==4.25.1
     - urllib3==1.25.11
     - wordfreq==3.0.1
 prefix: /home/reidar/anaconda3/envs/instructRNN
