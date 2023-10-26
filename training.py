@@ -7,8 +7,6 @@ from instructRNN.analysis.model_eval import get_holdout_all_comp_perf, get_multi
 def make_training_jobs(exp, models, seeds, holdouts, job_index):
     if exp == 'swap': 
         _holdout_dict = SWAPS_DICT
-    elif args.exp == 'aligned': 
-        _holdout_dict = ALIGNED_DICT
     elif args.exp == 'family': 
         _holdout_dict = FAMILY_DICT
     elif args.exp == 'multitask': 
