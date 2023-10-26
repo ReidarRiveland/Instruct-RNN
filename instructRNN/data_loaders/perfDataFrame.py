@@ -233,7 +233,7 @@ class PerfDataFrame():
         super().__setattr__('data', data)
 
 
-def load_all_comp_perf(model_name, foldername='7.20models/swap_holdouts'):
+def load_all_comp_perf(model_name, foldername='NN_simData/swap_holdouts'):
     all_comp_array = np.full((5, 50, 117_600), np.NaN)
 
     for seed in range(5): 

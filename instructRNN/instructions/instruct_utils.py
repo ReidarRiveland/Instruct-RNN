@@ -32,7 +32,6 @@ def get_all_sentences():
     return all_sentences
 
 def sort_vocab(): 
-    #combined_instruct= {key: list(train_instruct_dict[key]) + list(test_instruct_dict[key]) for key in train_instruct_dict}
     all_sentences = get_all_sentences()
     sorted_vocab = sorted(list(set(' '.join(all_sentences).split(' '))))
     return sorted_vocab

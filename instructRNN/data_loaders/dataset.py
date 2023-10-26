@@ -12,7 +12,7 @@ class TaskDataSet():
         self.stream = stream
         self.batch_len = batch_len
         self.num_batches = num_batches
-        self.data_folder = '7.20models/'
+        self.data_folder = 'NN_simData/'
         self.holdouts = holdouts
 
         if set_single_task is None: 

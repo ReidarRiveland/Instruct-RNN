@@ -1,7 +1,7 @@
 from instructRNN.models.language_models import GPT, BERT, SBERT, CLIP, RawBERT, BoW
 from instructRNN.models.sensorimotor_models import RuleModelConfig, InstructModelConfig, RuleNet, InstructNet
 
-all_models = ['simpleNet', 'simpleNetPlus', 'combNet', 'combNetPlus', 'simpleSbert',
+all_models = ['simpleNet', 'simpleNetPlus', 'combNet', 'combNetPlus', 
 
             'gptNetXL', 'gptNetXL_lin', 'gptNetXL_lin_tuned', 'gptNetXL_L_lin', 
 
@@ -11,7 +11,7 @@ all_models = ['simpleNet', 'simpleNetPlus', 'combNet', 'combNetPlus', 'simpleSbe
 
             'sbertNet', 'sbertNet_lin', 'sbertNet_lin_tuned',
 
-            'sbertNetL', 'sbertNetL_lin', 'sbertNetL_lin_tuned', 'sbertSbert', 
+            'sbertNetL', 'sbertNetL_lin', 'sbertNetL_lin_tuned',
 
             'clipNetS', 'clipNetS_lin', 'clipNetS_lin_tuned', 
             
@@ -31,7 +31,7 @@ nonlin_models = [model_name for model_name in all_models if 'lin' not in model_n
 big_models
 class SimpleNet(RuleNet):
     def __init__(self, **kw_args):
-        config = RuleModelConfig(**kw_args)
+        config = RuleModelConfig('simpleNet', **kw_args)
         super().__init__(config)
 
 class CombNet(RuleNet): 
@@ -226,9 +226,6 @@ def make_default_model(model_str):
         return SBERTNetL(model_name = model_str, 
                         LM_output_nonlinearity = 'lin', 
                         LM_train_layers = ['21', '22', '23', 'pooler'])
-        
-    if model_str == 'simpleSbert': 
-        return SimpleNet(model_name = model_str)
 
     if model_str == 'clipNet': 
         return CLIPNet(model_name = model_str, 

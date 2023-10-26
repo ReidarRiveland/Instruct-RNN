@@ -156,32 +156,6 @@ def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'):
         explained_variance = None
     return embedded[..., pcs], explained_variance
 
-def get_layer_sim_scores(model, rep_depth='12', dist = 'pearson'): 
-    if rep_depth.isnumeric(): 
-        rep_dim = model.langModel.LM_intermediate_lang_dim
-    if rep_depth =='full': 
-        rep_dim = model.langModel.LM_out_dim
-    
-    if rep_depth == 'task': 
-        rep_dim = model.rnn_hidden_dim
-
-    if rep_depth == 'rule_encoder': 
-        rep_dim = model.rule_dim
-    
-    if rep_depth == 'task': 
-        reps = get_task_reps(model, num_trials=32)
-    if rep_depth == 'full' or rep_depth.isnumeric(): 
-        reps = get_instruct_reps(model.langModel, depth=rep_depth)
-    if rep_depth == 'rule_encoder': 
-        reps = get_rule_embedder_reps(model)
-
-    if dist == 'pearson': 
-        sim_scores = 1-cosine_similarity(reps.reshape(-1, rep_dim))
-    else: 
-        sim_scores = 1-cosine_similarity(reps.reshape(-1, rep_dim))
-    
-    return sim_scores
-
 def get_DM_perf(model, noises, diff_strength, num_repeats=100, mod=0, task='DM'):
     num_trials = len(diff_strength)
     pstim1_stats = np.empty((num_repeats, len(noises), num_trials), dtype=bool)
