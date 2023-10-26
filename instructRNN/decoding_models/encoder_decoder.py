@@ -11,6 +11,8 @@ from collections import defaultdict
 from instructRNN.tasks.tasks import TASK_LIST, construct_trials
 from instructRNN.tasks.task_criteria import isCorrect
 from instructRNN.instructions.instruct_utils import inv_train_instruct_dict, get_instructions
+from instructRNN.decoding_models.decoder_models import DecoderRNN
+
 
 class EncoderDecoder(nn.Module): 
     def __init__(self, sm_model, decoder): 
@@ -21,19 +23,20 @@ class EncoderDecoder(nn.Module):
         self.sm_model.eval()
         self.decoder.eval()
 
-        decoder.tokenizer.index2word[2] = '<|endoftext|>'
+        if hasattr(decoder, 'tokenizer'):
+            decoder.tokenizer.index2word[2] = '<|endoftext|>'
 
-    def load_model_componenets(self, load_folder, seed, tasks=TASK_LIST, with_holdout=False):
+    def load_model_componenets(self, load_folder, seed, tasks=TASK_LIST, with_holdout=False, decode_embeddings=False):
         suffix = '_seed'+str(seed)
 
-        if with_holdout:
-            decoder_suffix = suffix + '_wHoldout'
+        if with_holdout: 
+            holdout_suffix = '_wHoldout'
         else: 
-            decoder_suffix = suffix
+            holdout_suffix = ''
 
-        self.sm_model.load_model(load_folder, suffix=suffix)
-        self.decoder.load_model(load_folder, suffix=decoder_suffix)
-        self.init_context_set(load_folder, seed, tasks)
+        self.sm_model.load_model('7.20models/'+'/'.join(load_folder.split('/')[1:]), suffix=suffix)
+        self.decoder.load_model(load_folder, suffix=suffix+holdout_suffix)
+        self.init_context_set('7.20models/'+'/'.join(load_folder.split('/')[1:]), seed, tasks)
 
     def init_context_set(self, file_name, seed, tasks, verbose=True):
         context_dim = 64
@@ -62,24 +65,27 @@ class EncoderDecoder(nn.Module):
 
                     ins, _, _, _, _ = construct_trials(task, num_trials, noise=0)
 
-                    if from_contexts: 
+                    if from_contexts and self.decoder.decode_embeddings: 
+                        sm_hidden = torch.Tensor(self.contexts[TASK_LIST.index(task), :25, :]).repeat(2,1).to(self.sm_model.__device__)
+                    elif from_contexts: 
                         task_info = torch.Tensor(self.contexts[TASK_LIST.index(task), :25, :]).repeat(2,1).to(self.sm_model.__device__)
-                        _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), context=task_info)
+                        _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), info_embedded=task_info)
                     else: 
                         task_info = get_instructions(num_trials, task, None)
                         _, sm_hidden = self.sm_model(torch.Tensor(ins).to(self.sm_model.__device__), task_info)
                     
                     decoded_sentences = self.decoder.decode_sentence(sm_hidden) 
                     shallow_decoded_set[task] = decoded_sentences
-                    for instruct in decoded_sentences:
-                        try: 
-                            decoded_task = inv_train_instruct_dict[instruct]
-                            tasks_decoded[decoded_task].append(instruct)
-                            confusion_mat[i, TASK_LIST.index(decoded_task)] += 1
-                        except KeyError:
-                            tasks_decoded['other'].append(instruct)
-                            confusion_mat[i, -1] += 1
-                    rich_decoded_set[task] = tasks_decoded
-
+                    
+                    if isinstance(self.decoder, DecoderRNN):
+                        for instruct in decoded_sentences:
+                            try: 
+                                decoded_task = inv_train_instruct_dict[instruct]
+                                tasks_decoded[decoded_task].append(instruct)
+                                confusion_mat[i, TASK_LIST.index(decoded_task)] += 1
+                            except KeyError:
+                                tasks_decoded['other'].append(instruct)
+                                confusion_mat[i, -1] += 1
+                        rich_decoded_set[task] = tasks_decoded
         return shallow_decoded_set, rich_decoded_set, confusion_mat
 

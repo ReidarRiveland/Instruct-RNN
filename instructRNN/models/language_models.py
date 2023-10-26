@@ -8,10 +8,10 @@ import pathlib
 
 from transformers import GPT2Model, GPT2Tokenizer
 from transformers import CLIPTokenizer, CLIPTextModel
-from transformers import BertModel, BertTokenizer
+from transformers import BertModel, BertTokenizer, BertLayer, BertConfig
+from transformers import AutoModel, AutoTokenizer
 
 from instructRNN.instructions.instruct_utils import get_all_sentences, sort_vocab
-
 from transformers import logging
 logging.set_verbosity_error()
 
@@ -57,15 +57,18 @@ class InstructionEmbedder(nn.Module):
                 nn.Linear(self.LM_intermediate_lang_dim, self.LM_out_dim), 
                 self._output_nonlinearity)
         else:
-            layers_list = [(nn.Linear(128, 128), nn.ReLU()) for _ in range(self.LM_proj_out_layers)]
-            layers = list(itertools.chain(*layers_list))
-            self.proj_out= nn.Sequential(
-                nn.Linear(self.LM_intermediate_lang_dim, 128), 
-                self._output_nonlinearity, 
-                *layers,
-                nn.Linear(128, self.LM_out_dim), 
-                self._output_nonlinearity,
-                )
+            layer_list = []
+            layer_list.append(nn.Linear(self.LM_intermediate_lang_dim, 256)) 
+            layer_list.append(self._output_nonlinearity)
+
+            for _ in range(self.LM_proj_out_layers-2):
+                layer_list.append(nn.Linear(256, 256)) 
+                layer_list.append(self._output_nonlinearity)
+
+            layer_list.append(nn.Linear(256, self.LM_out_dim)) 
+            layer_list.append(self._output_nonlinearity)
+            
+            self.proj_out= nn.Sequential(*layer_list)
 
     def set_train_layers(self, train_layers): 
         all_train_layers = train_layers+['proj_out']
@@ -102,6 +105,7 @@ class TransformerEmbedder(InstructionEmbedder):
     def forward(self, x): 
         return self.proj_out(self.forward_transformer(x)[0])
 
+
 class BERT(TransformerEmbedder):
     def __init__(self, config): 
         super().__init__(config)
@@ -111,22 +115,46 @@ class BERT(TransformerEmbedder):
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
+class RawBertTransformer(nn.Module): 
+    def __init__(self, n_layers, LM_load_str): 
+        super(RawBertTransformer, self).__init__()
+        self.bert_config = BertConfig()
+        self.n_layers = n_layers
+        self.embeddings = BertModel.from_pretrained(LM_load_str, output_hidden_states=True).embeddings
+        self.layers = nn.ModuleList([BertLayer(self.bert_config)]*self.n_layers)
+
+    def forward(self, x): 
+        all_hiddens = []
+        x = self.embeddings(x['input_ids'])
+        all_hiddens.append(x)
+        for layer in self.layers: 
+            x = layer(x)[0]
+            all_hiddens.append(x)
+
+        return x, tuple(all_hiddens)
+
+class RawBERT(TransformerEmbedder):
+    def __init__(self, config): 
+        super().__init__(config)
+        self.transformer = RawBertTransformer(2, self.LM_load_str)
+        self.tokenizer = BertTokenizer.from_pretrained(self.LM_load_str)
+        self.LM_intermediate_lang_dim = self.transformer.bert_config.hidden_size
+        self.set_train_layers(self.LM_train_layers)
+        self.__init_proj_out__()
+
+    def forward_transformer(self, x): 
+        tokens = self.tokens_to_tensor(x)
+        trans_out = self.transformer(tokens)
+        return self._reducer(trans_out[0]), trans_out[1]
+
 class SBERT(TransformerEmbedder): 
     def __init__(self, config): 
         super().__init__(config)
-        self.transformer = BertModel.from_pretrained('bert-base-uncased', output_hidden_states=True)
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        self.transformer = AutoModel.from_pretrained(self.LM_load_str, output_hidden_states=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
-        self.transformer.load_state_dict(self._convert_state_dict_format(location+'/_pretrained_state_dicts/'+self.LM_load_str))
-
-    def _convert_state_dict_format(self, state_dict_file): 
-        sbert_state_dict = torch.load(state_dict_file, map_location='cpu')
-        for key in list(sbert_state_dict.keys()):
-            sbert_state_dict[key.replace('0.auto_model.', '')] = sbert_state_dict.pop(key)
-        return sbert_state_dict
-
 
 class GPT(TransformerEmbedder): 
     def __init__(self, config): 
@@ -144,14 +172,13 @@ class CLIP(TransformerEmbedder):
         self.transformer = CLIPTextModel.from_pretrained(self.LM_load_str, output_hidden_states=True)
         self.tokenizer = CLIPTokenizer.from_pretrained(self.LM_load_str)
         self.LM_intermediate_lang_dim = self.transformer.config.hidden_size
-        self._reducer = mean_embedding
         self.set_train_layers(self.LM_train_layers)
         self.__init_proj_out__()
 
-    def forward_transformer(self, x):
+    def forward_transformer(self, x): 
         tokens = self.tokens_to_tensor(x)
-        trans_out = self.transformer(**tokens, output_hidden_states=True)
-        return trans_out.pooler_output, trans_out.hidden_states
+        trans_out = self.transformer(**tokens)
+        return trans_out.pooler_output, trans_out[2]
 
 class BoW(InstructionEmbedder): 
     VOCAB = sort_vocab()
@@ -174,3 +201,4 @@ class BoW(InstructionEmbedder):
         freq_tensor = torch.stack(tuple(map(self._make_freq_tensor, x))).to(self.__device__)
         bow_out = self.proj_out(freq_tensor).to(self.__device__)
         return bow_out
+

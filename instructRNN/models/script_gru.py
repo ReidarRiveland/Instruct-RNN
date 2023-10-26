@@ -54,7 +54,6 @@ class scriptGRULayer(jit.ScriptModule):
         inputs = input.unbind(1)
         outputs = jit.annotate(List[Tensor], [])
         for i in range(len(inputs)):
-            #hx = self.cell(inputs[i], hx)*self.inactiv_mask
             hx = self.cell(inputs[i], hx)
             outputs.append(hx)
         return torch.stack(outputs), hx

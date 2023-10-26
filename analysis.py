@@ -2,8 +2,9 @@ import os
 import numpy as np
 import itertools
 import instructRNN.models.full_models as full_models
+from instructRNN.tasks.tasks import SWAPS_DICT
 from instructRNN.analysis.model_analysis import get_holdout_CCGP, get_multitask_CCGP,  get_model_clusters
-from instructRNN.analysis.model_eval import get_val_perf, get_multi_comp_perf, get_holdout_comp_perf
+from instructRNN.analysis.model_eval import get_val_perf, get_multi_all_comp_perf, get_holdout_all_comp_perf
 from instructRNN.analysis.decoder_analysis import decoder_pipeline
 
 
@@ -17,7 +18,7 @@ if __name__ == "__main__":
     parser.add_argument('--seeds', type=int, default=range(5), nargs='+', help='random seeds to use when training')
     parser.add_argument('--layers', default=[layer for layer in range(1, 13)] + ['full', 'task'], nargs='+')
     parser.add_argument('--overwrite', default=False, action='store_true', help='whether or not to overwrite existing files')
-
+    parser.add_argument('--decode_embeddings', default=False, action='store_true', help='use a decoder that directly maps embeddings to instructions')
     parser.add_argument('--job_index', type=int, help='for use with slurm sbatch script, indexes the combination of seed and holdout tasks along with the model')
     args = parser.parse_args()
 
@@ -35,18 +36,19 @@ if __name__ == "__main__":
     if args.mode == 'decode':
         model_name = args.models[0]
         print('processing multitask')
-        decoder_pipeline('7.20models/multitask_holdouts', args.models[0])
-
-        print('processing sm holdouts')
-        decoder_pipeline('7.20models/swap_holdouts', args.models[0], sm_holdout=True)
+        decoder_pipeline(MODEL_FOLDER+'/multitask_holdouts', args.models[0], decode_embeddings=args.decode_embeddings)
         
-        print('processing sm holdouts and decoder holdouts')
-        decoder_pipeline('7.20models/swap_holdouts', args.models[0], sm_holdout=True, decoder_holdout=True)
+        if not args.decode_embeddings:
+            print('processing sm holdouts')
+            decoder_pipeline(MODEL_FOLDER+'/swap_holdouts', args.models[0], sm_holdout=True)
+        
+            print('processing sm holdouts and decoder holdouts')
+            decoder_pipeline(MODEL_FOLDER+'/swap_holdouts', args.models[0], sm_holdout=True, decoder_holdout=True)
 
     jobs = make_analysis_jobs(args.models, args.seeds, args.layers, args.job_index)
     for job in jobs: 
         _seed, model, layer = job
-        if model in full_models.big_models and isinstance(layer, int):
+        if (model in full_models.big_models or 'sbertNetL' in model) and isinstance(layer, int):
             layer += 12
         
         print(EXP_FOLDER)
@@ -72,6 +74,9 @@ if __name__ == "__main__":
 
         elif args.mode == 'clusters':
             get_model_clusters(EXP_FOLDER, model, _seed, save=True)
+
+
+
                 
 
 

@@ -9,13 +9,11 @@ import pickle
 from scipy.stats import ortho_group
 from collections import OrderedDict
 
-
 from instructRNN.models.script_gru import ScriptGRU
 from instructRNN.tasks.tasks import TASK_LIST, construct_trials
 from instructRNN.models.language_models import InstructionEmbedder, LMConfig
 from instructRNN.tasks.task_factory import INPUT_DIM, OUTPUT_DIM, TRIAL_LEN
-from instructRNN.instructions.instruct_utils import get_input_rule, get_instructions, one_hot_input_rule
-import instructRNN.analysis.model_analysis as analysis
+from instructRNN.instructions.instruct_utils import get_input_rule, get_instructions, one_hot_input_rule, get_comb_rule
 
 SENSORY_INPUT_DIM = INPUT_DIM
 MOTOR_OUTPUT_DIM = OUTPUT_DIM
@@ -23,7 +21,7 @@ location = str(pathlib.Path(__file__).parent.absolute())
 
 @define
 class BaseModelConfig(): 
-    model_name: str 
+    model_name: str = None 
 
     rnn_hidden_dim: int = 256
     rnn_layers: int = 1
@@ -130,6 +128,23 @@ class BaseNet(nn.Module):
         self.load_state_dict(torch.load(file_path+'/'+self.model_name+suffix+'.pt', 
                 map_location='cpu'), strict=False)
 
+    def load_recurrent_units(self, file_path, suffix=''): 
+        tmp_state_dict = torch.load(file_path+suffix+'.pt')
+        rnn_state_dict = OrderedDict()
+        for name, params in tmp_state_dict.items(): 
+            if 'recurrent_units.' in name and 'ih' not in name: 
+                print(name)
+                new_name = name.replace('recurrent_units.', '')
+                rnn_state_dict[new_name] = params
+        self.recurrent_units.load_state_dict(rnn_state_dict, strict=False)
+
+        sensory_out_state_dict = OrderedDict()
+        for name, params in tmp_state_dict.items(): 
+            if 'sensory_motor_outs.' in name: 
+                new_name = name.replace('sensory_motor_outs.', '')
+                sensory_out_state_dict[new_name] = params
+        self.sensory_motor_outs.load_state_dict(sensory_out_state_dict)
+
     def to(self, cuda_device): 
         super().to(cuda_device)
         self.recurrent_units._mask_to(cuda_device)
@@ -157,6 +172,8 @@ class RuleEncoder(nn.Module):
 class RuleNet(BaseNet):
     def __init__(self, config):
         super().__init__(config)
+        if self.info_type == 'comb': self.num_tasks = 10
+
         self.rule_transform = nn.Parameter(self.gen_ortho_rules(), requires_grad=False)
 
         if self.add_rule_encoder: 
@@ -170,7 +187,11 @@ class RuleNet(BaseNet):
         return torch.tensor(ortho)
 
     def get_comp_task_rep(self, reference_tasks, batch_size):
-        task_infos = [one_hot_input_rule(batch_size, task) for task in reference_tasks]
+        if self.info_type == 'comb':
+            task_infos = [get_comb_rule(batch_size, task) for task in reference_tasks]
+        else: 
+            task_infos = [one_hot_input_rule(batch_size, task) for task in reference_tasks]
+
         comp_rule = torch.tensor((task_infos[0] - task_infos[1]) + task_infos[2]).float()
         rule_transformed = torch.matmul(comp_rule.to(self.__device__), self.rule_transform.float())
         info_embedded = self.rule_encoder(rule_transformed)
@@ -204,6 +225,7 @@ class InstructNet(BaseNet):
         self.instruct_rep_basis = None
 
     def get_instruct_rep_basis(self):
+        import instructRNN.analysis.model_analysis as analysis
         if self.instruct_rep_basis is None: 
             self.instruct_rep_basis=analysis.get_instruct_reps(self.langModel)
 

@@ -110,7 +110,7 @@ class ModelTrainer(BaseTrainer):
         self.loss_data = list(loss_array.mean(axis=0))
 
     def _init_streamer(self):
-        self.streamer = TaskDataSet(self.file_path.partition('/')[0], 
+        self.streamer = TaskDataSet(
                         self.stream_data, 
                         self.batch_len, 
                         self.num_batches, 
@@ -304,8 +304,9 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=F
     
     model = make_default_model(model_name)
 
-    if model_name == 'gptNet_lin' or model_name == 'gptNet_L_lin':
-        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, checker_threshold=0.85, scheduler_gamma=0.95, **train_config_kwargs)
+    if model_name == 'gptNet_lin' or model_name == 'gptNet_L_lin' or model_name == 'gptNet' or 'raw' in model_name:
+        print('reduced threshold')
+        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, checker_threshold=0.85, **train_config_kwargs)
     else:
         trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
 
@@ -317,6 +318,9 @@ def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=F
             trainer = ModelTrainer(trainer_config)
     else: 
         trainer = ModelTrainer(trainer_config)
+
+    for n, p in model.named_parameters(): 
+        if p.requires_grad: print(n)
 
     is_trained = trainer.train(model)
     return is_trained
@@ -385,12 +389,59 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches =100,
             trainer.train(model, is_testing=True, instruct_mode=instruct_mode, input_w_only=input_w_only, comp_rules=comp_rules)
         trainer._record_session(model, mode='TESTING')
 
+def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=False, overwrite=False, **train_config_kwargs): 
+    torch.manual_seed(seed)
+    label, holdouts = labeled_holdouts
+    file_name = exp_folder+'/'+label+'/'+model_name   
+
+    if check_already_trained(file_name, seed) and not overwrite:
+        return True
+    
+    model = make_default_model(model_name)
+    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, checker_threshold=0.93, min_run_epochs=10,
+                                        scheduler_gamma = 0.95, init_lr=1e-3, init_lang_lr=1e-4, **train_config_kwargs)
+
+    if use_checkpoint: 
+        try:
+            model, trainer = load_checkpoint(model, file_name, seed)
+        except: 
+            trainer = ModelTrainer(trainer_config)
+    else: 
+        trainer = ModelTrainer(trainer_config)
+
+    print('LOADING COMPATABILITY COMPONENETS', flush=True)
+    if model_name == 'simpleSbert': 
+        #recurrent_seed = (seed+1)%5
+        #print(recurrent_seed)
+        model.load_recurrent_units(exp_folder+'/'+label+'/sbertNetL_lin/sbertNetL_lin', suffix='_seed'+str(seed))
+    else: 
+        raise ValueError()
+
+    # elif model_name == 'simpleSbert':
+    #     model.load_recurrent_units('7.20models/swap_holdouts/'+label+'/simpleNet/simpleNet', suffix='_seed'+str(seed))
+
+
+    model.freeze_all_but_rnn_ins()
+    #model.langModel.__init_proj_out__()
+    #model.langModel.set_train_layers([])
+
+    for n, p in model.named_parameters():
+        if p.requires_grad: print(n)
+
+    is_trained = trainer.train(model)
+    return is_trained
+
 def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, ot=False, use_checkpoint=False, **train_config_kwargs):
+    if model_name in ['simpleSbert', 'sbertSbert']:
+        is_trained = train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs)
     if not '_tuned' in model_name:
         is_trained = train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs) 
-    else: 
+    elif '_tuned' in model_name: 
         is_trained = tune_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs)
+    else: 
+        raise Exception()
         
+    
     if is_trained: 
         for instruct_mode in [None, 'combined', 'swap_combined']:
             print('TESTING '+ str(instruct_mode) + '\n')

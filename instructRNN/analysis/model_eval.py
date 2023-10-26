@@ -56,10 +56,6 @@ def _get_model_performance(_task_eval_func, model, num_repeats, batch_len, **eva
 def eval_model_perf(model, num_repeats=1, batch_len=128, instruct_mode=None): 
     return _get_model_performance(task_eval, model, num_repeats, batch_len, instruct_mode=instruct_mode)
 
-def eval_model_info_embedded_perf(model, num_repeats=1, batch_len=128, info_embedded=None):
-    assert info_embedded is not None, 'must enter a value for info embedded'
-    return _get_model_performance(task_eval_info_embedded, model, num_repeats, batch_len, info_embedded=info_embedded)
-
 def eval_model_compositional_perf(model, num_repeats=1, batch_len=128):
     return _get_model_performance(task_eval_compositional, model, num_repeats, batch_len)
 
@@ -94,7 +90,7 @@ def get_holdout_all_comp_perf(foldername, model_name, labeled_holdouts, seed, nu
                 continue
             else:
                 print('processing task '+task)
-                task_perf = task_eval_compositional_all_combos(model, task, batch_len)
+                task_perf = eval_model_compositional_perf(model)
 
                 if save:
                     if os.path.exists(file_path):
@@ -125,6 +121,22 @@ def get_multi_all_comp_perf(foldername, model_name, seed, num_repeats = 1, batch
                 else: os.makedirs(file_path)
                 np.save(file_path+'/'+model_name+'_'+task+'_multi_comp_scores_seed'+str(seed), task_perf)
 
+def get_multi_comp_perf(foldername, model_name, seed, num_repeats = 1, batch_len=50, save=False): 
+    model = full_models.make_default_model(model_name)
+    file_path = foldername+'/multi_comp_perf/'+model_name
+
+    model.load_model(foldername+'/Multitask/'+model.model_name, suffix='_seed'+str(seed))
+    model.to(device)
+    file_path = foldername+'/multi_comp_perf/'+model_name
+    task_perf = eval_model_compositional_perf(model)
+
+    if save:
+        if os.path.exists(file_path):
+            pass
+        else: os.makedirs(file_path)
+        np.save(file_path+'/'+model_name+'_multi_comp_perf_seed'+str(seed), task_perf)
+    return task_perf
+
 
 def _get_model_0_shot(_task_eval_func, model_name, folder_name, exp_type, seed, batch_size, **eval_kwargs): 
     if 'swap' in exp_type: 
@@ -134,7 +146,8 @@ def _get_model_0_shot(_task_eval_func, model_name, folder_name, exp_type, seed, 
     with torch.no_grad():
         for holdout_label, tasks in exp_dict.items(): 
             model.load_model(folder_name+'/'+exp_type+'_holdouts/'+holdout_label+'/'+model.model_name, suffix='_seed'+str(seed))
-            perf_array[TASK_LIST.index(task)] = _task_eval_func(model, task, batch_size, **eval_kwargs)
+            for task in tasks: 
+                perf_array[TASK_LIST.index(task)] = _task_eval_func(model, task, batch_size, **eval_kwargs)
     return perf_array
 
 def eval_model_0_shot(model_name, folder_name, exp_type, seed, batch_size = 128, instruct_mode=None):
@@ -143,3 +156,29 @@ def eval_model_0_shot(model_name, folder_name, exp_type, seed, batch_size = 128,
 def eval_model_compositional_0_shot(model_name, folder_name, exp_type, seed, batch_size = 128):
     return _get_model_0_shot(task_eval_compositional, model_name, folder_name, exp_type, seed, batch_size = batch_size)
 
+
+def eval_multitask_contexts(model_name): 
+    model = make_default_model(model_name)
+    perf_array = np.empty((5, 50))
+    file_prefix = '7.20models/multitask_holdouts/Multitask/'+model.model_name
+    for i in range(5): 
+        model.load_model(file_prefix, suffix='_seed'+str(i))
+        for j, task in enumerate(TASK_LIST): 
+            contexts = pickle.load(open(file_prefix+'/contexts/seed'+str(i)+'_'+task+'test_context_vecs64', 'rb'))
+            perf = task_eval_info_embedded(model, task, 25, torch.tensor(contexts))
+            perf_array[i, j] = perf
+
+    return perf_array 
+
+def eval_holdout_contexts(model_name): 
+    model = make_default_model(model_name)
+    perf_array = np.empty((5, 50))
+    file_prefix = '7.20models/multitask_holdouts/Multitask/'+model.model_name
+    for i in range(5): 
+        model.load_model(file_prefix, suffix='_seed'+str(i))
+        for j, task in enumerate(TASK_LIST): 
+            contexts = pickle.load(open(file_prefix+'/contexts/seed'+str(i)+'_'+task+'test_context_vecs64', 'rb'))
+            perf = task_eval_info_embedded(model, task, 25, torch.tensor(contexts))
+            perf_array[i, j] = perf
+
+    return perf_array 

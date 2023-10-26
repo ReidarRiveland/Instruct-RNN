@@ -22,8 +22,11 @@ check_download.py
 *decoder_perf*
 scratch.py
 instructRNN.egg-info
-
-
+NN_rev/
+7.20models_tmp/
+NN_simData/
+dec_check/
+NN_simData_tmp/
 
 
 

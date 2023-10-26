@@ -7,12 +7,12 @@ from instructRNN.tasks.task_factory import TRIAL_LEN
 
 class TaskDataSet():
     DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
-    def __init__(self, exp_file, stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None):
+    def __init__(self,  stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None):
         __len__ = num_batches
         self.stream = stream
         self.batch_len = batch_len
         self.num_batches = num_batches
-        self.data_folder = exp_file
+        self.data_folder = 'NN_simData/'
         self.holdouts = holdouts
 
         if set_single_task is None: 

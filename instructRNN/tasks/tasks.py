@@ -35,6 +35,21 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             'DMS', 'DNMS', 'DMC', 'DNMC', 
             ]
 
+NONCOND_CLAUSE_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo', 
+            'GoMod1', 'AntiGoMod1', 'GoMod2',  'AntiGoMod2',
+            'RTGoMod1', 'AntiRTGoMod1',  'RTGoMod2','AntiRTGoMod2',
+            'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
+            'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2',
+            ]
+
+COND_CLAUSE_LIST = ['COMP1', 'COMP2', 'MultiCOMP1', 'MultiCOMP2', 
+            'AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP1', 'AntiMultiCOMP2', 
+            'COMP1Mod1', 'COMP2Mod1', 'COMP1Mod2', 'COMP2Mod2', 
+            'Dur1', 'Dur2', 'MultiDur1', 'MultiDur2',
+            'AntiDur1', 'AntiDur2', 'AntiMultiDur1', 'AntiMultiDur2',
+            'Dur1Mod1', 'Dur2Mod1', 'Dur1Mod2', 'Dur2Mod2', 
+            'DMS', 'DNMS', 'DMC', 'DNMC', 'ConDM', 'ConAntiDM']
+
 SWAP_LIST = [            
             ('AntiDMMod2', 'RTGo', 'DM', 'MultiCOMP2',  'AntiMultiDur1'), 
             ('COMP1Mod1', 'AntiGoMod2',  'DMS', 'AntiDur1', 'RTGoMod2'),
@@ -77,7 +92,6 @@ INV_SWAPS_DICT = invert_holdout_dict(SWAPS_DICT)
 INV_GROUP_DICT = invert_holdout_dict(TASK_GROUPS)
 MULTITASK_DICT = {'Multitask':[]}
 
-
 DICH_DICT = {
     'dich0' : [('Go', 'AntiGo'), ('GoMod1', 'AntiGoMod1'), ('GoMod2', 'AntiGoMod2'), 
                             ('RTGo', 'AntiRTGo'),('RTGoMod1', 'AntiRTGoMod1'), ('RTGoMod2', 'AntiRTGoMod2')],
@@ -102,6 +116,18 @@ DICH_DICT = {
                 ('COMP2Mod1', 'COMP2Mod2'), ('Dur1Mod1', 'Dur1Mod2'), ('Dur2Mod1', 'Dur2Mod2')]
 }
 
+#rich vec dims
+# pro/anti
+# standard/rt
+# mod1/mod2
+# strongest/weakest
+# multi
+# con
+# first/second
+# longest/shortest
+# matching/non-matching
+# stimulus/category
+
 
 class Task(): 
     def __init__(self, num_trials, noise, factory, **factory_kwargs):
@@ -118,6 +144,7 @@ class Task():
    
 class Go(Task): 
     comp_ref_tasks = ('RTGo', 'AntiRTGo', 'AntiGo')
+    rich_vector = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -128,6 +155,7 @@ class Go(Task):
 
 class AntiGo(Task): 
     comp_ref_tasks = ('AntiRTGo', 'RTGo', 'Go')
+    rich_vector = [-1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -138,6 +166,7 @@ class AntiGo(Task):
 
 class RTGo(Task):
     comp_ref_tasks = ('Go', 'AntiGo', 'AntiRTGo')
+    rich_vector = [1, -1, 0, 0, 0, 0, 0, 0, 0, 0]
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -149,6 +178,7 @@ class RTGo(Task):
 
 class AntiRTGo(Task):
     comp_ref_tasks = ('AntiGo', 'Go', 'RTGo')
+    rich_vector = [-1, -1, 0, 0, 0, 0, 0, 0, 0, 0]
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -160,6 +190,7 @@ class AntiRTGo(Task):
 
 class GoMod1(Task): 
     comp_ref_tasks = ('RTGoMod1', 'AntiRTGoMod1', 'AntiGoMod1')
+    rich_vector = [1, 1, 1, 0, 0, 0, 0, 0, 0, 0]
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -171,6 +202,7 @@ class GoMod1(Task):
 
 class GoMod2(Task): 
     comp_ref_tasks = ('RTGoMod2', 'AntiRTGoMod2', 'AntiGoMod2')
+    rich_vector = [1, 1, -1, 0, 0, 0, 0, 0, 0, 0]
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -182,6 +214,8 @@ class GoMod2(Task):
 
 class AntiGoMod1(Task): 
     comp_ref_tasks = ('AntiRTGoMod1', 'RTGoMod1', 'GoMod1')
+    rich_vector = [-1, 1, 1, 0, 0, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -193,6 +227,8 @@ class AntiGoMod1(Task):
 
 class AntiGoMod2(Task): 
     comp_ref_tasks = ('AntiRTGoMod2', 'RTGoMod2', 'GoMod2')
+    rich_vector = [-1, 1, -1, 0, 0, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -204,6 +240,8 @@ class AntiGoMod2(Task):
 
 class RTGoMod1(Task):
     comp_ref_tasks = ('GoMod1', 'AntiGoMod1', 'AntiRTGoMod1')
+    rich_vector = [1, -1, 1, 0, 0, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -217,6 +255,8 @@ class RTGoMod1(Task):
 
 class AntiRTGoMod1(Task):
     comp_ref_tasks = ('AntiGoMod1', 'GoMod1', 'RTGoMod1')
+    rich_vector = [-1, -1, 1, 0, 0, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -230,6 +270,8 @@ class AntiRTGoMod1(Task):
 
 class RTGoMod2(Task):
     comp_ref_tasks = ('GoMod2', 'AntiGoMod2', 'AntiRTGoMod2')
+    rich_vector = [1, -1, -1, 0, 0, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -243,6 +285,8 @@ class RTGoMod2(Task):
 
 class AntiRTGoMod2(Task):
     comp_ref_tasks = ('AntiGoMod2', 'GoMod2', 'RTGoMod2')
+    rich_vector = [-1, -1, -1, 0, 0, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.GoFactory, 
@@ -256,6 +300,8 @@ class AntiRTGoMod2(Task):
 
 class DM(Task):
     comp_ref_tasks = ('MultiDM', 'AntiMultiDM', 'AntiDM')
+    rich_vector = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -266,6 +312,8 @@ class DM(Task):
 
 class AntiDM(Task):
     comp_ref_tasks = ('AntiMultiDM', 'MultiDM', 'DM')
+    rich_vector = [0, 0, 0, -1, 0, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None,**factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -276,6 +324,8 @@ class AntiDM(Task):
 
 class MultiDM(Task):
     comp_ref_tasks = ('DM', 'AntiDM', 'AntiMultiDM')
+    rich_vector = [0, 0, 0, 1, 1, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -287,6 +337,8 @@ class MultiDM(Task):
 
 class AntiMultiDM(Task):
     comp_ref_tasks = ('AntiDM', 'DM', 'MultiDM')
+    rich_vector = [0, 0, 0, -1, 1, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None,**factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -298,6 +350,8 @@ class AntiMultiDM(Task):
 
 class ConDM(Task):
     comp_ref_tasks = ('DM', 'AntiDM', 'ConAntiDM')
+    rich_vector = [0, 0, 0, 1, 0, 1, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs):
         super().__init__(num_trials, noise,
                         task_factory.ConDMFactory, 
@@ -309,6 +363,8 @@ class ConDM(Task):
 
 class ConAntiDM(Task):
     comp_ref_tasks = ('AntiDM', 'DM', 'ConDM')
+    rich_vector = [0, 0, 0, -1, 0, 1, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.ConDMFactory, 
@@ -320,6 +376,8 @@ class ConAntiDM(Task):
 
 class DMMod1(Task):
     comp_ref_tasks = ('DMMod2', 'AntiDMMod2', 'AntiDMMod1')
+    rich_vector = [0, 0, 1, 1, 0, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -332,6 +390,8 @@ class DMMod1(Task):
 
 class DMMod2(Task):
     comp_ref_tasks = ('DMMod1', 'AntiDMMod1', 'AntiDMMod2')
+    rich_vector = [0, 0, -1, 1, 0, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -344,6 +404,8 @@ class DMMod2(Task):
         
 class AntiDMMod1(Task):
     comp_ref_tasks = ('AntiDMMod2', 'DMMod2', 'DMMod1')
+    rich_vector = [0, 0, 1, -1, 0, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None,**factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -356,6 +418,8 @@ class AntiDMMod1(Task):
 
 class AntiDMMod2(Task):
     comp_ref_tasks = ('AntiDMMod1', 'DMMod1', 'DMMod2')
+    rich_vector = [0, 0, -1, -1, 0, 0, 0, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DMFactory, 
@@ -368,6 +432,8 @@ class AntiDMMod2(Task):
 
 class Dur1(Task): 
     comp_ref_tasks = ('MultiDur1', 'MultiDur2', 'Dur2')
+    rich_vector = [0, 0, 0, 0, 0, 0, 1, 1, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
@@ -379,6 +445,8 @@ class Dur1(Task):
 
 class Dur2(Task): 
     comp_ref_tasks = ('MultiDur2', 'MultiDur1', 'Dur1')
+    rich_vector = [0, 0, 0, 0, 0, 0, -1, 1, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
@@ -390,6 +458,8 @@ class Dur2(Task):
 
 class MultiDur1(Task): 
     comp_ref_tasks = ('Dur1', 'Dur2', 'MultiDur2')
+    rich_vector = [0, 0, 0, 0, 1, 0, 1, 1, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
@@ -402,6 +472,8 @@ class MultiDur1(Task):
 
 class MultiDur2(Task): 
     comp_ref_tasks = ('Dur2', 'Dur1', 'MultiDur1')
+    rich_vector = [0, 0, 0, 0, 1, 0, -1, 1, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
@@ -413,6 +485,8 @@ class MultiDur2(Task):
 
 class AntiDur1(Task): 
     comp_ref_tasks = ('AntiMultiDur1', 'AntiMultiDur2', 'AntiDur2')
+    rich_vector = [0, 0, 0, 0, 0, 0, 1, -1, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
@@ -425,6 +499,8 @@ class AntiDur1(Task):
 
 class AntiDur2(Task): 
     comp_ref_tasks = ('AntiMultiDur2', 'AntiMultiDur1', 'AntiDur1')
+    rich_vector = [0, 0, 0, 0, 0, 0, -1, -1, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
@@ -434,9 +510,10 @@ class AntiDur2(Task):
                         )
         self.task_type = 'AntiDur2'
 
-
 class AntiMultiDur1(Task): 
     comp_ref_tasks = ('AntiDur1', 'AntiDur2', 'AntiMultiDur2')
+    rich_vector = [0, 0, 0, 0, 1, 0, 1, -1, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
@@ -450,6 +527,8 @@ class AntiMultiDur1(Task):
 
 class AntiMultiDur2(Task): 
     comp_ref_tasks = ('AntiDur2', 'AntiDur1', 'AntiMultiDur1')
+    rich_vector = [0, 0, 0, 0, 1, 0, -1, -1, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
@@ -462,6 +541,8 @@ class AntiMultiDur2(Task):
 
 class Dur1Mod1(Task): 
     comp_ref_tasks = ('Dur1Mod2', 'Dur2Mod2', 'Dur2Mod1')
+    rich_vector = [0, 0, 1, 0, 0, 0, 1, 1, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
@@ -475,6 +556,8 @@ class Dur1Mod1(Task):
 
 class Dur1Mod2(Task): 
     comp_ref_tasks = ('Dur1Mod1', 'Dur2Mod1', 'Dur2Mod2')
+    rich_vector = [0, 0, -1, 0, 0, 0, 1, 1, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
@@ -487,6 +570,8 @@ class Dur1Mod2(Task):
 
 class Dur2Mod1(Task): 
     comp_ref_tasks = ('Dur2Mod2', 'Dur1Mod2', 'Dur1Mod1')
+    rich_vector = [0, 0, 1, 0, 0, 0, -1, 1, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
@@ -500,6 +585,8 @@ class Dur2Mod1(Task):
 
 class Dur2Mod2(Task): 
     comp_ref_tasks = ('Dur2Mod1', 'Dur1Mod1', 'Dur1Mod2')
+    rich_vector = [0, 0, -1, 0, 0, 0, -1, 1, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.DurFactory, 
@@ -512,6 +599,8 @@ class Dur2Mod2(Task):
 
 class COMP1(Task): 
     comp_ref_tasks = ('MultiCOMP1', 'MultiCOMP2', 'COMP2')
+    rich_vector = [0, 0, 0, 1, 0, 0, 1, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -523,6 +612,8 @@ class COMP1(Task):
 
 class COMP2(Task): 
     comp_ref_tasks = ('MultiCOMP2', 'MultiCOMP1', 'COMP1')
+    rich_vector = [0, 0, 0, 1, 0, 0, -1, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -534,6 +625,8 @@ class COMP2(Task):
 
 class MultiCOMP1(Task): 
     comp_ref_tasks = ('COMP1', 'COMP2', 'MultiCOMP2')
+    rich_vector = [0, 0, 0, 1, 1, 0, 1, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -546,6 +639,8 @@ class MultiCOMP1(Task):
 
 class MultiCOMP2(Task): 
     comp_ref_tasks = ('COMP2', 'COMP1', 'MultiCOMP1')
+    rich_vector = [0, 0, 0, 1, 1, 0, -1, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -559,6 +654,8 @@ class MultiCOMP2(Task):
 
 class AntiCOMP1(Task): 
     comp_ref_tasks = ('AntiMultiCOMP1', 'AntiMultiCOMP2', 'AntiCOMP2')
+    rich_vector = [0, 0, 0, -1, 0, 0, 1, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -570,6 +667,8 @@ class AntiCOMP1(Task):
 
 class AntiCOMP2(Task): 
     comp_ref_tasks = ('AntiMultiCOMP2', 'AntiMultiCOMP1', 'COMP1')
+    rich_vector = [0, 0, 0, -1, 0, 0, -1, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -582,6 +681,8 @@ class AntiCOMP2(Task):
 
 class AntiMultiCOMP1(Task): 
     comp_ref_tasks = ('AntiCOMP1', 'AntiCOMP2', 'AntiMultiCOMP2')
+    rich_vector = [0, 0, 0, -1, 1, 0, 1, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -594,6 +695,8 @@ class AntiMultiCOMP1(Task):
 
 class AntiMultiCOMP2(Task): 
     comp_ref_tasks = ('AntiCOMP2', 'AntiCOMP1', 'AntiMultiCOMP1')
+    rich_vector = [0, 0, 0, -1, 1, 0, -1, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -607,6 +710,8 @@ class AntiMultiCOMP2(Task):
 
 class COMP1Mod1(Task): 
     comp_ref_tasks = ('COMP1Mod2', 'COMP2Mod2', 'COMP2Mod1')
+    rich_vector = [0, 0, 1, 1, 0, 0, 1, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -620,6 +725,8 @@ class COMP1Mod1(Task):
 
 class COMP1Mod2(Task): 
     comp_ref_tasks = ('COMP1Mod1', 'COMP2Mod1', 'COMP2Mod2')
+    rich_vector = [0, 0, -1, 1, 0, 0, 1, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -633,6 +740,8 @@ class COMP1Mod2(Task):
 
 class COMP2Mod1(Task): 
     comp_ref_tasks = ('COMP2Mod2', 'COMP1Mod2', 'COMP1Mod1')
+    rich_vector = [0, 0, 1, 1, 0, 0, -1, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -647,6 +756,8 @@ class COMP2Mod1(Task):
 
 class COMP2Mod2(Task): 
     comp_ref_tasks = ('COMP2Mod1', 'COMP1Mod1', 'COMP1Mod2')
+    rich_vector = [0, 0, -1, 1, 0, 0, -1, 0, 0, 0]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs): 
         super().__init__(num_trials, noise,
                         task_factory.COMPFactory, 
@@ -660,6 +771,8 @@ class COMP2Mod2(Task):
 
 class DMS(Task):
     comp_ref_tasks = ('DMC', 'DNMC', 'DNMS')
+    rich_vector = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs):
         super().__init__(num_trials, noise,
                         task_factory.MatchingFactory,                        
@@ -669,6 +782,8 @@ class DMS(Task):
 
 class DNMS(Task):
     comp_ref_tasks = ('DNMC', 'DMC', 'DMS')
+    rich_vector = [0, 0, 0, 0, 0, 0, 0, 0, -1, 1]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs):
         super().__init__(num_trials, noise,
                         task_factory.MatchingFactory,                        
@@ -678,6 +793,8 @@ class DNMS(Task):
 
 class DMC(Task):
     comp_ref_tasks = ('DMS', 'DNMS', 'DNMC')
+    rich_vector = [0, 0, 0, 0, 0, 0, 0, 0, 1, -1]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs):
         super().__init__(num_trials, noise,
                         task_factory.MatchingFactory,                        
@@ -687,6 +804,8 @@ class DMC(Task):
 
 class DNMC(Task):
     comp_ref_tasks = ('DNMS', 'DMS', 'DMC')
+    rich_vector = [0, 0, 0, 0, 0, 0, 0, 0, -1, -1]
+
     def __init__(self, num_trials, noise=None, **factory_kwargs):
         super().__init__(num_trials, noise,
                         task_factory.MatchingFactory,                        

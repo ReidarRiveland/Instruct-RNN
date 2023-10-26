@@ -73,19 +73,61 @@ class SMDecoder(nn.Module):
         out = torch.cat((out_max, out_mean), dim=-1)
         out = self.dropper(out)
         out = torch.relu(self.fc1(out))
-        return out.unsqueeze(0)
+        return out
+
+class DecoderMLP(nn.Module): 
+    def __init__(self, hidden_size, num_layers = 3, sm_hidden_dim=256, drop_p = 0.0, decode_embeddings=False):
+        super().__init__()
+        self.decode_embeddings = False
+        self.drop_p = drop_p
+        self.decoder_name = 'mlp_decoder'
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.sm_decoder = SMDecoder(self.hidden_size, sm_hidden_dim, drop_p=drop_p)
+        self.layers_list = nn.ModuleList()                     
+        for i in range(self.num_layers):
+            self.layers_list.append(nn.Linear(hidden_size, hidden_size))
+            self.layers_list.append(nn.ReLU())
+        self.layers = nn.Sequential(*self.layers_list)
+        self.out_layer = nn.Linear(self.hidden_size, 10)
+
+    def forward(self, sm_hidden): 
+        init_hidden = self.sm_decoder(sm_hidden)
+        out = self.layers(init_hidden)
+        out = torch.tanh(self.out_layer(out))
+        return out 
+
+    def decode_sentence(self, sm_hidden): 
+        return self.forward(sm_hidden).detach().cpu().numpy()
+
+    def save_model(self, save_string): 
+        torch.save(self.state_dict(), save_string+'.pt')
+        
+    def load_model(self, load_string, suffix=''): 
+        self.load_state_dict(torch.load(load_string+'decoders/'+self.decoder_name+suffix+'.pt', map_location=torch.device('cpu')))
 
 class DecoderRNN(nn.Module):
-    def __init__(self, hidden_size, sm_hidden_dim=256, drop_p = 0.0):
+    def __init__(self, hidden_size, sm_hidden_dim=256, drop_p = 0.0, decode_embeddings=False):
         super().__init__()
-        self.decoder_name = 'rnn_decoder'
-        self.hidden_size = hidden_size
+        self.decode_embeddings = decode_embeddings
         self.tokenizer = RNNtokenizer()
+        
+        self.hidden_size = hidden_size
         self.embedding_size=64
+
+        self.decode_embeddings = decode_embeddings
+        if self.decode_embeddings: 
+            self.decoder_name = 'rnn_embedding_decoder'
+            self.sm_decoder = nn.Sequential(nn.Linear(64, hidden_size), nn.ReLU())
+        else: 
+            self.decoder_name = 'rnn_decoder'
+            self.sm_decoder = SMDecoder(self.hidden_size, sm_hidden_dim, drop_p=drop_p)
+        
+
         self.embedding = nn.Embedding(self.tokenizer.n_words, self.embedding_size)
         self.gru = ScriptGRU(self.embedding_size, self.hidden_size, 1, activ_func = torch.relu, batch_first=True)
         self.out = nn.Linear(self.hidden_size, self.tokenizer.n_words)
-        self.sm_decoder = SMDecoder(self.hidden_size, sm_hidden_dim, drop_p=drop_p)
+        
         self.softmax = nn.LogSoftmax(dim=1)
         self.drop_p = drop_p
 
@@ -94,6 +136,7 @@ class DecoderRNN(nn.Module):
         
     def load_model(self, load_string, suffix=''): 
         self.load_state_dict(torch.load(load_string+'decoders/'+self.decoder_name+suffix+'.pt', map_location=torch.device('cpu')))
+        print('loaded: '+load_string+'decoders/'+self.decoder_name+suffix+'.pt')
 
     def draw_next(self, logits, k_sample=1):
         top_k = logits.topk(k_sample)
@@ -104,7 +147,7 @@ class DecoderRNN(nn.Module):
 
     def _base_forward(self, ins, sm_hidden):
         embedded = torch.relu(self.embedding(ins))
-        init_hidden = self.sm_decoder(sm_hidden)
+        init_hidden = self.sm_decoder(sm_hidden).unsqueeze(0)
         rnn_out, _ = self.gru(embedded.transpose(0,1), init_hidden)
         logits = self.out(rnn_out[:, -1,:])
         return logits, rnn_out
@@ -127,4 +170,5 @@ class DecoderRNN(nn.Module):
     def to(self, cuda_device): 
         super().to(cuda_device)
         self.gru._mask_to(cuda_device)
+
 

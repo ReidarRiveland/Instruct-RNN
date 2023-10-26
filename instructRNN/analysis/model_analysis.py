@@ -4,6 +4,7 @@ import numpy.linalg as LA
 
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.stats import pearsonr
+from scipy.stats import ttest_ind
 from tqdm import tqdm
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -30,6 +31,24 @@ else:
 def get_reps_from_tasks(reps, tasks): 
     indices = [TASK_LIST.index(task) for task in tasks]
     return reps[indices, ...]
+    
+def calc_t_test(folder, exp, model_list, mode='combined', p_threshs = [0.05, 0.01, 0.001]):
+    t_value_arr = np.empty((len(model_list), len(model_list)))
+    p_value_arr = np.empty((len(model_list), len(model_list)))
+
+    is_significant = np.zeros((len(model_list), len(model_list)))
+
+    data_list = [PerfDataFrame(folder, exp, model, mode=mode) for model in model_list]
+    for i, x_data in enumerate(data_list): 
+        for j, y_data in enumerate(data_list): 
+            t_stat, p_value = ttest_ind(x_data.get_k_shot(0).flatten(), y_data.get_k_shot(0).flatten(), equal_var=False)
+            t_value_arr[i, j] = t_stat
+            p_value_arr[i,j] = p_value
+    for p_thresh in p_threshs: 
+        is_significant += (p_value_arr < p_thresh)
+
+    return t_value_arr, p_value_arr, is_significant
+
 
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
     langModel.eval()
@@ -59,15 +78,18 @@ def get_instruct_reps(langModel, depth='full', instruct_mode=None):
             instruct_reps[i, :, :] = out_rep
     return instruct_reps.cpu().numpy().astype(np.float64)
 
-def get_rule_embedder_reps(model):
+def get_rule_reps(model, use_rule_encoder=False):
     reps = np.empty((len(TASK_LIST), model.rule_dim))
     with torch.no_grad():
         for i, task in enumerate(TASK_LIST): 
-            task_rule = get_task_info(1, task, False)
+            task_rule = get_task_info(1, task, model.info_type)
             rule_transformed = torch.matmul(task_rule.to(model.__device__), model.rule_transform.float())
-            info= model.rule_encoder(rule_transformed)
+            if use_rule_encoder:
+                info= model.rule_encoder(rule_transformed)
+            else: 
+                info = rule_transformed
             reps[i, :] = info.cpu().numpy()
-    return reps
+    return reps[ :, None, :]
 
 def get_task_reps(model, epoch='stim_start', stim_start_buffer=0, num_trials =100, tasks=TASK_LIST, instruct_mode=None, 
                     contexts=None, default_intervals=False, num_repeats=1, use_comp=False, **trial_kwargs):
@@ -125,6 +147,7 @@ def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'):
         embedder = TSNE()
 
     _embedded = embedder.fit_transform(reps.reshape(-1, reps.shape[-1]))
+    print(_embedded.shape)
     embedded = _embedded.reshape(reps.shape[0], reps.shape[1], dims)
 
     if reduction_method == 'PCA': 
@@ -132,32 +155,6 @@ def reduce_rep(reps, pcs=[0, 1], reduction_method='PCA'):
     else: 
         explained_variance = None
     return embedded[..., pcs], explained_variance
-
-def get_layer_sim_scores(model, rep_depth='12', dist = 'pearson'): 
-    if rep_depth.isnumeric(): 
-        rep_dim = model.langModel.LM_intermediate_lang_dim
-    if rep_depth =='full': 
-        rep_dim = model.langModel.LM_out_dim
-    
-    if rep_depth == 'task': 
-        rep_dim = model.rnn_hidden_dim
-
-    if rep_depth == 'rule_encoder': 
-        rep_dim = model.rule_dim
-    
-    if rep_depth == 'task': 
-        reps = get_task_reps(model, num_trials=32)
-    if rep_depth == 'full' or rep_depth.isnumeric(): 
-        reps = get_instruct_reps(model.langModel, depth=rep_depth)
-    if rep_depth == 'rule_encoder': 
-        reps = get_rule_embedder_reps(model)
-
-    if dist == 'pearson': 
-        sim_scores = 1-cosine_similarity(reps.reshape(-1, rep_dim))
-    else: 
-        sim_scores = 1-cosine_similarity(reps.reshape(-1, rep_dim))
-    
-    return sim_scores
 
 def get_DM_perf(model, noises, diff_strength, num_repeats=100, mod=0, task='DM'):
     num_trials = len(diff_strength)
@@ -311,8 +308,8 @@ def get_holdout_CCGP(exp_folder, model_name, seed, epoch = 'stim_start', save=Fa
 
         if layer == 'task':
             reps = get_task_reps(model, num_trials = 250, epoch=epoch, use_comp=False)
-        elif layer =='full' and model_name =='simpleNetPlus':
-            reps = get_rule_embedder_reps(model)[:, None, :]
+        elif layer =='full' and model_name in ['simpleNetPlus', 'simpleNet', 'combNet']:
+            reps = get_rule_reps(model)
         else: 
             reps = get_instruct_reps(model.langModel, depth=layer)
 

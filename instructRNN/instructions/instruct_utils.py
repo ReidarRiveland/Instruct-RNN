@@ -18,7 +18,7 @@ def inv_instruct_dict(instruct_dict):
 try:
     INSTRUCT_PATH = os.environ['MODEL_FOLDER']+'/instructs/'
 except KeyError:
-    INSTRUCT_PATH = '7.20models/instructs/'
+    INSTRUCT_PATH = 'NN_simData/instructs/'
     
 train_instruct_dict = pickle.load(open(INSTRUCT_PATH+'train_instruct_dict', 'rb'))
 test_instruct_dict = pickle.load(open(INSTRUCT_PATH+'test_instruct_dict', 'rb'))
@@ -32,7 +32,6 @@ def get_all_sentences():
     return all_sentences
 
 def sort_vocab(): 
-    #combined_instruct= {key: list(train_instruct_dict[key]) + list(test_instruct_dict[key]) for key in train_instruct_dict}
     all_sentences = get_all_sentences()
     sorted_vocab = sorted(list(set(' '.join(all_sentences).split(' '))))
     return sorted_vocab
@@ -105,9 +104,23 @@ def get_input_rule(batch_size, task_type, instruct_mode=None):
     
     return torch.Tensor(task_rule)
 
+def get_comb_rule(batch_size, task_type, instruct_mode=None): 
+    if instruct_mode == 'masked': 
+        task_rule = np.zeros((batch_size, len(TASK_LIST)))
+    elif instruct_mode == 'swap' or instruct_mode == 'swap_combined': 
+        swapped_task = get_swap_task(task_type)
+        task_rule = construct_trials(swapped_task).rich_vector
+    else: 
+        task_rule = construct_trials(task_type).rich_vector
+    task_rule = torch.Tensor(task_rule).unsqueeze(0).repeat(batch_size, 1)
+
+    return task_rule
+
 def get_task_info(batch_len, task_type, info_type, instruct_mode=None): 
     if info_type=='lang': 
         return get_instructions(batch_len, task_type, instruct_mode = instruct_mode)
+    elif info_type=='comb': 
+        return get_comb_rule(batch_len, task_type, instruct_mode = instruct_mode)
     else: 
         return get_input_rule(batch_len, task_type, instruct_mode = instruct_mode)
 

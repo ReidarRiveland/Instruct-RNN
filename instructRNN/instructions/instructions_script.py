@@ -334,7 +334,7 @@ train_instruct_dict['AntiDMMod1'] = ('attend to the first modality and choose th
                                     'focus only on the first modality and choose the direction that appears weakest', 
                                     'respond to the stimulus in the first modality that has lowest strength', 
                                     'choose the direction in the first modality which is weakest', 
-                                    'select the stimulus in the second modality that has minimal strength', 
+                                    'select the stimulus in the first modality that has minimal strength', 
                                     'attend to the first modality and select the direction that is displayed with least strength', 
                                     'opt for the direction in the first modality that appears weakest',
                                     'focus only on the first modality and choose the orientation displayed with minimal intensity', 

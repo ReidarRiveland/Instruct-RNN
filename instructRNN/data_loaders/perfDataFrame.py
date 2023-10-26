@@ -43,12 +43,14 @@ class PerfDataFrame():
             self.load_context_data()
         elif self.mode == 'ccgp':
             self.load_holdout_CCGP()
+        elif self.mode == 'last_ccgp':
+            self.load_holdout_CCGP(get_last_layer=True)
+        elif self.mode == 'embedding_ccgp':
+            self.load_holdout_CCGP(get_embedding=True)
         elif self.mode == 'swap_ccgp':
             self.load_holdout_CCGP(submode='swap_combined')
         elif self.mode == 'layer_ccgp':
             self.load_holdout_CCGP(get_layer_list=True)
-        elif self.mode =='memNet': 
-            self.load_memNet_perf()
         elif self.mode == 'all_holdout_comp':
             self.load_holdout_comp_perf()
         elif len(self.training_file)>1: 
@@ -146,20 +148,28 @@ class PerfDataFrame():
 
         super().__setattr__('data', data)
 
-    def load_holdout_CCGP(self, get_layer_list=False, submode=''): 
+    def load_holdout_CCGP(self, get_layer_list=False, get_embedding = False, get_last_layer=False, submode=''): 
         if get_layer_list: 
             if self.model_name == 'simpleNet': 
-                self.layer_list = ['task']
+                self.layer_list = ['full', 'task']
             elif self.model_name == 'simpleNetPlus': 
                 self.layer_list = ['full', 'task']
-            elif 'XL' in self.model_name: 
+            elif 'XL' in self.model_name or 'sbertNetL_lin' in self.model_name: 
                 self.layer_list = [str(layer) for layer in range(13, 25)] + ['full', 'task']
             elif 'bow' in self.model_name: 
                 self.layer_list = ['bow', 'full', 'task']
             else: 
                 self.layer_list = [str(layer) for layer in range(1, 13)] + ['full', 'task']
+        elif get_last_layer: 
+            if 'XL' in self.model_name or 'L' in self.model_name: 
+                self.layer_list = ['24']
+            else: 
+                self.layer_list = ['12']
+        elif get_embedding: 
+            self.layer_list = ['full']
         else: 
             self.layer_list = ['task']
+        
 
         data = np.full((len(self.seeds), len(TASK_LIST), len(self.layer_list)), np.nan)        
 
@@ -223,7 +233,7 @@ class PerfDataFrame():
         super().__setattr__('data', data)
 
 
-def load_all_comp_perf(model_name, foldername='7.20models/swap_holdouts'):
+def load_all_comp_perf(model_name, foldername='NN_simData/swap_holdouts'):
     all_comp_array = np.full((5, 50, 117_600), np.NaN)
 
     for seed in range(5): 
