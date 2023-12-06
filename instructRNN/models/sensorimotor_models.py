@@ -152,30 +152,37 @@ class BaseNet(nn.Module):
 
 class InferenceNet(nn.Module): 
     def __init__(self, rule_dim, hidden_size):
-        if self.rnn_activ_func == 'relu':
-            self._activ_func = torch.relu
+        super(InferenceNet, self).__init__()
+        self.rnn_hiddenInitValue = 0.1
+        self._activ_func = torch.relu
+        self.rnn_hidden_dim = hidden_size
 
         self.recurrent_units = ScriptGRU(SENSORY_INPUT_DIM, 
                                         self.rnn_hidden_dim, 
-                                        self.rnn_layers, 
+                                        1, 
                                         activ_func = self._activ_func, 
                                         batch_first=True)
 
         self.sensory_motor_outs = nn.Sequential(
-                                    nn.Linear(self.rnn_hidden_dim, self.rule_dim), 
+                                    nn.Linear(self.rnn_hidden_dim, rule_dim), 
                                     nn.ReLU())
-
-        if self.use_rand_rnn: 
-            self.freeze_rnn_weights()
 
         self.__device__ = torch.device('cpu')
 
+    def __initHidden__(self, batch_size):
+        return torch.full((1, batch_size, self.rnn_hidden_dim), 
+                self.rnn_hiddenInitValue, device=torch.device(self.__device__))
+
     def forward(self, stimulus): 
-        h0 = self.__initHidden__(x.shape[0])
-        rnn_hid, _ = self.recurrent_units(stimulus, h0)
+        h0 = self.__initHidden__(stimulus.shape[0])
+        rnn_hid, _ = self.recurrent_units(stimulus.type(torch.float32), h0)
         out = self.sensory_motor_outs(rnn_hid)
         return out, rnn_hid
 
+    def to(self, cuda_device): 
+        super().to(cuda_device)
+        self.recurrent_units._mask_to(cuda_device)
+        self.__device__ = cuda_device
 
 class RuleEncoder(nn.Module):
     def __init__(self, rule_dim, hidden_size):

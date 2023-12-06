@@ -1,5 +1,6 @@
 from email.policy import strict
 import torch
+import torch.nn as nn
 from torch import optim
 import numpy as np
 from yaml import warnings
@@ -18,6 +19,8 @@ from instructRNN.data_loaders.dataset import *
 from instructRNN.tasks.task_criteria import *
 from instructRNN.instructions.instruct_utils import get_task_info
 from instructRNN.models.full_models import make_default_model
+from instructRNN.analysis.model_analysis import get_rule_reps
+from instructRNN.models.sensorimotor_models import InferenceNet
 
 if torch.cuda.is_available():
     device = torch.device(0)
@@ -26,7 +29,7 @@ else:
     device = torch.device('cpu')
     
 @define
-class TrainerConfig(): 
+class InferenceTrainerConfig(): 
     file_path: str
     random_seed: int
     epochs: int = 200
@@ -53,7 +56,7 @@ class TrainerConfig():
 
 
 class InferenceTrainer(BaseTrainer): 
-    def __init__(self, training_config:TrainerConfig): 
+    def __init__(self, training_config:InferenceTrainerConfig): 
         super().__init__(training_config)
 
     def _init_streamer(self):
@@ -64,7 +67,7 @@ class InferenceTrainer(BaseTrainer):
                         self.holdouts, 
                         self.set_single_task)
 
-    def _init_optimizer(self, model):
+    def init_optimizer(self, model):
         if self.optim_alg == 'adam': 
             optim_alg = optim.Adam
 
@@ -80,141 +83,67 @@ class InferenceTrainer(BaseTrainer):
                             milestones=[self.epochs-5, self.epochs-2, self.epochs-1], gamma=0.25)
 
     def train(self, inference_model, sm_model): 
+        inference_model.train()
         inference_model.to(device)
-        model.train()
         self._init_streamer()
-        self.init_optimizer(model)
+        self.init_optimizer(inference_model)
+
+        criteria = nn.MSELoss()
+        rule_reps = torch.tensor(get_rule_reps(sm_model, use_rule_encoder=True))
 
         for self.cur_epoch in tqdm(range(self.cur_epoch, self.epochs), desc='epochs'):
-            if self.cur_epoch == self.save_for_tuning_epoch and tunable:
-                self._save_for_tuning(model)
 
             self.streamer.shuffle_stream_order()
             for self.cur_step, data in enumerate(self.streamer.stream_batch()): 
                 ins, tar, mask, tar_dir, task_type = data
 
-                if comp_rules: 
-                    reference_tasks = construct_trials(task_type).comp_ref_tasks
-                    info_embedded = model.get_comp_task_rep(reference_tasks, ins.shape[0])
-                    task_info = None
-                else: 
-                    info_embedded = None
-                    task_info = get_task_info(self.batch_len, task_type, model.info_type, instruct_mode=instruct_mode)
-
                 self.optimizer.zero_grad()
-                out, _ = model(ins.to(device), task_info, info_embedded=info_embedded)
-                loss = masked_MSE_Loss(out, tar.to(device), mask.to(device)) 
+                out, _ = inference_model(ins.to(device))
+                target = sm_model.expand_info(rule_reps[TASK_LIST.index(task_type)].repeat(self.batch_len, 1), 150, 0).to(device)
+                loss = criteria(out, target) 
+
                 loss.backward()
-                torch.nn.utils.clip_grad_value_(model.parameters(), 0.5)                    
                 self.optimizer.step()
 
-                frac_correct = round(np.mean(isCorrect(out, tar, tar_dir)), 3)
-                self._log_step(task_type, frac_correct, loss.item())
-
                 if self.cur_step%50 == 0:
-                    self._print_training_status(task_type)
+                    print('\n')
+                    print(task_type)
+                    print(loss.item())
 
-                if self._check_model_training() and not is_testing:
-                    self._record_session(model, mode='FINAL')
-                    return True
+                # if self._check_model_training() and not is_testing:
+                #     self._record_session(model, mode='FINAL')
+                #     return True
 
-            if not is_testing:
-                self._record_session(model, mode='CHECKPOINT')
-
-            if self.scheduler is not None: self.scheduler.step()  
-            if self.step_last_lr: self.step_scheduler.step()
+            # if self.scheduler is not None: self.scheduler.step()  
+            # if self.step_last_lr: self.step_scheduler.step()
 
         if not is_testing:
             warnings.warn('\n !!! Model has not reach specified performance threshold during training !!! \n')
             return False
 
-def check_already_trained(file_name, seed, mode='training'): 
-    try: 
-        pickle.load(open(file_name+'/seed'+str(seed)+'_training_correct', 'rb'))
-        print('\n Model at ' + file_name + ' for seed '+str(seed)+' aleady trained')
-        return True
-    except FileNotFoundError:
-        print('\n ' + mode+' at ' + file_name + ' at seed '+str(seed))
-        return False
 
-def check_already_tested(file_name, seed, task, instruct_mode, input_w_only, comp_rules):
-    if instruct_mode is None: instruct_mode = ''
-    if not input_w_only: weight_mode = ''
-    else: weight_mode='inputs_only'
-    if not comp_rules: comp_mode = ''
-    else: comp_mode = 'comp'
+# def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=False, overwrite=False, **train_config_kwargs): 
+#     torch.manual_seed(seed)
+#     label, holdouts = labeled_holdouts
+#     file_name = exp_folder+'/'+label+'/'+model_name   
 
-    mode = instruct_mode+weight_mode+comp_mode
-    try: 
-        pickle.load(open(file_name+'/holdouts/'+ mode+task+ '_seed'+str(seed)+'_correct', 'rb'))
-        print('\n Model at ' + file_name + ' for seed '+str(seed)+ 'and task '+task+' aleady trained')
-        return True
-    except FileNotFoundError:
-        return False
-
-def load_checkpoint(model, file_name, seed): 
-    checkpoint_name = model.model_name+'_seed'+str(seed)+'_CHECKPOINT'
-    checkpoint_model_path = file_name+'/'+checkpoint_name+'.pt'
-
-    print('\n Attempting to load model CHECKPOINT')
-    if not exists(checkpoint_model_path): 
-        raise Exception('No model checkpoint found at ' + checkpoint_model_path)
-    else:
-        print(checkpoint_model_path)
-        model.load_state_dict(torch.load(checkpoint_model_path), strict=False)
-        print('loaded model at '+ checkpoint_model_path)
+#     if check_already_trained(file_name, seed) and not overwrite:
+#         return True
     
-    checkpoint_path = file_name+'/attrs/'+checkpoint_name
-    trainer = ModelTrainer.from_checkpoint(checkpoint_path)
-    return model, trainer
+#     model = make_default_model(model_name)
 
-def load_tuning_checkpoint(model, trainer, file_name, seed):
-    untuned_model_name = model.model_name.replace('_tuned', '')
-    for_tuning_model_path = file_name+'/'+untuned_model_name+'/'+\
-            untuned_model_name+'_seed'+str(seed)+'_FOR_TUNING.pt'
 
-    print('\n Attempting to load model FOR_TUNING')
-    if not exists(for_tuning_model_path): 
-        raise Exception('No model FOR TUNING found, train untuned version to create checkpoint \n')
-    else:
-        print('loaded model at '+ for_tuning_model_path)
+#     if use_checkpoint: 
+#         try:
+#             model, trainer = load_checkpoint(model, file_name, seed)
+#         except: 
+#             print('Starting Training from untrained model')
+#             trainer = ModelTrainer(trainer_config)
+#     else: 
+#         trainer = ModelTrainer(trainer_config)
 
-    model.load_state_dict(torch.load(for_tuning_model_path), strict=False)
-    data_checkpoint_path = file_name+'/'+untuned_model_name+\
-            '/seed'+str(seed)+'training_data_FOR_TUNING'
-    data_checkpoint = pickle.load(open(data_checkpoint_path, 'rb'))
-    trainer.correct_data = data_checkpoint['correct_data']
-    trainer.loss_data = data_checkpoint['loss_data']
+#     for n, p in model.named_parameters(): 
+#         if p.requires_grad: print(n)
 
-    return model, trainer
-
-def train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=False, overwrite=False, **train_config_kwargs): 
-    torch.manual_seed(seed)
-    label, holdouts = labeled_holdouts
-    file_name = exp_folder+'/'+label+'/'+model_name   
-
-    if check_already_trained(file_name, seed) and not overwrite:
-        return True
-    
-    model = make_default_model(model_name)
-
-    if model_name == 'gptNet_lin' or model_name == 'gptNet_L_lin' or model_name == 'gptNet' or 'raw' in model_name:
-        print('reduced threshold')
-        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, checker_threshold=0.85, **train_config_kwargs)
-    else:
-        trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, **train_config_kwargs)
-
-    if use_checkpoint: 
-        try:
-            model, trainer = load_checkpoint(model, file_name, seed)
-        except: 
-            print('Starting Training from untrained model')
-            trainer = ModelTrainer(trainer_config)
-    else: 
-        trainer = ModelTrainer(trainer_config)
-
-    for n, p in model.named_parameters(): 
-        if p.requires_grad: print(n)
-
-    is_trained = trainer.train(model)
-    return is_trained
+#     is_trained = trainer.train(model)
+#     return is_trained
