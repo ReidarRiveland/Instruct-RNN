@@ -81,8 +81,7 @@ plot_tuning_curve(sbertNet, ['Go', 'AntiGo', 'RTGo', 'AntiRTGo'], unit, [149]*4,
 holdouts_file = 'swap9'
 sbertNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+sbertNet.model_name, suffix='_seed0')
 
-#unit = 216, seed 3
-#unit=3, seed 0
+
 unit = 3
 plot_neural_resp(sbertNet, 'DMMod1', 'diff_strength', unit, num_trials=25)
 plot_neural_resp(sbertNet, 'AntiDMMod1','diff_strength', unit, num_trials=25)
@@ -262,6 +261,20 @@ plt.show()
 plot_curves('NN_simData', 'family', to_plot_models[::-1], mode='combinedinputs_only', avg=True)
 plt.show()
 
+#############SINGLE UNIT TUING################
+##########FAILURE TO SWAP BY GPT XL########
+EXP_FILE = 'NN_simData/swap_holdouts'
+gptNet = make_default_model('gptNetXL_lin')
+
+holdouts_file = 'swap9'
+gptNet.load_model(EXP_FILE+'/'+holdouts_file+'/'+gptNet.model_name, suffix='_seed2')
+
+unit=97
+plot_neural_resp(gptNet, 'DMMod1', 'diff_strength', unit, num_trials=25)
+plot_neural_resp(gptNet, 'AntiDMMod1','diff_strength', unit, num_trials=25)
+plot_neural_resp(gptNet, 'DMMod2','diff_strength', unit, num_trials=25)
+plot_neural_resp(gptNet, 'AntiDMMod2','diff_strength', unit, num_trials=25)
+
 ###GPT COMPARISON
 fig_axn = plot_curves('NN_simData', 'swap', ['gptNetXL_lin'], mode='combined', avg=True, linewidth=0.8)
 plot_curves('NN_simData', 'swap', ['gptNetXL_L_lin'], mode='combined', fig_axn=fig_axn, avg=True, linewidth=0.8)
@@ -300,6 +313,9 @@ holdout_holdout_instruct = pickle.load(open('NN_simData/swap_holdouts/decoder_pe
 print_decoded_instruct(multi_multi_instruct)
 print_decoded_instruct(holdout_multi_instruct)
 print_decoded_instruct(holdout_holdout_instruct)
+
+
+
 
 
 
