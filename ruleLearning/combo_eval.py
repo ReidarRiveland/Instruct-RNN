@@ -31,9 +31,7 @@ def get_held_in_indices(swap_label):
     [int_list.remove(x) for x in [TASK_LIST.index(task) for task in SWAPS_DICT[swap_label]]]
     return int_list
     
-def get_holdout_rule_reps(model_name, swap_label, seed): 
-    model = make_default_model(model_name)
-    model.load_model(f'NN_simData/swap_holdouts/{swap_label}/{model_name}', suffix=f'_seed{seed}')
+def get_holdout_rule_reps(model, swap_label, seed): 
     held_in_indices = get_held_in_indices(swap_label)    
 
     if hasattr(model, 'langModel'): 
@@ -45,7 +43,7 @@ def get_holdout_rule_reps(model_name, swap_label, seed):
         
     return rule_reps[held_in_indices, ...]
 
-def gen_task_transitions(rule_reps, num_transitions=500):
+def gen_task_transitions(rule_reps, num_transitions):
     transitions = []
     for _ in range(num_transitions): 
         task_draw = np.random.randint(rule_reps.shape[0], size=2)
@@ -78,23 +76,32 @@ def eval_task_combos(model, combos, num_repeats = 25, tasks=TASK_LIST):
     return all_correct_array
 
 
-def get_holdout_combo_perfs(model_name, seed, n_components=25, num_repeats=25, save=True):
-    all_correct_array=np.zeros((5, len(TASK_LIST), num_repeats, 45, n_components))
+def get_holdout_combo_perfs(model_name, seeds=range(5), n_components=25, num_repeats=25, num_transitions=800, save=True):
+    all_correct_array=np.zeros((len(seeds), len(TASK_LIST), num_repeats, 45, n_components))
 
     model = make_default_model(model_name)
-    print(f'\n PROCESSING SEED {seed} \n')
-    for swap_label, holdouts in SWAPS_DICT.items(): 
-        rule_reps = get_holdout_rule_reps(model_name, swap_label, seed)
-        task_transition_data = gen_task_transitions(rule_reps)
+    for seed in seeds:
+        print(f'\n PROCESSING SEED {seed} \n')
 
-        k_means = KMeans(n_clusters=n_components)
-        k_means.fit(task_transition_data)
-        clusters = k_means.cluster_centers_
+        for swap_label, holdouts in SWAPS_DICT.items(): 
+            
+            model.load_model(f'NN_simData/swap_holdouts/{swap_label}/{model_name}', suffix=f'_seed{seed}')
+            rule_reps = get_holdout_rule_reps(model, swap_label, seed)
+            task_transition_data = gen_task_transitions(rule_reps, num_transitions=num_transitions)
 
-        combo_mat = get_combo_mat(rule_reps, clusters)
-        evals = eval_task_combos(model, combo_mat, num_repeats = num_repeats, tasks=holdouts)
-        all_correct_array[seed, [TASK_LIST.index(task) for task in holdouts], ...] = evals
+            k_means = KMeans(n_clusters=n_components)
+            k_means.fit(task_transition_data)
+            clusters = k_means.cluster_centers_
+
+            combo_mat = get_combo_mat(rule_reps, clusters)
+            evals = eval_task_combos(model, combo_mat, num_repeats = num_repeats, tasks=holdouts)
+            all_correct_array[seed, [TASK_LIST.index(task) for task in holdouts], ...] = evals
 
     if save:
-        np.save(f'rule_combo_perf/{model_name}_n{n_components}_seed{seed}', all_correct_array)
+        np.save(f'rule_combo_perf/{model_name}_n{n_components}_transitions{num_transitions}', all_correct_array)
+
     return all_correct_array
+
+
+
+

@@ -9,6 +9,7 @@
 /*update_data.py/*
 /*model_checks.py/*
 check_download.py
+rule_combo_perf/*
 
 /*.sbatch*
 

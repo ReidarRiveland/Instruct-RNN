@@ -49,12 +49,21 @@ if __name__ == "__main__":
     
     elif args.mode == 'combo_eval': 
         n_components=list(range(10, 50, 5))
-        jobs = make_analysis_jobs(args.models, args.seeds, n_components, args.job_index)
-        for job in jobs: 
-            _seed, model, n_components = job
-            get_holdout_combo_perfs(model, _seed, n_components=n_components)
-        
+        num_transitions = [800, 2000, 10_000]
 
+        jobs = list(itertools.product(args.models, n_components, num_transitions))
+
+        if args.job_index is None: 
+            jobs = jobs
+        else:
+            jobs = [jobs[args.job_index]]
+
+
+        for job in jobs: 
+            print(job)
+            model, n_components, num_transitions = job
+            get_holdout_combo_perfs(model, n_components=n_components, num_transitions=num_transitions)
+            
 
     else: 
         jobs = make_analysis_jobs(args.models, args.seeds, args.layers, args.job_index)
