@@ -58,12 +58,10 @@ if __name__ == "__main__":
         else:
             jobs = [jobs[args.job_index]]
 
-
         for job in jobs: 
-            print(job)
             model, n_components, num_transitions = job
             get_holdout_combo_perfs(model, n_components=n_components, num_transitions=num_transitions)
-            
+
 
     else: 
         jobs = make_analysis_jobs(args.models, args.seeds, args.layers, args.job_index)
