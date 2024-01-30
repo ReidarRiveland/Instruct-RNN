@@ -2,12 +2,20 @@ from genericpath import exists
 import numpy as np
 import torch
 import os
-from instructRNN.tasks.tasks import TASK_LIST, construct_trials
+from instructRNN.tasks.tasks import TASK_LIST, construct_trials, SUBTASKS_DICT
 from instructRNN.tasks.task_factory import TRIAL_LEN
 
 class TaskDataSet():
-    DEFAULT_TASK_DICT = dict.fromkeys(TASK_LIST, 1/len(TASK_LIST)) 
-    def __init__(self,  stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None):
+    def __init__(self,  stream= True, batch_len=128, num_batches=500, holdouts=[], set_single_task = None, task_subset=None):
+        if task_subset is None: 
+            self.all_tasks = TASK_LIST
+        else: 
+            self.all_tasks = SUBTASKS_DICT[task_subset]
+
+        print(self.all_tasks)
+        
+        self.DEFAULT_TASK_DICT = dict.fromkeys(self.all_tasks, 1/len(self.all_tasks)) 
+
         __len__ = num_batches
         self.stream = stream
         self.batch_len = batch_len

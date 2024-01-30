@@ -1,12 +1,14 @@
 import os
 import itertools
-from instructRNN.tasks.tasks import MULTITASK_DICT, SWAPS_DICT, FAMILY_DICT
+from instructRNN.tasks.tasks import MULTITASK_DICT, SWAPS_DICT, FAMILY_DICT, SUBTASKS_SWAP_DICT
 from instructRNN.models.full_models import small_models
 from instructRNN.analysis.model_eval import get_holdout_all_comp_perf, get_multi_all_comp_perf
 
 def make_training_jobs(exp, models, seeds, holdouts, job_index):
     if exp == 'swap': 
         _holdout_dict = SWAPS_DICT
+    elif exp == 'go_swap': 
+        _holdout_dict = SUBTASKS_SWAP_DICT['Go']
     elif args.exp == 'family': 
         _holdout_dict = FAMILY_DICT
     elif args.exp == 'multitask': 
@@ -52,15 +54,23 @@ if __name__ == "__main__":
     os.environ['MODEL_FOLDER']=MODEL_FOLDER
     EXP_FOLDER =MODEL_FOLDER+'/'+args.exp+'_holdouts'
 
+    if 'go_' in args.exp: 
+        task_subset_str = 'Go'
+    else:
+        task_subset_str = None
+
+
     jobs = make_training_jobs(args.exp, args.models, args.seeds, args.holdouts, args.job_index)
     for job in jobs: 
         _seed, model, holdouts = job
+        print(job)
 
         stream_data = True
 
         if args.mode == 'pipeline': 
             from instructRNN.trainers.model_trainer import *
-            run_pipeline(EXP_FOLDER, model, _seed, holdouts,overwrite=args.overwrite, use_checkpoint = args.use_checkpoint, ot = args.ot)    
+            run_pipeline(EXP_FOLDER, model, _seed, holdouts,overwrite=args.overwrite, 
+                                use_checkpoint = args.use_checkpoint, ot = args.ot, task_subset_str=task_subset_str)    
 
         if args.mode == 'train': 
             from instructRNN.trainers.model_trainer import *

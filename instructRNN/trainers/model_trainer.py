@@ -30,15 +30,15 @@ class TrainerConfig():
     file_path: str
     random_seed: int
     epochs: int = 200
-    min_run_epochs: int = 35
+    min_run_epochs: int = 10
     batch_len: int = 64
-    num_batches: int = 2400
+    num_batches: int = 1200
     holdouts: list = []
     set_single_task: str = None
     stream_data: bool = True
 
     optim_alg: str = 'adam'
-    init_lr: float = 0.001
+    init_lr: float = 0.0001
     init_lang_lr: float = None
     weight_decay: float = 0.0
 
@@ -46,10 +46,10 @@ class TrainerConfig():
     scheduler_gamma: float = 0.95
     scheduler_args: dict = {}
 
-    save_for_tuning_epoch: int = 30
     checker_threshold: float = 0.95
     step_last_lr: bool = True
     test_repeats: int = None
+    task_subset_str: str = None
 
 
 class ModelTrainer(BaseTrainer): 
@@ -115,7 +115,8 @@ class ModelTrainer(BaseTrainer):
                         self.batch_len, 
                         self.num_batches, 
                         self.holdouts, 
-                        self.set_single_task)
+                        self.set_single_task, 
+                        task_subset=self.task_subset_str)
 
     def _init_optimizer(self, model):
         if self.optim_alg == 'adam': 
@@ -192,8 +193,8 @@ class ModelTrainer(BaseTrainer):
         tunable = self._set_training_conditions(model, is_tuning, is_testing, instruct_mode, input_w_only, comp_rules)
 
         for self.cur_epoch in tqdm(range(self.cur_epoch, self.epochs), desc='epochs'):
-            if self.cur_epoch == self.save_for_tuning_epoch and tunable:
-                self._save_for_tuning(model)
+            # if self.cur_epoch == self.save_for_tuning_epoch and tunable:
+            #     self._save_for_tuning(model)
 
             self.streamer.shuffle_stream_order()
             for self.cur_step, data in enumerate(self.streamer.stream_batch()): 
@@ -389,51 +390,7 @@ def test_model(exp_folder, model_name, seed, labeled_holdouts, num_batches =100,
             trainer.train(model, is_testing=True, instruct_mode=instruct_mode, input_w_only=input_w_only, comp_rules=comp_rules)
         trainer._record_session(model, mode='TESTING')
 
-def train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint=False, overwrite=False, **train_config_kwargs): 
-    torch.manual_seed(seed)
-    label, holdouts = labeled_holdouts
-    file_name = exp_folder+'/'+label+'/'+model_name   
-
-    if check_already_trained(file_name, seed) and not overwrite:
-        return True
-    
-    model = make_default_model(model_name)
-    trainer_config = TrainerConfig(file_name, seed, holdouts=holdouts, checker_threshold=0.93, min_run_epochs=10,
-                                        scheduler_gamma = 0.95, init_lr=1e-3, init_lang_lr=1e-4, **train_config_kwargs)
-
-    if use_checkpoint: 
-        try:
-            model, trainer = load_checkpoint(model, file_name, seed)
-        except: 
-            trainer = ModelTrainer(trainer_config)
-    else: 
-        trainer = ModelTrainer(trainer_config)
-
-    print('LOADING COMPATABILITY COMPONENETS', flush=True)
-    if model_name == 'simpleSbert': 
-        #recurrent_seed = (seed+1)%5
-        #print(recurrent_seed)
-        model.load_recurrent_units(exp_folder+'/'+label+'/sbertNetL_lin/sbertNetL_lin', suffix='_seed'+str(seed))
-    else: 
-        raise ValueError()
-
-    # elif model_name == 'simpleSbert':
-    #     model.load_recurrent_units('7.20models/swap_holdouts/'+label+'/simpleNet/simpleNet', suffix='_seed'+str(seed))
-
-
-    model.freeze_all_but_rnn_ins()
-    #model.langModel.__init_proj_out__()
-    #model.langModel.set_train_layers([])
-
-    for n, p in model.named_parameters():
-        if p.requires_grad: print(n)
-
-    is_trained = trainer.train(model)
-    return is_trained
-
 def run_pipeline(exp_folder, model_name, seed, labeled_holdouts, overwrite=False, ot=False, use_checkpoint=False, **train_config_kwargs):
-    if model_name in ['simpleSbert', 'sbertSbert']:
-        is_trained = train_compatibility(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs)
     if not '_tuned' in model_name:
         is_trained = train_model(exp_folder, model_name, seed, labeled_holdouts, use_checkpoint = use_checkpoint, overwrite=overwrite, **train_config_kwargs) 
     elif '_tuned' in model_name: 

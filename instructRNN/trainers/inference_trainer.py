@@ -19,7 +19,7 @@ from instructRNN.data_loaders.dataset import *
 from instructRNN.tasks.task_criteria import *
 from instructRNN.instructions.instruct_utils import get_task_info
 from instructRNN.models.full_models import make_default_model
-from instructRNN.analysis.model_analysis import get_rule_reps
+from instructRNN.analysis.model_analysis import get_rule_reps, get_instruct_reps
 from instructRNN.models.sensorimotor_models import InferenceNet
 
 if torch.cuda.is_available():
@@ -32,10 +32,10 @@ else:
 class InferenceTrainerConfig(): 
     file_path: str
     random_seed: int
-    epochs: int = 200
+    epochs: int = 50
     min_run_epochs: int = 35
     batch_len: int = 64
-    num_batches: int = 2400
+    num_batches: int = 1200
     holdouts: list = []
     set_single_task: str = None
     stream_data: bool = True
@@ -46,7 +46,7 @@ class InferenceTrainerConfig():
     weight_decay: float = 0.0
 
     scheduler_type: str = 'exp'
-    scheduler_gamma: float = 0.95
+    scheduler_gamma: float = 0.99
     scheduler_args: dict = {}
 
     save_for_tuning_epoch: int = 30
@@ -89,7 +89,11 @@ class InferenceTrainer(BaseTrainer):
         self.init_optimizer(inference_model)
 
         criteria = nn.MSELoss()
-        rule_reps = torch.tensor(get_rule_reps(sm_model, use_rule_encoder=True))
+        if hasattr(sm_model, 'langModel'): 
+            rule_reps = torch.tensor(get_instruct_reps(sm_model.langModel, depth='last'))
+            print(rule_reps.shape)
+        else: 
+            rule_reps = torch.tensor(get_rule_reps(sm_model, rule_layer='last'))
 
         for self.cur_epoch in tqdm(range(self.cur_epoch, self.epochs), desc='epochs'):
 
@@ -99,8 +103,8 @@ class InferenceTrainer(BaseTrainer):
 
                 self.optimizer.zero_grad()
                 out, _ = inference_model(ins.to(device))
-                target = sm_model.expand_info(rule_reps[TASK_LIST.index(task_type)].repeat(self.batch_len, 1), 150, 0).to(device)
-                loss = criteria(out, target) 
+                target = sm_model.expand_info(rule_reps[TASK_LIST.index(task_type), np.random.randint(rule_reps.shape[1])].unsqueeze(0).repeat(self.batch_len, 1), 150, 0).to(device)
+                loss = criteria(out[:, -1, :], target[:, -1, :]) 
 
                 loss.backward()
                 self.optimizer.step()
@@ -109,6 +113,7 @@ class InferenceTrainer(BaseTrainer):
                     print('\n')
                     print(task_type)
                     print(loss.item())
+                    #print(out[0, -1, ...])
 
                 # if self._check_model_training() and not is_testing:
                 #     self._record_session(model, mode='FINAL')
@@ -147,3 +152,60 @@ class InferenceTrainer(BaseTrainer):
 
 #     is_trained = trainer.train(model)
 #     return is_trained
+
+
+import torch.nn as nn
+
+from instructRNN.models.full_models import *
+from instructRNN.tasks.tasks import SWAPS_DICT
+################################################RULELEARNING############################################################
+
+sm_model = make_default_model('sbertNetL_lin')
+sm_model.load_model('NN_simData/swap_holdouts/swap0/sbertNetL_lin', suffix='_seed0')
+
+SWAPS_DICT['swap0']
+
+inference_model = InferenceNet(1024, 256)
+
+trainer = InferenceTrainer(InferenceTrainerConfig('ruleLearning/', 0, holdouts=SWAPS_DICT['swap0']))
+trainer.train(inference_model, sm_model)
+
+
+
+sm_model.langModel
+
+#torch.save(inference_model.state_dict(), 'inferenceModel_sbert.pt')
+
+
+inference_model.load_state_dict(torch.load('inferenceModel_sbert.pt'))
+
+rules = get_rule_reps(sm_model, rule_layer='last')
+
+
+SWAPS_DICT['swap0']
+
+ins, _ , _, _, _ =construct_trials('AntiCOMP2', 64)
+out, _ = inference_model(torch.tensor(ins).to(0))
+
+#####ONLY ENCODE IN CLUSTER IF SIMILARITY?
+
+rules.shape
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.metrics.pairwise import cosine_similarity
+
+sims = cosine_similarity(out[:, -1, :].detach().cpu().numpy(), rules.squeeze())
+
+[TASK_LIST[i] for i in sims.argmax(1)]
+
+
+np.argmax(sims
+
+labelsize=4
+with sns.plotting_context(rc={ 'xtick.labelsize': labelsize,'ytick.labelsize': labelsize}):
+    #sns.heatmap(np.corrcoef(rules.squeeze()))
+
+    sns.heatmap(cosine_similarity(out[0:1, -1, :].detach().cpu().numpy(), rules.squeeze()).T, yticklabels=TASK_LIST)
+plt.savefig('heatmap')
+plt.close()

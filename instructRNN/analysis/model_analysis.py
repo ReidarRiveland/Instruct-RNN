@@ -53,7 +53,7 @@ def calc_t_test(folder, exp, model_list, mode='combined', p_threshs = [0.05, 0.0
 def get_instruct_reps(langModel, depth='full', instruct_mode=None):
     langModel.eval()
     langModel.to(device)
-    if isinstance(depth, int): 
+    if isinstance(depth, int) or depth=='last': 
         rep_dim = langModel.LM_intermediate_lang_dim
     elif depth == 'bow': 
         rep_dim = len(sort_vocab())
@@ -68,6 +68,8 @@ def get_instruct_reps(langModel, depth='full', instruct_mode=None):
             instructions = instruct_dict[task]    
             if depth == 'full':   
                 out_rep = langModel(list(instructions))
+            elif depth == 'last': 
+                out_rep = langModel.forward_transformer(list(instructions))[0]
             elif depth == 'bow': 
                 out_rep_list = []
                 for instruct in list(instructions):
@@ -78,14 +80,21 @@ def get_instruct_reps(langModel, depth='full', instruct_mode=None):
             instruct_reps[i, :, :] = out_rep
     return instruct_reps.cpu().numpy().astype(np.float64)
 
-def get_rule_reps(model, use_rule_encoder=False):
-    reps = np.empty((len(TASK_LIST), model.rule_dim))
+def get_rule_reps(model, rule_layer='full'):
+    if rule_layer == 'last': 
+        rule_dim = 128
+    else: 
+        rule_dim = 64
+
+    reps = np.empty((len(TASK_LIST), rule_dim))
     with torch.no_grad():
         for i, task in enumerate(TASK_LIST): 
             task_rule = get_task_info(1, task, model.info_type)
             rule_transformed = torch.matmul(task_rule.to(model.__device__), model.rule_transform.float())
-            if use_rule_encoder:
+            if rule_layer == 'full':
                 info= model.rule_encoder(rule_transformed)
+            elif rule_layer == 'last': 
+                info= model.rule_encoder.rule_in(rule_transformed)
             else: 
                 info = rule_transformed
             reps[i, :] = info.cpu().numpy()
