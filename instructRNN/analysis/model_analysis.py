@@ -361,9 +361,10 @@ def get_perf_ccgp_corr(folder, exp_type, model_list):
     return corr, p_val, ccgp_scores, perf_scores
 
 
-def get_norm_task_var(hid_reps): 
+def get_norm_task_var(hid_reps, del_low_var=True): 
     task_var = np.nanmean(np.nanvar(hid_reps[:, :, :,:], axis=1), axis=1)
-    task_var = np.delete(task_var, np.where(np.sum(task_var, axis=0)<0.001)[0], axis=1)
+    if del_low_var: 
+        task_var = np.delete(task_var, np.where(np.sum(task_var, axis=0)<0.001)[0], axis=1)
     normalized = np.divide(np.subtract(task_var, np.min(task_var, axis=0)[None, :]), (np.max(task_var, axis=0)-np.min(task_var, axis=0)[None, :])).T
 
     return normalized

@@ -31,13 +31,13 @@ def get_held_in_indices(swap_label):
     [int_list.remove(x) for x in [TASK_LIST.index(task) for task in SWAPS_DICT[swap_label]]]
     return int_list
     
-def get_holdout_rule_reps(model, swap_label, seed): 
+def get_holdout_rule_reps(model, swap_label, seed, depth='last'): 
     held_in_indices = get_held_in_indices(swap_label)    
 
     if hasattr(model, 'langModel'): 
-        rule_reps = get_instruct_reps(model.langModel)
+        rule_reps = get_instruct_reps(model.langModel, depth=depth)
     elif hasattr(model, 'rule_encoder'): 
-        rule_reps = get_rule_reps(model, use_rule_encoder=True)
+        rule_reps = get_rule_reps(model, rule_layer=depth)
     else: 
         rule_reps = get_rule_reps(model)
         
@@ -45,11 +45,13 @@ def get_holdout_rule_reps(model, swap_label, seed):
 
 def gen_task_transitions(rule_reps, num_transitions):
     transitions = []
+    tasks = []
     for _ in range(num_transitions): 
         task_draw = np.random.randint(rule_reps.shape[0], size=2)
         instruct_draw = np.random.randint(rule_reps.shape[1], size=2)
         transitions.append(rule_reps[task_draw[0], instruct_draw[0], : ]-rule_reps[task_draw[1], instruct_draw[1], :])
-    return np.array(transitions)
+        tasks.append((TASK_LIST[task_draw[0]], TASK_LIST[task_draw[1]]))
+    return np.array(transitions), tasks
 
 def get_combo_mat(rule_reps, clusters):
     comb_mat = np.empty((len(rule_reps), len(clusters), 64))
@@ -102,6 +104,94 @@ def get_holdout_combo_perfs(model_name, seeds=range(5), n_components=25, num_rep
 
     return all_correct_array
 
+def get_activity_weighted_transitions(model, swap_label, num_transitions=1000):
+    held_in_indices = get_held_in_indices(swap_label)
+    held_in_tasks = [TASK_LIST[i] for i in held_in_indices]
+    task_reps = get_task_reps(model, epoch=None, tasks=held_in_tasks)
+    rule_reps = get_rule_reps(model, rule_layer='full')[held_in_indices, ...]
+
+    transitions = []
+    tasks = []
+
+    for _ in range(num_transitions): 
+        task_draw = np.random.choice(range(rule_reps.shape[0]), size=2, replace=False)
+        instruct_draw = np.random.choice(range(rule_reps.shape[1]), size=2)
+        trial_draw = np.random.choice(range(task_reps.shape[1]), size=2, replace=False)
 
 
 
+        candidate_transition = rule_reps[task_draw[0], instruct_draw[0], : ]-rule_reps[task_draw[1], instruct_draw[1], :]
+        prob = cosine_similarity(task_reps[task_draw[0], trial_draw[0], ...].mean(0)[None, :], 
+                                        task_reps[task_draw[1], trial_draw[1], ...].mean(0)[None, :])
+        if np.random.uniform()<prob: 
+            transitions.append(candidate_transition)
+            tasks.append((TASK_LIST[task_draw[0]], TASK_LIST[task_draw[1]]))
+    return np.array(transitions), tasks
+
+
+# np.random.random()
+
+
+# model_name = 'simpleNetPlus'
+# swap_label = 'swap0'
+# model = make_default_model(model_name)
+# model.load_model(f'NN_simData/swap_holdouts/{swap_label}/{model_name}', suffix='_seed0')
+
+
+# transitions, tasks = get_activity_weighted_transitions(model, swap_label)
+
+# tasks
+
+
+# ###ESTBLISH WHAT DESIRED TASK SPACE ACTUALLY IS!
+
+
+
+
+
+
+# rule_reps = get_holdout_rule_reps(model, swap_label, 0, depth='full')
+
+# transitions, tasks = gen_task_transitions(rule_reps, num_transitions=800)
+
+
+# task_reps = get_task_reps(model, epoch=None, tasks=[TASK_LIST[i] for i in get_held_in_indices('swap0')])
+# normed_task_reps = get_norm_task_var(task_reps, del_low_var=False)
+# sims = cosine_similarity(task_reps[:, 0, ...].mean(1), normed_task_reps.T)
+
+# sims = cosine_similarity(task_reps[1, 0, ...].mean(0)[None, :], task_reps[12, 68, ...].mean(0)[None, :])
+# sims.item()
+
+# np.random.uniform()<
+
+
+
+# labelsize=4
+# with sns.plotting_context(rc={ 'xtick.labelsize': labelsize,'ytick.labelsize': labelsize}):
+
+#     sns.heatmap(sims, yticklabels=held_in_tasks, xticklabels=held_in_tasks)
+#     plt.show()
+
+
+
+# task_assoc_dict = {}
+# for task in held_in_tasks: 
+#     task_assoc_dict[task] = list(np.array(TASK_LIST)[np.where(sims[TASK_LIST.index(task), :]>0.5)[0]])
+
+# task_assoc_dict
+
+
+
+# np.apply_along_axis(cosine_similarity, 1, task_reps[:, 0, :, :])
+
+# mags = np.linalg.norm(transitions, axis=1, ord='1')
+
+
+# mags.std()
+# tasks
+# np.array(tasks)[mags>(mags.mean()-(mags.std()))]
+
+
+
+# sns.heatmap(transitions)
+# plt.show()

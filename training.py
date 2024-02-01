@@ -72,6 +72,10 @@ if __name__ == "__main__":
             run_pipeline(EXP_FOLDER, model, _seed, holdouts,overwrite=args.overwrite, 
                                 use_checkpoint = args.use_checkpoint, ot = args.ot, task_subset_str=task_subset_str)    
 
+        if args.mode == 'infer': 
+            from instructRNN.trainers.inference_trainer import *
+            train_inference_model(EXP_FOLDER, model, _seed, holdouts)     
+
         if args.mode == 'train': 
             from instructRNN.trainers.model_trainer import *
             train_model(EXP_FOLDER, model, _seed, holdouts, overwrite=args.overwrite, use_checkpoint = args.use_checkpoint)     
