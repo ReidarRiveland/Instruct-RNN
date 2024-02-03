@@ -23,7 +23,6 @@ from instructRNN.models.sensorimotor_models import InferenceNet
 from instructRNN.instructions.instruct_utils import make_one_hot
 from instructRNN.tasks.tasks import SWAPS_DICT
 
-
 from ruleLearning.rulelearner import get_held_in_indices
 
 if torch.cuda.is_available():
@@ -89,10 +88,10 @@ class InferenceTrainer(BaseTrainer):
         self._init_streamer()
         self.init_optimizer(inference_model)
         self.held_in_tasks = [TASK_LIST[i] for i in get_held_in_indices(swap_label)]
-
+        softmax = nn.LogSoftmax(dim=1)
 
         #criteria = nn.MSELoss()
-        criteria = nn.BCELoss()
+        criteria = nn.NLLLoss()
 
         # if hasattr(sm_model, 'langModel'): 
         #     rule_reps = torch.tensor(get_instruct_reps(sm_model.langModel, depth='last'))
@@ -108,10 +107,11 @@ class InferenceTrainer(BaseTrainer):
 
                 self.optimizer.zero_grad()
                 out, _ = inference_model(ins.to(device))
-                target = torch.tensor(make_one_hot(len(self.held_in_tasks), self.held_in_tasks.index(task_type))).repeat(self.batch_len, 1)
-
+                #target = torch.tensor(make_one_hot(len(self.held_in_tasks), self.held_in_tasks.index(task_type))).repeat(self.batch_len, 1)
                 #target = sm_model.expand_info(rule_reps[TASK_LIST.index(task_type), np.random.randint(rule_reps.shape[1])].unsqueeze(0).repeat(self.batch_len, 1), 150, 0).to(device)
-                loss = criteria(out[:, -1, :].float(), target.float()) 
+                target = torch.tensor(self.held_in_tasks.index(task_type)).repeat(self.batch_len)
+
+                loss = criteria(softmax(out[:, -1, :]), target.to(inference_model.__device__)) 
 
                 loss.backward()
                 self.optimizer.step()
@@ -129,6 +129,7 @@ class InferenceTrainer(BaseTrainer):
                     with torch.no_grad():
                         print('showing validation perf')
                         for task in self.holdouts: 
+                            print('\n')
                             ins, tar, mask, tar_dir, task_type = construct_trials('AntiDM', 20, return_tensor=True)
                             print(task)
                             out, _ = inference_model(ins.to(device))
@@ -153,9 +154,9 @@ def train_inference_model(exp_folder, model_name, seed, labeled_holdouts, **trai
     sm_model.load_model(file_name, suffix=f'_seed{seed}')
 
     if model_name == 'sbertNetL_lin': 
-        inference_model = InferenceNet(45, 128)
+        inference_model = InferenceNet(45, 256)
     else: 
-        inference_model = InferenceNet(45, 128)
+        inference_model = InferenceNet(45, 256)
 
     training_config = InferenceTrainerConfig(f'inference_models/{file_name}/', seed, **train_config_kwargs)
     trainer = InferenceTrainer(training_config)

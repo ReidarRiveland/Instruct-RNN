@@ -35,7 +35,14 @@ TASK_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo',
             'DMS', 'DNMS', 'DMC', 'DNMC', 
             ]
 
-SUBTASKS_DICT = {'Go': ['Go', 'AntiGo', 'RTGo', 'AntiRTGo', 
+SUBTASKS_DICT = {'small': ['Go', 'AntiGo', 'RTGo', 'AntiRTGo', 
+                    'GoMod1', 'AntiGoMod1', 'GoMod2',  'AntiGoMod2',
+                    'RTGoMod1', 'AntiRTGoMod1',  'RTGoMod2','AntiRTGoMod2',
+                    'DM', 'AntiDM', 'MultiDM', 'AntiMultiDM', 
+                    'DMMod1', 'AntiDMMod1', 'DMMod2', 'AntiDMMod2',
+                    'DMS', 'DNMS', 'DMC', 'DNMC'],
+    
+                'Go': ['Go', 'AntiGo', 'RTGo', 'AntiRTGo', 
                         'GoMod1', 'AntiGoMod1', 'GoMod2',  'AntiGoMod2',
                         'RTGoMod1', 'AntiRTGoMod1',  'RTGoMod2','AntiRTGoMod2'],
 
@@ -59,9 +66,14 @@ SUBTASKS_SWAP_DICT = {'Go': {'go_swap0': ('Go', 'AntiGoMod1', 'RTGoMod2'),
                         'go_swap1': ('AntiGo', 'GoMod1', 'AntiRTGoMod2' ),
                         'go_swap2': ('RTGo', 'AntiRTGoMod1', 'AntiGoMod2'), 
                         'go_swap3': ('AntiRTGo', 'RTGoMod1', 'GoMod2')},
+
+                    'small': {'small_swap0': ('Go', 'AntiRTGoMod2', 'DMMod1', 'DNMS'),
+                        'small_swap1': ('AntiGo', 'RTGoMod1', 'AntiDMMod2', 'DMS'),
+                        'small_swap2': ('RTGo', 'AntiDMMod1', 'DMMod2', 'DNMC'), 
+                        'small_swap3': ('AntiRTGo', 'RTGoMod2', 'MultiDM', 'AntiGoMod1'),
+                        'small_swap4': ('GoMod1', 'AntiGoMod2', 'DMC', 'AntiDM' ), 
+                        'small_swap5': ('AntiRTGoMod1', 'DM', 'GoMod2', 'AntiMultiDM')},
                 }
-
-
 
 NONCOND_CLAUSE_LIST = ['Go', 'AntiGo', 'RTGo', 'AntiRTGo', 
             'GoMod1', 'AntiGoMod1', 'GoMod2',  'AntiGoMod2',

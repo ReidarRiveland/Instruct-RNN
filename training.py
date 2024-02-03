@@ -9,6 +9,8 @@ def make_training_jobs(exp, models, seeds, holdouts, job_index):
         _holdout_dict = SWAPS_DICT
     elif exp == 'go_swap': 
         _holdout_dict = SUBTASKS_SWAP_DICT['Go']
+    elif exp == 'small_swap': 
+        _holdout_dict = SUBTASKS_SWAP_DICT['small']
     elif args.exp == 'family': 
         _holdout_dict = FAMILY_DICT
     elif args.exp == 'multitask': 
@@ -56,6 +58,8 @@ if __name__ == "__main__":
 
     if 'go_' in args.exp: 
         task_subset_str = 'Go'
+    elif 'small_' in args.exp: 
+        task_subset_str = 'small'
     else:
         task_subset_str = None
 
