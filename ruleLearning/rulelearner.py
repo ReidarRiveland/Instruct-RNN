@@ -36,6 +36,7 @@ class RuleLearnerConfig():
     switched_weight_threshold: float = 0.0
     value_inhibit_slope: float = 0.8
     hard_repeat: int = 5
+    recover_act: float = 0.05
 
 class Hopfield(): 
     def __init__(self, memory_encodings, max_beta): 
@@ -195,8 +196,17 @@ class RuleLearner():
         self.W_v += (update_factor*embedding)
         return rpe
 
+    def update_value(self, R, alpha): 
+        rpe = R-self.value
+        update_factor = (alpha)*rpe
+        
+        self.value += (update_factor)
+        return rpe
+
     def init_learning_variables(self, task):
-        self.W_v = np.random.normal(scale=0.05, size=self.rule_encodings.shape[-1])
+        #self.W_v = np.random.normal(scale=0.01, size=self.rule_encodings.shape[-1])
+        self.W_v = np.zeros(self.rule_encodings.shape[-1])
+        self.value = 0
 
         self.task_inhibit_history = []
         self.pc_inhibit_history = []
@@ -231,15 +241,17 @@ class RuleLearner():
             switched_weight += 1
 
             rewards = self.eval_comp_rep(comp_rep, task, self.hard_repeat)
-            rpe = self.update_value_weights(comp_rep, np.mean(rewards), (self.base_alpha/switched_weight)+1e-3) 
-            value = np.dot(self.W_v.T, comp_rep)
+            #rpe = self.update_value_weights(comp_rep, np.mean(rewards), (self.base_alpha/switched_weight)+1e-3) 
+            rpe = self.update_value(np.mean(rewards), (self.base_alpha/switched_weight)+1e-3) 
+            #value = np.dot(self.W_v.T, comp_rep)
+            value = self.value 
             self.update_learning_step(rewards, rpe, value, comp_rep)
 
             task_inhbition_weight = value_inhibit_act(value, shift=self.task_inhibit_shift, slope=self.value_inhibit_slope)
             pc_inhbition_weight = value_inhibit_act(value, shift=self.pc_inhibit_shift, slope=self.value_inhibit_slope)
 
-            self.task_value_inhibit_w = self.update_inhibition(task_inhbition_weight, task_post_activity, self.task_value_inhibit_w, recover_act=0.05)
-            self.pc_value_inhibit_w = self.update_inhibition(pc_inhbition_weight, pc_post_activity, self.pc_value_inhibit_w, recover_act=0.05)
+            self.task_value_inhibit_w = self.update_inhibition(task_inhbition_weight, task_post_activity, self.task_value_inhibit_w, recover_act=self.recover_act)
+            self.pc_value_inhibit_w = self.update_inhibition(pc_inhbition_weight, pc_post_activity, self.pc_value_inhibit_w, recover_act=self.recover_act)
             task_recalled, task_post_activity = self.task_memory.recall_memory(self.task_value_inhibit_w)
             pc_recalled, pc_post_activity = self.cluster_memory.recall_memory(self.pc_value_inhibit_w)
 
