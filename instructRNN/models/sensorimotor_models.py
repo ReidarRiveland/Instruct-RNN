@@ -151,7 +151,7 @@ class BaseNet(nn.Module):
         self.__device__ = cuda_device
 
 class InferenceNet(nn.Module): 
-    def __init__(self, rule_dim, hidden_size):
+    def __init__(self, out_dim, hidden_size):
         super(InferenceNet, self).__init__()
         self.rnn_hiddenInitValue = 0.1
         self._activ_func = torch.relu
@@ -164,8 +164,10 @@ class InferenceNet(nn.Module):
                                         batch_first=True)
 
         self.sensory_motor_outs = nn.Sequential(
-                                    nn.Linear(self.rnn_hidden_dim, rule_dim), 
-                                    nn.LeakyReLU())
+                                    nn.Linear(self.rnn_hidden_dim, out_dim),
+                                    #nn.LeakyReLU()
+                                    nn.Sigmoid()
+                                    )
 
         self.__device__ = torch.device('cpu')
 

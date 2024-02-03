@@ -20,6 +20,11 @@ from instructRNN.instructions.instruct_utils import get_task_info
 from instructRNN.models.full_models import make_default_model
 from instructRNN.analysis.model_analysis import get_rule_reps, get_instruct_reps
 from instructRNN.models.sensorimotor_models import InferenceNet
+from instructRNN.instructions.instruct_utils import make_one_hot
+from instructRNN.tasks.tasks import SWAPS_DICT
+
+
+from ruleLearning.rulelearner import get_held_in_indices
 
 if torch.cuda.is_available():
     device = torch.device(0)
@@ -36,7 +41,6 @@ class InferenceTrainerConfig():
     min_run_epochs: int = 1
     batch_len: int = 64
     num_batches: int = 1200
-    holdouts: list = []
     set_single_task: str = None
     stream_data: bool = True
 
@@ -77,19 +81,24 @@ class InferenceTrainer(BaseTrainer):
         self.step_scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, 
                             milestones=[self.epochs-5, self.epochs-2, self.epochs-1], gamma=0.25)
 
-    def train(self, inference_model, sm_model): 
+    def train(self, inference_model, sm_model, swap_label): 
         inference_model.train()
         inference_model.to(device)
+        self.holdouts = SWAPS_DICT[swap_label]
+
         self._init_streamer()
         self.init_optimizer(inference_model)
+        self.held_in_tasks = [TASK_LIST[i] for i in get_held_in_indices(swap_label)]
 
-        criteria = nn.MSELoss()
 
-        if hasattr(sm_model, 'langModel'): 
-            rule_reps = torch.tensor(get_instruct_reps(sm_model.langModel, depth='last'))
-            print(rule_reps.shape)
-        else: 
-            rule_reps = torch.tensor(get_rule_reps(sm_model, rule_layer='last'))
+        #criteria = nn.MSELoss()
+        criteria = nn.BCELoss()
+
+        # if hasattr(sm_model, 'langModel'): 
+        #     rule_reps = torch.tensor(get_instruct_reps(sm_model.langModel, depth='last'))
+        #     print(rule_reps.shape)
+        # else: 
+        #     rule_reps = torch.tensor(get_rule_reps(sm_model, rule_layer='last'))
 
         for self.cur_epoch in tqdm(range(self.cur_epoch, self.epochs), desc='epochs'):
 
@@ -99,8 +108,10 @@ class InferenceTrainer(BaseTrainer):
 
                 self.optimizer.zero_grad()
                 out, _ = inference_model(ins.to(device))
-                target = sm_model.expand_info(rule_reps[TASK_LIST.index(task_type), np.random.randint(rule_reps.shape[1])].unsqueeze(0).repeat(self.batch_len, 1), 150, 0).to(device)
-                loss = criteria(out[:, -1, :], target[:, -1, :]) 
+                target = torch.tensor(make_one_hot(len(self.held_in_tasks), self.held_in_tasks.index(task_type))).repeat(self.batch_len, 1)
+
+                #target = sm_model.expand_info(rule_reps[TASK_LIST.index(task_type), np.random.randint(rule_reps.shape[1])].unsqueeze(0).repeat(self.batch_len, 1), 150, 0).to(device)
+                loss = criteria(out[:, -1, :].float(), target.float()) 
 
                 loss.backward()
                 self.optimizer.step()
@@ -109,7 +120,21 @@ class InferenceTrainer(BaseTrainer):
                     print('\n')
                     print(task_type)
                     print(loss.item())
+                    scores, indices = out[0, -1, :].topk(5)
+                    print([self.held_in_tasks[i] for i in indices.squeeze()])
+                    print(scores.detach())
                     #print(out[0, -1, ...])
+                
+                if self.cur_step%250 == 0: 
+                    with torch.no_grad():
+                        print('showing validation perf')
+                        for task in self.holdouts: 
+                            ins, tar, mask, tar_dir, task_type = construct_trials('AntiDM', 20, return_tensor=True)
+                            print(task)
+                            out, _ = inference_model(ins.to(device))
+                            scores, indices = out[0, -1, :].topk(5)
+                            print([self.held_in_tasks[i] for i in indices.squeeze()])
+                            print(scores.detach())
 
         if not os.path.exists(self.file_path): 
             os.makedirs(self.file_path)
@@ -128,18 +153,19 @@ def train_inference_model(exp_folder, model_name, seed, labeled_holdouts, **trai
     sm_model.load_model(file_name, suffix=f'_seed{seed}')
 
     if model_name == 'sbertNetL_lin': 
-        inference_model = InferenceNet(1024, 256)
+        inference_model = InferenceNet(45, 128)
     else: 
-        inference_model = InferenceNet(128, 256)
+        inference_model = InferenceNet(45, 128)
 
-    training_config = InferenceTrainerConfig(f'inference_models/{file_name}/', seed, holdouts=holdouts, **train_config_kwargs)
+    training_config = InferenceTrainerConfig(f'inference_models/{file_name}/', seed, **train_config_kwargs)
     trainer = InferenceTrainer(training_config)
 
     for n, p in inference_model.named_parameters(): 
         if p.requires_grad: print(n)
 
-    trainer.train(inference_model, sm_model)
-    
+    trainer.train(inference_model, sm_model, labeled_holdouts[0])
+
+train_inference_model('NN_simData/swap_holdouts', 'simpleNetPlus', 0, list(SWAPS_DICT.items())[0])
 
 
 # from instructRNN.tasks.tasks import SWAPS_DICT
