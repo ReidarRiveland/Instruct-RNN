@@ -38,7 +38,7 @@ class TrainerConfig():
     stream_data: bool = True
 
     optim_alg: str = 'adam'
-    init_lr: float = 0.0001
+    init_lr: float = 0.001
     init_lang_lr: float = None
     weight_decay: float = 0.0
 

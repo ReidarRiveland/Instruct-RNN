@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
         if args.mode == 'infer': 
             from instructRNN.trainers.inference_trainer import *
-            train_inference_model(EXP_FOLDER, model, _seed, holdouts)     
+            train_inference_model(EXP_FOLDER, model, _seed, holdouts, task_subset_str=task_subset_str)     
 
         if args.mode == 'train': 
             from instructRNN.trainers.model_trainer import *

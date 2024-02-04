@@ -21,7 +21,7 @@ from instructRNN.models.full_models import make_default_model
 from instructRNN.analysis.model_analysis import get_rule_reps, get_instruct_reps
 from instructRNN.models.sensorimotor_models import InferenceNet
 from instructRNN.instructions.instruct_utils import make_one_hot
-from instructRNN.tasks.tasks import SWAPS_DICT
+from instructRNN.tasks.tasks import SWAPS_DICT, SUBTASKS_DICT, SUBTASKS_SWAP_DICT
 
 from ruleLearning.rulelearner import get_held_in_indices
 
@@ -38,7 +38,7 @@ class InferenceTrainerConfig():
     random_seed: int
     epochs: int = 30
     min_run_epochs: int = 1
-    batch_len: int = 64
+    batch_len: int = 128
     num_batches: int = 1200
     set_single_task: str = None
     stream_data: bool = True
@@ -51,6 +51,8 @@ class InferenceTrainerConfig():
     scheduler_type: str = 'exp'
     scheduler_gamma: float = 0.93
     scheduler_args: dict = {}
+    task_subset_str: str = None
+
 
 
 class InferenceTrainer(BaseTrainer): 
@@ -63,7 +65,9 @@ class InferenceTrainer(BaseTrainer):
                         self.batch_len, 
                         self.num_batches, 
                         self.holdouts, 
-                        self.set_single_task)
+                        self.set_single_task,
+                        task_subset=self.task_subset_str)
+
 
     def init_optimizer(self, model):
         if self.optim_alg == 'adam': 
@@ -83,11 +87,16 @@ class InferenceTrainer(BaseTrainer):
     def train(self, inference_model, sm_model, swap_label): 
         inference_model.train()
         inference_model.to(device)
-        self.holdouts = SWAPS_DICT[swap_label]
+        if self.task_subset_str is None: 
+            self.holdouts = SWAPS_DICT[swap_label]
+            self.held_in_tasks = [TASK_LIST[i] for i in get_held_in_indices(swap_label)]
+        else: 
+            self.holdouts = SUBTASKS_SWAP_DICT[self.task_subset_str][swap_label]
+            self.held_in_tasks = [task for task in SUBTASKS_DICT[self.task_subset_str] if task not in self.holdouts]
+            print(len(self.held_in_tasks))
 
         self._init_streamer()
         self.init_optimizer(inference_model)
-        self.held_in_tasks = [TASK_LIST[i] for i in get_held_in_indices(swap_label)]
         softmax = nn.LogSoftmax(dim=1)
 
         #criteria = nn.MSELoss()
@@ -121,6 +130,7 @@ class InferenceTrainer(BaseTrainer):
                     print(task_type)
                     print(loss.item())
                     scores, indices = out[0, -1, :].topk(5)
+                    print(indices)
                     print([self.held_in_tasks[i] for i in indices.squeeze()])
                     print(scores.detach())
                     #print(out[0, -1, ...])
@@ -143,8 +153,13 @@ class InferenceTrainer(BaseTrainer):
 
 
 
-def train_inference_model(exp_folder, model_name, seed, labeled_holdouts, **train_config_kwargs): 
+def train_inference_model(exp_folder, model_name, seed, labeled_holdouts, task_subset_str=None, **train_config_kwargs): 
     assert model_name in ['sbertNetL_lin', 'simpleNetPlus'], 'not implemented for other models, need to initialize correct rule dim'
+
+    if task_subset_str is not None: 
+        task_num = len(SUBTASKS_DICT[task_subset_str])
+    else: 
+        task_num = 45
 
     torch.manual_seed(seed)
     label, holdouts = labeled_holdouts
@@ -154,19 +169,22 @@ def train_inference_model(exp_folder, model_name, seed, labeled_holdouts, **trai
     sm_model.load_model(file_name, suffix=f'_seed{seed}')
 
     if model_name == 'sbertNetL_lin': 
-        inference_model = InferenceNet(45, 256)
+        inference_model = InferenceNet(task_num, 256)
     else: 
-        inference_model = InferenceNet(45, 256)
+        inference_model = InferenceNet(task_num, 256)
 
-    training_config = InferenceTrainerConfig(f'inference_models/{file_name}/', seed, **train_config_kwargs)
+    training_config = InferenceTrainerConfig(f'inference_models/{file_name}/', seed, task_subset_str=task_subset_str, **train_config_kwargs)
     trainer = InferenceTrainer(training_config)
+
+    print(trainer.task_subset_str)
+    print(trainer.file_path)
 
     for n, p in inference_model.named_parameters(): 
         if p.requires_grad: print(n)
 
     trainer.train(inference_model, sm_model, labeled_holdouts[0])
 
-train_inference_model('NN_simData/swap_holdouts', 'simpleNetPlus', 0, list(SWAPS_DICT.items())[0])
+#train_inference_model('NN_simData/swap_holdouts', 'simpleNetPlus', 0, list(SWAPS_DICT.items())[0])
 
 
 # from instructRNN.tasks.tasks import SWAPS_DICT
