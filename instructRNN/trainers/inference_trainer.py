@@ -44,12 +44,12 @@ class InferenceTrainerConfig():
     stream_data: bool = True
 
     optim_alg: str = 'adam'
-    init_lr: float = 0.0001
+    init_lr: float = 0.001
     init_lang_lr: float = None
     weight_decay: float = 0.0
 
     scheduler_type: str = 'exp'
-    scheduler_gamma: float = 0.93
+    scheduler_gamma: float = 0.99
     scheduler_args: dict = {}
     task_subset_str: str = None
 
@@ -71,7 +71,7 @@ class InferenceTrainer(BaseTrainer):
 
     def init_optimizer(self, model):
         if self.optim_alg == 'adam': 
-            optim_alg = optim.Adam
+            optim_alg = optim.AdamW
 
         optimizer = optim_alg(model.parameters(), lr=self.init_lr, weight_decay=self.weight_decay)
         self.optimizer = optimizer
@@ -135,9 +135,9 @@ class InferenceTrainer(BaseTrainer):
                     print(scores.detach())
                     #print(out[0, -1, ...])
                 
-                if self.cur_step%250 == 0: 
+                if self.cur_step%500 == 0: 
                     with torch.no_grad():
-                        print('showing validation perf')
+                        print('\n showing validation perf \n')
                         for task in self.holdouts: 
                             print('\n')
                             ins, tar, mask, tar_dir, task_type = construct_trials('AntiDM', 20, return_tensor=True)
@@ -184,7 +184,9 @@ def train_inference_model(exp_folder, model_name, seed, labeled_holdouts, task_s
 
     trainer.train(inference_model, sm_model, labeled_holdouts[0])
 
-#train_inference_model('NN_simData/swap_holdouts', 'simpleNetPlus', 0, list(SWAPS_DICT.items())[0])
+# from instructRNN.tasks.tasks import SUBTASKS_SWAP_DICT
+
+# train_inference_model('SUB_SIM/small_swap_holdouts', 'simpleNetPlus', 0, list(SUBTASKS_SWAP_DICT['small'].items())[0], task_subset_str='small')
 
 
 # from instructRNN.tasks.tasks import SWAPS_DICT
