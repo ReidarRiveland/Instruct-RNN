@@ -156,8 +156,8 @@ class InferenceTrainer(BaseTrainer):
 def train_inference_model(exp_folder, model_name, seed, labeled_holdouts, task_subset_str=None, **train_config_kwargs): 
     assert model_name in ['sbertNetL_lin', 'simpleNetPlus'], 'not implemented for other models, need to initialize correct rule dim'
 
-    if task_subset_str is not None: 
-        task_num = len(SUBTASKS_DICT[task_subset_str])
+    if task_subset_str =='small': 
+        task_num = 20
     else: 
         task_num = 45
 
