@@ -44,14 +44,15 @@ class InferenceTrainerConfig():
     stream_data: bool = True
 
     optim_alg: str = 'adam'
-    init_lr: float = 0.001
+    init_lr: float = 0.0005
     init_lang_lr: float = None
-    weight_decay: float = 0.0
+    weight_decay: float = 0.05
 
     scheduler_type: str = 'exp'
     scheduler_gamma: float = 0.99
     scheduler_args: dict = {}
     task_subset_str: str = None
+    temp: float = 1.0
 
 
 
@@ -120,13 +121,16 @@ class InferenceTrainer(BaseTrainer):
                 #target = sm_model.expand_info(rule_reps[TASK_LIST.index(task_type), np.random.randint(rule_reps.shape[1])].unsqueeze(0).repeat(self.batch_len, 1), 150, 0).to(device)
                 target = torch.tensor(self.held_in_tasks.index(task_type)).repeat(self.batch_len)
 
-                loss = criteria(softmax(out[:, -1, :]), target.to(inference_model.__device__)) 
+                loss = criteria(softmax(out[:, -1, :]/self.temp), target.to(inference_model.__device__)) 
 
                 loss.backward()
+                #torch.nn.utils.clip_grad_value_(inference_model.parameters(), 1.0)                    
+
                 self.optimizer.step()
 
                 if self.cur_step%50 == 0:
                     print('\n')
+                    print(f'{self.cur_epoch}: {self.cur_step}')
                     print(task_type)
                     print(loss.item())
                     scores, indices = out[0, -1, :].topk(5)
@@ -140,7 +144,7 @@ class InferenceTrainer(BaseTrainer):
                         print('\n showing validation perf \n')
                         for task in self.holdouts: 
                             print('\n')
-                            ins, tar, mask, tar_dir, task_type = construct_trials('AntiDM', 20, return_tensor=True)
+                            ins, tar, mask, tar_dir, task_type = construct_trials(task, 20, return_tensor=True)
                             print(task)
                             out, _ = inference_model(ins.to(device))
                             scores, indices = out[0, -1, :].topk(5)
@@ -168,10 +172,7 @@ def train_inference_model(exp_folder, model_name, seed, labeled_holdouts, task_s
     sm_model = make_default_model(model_name)
     sm_model.load_model(file_name, suffix=f'_seed{seed}')
 
-    if model_name == 'sbertNetL_lin': 
-        inference_model = InferenceNet(task_num, 256)
-    else: 
-        inference_model = InferenceNet(task_num, 256)
+    inference_model = InferenceNet(task_num, 256)
 
     training_config = InferenceTrainerConfig(f'inference_models/{file_name}/', seed, task_subset_str=task_subset_str, **train_config_kwargs)
     trainer = InferenceTrainer(training_config)
@@ -184,9 +185,9 @@ def train_inference_model(exp_folder, model_name, seed, labeled_holdouts, task_s
 
     trainer.train(inference_model, sm_model, labeled_holdouts[0])
 
-# from instructRNN.tasks.tasks import SUBTASKS_SWAP_DICT
+from instructRNN.tasks.tasks import SUBTASKS_SWAP_DICT
 
-# train_inference_model('SUB_SIM/small_swap_holdouts', 'simpleNetPlus', 0, list(SUBTASKS_SWAP_DICT['small'].items())[0], task_subset_str='small')
+train_inference_model('SUB_SIM/small_swap_holdouts', 'simpleNetPlus', 0, list(SUBTASKS_SWAP_DICT['small'].items())[2], task_subset_str='small')
 
 
 # from instructRNN.tasks.tasks import SWAPS_DICT
