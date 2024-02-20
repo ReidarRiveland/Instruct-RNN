@@ -36,10 +36,10 @@ else:
 class InferenceTrainerConfig(): 
     file_path: str
     random_seed: int
-    epochs: int = 30
+    epochs: int = 10
     min_run_epochs: int = 1
     batch_len: int = 128
-    num_batches: int = 1200
+    num_batches: int = 1000
     set_single_task: str = None
     stream_data: bool = True
 
