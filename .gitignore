@@ -31,6 +31,9 @@ NN_simData_tmp/
 SUB_SIM/
 SUB_SIMS/
 
+all_perfs.npy
+all_recall_scores.npy
+
 
 
 

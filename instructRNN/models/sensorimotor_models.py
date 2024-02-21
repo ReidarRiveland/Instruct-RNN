@@ -165,7 +165,6 @@ class InferenceNet(nn.Module):
 
         self.sensory_motor_outs = nn.Sequential(
                                     nn.Linear(self.rnn_hidden_dim, out_dim),
-                                    #nn.LeakyReLU()
                                     )
 
         self.__device__ = torch.device('cpu')

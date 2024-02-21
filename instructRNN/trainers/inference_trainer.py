@@ -88,13 +88,13 @@ class InferenceTrainer(BaseTrainer):
     def train(self, inference_model, sm_model, swap_label): 
         inference_model.train()
         inference_model.to(device)
+
         if self.task_subset_str is None: 
             self.holdouts = SWAPS_DICT[swap_label]
             self.held_in_tasks = [TASK_LIST[i] for i in get_held_in_indices(swap_label)]
         else: 
             self.holdouts = SUBTASKS_SWAP_DICT[self.task_subset_str][swap_label]
             self.held_in_tasks = [task for task in SUBTASKS_DICT[self.task_subset_str] if task not in self.holdouts]
-            print(len(self.held_in_tasks))
 
         self._init_streamer()
         self.init_optimizer(inference_model)

@@ -1,11 +1,12 @@
 import torch
 import numpy as np
 
-from instructRNN.tasks.tasks import SWAP_LIST, TASK_LIST, SWAPS_DICT, construct_trials
+from instructRNN.tasks.tasks import SWAP_LIST, TASK_LIST, SWAPS_DICT, construct_trials, SUBTASKS_DICT, SUBTASKS_SWAP_DICT
 from instructRNN.analysis.model_analysis import get_rule_reps, get_instruct_reps
 from instructRNN.analysis.model_eval import task_eval, task_eval_info_embedded
 from instructRNN.models.full_models import make_default_model
 from instructRNN.tasks.task_criteria import isCorrect
+from instructRNN.models.sensorimotor_models import InferenceNet
 
 from ruleLearning.rulelearner_utils import softmax, value_inhibit_act, circuit_recall_inhibit_act, make_periodic_beta, surround_inhibit, cos_sim
 
@@ -14,12 +15,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 from attr import define, asdict
 
 import matplotlib.pyplot as plt
-
-
-def get_held_in_indices(swap_label): 
-    int_list = list(range(50))
-    [int_list.remove(x) for x in [TASK_LIST.index(task) for task in SWAPS_DICT[swap_label]]]
-    return int_list
 
 @define
 class RuleLearnerConfig(): 
@@ -37,6 +32,8 @@ class RuleLearnerConfig():
     value_inhibit_slope: float = 0.8
     hard_repeat: int = 5
     recover_act: float = 0.05
+    task_subset_str: str = None
+    use_weighted_transitions: bool = True
 
 class Hopfield(): 
     def __init__(self, memory_encodings, max_beta): 
@@ -63,7 +60,9 @@ class Hopfield():
         probe_pattern = self.mem_trace[-1]
 
         #for i, beta in enumerate(self.betas): 
-        probe_pattern, softmaxed = self.probe_memory(probe_pattern+np.random.normal(scale=0.01, size=self.memory_encodings.shape[-1]), value_inhibit_w, self.max_beta) 
+        probe_pattern, softmaxed = self.probe_memory(probe_pattern+np.random.normal(scale=0.01, 
+                                                        size=self.memory_encodings.shape[-1]), 
+                                                        value_inhibit_w, self.max_beta) 
         self.mem_trace.append(probe_pattern)
 
         recalled_pattern = probe_pattern
@@ -78,14 +77,31 @@ class RuleLearner():
         for name, value in self.config.items(): 
             setattr(self, name, value)
 
-        self.in_tasks = [TASK_LIST[i] for i in get_held_in_indices(f'swap{self.holdout_index}')]
+        if self.task_subset_str is None: 
+            self.task_list = TASK_LIST
+            label_str = f"swap{self.holdout_index}"
+            self.holdouts = SWAPS_DICT[label_str]
+            self.in_tasks = [task for task in TASK_LIST if task not in self.holdouts]
+            model_path = f'NN_simData/swap_holdouts/{label_str}/'
+        else: 
+            label_str = f"{self.task_subset_str}_swap{self.holdout_index}"
+            self.task_list = SUBTASKS_DICT[self.task_subset_str]
+            self.holdouts = SUBTASKS_SWAP_DICT[self.task_subset_str][label_str]
+            model_path = f'SUB_SIM/{self.task_subset_str}_swap_holdouts/{label_str}/'
+
+        self.in_tasks = [task for task in self.task_list if task not in self.holdouts]
+        self.in_indices = [self.task_list.index(task) for task in self.in_tasks]
 
         print('loading model')
         self.model = make_default_model(self.model_name)
-        self.model.load_model(f'NN_simData/swap_holdouts/swap{self.holdout_index}/{self.model_name}', suffix=f'_seed{self.load_seed}')
+        self.model.load_model(model_path + self.model_name, suffix=f'_seed{self.load_seed}')
+
+        print('loading inference model')
+        self.inference_model = InferenceNet(len(self.in_tasks), 256)
+        self.inference_model.load_state_dict(torch.load(f'inference_models/{model_path}{self.model_name}/infer_{self.model_name}_seed{self.load_seed}.pt'))
 
         print('getting rule encodings')
-        self.rule_encodings = self.get_holdout_rule_reps()
+        self.rule_encodings = self.get_known_rule_reps()
         
         print('getting direction clusters')
         self.dir_clusters, self.transition_data, self.task_transitions = self.get_task_transition_clusters()
@@ -95,9 +111,7 @@ class RuleLearner():
         self.cluster_memory = Hopfield(self.dir_clusters, self.max_beta*5)
 
                 
-    def get_holdout_rule_reps(self, depth='full'): 
-        held_in_indices = get_held_in_indices(f'swap{self.holdout_index}')    
-
+    def get_known_rule_reps(self, depth='full'): 
         if hasattr(self.model, 'langModel'): 
             rule_reps = get_instruct_reps(self.model.langModel, depth=depth)
         elif hasattr(self.model, 'rule_encoder'): 
@@ -105,21 +119,55 @@ class RuleLearner():
         else: 
             rule_reps = get_rule_reps(self.model)
             
-        return rule_reps[held_in_indices, ...]
+        return rule_reps[self.in_indices, ...]
 
-    def get_task_transition_clusters(self):
+    def get_task_transitions(self): 
         transitions = []
         tasks = []
-        in_indices = get_held_in_indices(f'swap{self.holdout_index}')
 
         for _ in range(self.num_transitions): 
-            task_draw = np.random.choice(range(len(in_indices)), size=2, replace=False)
+            task_draw = np.random.choice(range(len(self.in_indices)), size=2, replace=False)
             instruct_draw = np.random.choice(self.rule_encodings.shape[1], size=2)
 
             transitions.append(self.rule_encodings[task_draw[0], instruct_draw[0], : ]-self.rule_encodings[task_draw[1], instruct_draw[1], :])
-            tasks.append((TASK_LIST[in_indices[task_draw[0]]], TASK_LIST[in_indices[task_draw[1]]]))
+            tasks.append((TASK_LIST[self.in_indices[task_draw[0]]], TASK_LIST[self.in_indices[task_draw[1]]]))
         
         task_transition_data = np.array(transitions)
+
+        return task_transition_data, tasks
+
+    def get_weighted_task_transitions(self): 
+        transitions = []
+        tasks = []
+        counted_transitions = 0
+
+        for _ in range(self.num_transitions): 
+            task_draw = np.random.choice(range(len(self.in_indices)), size=2, replace=False)
+            instruct_draw = np.random.choice(self.rule_encodings.shape[1], size=2)
+            infer_scores = []
+            for task_index in task_draw: 
+                ins, targets, _, target_dirs, _ = construct_trials(self.in_tasks[task_index], 1)
+                with torch.no_grad(): infer_out, _ = self.inference_model(torch.Tensor(ins).to(self.inference_model.__device__))
+                infer_scores.append(softmax(infer_out[0, -1, :].numpy()))
+            
+            
+            sim_score = cosine_similarity(np.array(infer_scores))[0, 1]
+
+            if sim_score>0.5:
+                counted_transitions += 1
+                transitions.append(self.rule_encodings[task_draw[0], instruct_draw[0], : ]-self.rule_encodings[task_draw[1], instruct_draw[1], :])
+                tasks.append((TASK_LIST[self.in_indices[task_draw[0]]], TASK_LIST[self.in_indices[task_draw[1]]]))
+            
+        task_transition_data = np.array(transitions)
+        print(counted_transitions)
+
+        return task_transition_data, tasks
+
+    def get_task_transition_clusters(self):
+        if self.use_weighted_transitions: 
+            task_transition_data, tasks = self.get_weighted_task_transitions()
+        else: 
+            task_transition_data, tasks = self.get_task_transitions()
 
         k_means = KMeans(n_clusters=self.num_clusters)
         k_means.fit(task_transition_data)
@@ -127,60 +175,36 @@ class RuleLearner():
 
         return clusters, task_transition_data, tasks
 
-    def visual_inhibition_curve(self, curve): 
-        x = np.linspace(0, 1)
-
-        if curve == 'circuit': 
-            y = [circuit_recall_inhibit_act(_x, threshold=self.circuit_inhibit_threshold) for _x in x]
-        elif curve == 'value': 
-            y = value_inhibit_act(x, shift=self.task_inhibit_shift, slope=self.value_inhibit_slope)
-
-        plt.plot(x,y)
-        plt.show()
-
-    def get_base_rule_encodings(self):
-        rule_encoding_set = np.delete(self.rule_encodings, 
-                    np.array([TASK_LIST.index(holdout_task) for holdout_task in SWAP_LIST[self.holdout_index]]), 
-                    axis=0)
-
-        return rule_encoding_set
-
-    def get_base_rule_PCs(self): 
-        embedder = PCA()
-        rule_encoding_set = self.get_base_rule_encodings()
-        embedder.fit(rule_encoding_set.reshape(-1, rule_encoding_set.shape[-1]))
-        componenets = embedder.components_[:self.num_clusters, :]
-        return componenets
-
-
-    def eval_comp_rep(self, comp_rep, task, batch_size):
-        # if hasattr(self.model, 'langModel'):
-        #     #info_embedded = self.model.langModel.proj_out(torch.tensor(comp_rep).float())
-        #     info_embedded = torch.tensor(comp_rep).float()
-        # else:
-        #     info_embedded = self.model.rule_encoder.rule_layer2(torch.tensor(comp_rep).float())
-
+    def eval_comp_rep(self, comp_rep, task, batch_size, trial_info=None):
+        if trial_info is None: 
+            ins, targets, _, target_dirs, _ = construct_trials(task, batch_size)
+        else: 
+            ins, targets, target_dirs = trial_info
 
         info_embedded = torch.tensor(comp_rep).float()
         info_embedded = info_embedded[None, :].repeat(batch_size, 1)
-        ins, targets, _, target_dirs, _ = construct_trials(task, batch_size)
         out, _ = self.model(torch.Tensor(ins).to(self.model.__device__), info_embedded=info_embedded)        
         rewards = isCorrect(out, torch.Tensor(targets), target_dirs)
         return rewards
     
     def eval_recalled_comp_reps(self, task, batch_size): 
-        return np.array([np.mean(self.eval_comp_rep(rep, task, 50)) for rep in self.comp_rep_list]) 
+        return np.array([np.mean(self.eval_comp_rep(rep, task, batch_size)) for rep in self.comp_rep_list]) 
 
-    def get_all_perf_embedding_arr(self, task, batch_size=50): 
+    def get_all_perf_embedding_arr(self, task, batch_size=20, return_infer_out=False): 
         perf_arr = np.empty((self.cluster_memory.memory_encodings.shape[0], self.task_memory.memory_encodings.shape[0]))
+        ins, targets, _, target_dirs, _ = construct_trials(task, batch_size)
 
-        for i, pc in enumerate(self.cluster_memory.memory_encodings):
-            print('processing pc ' + str(i))
+        for i, cluster in enumerate(self.cluster_memory.memory_encodings):
+            print('processing cluster ' + str(i))
             for j, task_rep in enumerate(self.task_memory.memory_encodings): 
-                comp_rep = task_rep+pc
-                perf = np.mean(self.eval_comp_rep(comp_rep, task, batch_size))
+                comp_rep = task_rep+cluster
+                perf = np.mean(self.eval_comp_rep(comp_rep, task, batch_size, trial_info=(ins, targets, target_dirs)))
                 perf_arr[i, j] = perf
         
+        if return_infer_out: 
+            with torch.no_grad(): inference_out, _ = self.inference_model(torch.Tensor(ins).to(self.inference_model.__device__))
+            return perf_arr, inference_out[:, -1, :].numpy()
+
         return perf_arr
 
     def update_inhibition(self, value_weight, post_activity, inhibit_weights, recover_act=0.01): 
@@ -214,7 +238,7 @@ class RuleLearner():
         self.task_value_inhibit_w = np.ones(len(self.in_tasks))
         self.pc_value_inhibit_w = np.ones(self.num_clusters)
 
-        self.task_memory.set_init_pattern(self.task_memory.memory_encodings[np.random.randint(0, 45), :])
+        self.task_memory.set_init_pattern(self.task_memory.memory_encodings[np.random.randint(0, len(self.in_indices)), :])
         self.cluster_memory.set_init_pattern(self.cluster_memory.memory_encodings[0, :])
 
         self.value_list = []
@@ -234,7 +258,7 @@ class RuleLearner():
         self.init_learning_variables(task)
         switched_weight = 0
         comp_rep = self.task_memory.mem_trace[0]
-        task_post_activity = np.zeros(45)
+        task_post_activity = np.zeros(len(self.in_indices))
         pc_post_activity = np.zeros(self.num_clusters)
 
         for i in range(int(num_trials/self.hard_repeat)): 
@@ -270,3 +294,14 @@ class RuleLearner():
                 np.array(self.task_inhibit_history),
                 np.array(self.pc_inhibit_history))
 
+
+    def visual_inhibition_curve(self, curve): 
+        x = np.linspace(0, 1)
+
+        if curve == 'circuit': 
+            y = [circuit_recall_inhibit_act(_x, threshold=self.circuit_inhibit_threshold) for _x in x]
+        elif curve == 'value': 
+            y = value_inhibit_act(x, shift=self.task_inhibit_shift, slope=self.value_inhibit_slope)
+
+        plt.plot(x,y)
+        plt.show()
