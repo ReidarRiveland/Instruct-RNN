@@ -16,6 +16,11 @@ from attr import define, asdict
 
 import matplotlib.pyplot as plt
 
+if torch.cuda.is_available:
+    device = torch.device(0)
+    print(torch.cuda.get_device_name(device), flush=True)
+else: 
+    device = torch.device('cpu')
 
 @define
 class RuleLearnerConfig(): 
@@ -90,10 +95,12 @@ class RuleLearner():
         print('loading model')
         self.model = make_default_model(self.model_name)
         self.model.load_model(model_path + self.model_name, suffix=f'_seed{self.load_seed}')
+        self.model.to(device)
 
         print('loading inference model')
         self.inference_model = InferenceNet(len(self.in_tasks), 256)
         self.inference_model.load_state_dict(torch.load(f'inference_models/{model_path}{self.model_name}/infer_{self.model_name}_seed{self.load_seed}.pt'))
+        self.inference_model.to(device)
 
         print('getting rule encodings')
         self.rule_encodings = self.get_known_rule_reps()
@@ -169,7 +176,7 @@ class RuleLearner():
         with torch.no_grad(): 
             inference_out, _ = self.inference_model(torch.Tensor(ins).to(self.inference_model.__device__))
         
-        return softmax(inference_out[-1, -1, :].numpy())
+        return softmax(inference_out[-1, -1, :].cpu().numpy())
 
     def eval_comp_rep(self, comp_rep, task, batch_size, trial_info=None, return_trial_inputs=False):
         if trial_info is None: 
