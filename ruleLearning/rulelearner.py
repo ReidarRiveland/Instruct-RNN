@@ -16,22 +16,17 @@ from attr import define, asdict
 
 import matplotlib.pyplot as plt
 
+
 @define
 class RuleLearnerConfig(): 
     model_name: str
     holdout_index: int
     load_seed: int 
     num_clusters: int = 15
-    num_transitions: int = 800
-    max_beta: int = 25
-    value_weights_init_mean: float = 0.05
-    base_alpha: float = 0.25
-    task_inhibit_shift: float = 0.7
-    pc_inhibit_shift: float = 0.7
-    switched_weight_threshold: float = 0.0
-    value_inhibit_slope: float = 0.8
-    hard_repeat: int = 5
-    recover_act: float = 0.05
+    num_transitions: int = 2000
+    switched_weight_threshold: float = 0.8
+    base_alpha: float=1.0
+    hard_repeat: int = 3
     task_subset_str: str = None
     use_weighted_transitions: bool = True
 
@@ -107,8 +102,10 @@ class RuleLearner():
         self.dir_clusters, self.transition_data, self.task_transitions = self.get_task_transition_clusters()
 
         print('initializing memories')
-        self.task_memory = Hopfield(self.rule_encodings.mean(1), self.max_beta)
-        self.cluster_memory = Hopfield(self.dir_clusters, self.max_beta*5)
+        # self.task_memory = Hopfield(self.rule_encodings.mean(1), self.max_beta)
+        # self.cluster_memory = Hopfield(self.dir_clusters, self.max_beta*5)
+
+        self.combo_mat = self.get_combo_mat()
 
                 
     def get_known_rule_reps(self, depth='full'): 
@@ -124,21 +121,6 @@ class RuleLearner():
     def get_task_transitions(self): 
         transitions = []
         tasks = []
-
-        for _ in range(self.num_transitions): 
-            task_draw = np.random.choice(range(len(self.in_indices)), size=2, replace=False)
-            instruct_draw = np.random.choice(self.rule_encodings.shape[1], size=2)
-
-            transitions.append(self.rule_encodings[task_draw[0], instruct_draw[0], : ]-self.rule_encodings[task_draw[1], instruct_draw[1], :])
-            tasks.append((TASK_LIST[self.in_indices[task_draw[0]]], TASK_LIST[self.in_indices[task_draw[1]]]))
-        
-        task_transition_data = np.array(transitions)
-
-        return task_transition_data, tasks
-
-    def get_weighted_task_transitions(self): 
-        transitions = []
-        tasks = []
         counted_transitions = 0
 
         for _ in range(self.num_transitions): 
@@ -147,35 +129,49 @@ class RuleLearner():
             infer_scores = []
             for task_index in task_draw: 
                 ins, targets, _, target_dirs, _ = construct_trials(self.in_tasks[task_index], 1)
-                with torch.no_grad(): infer_out, _ = self.inference_model(torch.Tensor(ins).to(self.inference_model.__device__))
-                infer_scores.append(softmax(infer_out[0, -1, :].numpy()))
-            
+                scores = self.eval_infer_net(ins)
+                infer_scores.append(scores)
             
             sim_score = cosine_similarity(np.array(infer_scores))[0, 1]
 
-            if sim_score>0.5:
+            if sim_score>0.5 and self.use_weighted_transitions:
                 counted_transitions += 1
                 transitions.append(self.rule_encodings[task_draw[0], instruct_draw[0], : ]-self.rule_encodings[task_draw[1], instruct_draw[1], :])
                 tasks.append((TASK_LIST[self.in_indices[task_draw[0]]], TASK_LIST[self.in_indices[task_draw[1]]]))
-            
-        task_transition_data = np.array(transitions)
+            else: 
+                transitions.append(self.rule_encodings[task_draw[0], instruct_draw[0], : ]-self.rule_encodings[task_draw[1], instruct_draw[1], :])
+                tasks.append((TASK_LIST[self.in_indices[task_draw[0]]], TASK_LIST[self.in_indices[task_draw[1]]]))
+        
         print(counted_transitions)
-
+        task_transition_data = np.array(transitions)
+        
         return task_transition_data, tasks
 
     def get_task_transition_clusters(self):
-        if self.use_weighted_transitions: 
-            task_transition_data, tasks = self.get_weighted_task_transitions()
-        else: 
-            task_transition_data, tasks = self.get_task_transitions()
+        task_transition_data, tasks = self.get_task_transitions()
 
         k_means = KMeans(n_clusters=self.num_clusters)
         k_means.fit(task_transition_data)
         clusters = k_means.cluster_centers_
 
         return clusters, task_transition_data, tasks
+    
+    def get_combo_mat(self):
+        combo_mat = np.empty((self.rule_encodings.shape[0], self.dir_clusters.shape[0], self.rule_encodings.shape[-1] ))
+        for i, task_rep in enumerate(self.rule_encodings.mean(1)): 
+            for j, cluster in enumerate(self.dir_clusters):
+                comp_rep = task_rep+cluster
+                combo_mat[i,j, :] = comp_rep
 
-    def eval_comp_rep(self, comp_rep, task, batch_size, trial_info=None):
+        return combo_mat
+
+    def eval_infer_net(self, ins): 
+        with torch.no_grad(): 
+            inference_out, _ = self.inference_model(torch.Tensor(ins).to(self.inference_model.__device__))
+        
+        return softmax(inference_out[-1, -1, :].numpy())
+
+    def eval_comp_rep(self, comp_rep, task, batch_size, trial_info=None, return_trial_inputs=False):
         if trial_info is None: 
             ins, targets, _, target_dirs, _ = construct_trials(task, batch_size)
         else: 
@@ -185,61 +181,40 @@ class RuleLearner():
         info_embedded = info_embedded[None, :].repeat(batch_size, 1)
         out, _ = self.model(torch.Tensor(ins).to(self.model.__device__), info_embedded=info_embedded)        
         rewards = isCorrect(out, torch.Tensor(targets), target_dirs)
+
+        if return_trial_inputs: 
+            return rewards, ins
+
         return rewards
     
     def eval_recalled_comp_reps(self, task, batch_size): 
         return np.array([np.mean(self.eval_comp_rep(rep, task, batch_size)) for rep in self.comp_rep_list]) 
 
     def get_all_perf_embedding_arr(self, task, batch_size=20, return_infer_out=False): 
-        perf_arr = np.empty((self.cluster_memory.memory_encodings.shape[0], self.task_memory.memory_encodings.shape[0]))
+        perf_arr = np.empty((self.combo_mat.shape[0], self.combo_mat.shape[1]))
         ins, targets, _, target_dirs, _ = construct_trials(task, batch_size)
 
-        for i, cluster in enumerate(self.cluster_memory.memory_encodings):
-            print('processing cluster ' + str(i))
-            for j, task_rep in enumerate(self.task_memory.memory_encodings): 
-                comp_rep = task_rep+cluster
+        for i in range(self.combo_mat.shape[0]):
+            for j in range(self.combo_mat.shape[1]):
+                comp_rep = self.combo_mat[i, j]
                 perf = np.mean(self.eval_comp_rep(comp_rep, task, batch_size, trial_info=(ins, targets, target_dirs)))
                 perf_arr[i, j] = perf
         
         if return_infer_out: 
-            with torch.no_grad(): inference_out, _ = self.inference_model(torch.Tensor(ins).to(self.inference_model.__device__))
-            return perf_arr, inference_out[:, -1, :].numpy()
+            return perf_arr, self.eval_infer_net(ins[0:5, ...])
 
         return perf_arr
-
-    def update_inhibition(self, value_weight, post_activity, inhibit_weights, recover_act=0.01): 
-        post_activity = surround_inhibit(post_activity, recover_act)
-        post_activity = value_weight*post_activity
-        inhibit_weights = np.minimum(1, np.maximum(0, inhibit_weights-post_activity))
-        return inhibit_weights
-
-    def update_value_weights(self, embedding, R, alpha): 
-        rpe = R-np.dot(self.W_v.T, embedding)
-        update_factor = (alpha)*rpe
-        
-        self.W_v += (update_factor*embedding)
-        return rpe
 
     def update_value(self, R, alpha): 
         rpe = R-self.value
         update_factor = (alpha)*rpe
         
         self.value += (update_factor)
-        return rpe
+        return rpe, self.value
 
     def init_learning_variables(self, task):
-        #self.W_v = np.random.normal(scale=0.01, size=self.rule_encodings.shape[-1])
-        self.W_v = np.zeros(self.rule_encodings.shape[-1])
+        self.inhibit_mat = np.ones((self.rule_encodings.shape[0], self.dir_clusters.shape[0]))
         self.value = 0
-
-        self.task_inhibit_history = []
-        self.pc_inhibit_history = []
-
-        self.task_value_inhibit_w = np.ones(len(self.in_tasks))
-        self.pc_value_inhibit_w = np.ones(self.num_clusters)
-
-        self.task_memory.set_init_pattern(self.task_memory.memory_encodings[np.random.randint(0, len(self.in_indices)), :])
-        self.cluster_memory.set_init_pattern(self.cluster_memory.memory_encodings[0, :])
 
         self.value_list = []
         self.comp_rep_list = []
@@ -251,38 +226,38 @@ class RuleLearner():
         self.value_list.append(value)
         self.comp_rep_list.append(comp_rep)
         self.task_perf += list(rewards)
-        self.task_inhibit_history.append(self.task_value_inhibit_w)
-        self.pc_inhibit_history.append(self.pc_value_inhibit_w)
 
     def learn(self, task, num_trials=1000): 
         self.init_learning_variables(task)
+
         switched_weight = 0
-        comp_rep = self.task_memory.mem_trace[0]
-        task_post_activity = np.zeros(len(self.in_indices))
-        pc_post_activity = np.zeros(self.num_clusters)
+        task_index = np.random.randint(self.combo_mat.shape[0])
+        dir_index =  np.random.randint(self.combo_mat.shape[1])
+        comp_rep = self.combo_mat[np.random.randint(self.combo_mat.shape[0]), np.random.randint(self.combo_mat.shape[1])]
 
         for i in range(int(num_trials/self.hard_repeat)): 
             switched_weight += 1
 
-            rewards = self.eval_comp_rep(comp_rep, task, self.hard_repeat)
-            #rpe = self.update_value_weights(comp_rep, np.mean(rewards), (self.base_alpha/switched_weight)+1e-3) 
-            rpe = self.update_value(np.mean(rewards), (self.base_alpha/switched_weight)+1e-3) 
-            #value = np.dot(self.W_v.T, comp_rep)
-            value = self.value 
+            rewards, ins = self.eval_comp_rep(comp_rep, task, self.hard_repeat, return_trial_inputs=True)
+            rpe, value = self.update_value(np.mean(rewards), (self.base_alpha/switched_weight)+1e-3) 
             self.update_learning_step(rewards, rpe, value, comp_rep)
 
-            task_inhbition_weight = value_inhibit_act(value, shift=self.task_inhibit_shift, slope=self.value_inhibit_slope)
-            pc_inhbition_weight = value_inhibit_act(value, shift=self.pc_inhibit_shift, slope=self.value_inhibit_slope)
 
-            self.task_value_inhibit_w = self.update_inhibition(task_inhbition_weight, task_post_activity, self.task_value_inhibit_w, recover_act=self.recover_act)
-            self.pc_value_inhibit_w = self.update_inhibition(pc_inhbition_weight, pc_post_activity, self.pc_value_inhibit_w, recover_act=self.recover_act)
-            task_recalled, task_post_activity = self.task_memory.recall_memory(self.task_value_inhibit_w)
-            pc_recalled, pc_post_activity = self.cluster_memory.recall_memory(self.pc_value_inhibit_w)
+            if (self.value<self.switched_weight_threshold):
+                self.inhibit_mat[task_index, dir_index] = 0
 
-            comp_rep = task_recalled+pc_recalled
+                ###make sur eyou don't draw from task where all dir combos have been tried and are 0
+                exhausted_indices = ~np.all(self.inhibit_mat==0, axis=1)
+                task_probs = self.eval_infer_net(ins)[exhausted_indices]
+                task_index = np.random.choice(np.arange(self.combo_mat.shape[0])[exhausted_indices], p=task_probs/task_probs.sum())
 
-            if (task_inhbition_weight>self.switched_weight_threshold) and (pc_inhbition_weight>self.switched_weight_threshold):
-                switched_weight = 0 
+
+                dir_probs = self.inhibit_mat[task_index, :]/self.inhibit_mat[task_index, :].sum()
+                dir_index = np.random.choice(range(self.combo_mat.shape[1]), p=dir_probs)
+
+                comp_rep = self.combo_mat[task_index, dir_index]
+                switched_weight = 0
+
 
             if i%10 == 0: 
                 print('Value: ' +str(value))
@@ -290,18 +265,6 @@ class RuleLearner():
         return (np.array(self.task_perf), 
                 np.array(self.value_list), 
                 np.array(self.rpes), 
-                np.array(self.comp_rep_list), 
-                np.array(self.task_inhibit_history),
-                np.array(self.pc_inhibit_history))
+                np.array(self.comp_rep_list))
 
 
-    def visual_inhibition_curve(self, curve): 
-        x = np.linspace(0, 1)
-
-        if curve == 'circuit': 
-            y = [circuit_recall_inhibit_act(_x, threshold=self.circuit_inhibit_threshold) for _x in x]
-        elif curve == 'value': 
-            y = value_inhibit_act(x, shift=self.task_inhibit_shift, slope=self.value_inhibit_slope)
-
-        plt.plot(x,y)
-        plt.show()

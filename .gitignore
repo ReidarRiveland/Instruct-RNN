@@ -29,10 +29,8 @@ NN_simData/
 dec_check/
 NN_simData_tmp/
 SUB_SIM/
-SUB_SIMS/
+rulelearner_logs/
 
-all_perfs.npy
-all_recall_scores.npy
 
 
 

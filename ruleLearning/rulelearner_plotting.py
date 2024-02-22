@@ -19,8 +19,8 @@ def plot_memory_trace(memory, ytics):
     axn[1].plot(np.tile(memory.betas, len(memory.recalls)))
     plt.show()
 
-def plot_task_learning(task, task_rewards, values, rpes, comp_reps, task_inhbition_weight, pc_inhbition_weight, hard_repeat=5, embedding_perfs=None): 
-    fig, axn = plt.subplots(6,1, figsize =(16, 12), gridspec_kw={'height_ratios':[3,1,3,2,2,2]})
+def plot_task_learning(task, task_rewards, values, rpes, comp_reps, hard_repeat=5, embedding_perfs=None): 
+    fig, axn = plt.subplots(4,1, figsize =(16, 12), gridspec_kw={'height_ratios':[3,1,3,2]})
     labels = ['estimated values', 'experienced returns']
     axn[0].plot(values)
     if embedding_perfs is not None:
@@ -57,19 +57,18 @@ def plot_task_learning(task, task_rewards, values, rpes, comp_reps, task_inhbiti
     res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
     axn[3].set_ylabel('Comp. Reps.', fontsize='medium')
 
-    res = sns.heatmap(task_inhbition_weight.T, yticklabels=[], xticklabels=[], vmax=1.0, vmin=0.0, cbar=False, ax=axn[4])
-    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
-    axn[4].set_ylabel('Task Recall Inhibition', fontsize='medium')
+    # res = sns.heatmap(task_inhbition_weight.T, yticklabels=[], xticklabels=[], vmax=1.0, vmin=0.0, cbar=False, ax=axn[4])
+    # res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
+    # axn[4].set_ylabel('Task Recall Inhibition', fontsize='medium')
 
-    res = sns.heatmap(pc_inhbition_weight.T, yticklabels=[], cbar=False, vmax=1.0, vmin=0.0, ax=axn[5])
-    res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
-    axn[5].set_ylabel('PC Recall Inhibition', fontsize='medium')
+    # res = sns.heatmap(pc_inhbition_weight.T, yticklabels=[], cbar=False, vmax=1.0, vmin=0.0, ax=axn[5])
+    # res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 8)
+    # axn[5].set_ylabel('PC Recall Inhibition', fontsize='medium')
 
-    res.set_xticks(np.linspace(0, values.shape[0], 11))
-    res.set_xticklabels(np.linspace(0, task_rewards.shape[0], 11).astype(int), fontsize = 8, rotation='90')
-    axn[5].set_xlabel('Trials', fontsize='medium')
+    # res.set_xticks(np.linspace(0, values.shape[0], 11))
+    # res.set_xticklabels(np.linspace(0, task_rewards.shape[0], 11).astype(int), fontsize = 8, rotation='90')
+    # axn[5].set_xlabel('Trials', fontsize='medium')
 
-    plt.tight_layout()
     plt.show()
 
 def plot_population_learning(population_learning_data, task, axn=None, plot_individuals=True, **title_kwargs):
@@ -79,7 +78,6 @@ def plot_population_learning(population_learning_data, task, axn=None, plot_indi
         plt.legend(handles=handles)
         axn.set_xlabel('Trials')
         axn.set_ylabel('Task Performance')
-        plt.tight_layout()
 
     if plot_individuals:
         for i in range(population_learning_data.shape[0]):
