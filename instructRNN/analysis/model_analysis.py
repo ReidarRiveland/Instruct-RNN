@@ -268,7 +268,7 @@ def get_multitask_CCGP(exp_folder, model_name, seed, save=False, layer='task', m
     if layer == 'task':
         reps = get_task_reps(model, num_trials = 100)
     elif layer =='full' and model_name =='simpleNetPlus':
-        reps = get_rule_embedder_reps(model)[:, None, :]
+        reps = get_rule_reps(model)[:, None, :]
     else: 
         reps = get_instruct_reps(model.langModel, depth=layer)
     

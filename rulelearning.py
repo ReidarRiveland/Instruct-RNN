@@ -32,7 +32,7 @@ if __name__ == "__main__":
     num_clusters = [10, 15, 20, 25]
     jobs = list(itertools.product(args.seeds, args.models, holdout_indices, num_clusters))
 
-    print(jobs)
+    print(len(jobs))
 
     if args.job_index is not None: 
         jobs = [jobs[args.job_index]]

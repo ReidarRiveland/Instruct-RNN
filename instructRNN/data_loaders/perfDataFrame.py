@@ -31,6 +31,10 @@ class PerfDataFrame():
         if self.mode == 'multi_ccgp':
             load_str = self.file_path+'/multitask_holdouts/CCGP_scores/'+self.model_name+'/layertask_task_multi_seed{}.npy'
             self.load_multi_measure(load_str)
+        if self.mode == 'embedding_multi_ccgp':
+            print('here')
+            load_str = self.file_path+'/multitask_holdouts/CCGP_scores/'+self.model_name+'/layerfull_task_multi_seed{}.npy'
+            self.load_multi_measure(load_str)
         elif self.mode == 'val': 
             load_str = self.file_path+'/multitask_holdouts/val_perf/'+self.model_name+'/'+self.model_name+'_val_perf_seed{}.npy'
             self.load_multi_measure(load_str)

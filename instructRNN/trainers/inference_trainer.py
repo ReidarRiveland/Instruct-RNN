@@ -91,7 +91,7 @@ class InferenceTrainer(BaseTrainer):
 
         if self.task_subset_str is None: 
             self.holdouts = SWAPS_DICT[swap_label]
-            self.held_in_tasks = [TASK_LIST[i] for i in get_held_in_indices(swap_label)]
+            self.held_in_tasks = [task for task in TASK_LIST if task not in self.holdouts]
         else: 
             self.holdouts = SUBTASKS_SWAP_DICT[self.task_subset_str][swap_label]
             self.held_in_tasks = [task for task in SUBTASKS_DICT[self.task_subset_str] if task not in self.holdouts]

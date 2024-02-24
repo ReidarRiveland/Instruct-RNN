@@ -37,9 +37,9 @@ Yellow = '#FFEE58'
 Purple = '#800080'
 Grey = '#36454F'
 lightGreen = '#90EE90'
+NavyBlue = '#000C66'
 
-MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (Blue, None, 'simpleNetPlus'),  'combNet': (lightBlue, None, 'structureNet'), 'combNetPlus': (lightBlue, None, 'structureNetPlus'),
-                    'simpleSbert':(Yellow, None, 'simpleNet (transfer)'),
+MODEL_STYLE_DICT = {'simpleNet': (Blue, None, 'simpleNet'), 'simpleNetPlus': (NavyBlue, None, 'simpleNetPlus'),  'combNet': (lightBlue, None, 'structureNet'), 'combNetPlus': (lightBlue, None, 'structureNetPlus'),
                     'sbertSbert':('lawngreen', None, 'sbertNet (L) (transfer)'),
                     'clipNet_lin': ('Pink', None, 'clipNet'), 'clipNet_lin_tuned': (Purple, 'v', 'clipNet (tuned)'), 'clipNet': (Purple, None, 'clipNet'), 
                     'clipNetS_lin': (Purple, None, 'clipNet (S)'), 'clipNetS_lin_tuned': (Purple, None, 'clipNet (S)(tuned)'), 'clipNetS': (Purple, None, 'clipNet (S)'),
@@ -132,7 +132,7 @@ def plot_curves(foldername, exp_type, model_list, mode = '', training_file = '',
                 axn.scatter(0, mean[0], color=color, s=5, marker=zero_marker)
             else: 
                 mean, std = data.avg_seeds()
-            if model_name in ['rawBertNet_lin', 'bowNetPlus', 'simpleNetPlus', 'combNetPlus', 'gptNetXL_L_lin']: linestyle = '--'
+            if model_name in ['rawBertNet_lin', 'bowNetPlus', 'combNetPlus', 'gptNetXL_L_lin']: linestyle = '--'
             else: linestyle = '-'
             plt_func(mean, std, axn, color, zero_marker, linestyle=linestyle, **curve_kwargs)
 

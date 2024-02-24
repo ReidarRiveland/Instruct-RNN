@@ -15,7 +15,7 @@ aux_models = ['combNet', 'combNetPlus', 'bowNet_lin', 'bowNetPlus', 'bertNet_lin
 
 
 ###FIG2
-plot_curves('NN_simData', 'swap', to_plot_models, mode='combined', avg=True, linewidth=1.2)
+plot_curves('NN_simData', 'swap', ['sbertNetL_lin', 'simpleNet', 'simpleNetPlus'], mode='combined', avg=True, linewidth=1.2)
 plot_all_models_task_dist('NN_simData', 'swap', to_plot_models, mode='combined')
 plt.show()
 
@@ -210,14 +210,14 @@ plt.show()
 
 
 ###CCGP
-plot_comp_dots('NN_simData', 'swap', to_plot_models, 'ccgp', y_lim=(0.5, 1.0))
+plot_comp_dots('NN_simData', 'swap', to_plot_models+['simpleNetPlus'], 'ccgp', y_lim=(0.5, 1.0))
 plt.show()
 
 t_mat, p_mat, is_sig = calc_t_test('NN_simData', 'swap', to_plot_models, mode='ccgp')
 plot_significance(t_mat, p_mat, to_plot_models)
 plt.show()
 
-plot_comp_dots('NN_simData', 'swap', to_plot_models, 'multi_ccgp', y_lim=(0.5, 1.0))
+plot_comp_dots('NN_simData', 'multitask', ['sbertNetL_lin', 'simpleNet', 'simpleNetPlus'], 'multi_ccgp', y_lim=(0.5, 1.0))
 plt.show()
 
 t_mat, p_mat, is_sig  = calc_t_test('NN_simData', 'multitask', to_plot_models, mode='multi_ccgp')
@@ -231,10 +231,10 @@ t_mat, p_mat, is_sig = calc_t_test('NN_simData', 'swap', to_plot_models, mode='s
 plot_significance(t_mat, p_mat, to_plot_models)
 plt.show()
 
-plot_comp_dots('NN_simData', 'swap', to_plot_models, 'embedding_ccgp', y_lim=(0.475, 1.01))
+plot_comp_dots('NN_simData', 'multitask', ['sbertNetL_lin', 'simpleNetPlus'], mode='embedding_multi_ccgp', y_lim=(0.475, 1.01))
 plt.show()
 
-t_mat, p_mat, is_sig = calc_t_test('NN_simData', 'swap', to_plot_models, mode='embedding_ccgp')
+t_mat, p_mat, is_sig = calc_t_test('NN_simData', 'swap', to_plot_models+['simpleNetPlus'], mode='embedding_ccgp')
 plot_significance(t_mat, p_mat, to_plot_models)
 plt.show()
 
