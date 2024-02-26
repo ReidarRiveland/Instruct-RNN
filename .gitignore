@@ -30,7 +30,7 @@ dec_check/
 NN_simData_tmp/
 SUB_SIM/
 rulelearner_logs/
-
+all_recall_scores.npy
 
 
 

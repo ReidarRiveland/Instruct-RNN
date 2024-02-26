@@ -240,7 +240,7 @@ plt.show()
 
 
 ###compositional inputs
-plot_comp_dots('NN_simData', 'swap', to_plot_models, 'combinedcomp', y_lim=(0.0, 1.0))
+plot_comp_dots('NN_simData', 'swap', ['sbertNetL_lin', 'simpleNet', 'simpleNetPlus'], 'combinedcomp', y_lim=(0.0, 1.0))
 plt.show()
 
 t_mat, p_mat, is_sig = calc_t_test('NN_simData', 'swap', to_plot_models, mode='combinedcomp')

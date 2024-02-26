@@ -23,8 +23,6 @@ from instructRNN.models.sensorimotor_models import InferenceNet
 from instructRNN.instructions.instruct_utils import make_one_hot
 from instructRNN.tasks.tasks import SWAPS_DICT, SUBTASKS_DICT, SUBTASKS_SWAP_DICT
 
-from ruleLearning.rulelearner import get_held_in_indices
-
 if torch.cuda.is_available():
     device = torch.device(0)
     print(torch.cuda.get_device_name(device), flush=True)
