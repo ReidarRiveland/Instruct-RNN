@@ -250,9 +250,6 @@ class InstructNet(BaseNet):
             reduced_state_dict = OrderedDict()
             load_layers = self.langModel.LM_train_layers[:]
 
-            if self.model_name == 'clipNet_lin_tuned' or self.model_name == 'clipNet_tuned': 
-                load_layers += ['bias']
-
             for n, p in self.state_dict().items(): 
                 if 'transformer' not in n or any([layer in n for layer in load_layers]): 
                     reduced_state_dict[n] = p
